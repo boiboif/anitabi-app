@@ -1,67 +1,59 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Text, View } from 'tamagui';
+import { Camera, locationManager, LocationPuck, MapView } from '@rnmapbox/maps';
+import { Locate } from '@tamagui/lucide-icons-2';
+import { toast } from '@tamagui/toast/v2';
+import * as Location from 'expo-location';
+import { useCallback, useEffect, useRef } from 'react';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
-
-const codeProps = {
-  fontFamily: Platform.select({ ios: 'ui-monospace', android: 'monospace', default: 'monospace' }),
-  fontWeight: Platform.select({ android: 700 }) ?? 500,
-  fontSize: 12,
-} as any;
-
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return (
-      <Text fontSize={14} lineHeight={20} fontWeight="500">
-        use browser devtools
-      </Text>
-    );
-  }
-  if (Device.isDevice) {
-    return (
-      <Text fontSize={14} lineHeight={20} fontWeight="500">
-        shake device or press <Text {...codeProps}>m</Text> in terminal
-      </Text>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <Text fontSize={14} lineHeight={20} fontWeight="500">
-      press <Text {...codeProps}>{shortcut}</Text>
-    </Text>
-  );
-}
+const DEFAULT_COORDINATES: [number, number] = [137, 34.5]; // Japan center (southwest)
 
 export default function HomeScreen() {
+  const cameraRef = useRef<Camera>(null);
+
+  useEffect(() => {
+    async function requestAndStart() {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        locationManager.start();
+      }
+    }
+    requestAndStart();
+    return () => locationManager.stop();
+  }, []);
+
+  const handleLocate = useCallback(async () => {
+    return toast.success('Saved!');
+
+    // const { status } = await Location.requestForegroundPermissionsAsync();
+    // if (status !== 'granted') return;
+
+    // const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+    // cameraRef.current?.flyTo([pos.coords.longitude, pos.coords.latitude], 1000);
+  }, []);
+
   return (
-    <View bg="$background" style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <View bg="$background" style={styles.heroSection}>
-          <AnimatedIcon />
-          <Text fontSize={48} fontWeight="600" lineHeight={52} style={styles.title}>
-            Welcome to&nbsp;Expo
-          </Text>
-        </View>
+    <View style={styles.container}>
+      <MapView
+        style={styles.map}
+        styleURL="mapbox://styles/mapbox/standard"
+        compassEnabled
+        compassPosition={{ top: 100, right: 16 }}
+        scaleBarEnabled={false}
+      >
+        <Camera ref={cameraRef} centerCoordinate={DEFAULT_COORDINATES} zoomLevel={4.5} animationMode="none" />
+        <LocationPuck
+          visible
+          puckBearingEnabled
+          puckBearing="heading"
+          pulsing={{ isEnabled: true, color: '#007AFF' }}
+        />
+      </MapView>
 
-        <View>
-          <Text {...codeProps} style={styles.code} color="$primary">
-            get started
-          </Text>
-        </View>
-
-        <View bg="$color3" style={styles.stepContainer}>
-          <HintRow title="Try editing" hint={<Text {...codeProps}>src/app/index.tsx</Text>} />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow title="Fresh start" hint={<Text {...codeProps}>npm run reset-project</Text>} />
-        </View>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
+      <View style={styles.locateButton}>
+        <TouchableOpacity style={styles.locateInner} activeOpacity={0.7} onPress={handleLocate}>
+          <Locate size={24} color="#555" />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -69,35 +61,23 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
   },
-  safeArea: {
+  map: {
     flex: 1,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    gap: 16,
-    paddingBottom: BottomTabInset + 16,
-    maxWidth: MaxContentWidth,
   },
-  heroSection: {
+  locateButton: {
+    position: 'absolute',
+    bottom: 32,
+    right: 16,
+    zIndex: 10,
+  },
+  locateInner: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: 24,
-    gap: 24,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: 16,
-    alignSelf: 'stretch',
-    paddingHorizontal: 16,
-    paddingVertical: 24,
-    borderRadius: 24,
+    boxShadow: '0 0 10px 0 rgba(0, 0, 0, 0.2)',
   },
 });

@@ -11,11 +11,7 @@ export function ThemeSwitch(props: ThemeSwitchProps) {
       size="$3"
       padding="$1"
     >
-      <Switch.Thumb
-        style={{ height: '100%', aspectRatio: 1 }}
-        backgroundColor="$white"
-        transition="quickest"
-      />
+      <Switch.Thumb style={{ height: '100%', aspectRatio: 1 }} backgroundColor="$white" transition="quickest" />
     </Switch>
   );
 }
