@@ -7,7 +7,7 @@
 - https://www.anitabi.cn/d/g0.json?d=qhs3 （只有首次进入页面时，会发送5个请求g0-g5.json）
 
 ```ts
-// 返回数据示例
+// 返回数据示例 值为0代表空 any[][]
 [
   [
     106372, // bangumiId
@@ -48,32 +48,41 @@
 - https://www.anitabi.cn/d/g.json?d=qhs2
 
 ```ts
-// 返回数据示例 值为0代表空
+// 返回数据示例 值为0代表空 [any[][], number, number]
 [
   [
-    226956, // id
-    '', // cn
-    0, // en
-    'SeaBed', // title
-    '神户市', // city
-    '#53abb2', // color
-    '/images/bangumi/226956.jpg', // cover
-    8.5, // fade
-    '游戏', // cat
-    6.19643, // geo[0]
-    134.099687, // geo[1]
-    1.1, // zoom
     [
-      'kuk6a9t6z', // points[0].id
-      34.737722, // points[0].geo[0]
-      135.347341, // points[0].geo[1]
-      1272, // points[0].priority
+      226956, // id
+      '', // cn
+      0, // en
+      'SeaBed', // title
+      '神户市', // city
+      '#53abb2', // color
+      '/images/bangumi/226956.jpg', // cover
+      8.5, // fade
+      '游戏', // cat
+      6.19643, // geo[0]
+      134.099687, // geo[1]
+      1.1, // zoom
+      [
+        // 这里会有多个点
+        'kuk6a9t6z', // points[0].id
+        34.737722, // points[0].geo[0]
+        135.347341, // points[0].geo[1]
+        1272, // points[0].priority、
+        '4ui73krj7', // points[1].id
+        35.694206, // points[11].geo[0]
+        139.700618, // points[1].geo[1]
+        2, // points[1].priority
+      ],
+      0, // abbr 缩写
+      0, // tags 值除了0还可能是空数组
+      null, // priority
+      '/images/icon/226956.jpg', // icon
     ],
-    0, // abbr 缩写
-    0, // tags 值除了0还可能是空数组
-    null, // priority
-    '/images/icon/226956.jpg', // icon
   ],
+  250,
+  1780056279581,
 ];
 ```
 
@@ -101,6 +110,7 @@ type Bangumi = {
   cat?: string; // 分类
   geo?: [number, number]; // 位置
   zoom?: number; // 地图缩放度
+  modified?: number; // 修改时间戳
   points?: {
     id: string;
     name?: string; // 点位名称
@@ -116,7 +126,9 @@ type Bangumi = {
     origin?: string; // 来源
     originLink?: string; // 来源地址
     folder?: string;
-    density?: number;
+    density?: number; // 密度
+    priority: number; // 优先级
+    geo: [number, number]; // 地理位置
   }[];
   theme: {
     // 主题

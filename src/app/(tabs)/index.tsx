@@ -1,59 +1,59 @@
-import { Camera, locationManager, LocationPuck, MapView } from '@rnmapbox/maps';
-import { Locate } from '@tamagui/lucide-icons-2';
-import { toast } from '@tamagui/toast/v2';
-import * as Location from 'expo-location';
-import { useCallback, useEffect, useRef } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
-
-const DEFAULT_COORDINATES: [number, number] = [137, 34.5]; // Japan center (southwest)
+import LoadingBadge from '@/components/loading-badge';
+import LocateButton from '@/components/locate-button';
+import MapContainer from '@/components/map-container';
+import { fetchMapData } from '@/services/map-data';
+import type { AssembledData, FetchProgress } from '@/services/types';
+import type { Camera } from '@rnmapbox/maps';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View } from 'tamagui';
 
 export default function HomeScreen() {
   const cameraRef = useRef<Camera>(null);
+  const insets = useSafeAreaInsets();
+  const [progress, setProgress] = useState<FetchProgress | null>({
+    phase: 'checking',
+    message: '检查数据更新…',
+  });
+  const [data, setData] = useState<AssembledData | null>(null);
 
   useEffect(() => {
-    async function requestAndStart() {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
-        locationManager.start();
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const result = await fetchMapData((p) => {
+          if (!cancelled) setProgress(p);
+        });
+        if (!cancelled) {
+          setData(result);
+          console.log('data', result);
+          setProgress(null);
+        }
+      } catch (e) {
+        console.error('fetchMapData error:', e);
+        if (!cancelled) setProgress({ phase: 'error', message: '数据加载失败' });
       }
     }
-    requestAndStart();
-    return () => locationManager.stop();
+
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleLocate = useCallback(async () => {
-    return toast.success('Saved!');
-
-    // const { status } = await Location.requestForegroundPermissionsAsync();
-    // if (status !== 'granted') return;
-
-    // const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-    // cameraRef.current?.flyTo([pos.coords.longitude, pos.coords.latitude], 1000);
+    // TODO: locate user
   }, []);
 
   return (
     <View style={styles.container}>
-      <MapView
-        style={styles.map}
-        styleURL="mapbox://styles/mapbox/standard"
-        compassEnabled
-        compassPosition={{ top: 100, right: 16 }}
-        scaleBarEnabled={false}
-      >
-        <Camera ref={cameraRef} centerCoordinate={DEFAULT_COORDINATES} zoomLevel={4.5} animationMode="none" />
-        <LocationPuck
-          visible
-          puckBearingEnabled
-          puckBearing="heading"
-          pulsing={{ isEnabled: true, color: '#007AFF' }}
-        />
-      </MapView>
+      <MapContainer ref={cameraRef} insets={insets} bangumis={data?.data.bangumis ?? []} />
 
-      <View style={styles.locateButton}>
-        <TouchableOpacity style={styles.locateInner} activeOpacity={0.7} onPress={handleLocate}>
-          <Locate size={24} color="#555" />
-        </TouchableOpacity>
-      </View>
+      {progress && <LoadingBadge progress={progress} insets={insets} />}
+
+      <LocateButton onPress={handleLocate} />
     </View>
   );
 }
@@ -61,23 +61,5 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  map: {
-    flex: 1,
-  },
-  locateButton: {
-    position: 'absolute',
-    bottom: 32,
-    right: 16,
-    zIndex: 10,
-  },
-  locateInner: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxShadow: '0 0 10px 0 rgba(0, 0, 0, 0.2)',
   },
 });

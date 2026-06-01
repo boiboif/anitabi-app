@@ -8,9 +8,10 @@ import Constants from 'expo-constants';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useColorScheme } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Toaster } from 'sonner-native';
 import { TamaguiProvider } from 'tamagui';
-import { Toaster } from '@tamagui/toast/v2';
 
 const MAPBOX_ACCESS_TOKEN = Constants.expoConfig?.extra?.mapboxAccessToken as string | undefined;
 
@@ -44,27 +45,29 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <ThemeOverrideContext.Provider value={{ theme, setTheme }}>
-        <TamaguiProvider config={tamaguiConfig} defaultTheme={theme}>
-          <ThemeProvider value={theme === 'dark' ? DarkTheme : DefaultTheme}>
-            <AnimatedSplashOverlay />
-            <Toaster position="top-center" />
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen
-                name="dark-mode"
-                options={{
-                  presentation: 'modal',
-                  animation: 'ios_from_right',
-                  headerShown: true,
-                  headerTitleAlign: 'center',
-                  title: '深色模式',
-                }}
-              />
-            </Stack>
-          </ThemeProvider>
-        </TamaguiProvider>
-      </ThemeOverrideContext.Provider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <ThemeOverrideContext.Provider value={{ theme, setTheme }}>
+          <TamaguiProvider config={tamaguiConfig} defaultTheme={theme}>
+            <ThemeProvider value={theme === 'dark' ? DarkTheme : DefaultTheme}>
+              <AnimatedSplashOverlay />
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen
+                  name="dark-mode"
+                  options={{
+                    presentation: 'modal',
+                    animation: 'ios_from_right',
+                    headerShown: true,
+                    headerTitleAlign: 'center',
+                    title: '深色模式',
+                  }}
+                />
+              </Stack>
+              <Toaster enableStacking position="center" duration={1000} />
+            </ThemeProvider>
+          </TamaguiProvider>
+        </ThemeOverrideContext.Provider>
+      </GestureHandlerRootView>
     </SafeAreaProvider>
   );
 }

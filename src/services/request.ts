@@ -1,6 +1,6 @@
-import { toast } from '@tamagui/toast/v2';
 import type { AxiosError } from 'axios';
 import axios from 'axios';
+import { toast } from 'sonner-native';
 
 const codeMessage: Record<string, string> = {
   200: '服务器成功返回请求的数据。',
@@ -23,7 +23,7 @@ const codeMessage: Record<string, string> = {
 
 const service = axios.create({
   withCredentials: false,
-  timeout: 10000,
+  timeout: 15000,
 });
 // request interceptor
 service.interceptors.request.use(
