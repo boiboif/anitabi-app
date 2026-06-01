@@ -3183,6 +3183,11 @@ ansi-styles@^5.0.0:
   resolved "https://registry.npmjs.org/ansi-styles/-/ansi-styles-5.2.0.tgz"
   integrity sha512-Cxwpt2SfTzTtXcfOlzGEee8O+c+MmUgGrNiBcXnuWxuFJHe6a5Hz7qwhwe5OgaSYI0IJvkLqWX1ASG+cJOkEiA==
 
+arg@^4.1.0:
+  version "4.1.3"
+  resolved "https://registry.npmjs.org/arg/-/arg-4.1.3.tgz#269fc7ad5b8e42cb63c896d5666017261c144089"
+  integrity sha512-58S9QDqG0Xx27YwPSt9fJxivjYl432YCwfDMfZ+71RAqUrZef7LrKQZ3LHLOwCS4FLNBplP533Zx895SeOCHvA==
+
 arg@^5.0.2:
   version "5.0.2"
   resolved "https://registry.npmjs.org/arg/-/arg-5.0.2.tgz"
@@ -3838,6 +3843,11 @@ domutils@^3.0.1:
     domelementtype "^2.3.0"
     domhandler "^5.0.3"
 
+dotenv@^17.4.2:
+  version "17.4.2"
+  resolved "https://registry.npmjs.org/dotenv/-/dotenv-17.4.2.tgz#c07e54a746e11eba021dd9e1047ced5afdc1c034"
+  integrity sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==
+
 dunder-proto@^1.0.1:
   version "1.0.1"
   resolved "https://registry.npmjs.org/dunder-proto/-/dunder-proto-1.0.1.tgz#d7ae667e1dc83482f8b70fd0f6eefc50da30f58a"
@@ -4016,12 +4026,49 @@ expo-constants@~56.0.16:
   dependencies:
     "@expo/env" "~2.3.0"
 
+expo-dev-client@~56.0.18:
+  version "56.0.18"
+  resolved "https://registry.npmjs.org/expo-dev-client/-/expo-dev-client-56.0.18.tgz#dc63aee8f5ee3f9f0dc82ccb5b8607121acca515"
+  integrity sha512-pTfDcYTOvrs4vCgAaM+vP2OEO93oGkczgGpTAzCY7ZTIvtPhpekJURHBxfOnKvfn97IF3Hk+8J9tMozsNDj0Gw==
+  dependencies:
+    expo-dev-launcher "~56.0.18"
+    expo-dev-menu "~56.0.16"
+    expo-dev-menu-interface "~56.0.0"
+    expo-manifests "~56.0.4"
+    expo-updates-interface "~56.0.1"
+
+expo-dev-launcher@~56.0.18:
+  version "56.0.18"
+  resolved "https://registry.npmjs.org/expo-dev-launcher/-/expo-dev-launcher-56.0.18.tgz#483053847e2e0ca296eca9a9374435fa1157a7c9"
+  integrity sha512-7acFJlkAbp3cMz7Uy787todMR/3A/Row2EOPD21RRoetvzJe4DTm9s7RwJ8PDtyNyued9rooD4+Q6rD8ijpTgw==
+  dependencies:
+    "@expo/schema-utils" "^56.0.0"
+    expo-dev-menu "~56.0.16"
+    expo-manifests "~56.0.4"
+
+expo-dev-menu-interface@~56.0.0:
+  version "56.0.1"
+  resolved "https://registry.npmjs.org/expo-dev-menu-interface/-/expo-dev-menu-interface-56.0.1.tgz#2e072832775c5a5fba8fd1630095c5f905f10583"
+  integrity sha512-odATx0ZL/Kis10sKSBiKiGQxAB6coSi/KQtKcMhnQVNno6FkRh5/4e5BqcEvpq2rNMTiQp4ytNAQHtdwbPXvGA==
+
+expo-dev-menu@~56.0.16:
+  version "56.0.16"
+  resolved "https://registry.npmjs.org/expo-dev-menu/-/expo-dev-menu-56.0.16.tgz#64e322432998f5b35f5a1c848d261febb34ea8ff"
+  integrity sha512-aVgoe+YGhrQnpwiB5BRI7G+uQnGHMUij32bBnEVdc6eJrVZCStxQlV9NeFbbXxrDhLJt6OSqbCHbLR+XToWUUA==
+  dependencies:
+    expo-dev-menu-interface "~56.0.0"
+
 expo-device@~56.0.4:
   version "56.0.4"
   resolved "https://registry.npmjs.org/expo-device/-/expo-device-56.0.4.tgz"
   integrity sha512-ucVcGPkvBrl2QHuy7XcYex2Y6BETvJ6TREutZrwLGUDnlvbpKS8KfQoNZOpvkyo5Nmm9RrasYQ0CrXmBHho2mg==
   dependencies:
     ua-parser-js "^0.7.33"
+
+expo-eas-client@~56.0.0:
+  version "56.0.1"
+  resolved "https://registry.npmjs.org/expo-eas-client/-/expo-eas-client-56.0.1.tgz#cf37ac0f9ca318c90e325f72fbdd904d4428f047"
+  integrity sha512-r8h0ZIExacCrSRgY+ARfhMvFqosLHLJt1L7jyhvabfr1DN/ZDKDsYbovss2tzkpEUZGxZ3BPcB5epCwUsBBdOA==
 
 expo-file-system@~56.0.7:
   version "56.0.7"
@@ -4059,6 +4106,11 @@ expo-image@~56.0.9:
   dependencies:
     sf-symbols-typescript "^2.2.0"
 
+expo-json-utils@~56.0.0:
+  version "56.0.0"
+  resolved "https://registry.npmjs.org/expo-json-utils/-/expo-json-utils-56.0.0.tgz#ddf903e571c3d985ca670c028d06970926a1d3e0"
+  integrity sha512-lUqyv9aIGDbYTQ5Nux2FnH2/Dz0w5uJ8Pr080eS0StXi2jr5OmuMNErpzUnpfnYOU55xKotd4AHv68PfV/ludg==
+
 expo-keep-awake@~56.0.3:
   version "56.0.3"
   resolved "https://registry.npmjs.org/expo-keep-awake/-/expo-keep-awake-56.0.3.tgz"
@@ -4078,6 +4130,13 @@ expo-location@~56.0.14:
   integrity sha512-k9p6mR11o5S0R4yUs3uWLJfnSk6XIB9UIgSYiNu2goGLWb2f0sazuZ0iYhuc2p2wIsdidhpL/51ZXjtZl5JCOg==
   dependencies:
     "@expo/image-utils" "^0.10.1"
+
+expo-manifests@~56.0.4:
+  version "56.0.4"
+  resolved "https://registry.npmjs.org/expo-manifests/-/expo-manifests-56.0.4.tgz#ae3ac93868cb0fb3940ab43b166a98f82e24a00f"
+  integrity sha512-Fokawl2UkiExIF0bqGoblRFA8lYpROVD+EpvDwSW4LgqQyPwNua1gLSgHZjdl5GsVugfRMMWE3LHaibDyX93hw==
+  dependencies:
+    expo-json-utils "~56.0.0"
 
 expo-modules-autolinking@~56.0.14:
   version "56.0.14"
@@ -4156,6 +4215,11 @@ expo-status-bar@~56.0.4:
   resolved "https://registry.npmjs.org/expo-status-bar/-/expo-status-bar-56.0.4.tgz"
   integrity sha512-IGs/fDfkHXofy2ZQrGiXayhFK04HB85FZXorhcEhDZEcqASKgSqpak+HwUtAaR0MeTJwWyHNF7I6VmVbbp8EcA==
 
+expo-structured-headers@~56.0.0:
+  version "56.0.0"
+  resolved "https://registry.npmjs.org/expo-structured-headers/-/expo-structured-headers-56.0.0.tgz#7b21c20e08d7f29eaa7fc0ce11a2c34844d6448f"
+  integrity sha512-Yv4x+SQxNnMQm4nu8NFfzx197YaDhdYH2N0u7tGErwWTmH9Tm1SAhqo7bLbBWLC9kf7W+kdzTshLU9rTiCXWGw==
+
 expo-symbols@^56.0.5, expo-symbols@~56.0.5:
   version "56.0.5"
   resolved "https://registry.npmjs.org/expo-symbols/-/expo-symbols-56.0.5.tgz"
@@ -4171,6 +4235,32 @@ expo-system-ui@~56.0.5:
   dependencies:
     "@react-native/normalize-colors" "0.85.3"
     debug "^4.3.2"
+
+expo-updates-interface@~56.0.1:
+  version "56.0.2"
+  resolved "https://registry.npmjs.org/expo-updates-interface/-/expo-updates-interface-56.0.2.tgz#39ad3894535901773419a477cb478df95df9e38c"
+  integrity sha512-eWTwSZ9y8vrULG2oBn2TQSSIwBGSq/TxGJ3jY6tuVS2FWH/ASRIiKs3zkUZTRoC3ZuV2alz0mUClYV7nNrFx8g==
+
+expo-updates@~56.0.17:
+  version "56.0.17"
+  resolved "https://registry.npmjs.org/expo-updates/-/expo-updates-56.0.17.tgz#c1a18bb789b828986637b96daa47e62ff0a72077"
+  integrity sha512-4005IRQQ7Vpwb01X3NSG0SwY61HTJzT2pZ0OrkeZ6guQE1WKiRfUKisekRgYXTI8sPbxSHUc9aOpIx6yC49XZQ==
+  dependencies:
+    "@expo/code-signing-certificates" "^0.0.6"
+    "@expo/plist" "^0.7.0"
+    "@expo/spawn-async" "^1.8.0"
+    arg "^4.1.0"
+    chalk "^4.1.2"
+    debug "^4.3.4"
+    expo-eas-client "~56.0.0"
+    expo-manifests "~56.0.4"
+    expo-structured-headers "~56.0.0"
+    expo-updates-interface "~56.0.1"
+    getenv "^2.0.0"
+    glob "^13.0.0"
+    ignore "^5.3.1"
+    nullthrows "^1.1.1"
+    resolve-from "^5.0.0"
 
 expo-web-browser@~56.0.5:
   version "56.0.5"

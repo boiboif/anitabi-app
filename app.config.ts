@@ -1,3 +1,6 @@
+import { config as dotenvConfig } from 'dotenv';
+dotenvConfig({ path: '.env.local' });
+
 import type { ExpoConfig } from 'expo/config';
 
 const config: ExpoConfig = {
@@ -51,6 +54,9 @@ const config: ExpoConfig = {
   },
   extra: {
     mapboxAccessToken: process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN,
+    eas: {
+      projectId: process.env.EXPO_PROJECT_ID,
+    },
   },
 };
 

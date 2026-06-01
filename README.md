@@ -1,56 +1,142 @@
-# Welcome to your Expo app 👋
+# Anitabi App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+> 🚧 **开发初期** — 项目正在初期迭代中，功能和 API 可能随时变化。
 
-## Get started
+一个基于 Expo 的圣地巡礼（Anime Pilgrimage / Seichi Junrei）移动端地图应用，展示日本动漫取景地（圣地）在世界地图上的点位。数据源来自 [anitabi.cn](https://www.anitabi.cn)。
 
-1. Install dependencies
+### 为什么做这个
 
-   ```bash
-   npm install
-   ```
+前段时间去日本旅行时用了 anitabi 网页端，体验不太理想。索性自己写一个趁手的 App，下次去旅行时圣地巡礼能更方便。
 
-2. Start the app
+## 当前状态
 
-   ```bash
-   npx expo start
-   ```
+目前已实现地图容器和番剧点位渲染的基础框架，正在进行功能开发。详见下方 Roadmap。
 
-In the output, you'll find options to open the app in a
+## 计划功能
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- [x] 深色模式
+- [x] 地图基础渲染（Mapbox）
+- [x] 地图番剧巡礼点展示
+- [ ] 番剧、巡礼点搜索
+- [ ] 地图按照番剧筛选巡礼点
+- [ ] 巡礼点位详情
+- [ ] 巡礼点收藏
+- [ ] 我的巡礼路线
+- [ ] 拍照并生成巡礼对比图
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## 技术栈
 
-## Get a fresh project
+| 类别 | 技术                                       |
+| ---- | ------------------------------------------ |
+| 框架 | Expo SDK 56 / React Native 0.85 / React 19 |
+| 路由 | expo-router（文件路由）                    |
+| 地图 | @rnmapbox/maps                             |
+| UI   | Tamagui（styled-components 设计系统）      |
+| 状态 | Zustand + React Context                    |
+| 网络 | Axios + 请求处理器工厂                     |
+| 存储 | react-native-mmkv                          |
+| 动画 | react-native-reanimated                    |
+| 图标 | @tamagui/lucide-icons-2                    |
+| 构建 | EAS Build（dev / preview / production）    |
 
-When you're ready, run:
+## 快速开始
+
+### 前置要求
+
+- Node.js >= 18
+- Expo CLI：`npx expo --version`
+- iOS 开发：Xcode（macOS）
+- Android 开发：Android Studio + 模拟器，或真机 ADB 无线调试
+- 一个 [Mapbox 账号](https://account.mapbox.com/) 并获取 Access Token
+
+### 安装
 
 ```bash
-npm run reset-project
+git clone <repo-url>
+cd anitabi-app
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### 环境变量
 
-### Other setup steps
+在项目根目录创建 `.env.local`：
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+```env
+EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN=你的_mapbox_token
+EXPO_PROJECT_ID=你的_expo_project_id
+```
 
-## Learn more
+### 运行
 
-To learn more about developing your project with Expo, look at the following resources:
+```bash
+# 开发服务器（Expo Go / 开发构建）
+npm start
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+# 直连 Android 开发构建（真机或模拟器）
+npm run android
 
-## Join the community
+# 直连 iOS 模拟器
+npm run ios
 
-Join our community of developers creating universal apps.
+# Web 版（RN Web）
+npm run web
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## 项目结构
+
+```
+anitabi-app/
+├── app.config.ts           # Expo 配置（scheme、插件、地图 token）
+├── assets/                 # 图标、启动屏图片资源
+├── docs/
+│   └── anitabi-api.md      # anitabi.cn API 数据格式文档
+└── src/
+    ├── tamagui.config.ts   # Tamagui 主题（primary: #FB7299）
+    ├── app/                # Expo Router 文件路由
+    │   ├── _layout.tsx     # 根布局（Tamagui、主题、Splash）
+    │   ├── (tabs)/         # 标签页组
+    │   │   ├── _layout.tsx # 标签布局
+    │   │   ├── index.tsx   # 主页地图
+    │   │   └── profile.tsx # 我的页面
+    │   └── dark-mode.tsx   # 深色模式设置
+    ├── components/         # UI 组件
+    │   ├── map-container   # Mapbox 地图容器
+    │   ├── map-markers     # 点位标记（zoom 密度过滤）
+    │   ├── bangumi-icons   # 番剧图标雪碧图
+    │   ├── search-box      # 搜索框
+    │   └── ...
+    ├── lib/                # 工具库
+    │   ├── storage.ts      # MMKV 配置持久化
+    │   └── map-storage.ts  # 地图数据缓存
+    ├── services/           # 数据层
+    │   ├── request.ts      # Axios 实例
+    │   ├── createHandler   # API 处理器工厂
+    │   ├── handlers.ts     # 处理器实例
+    │   ├── api.ts          # 端点定义
+    │   ├── map-data.ts     # 数据拉取 + 组装
+    │   └── types.ts        # 类型定义
+    └── store/
+        └── use-selected-bangumi.ts  # Zustand store
+```
+
+## 数据流
+
+1. **启动** → 检查 MMKV 缓存版本号（`g-modified` 时间戳）
+2. **缓存可用** → 直接加载本地数据，显示地图
+3. **缓存过期/缺失** → 全量拉取 → 合并番剧元数据与详情 → 写入 MMKV
+4. 加载过程中通过 `FetchProgress` 回调驱动 UI 进度指示
+
+## 脚本
+
+| 命令                  | 说明                 |
+| --------------------- | -------------------- |
+| `npm start`           | 启动 Expo 开发服务器 |
+| `npm run android`     | Android 开发构建     |
+| `npm run ios`         | iOS 模拟器构建       |
+| `npm run web`         | Web 版               |
+| `npm run lint`        | ESLint 检查          |
+| `npm run adb-connect` | ADB 无线调试连接     |
+
+## 许可
+
+MIT
