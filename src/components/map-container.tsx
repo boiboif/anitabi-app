@@ -30,7 +30,8 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer({ insets, b
   return (
     <MapView
       style={styles.map}
-      styleURL="mapbox://styles/mapbox/standard"
+      styleURL="mapbox://styles/mapbox/streets-v12"
+      localizeLabels={{ locale: 'zh' }}
       compassEnabled
       compassPosition={{ top: insets.top + 80, right: 16 }}
       scaleBarEnabled={false}

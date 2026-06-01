@@ -15,8 +15,10 @@ const ICON_HIDE_ZOOM = 11.5;
 /** 图标图片的基础像素尺寸（宽度），作为重叠阈值基准 */
 const ICON_BASE_SIZE = 60;
 
-/** 重叠阈值倍率：实际阈值 = ICON_BASE_SIZE * OVERLAP_MULTIPLIER */
-const OVERLAP_MULTIPLIER = 0.5;
+const ICON_SCALE = 0.5;
+
+/** 重叠阈值倍率：实际阈值 = ICON_BASE_SIZE * ICON_SCALE * OVERLAP_MULTIPLIER */
+const OVERLAP_MULTIPLIER = 1.2;
 
 /** 雪碧图加载最大重试次数 */
 const SPRITE_MAX_RETRIES = 3;
@@ -61,7 +63,7 @@ function selectVisible(
   prevZoom: number | null,
   prevVisibleIds: Set<number>,
 ): { visible: Bangumi[]; visibleIds: Set<number> } {
-  const thresholdPx = ICON_BASE_SIZE * OVERLAP_MULTIPLIER;
+  const thresholdPx = ICON_BASE_SIZE * ICON_SCALE * OVERLAP_MULTIPLIER;
   const sorted = [...candidates].sort((a, b) => (b.priority ?? -Infinity) - (a.priority ?? -Infinity));
 
   const isZoomingIn = prevZoom !== null && zoom > prevZoom;
@@ -260,7 +262,7 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
           id="bangumi-icons-layer"
           style={{
             iconImage: ['get', 'iconImage'],
-            iconSize: OVERLAP_MULTIPLIER,
+            iconSize: ICON_SCALE,
             iconAllowOverlap: true,
             iconAnchor: 'bottom',
             textField: ['get', 'label'],
@@ -272,7 +274,7 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
             textHaloWidth: 1,
             textAllowOverlap: true,
             textOptional: true,
-            textOffset: [0, 0.4],
+            textOffset: [0, 0],
             textAnchor: 'top',
           }}
         />

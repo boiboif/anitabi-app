@@ -14,13 +14,13 @@ export default function LocateButton({ onPress }: Props) {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   wrapper: {
     position: 'absolute',
     bottom: 130,
-    right: 16,
+    right: 12,
     zIndex: 10,
+    padding: 4,
   },
   button: {
     width: 44,
@@ -29,6 +29,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
-    boxShadow: '0 0 10px 0 rgba(0, 0, 0, 0.2)',
+    boxShadow: '0 0 4px 0 rgba(0, 0, 0, 0.2)',
   },
 });
