@@ -1,6 +1,7 @@
 import LoadingBadge from '@/components/loading-badge';
 import LocateButton from '@/components/locate-button';
 import MapContainer from '@/components/map-container';
+import SearchBox from '@/components/search-box';
 import { fetchMapData } from '@/services/map-data';
 import type { AssembledData, FetchProgress } from '@/services/types';
 import type { Camera } from '@rnmapbox/maps';
@@ -50,6 +51,8 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <MapContainer ref={cameraRef} insets={insets} bangumis={data?.data.bangumis ?? []} />
+
+      <SearchBox insets={insets} />
 
       {progress && <LoadingBadge progress={progress} insets={insets} />}
 

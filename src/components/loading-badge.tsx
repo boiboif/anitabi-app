@@ -28,8 +28,8 @@ export default function LoadingBadge({ progress, insets }: Props) {
       <View
         style={{
           position: 'absolute',
-          top: insets.top + 8,
-          left: 8,
+          top: insets.top + 80,
+          left: 16,
           zIndex: 20,
           elevation: 4,
         }}
@@ -39,8 +39,8 @@ export default function LoadingBadge({ progress, insets }: Props) {
           borderWidth={1}
           borderColor="$red7"
           style={{
-            paddingHorizontal: 12,
-            paddingVertical: 6,
+            paddingHorizontal: 10,
+            paddingVertical: 4,
             borderRadius: 10,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 1 },
@@ -48,7 +48,7 @@ export default function LoadingBadge({ progress, insets }: Props) {
             shadowRadius: 4,
           }}
         >
-          <Text fontSize={12} color="$red10" fontWeight="600">
+          <Text fontSize={10} color="$red10" fontWeight="600">
             {progress.message}
           </Text>
         </YStack>
@@ -62,8 +62,8 @@ export default function LoadingBadge({ progress, insets }: Props) {
     <View
       style={{
         position: 'absolute',
-        top: insets.top + 8,
-        left: 8,
+        top: insets.top + 80,
+        left: 16,
         zIndex: 20,
         elevation: 4,
       }}
@@ -74,8 +74,8 @@ export default function LoadingBadge({ progress, insets }: Props) {
         borderColor="$primary"
         gap={4}
         style={{
-          paddingHorizontal: 12,
-          paddingVertical: 6,
+          paddingHorizontal: 10,
+          paddingVertical: 4,
           borderRadius: 10,
           minWidth: 120,
           shadowColor: '#000',
@@ -84,15 +84,10 @@ export default function LoadingBadge({ progress, insets }: Props) {
           shadowRadius: 4,
         }}
       >
-        <Text fontSize={11} color="$color" fontWeight="400">
+        <Text fontSize={10} color="$color" fontWeight="400">
           {progress.message}
         </Text>
-        <Progress
-          value={getProgressValue(progress)}
-          background="$pink3"
-          size="$3"
-          style={{ borderRadius: 4 }}
-        >
+        <Progress value={getProgressValue(progress)} background="$pink3" size="$3" style={{ borderRadius: 4 }}>
           <Progress.Indicator background="$primary" style={{ borderRadius: 4 }} />
         </Progress>
       </YStack>

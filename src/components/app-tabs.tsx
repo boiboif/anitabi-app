@@ -3,11 +3,11 @@ import { Home, User } from '@tamagui/lucide-icons-2';
 import { BlurView } from 'expo-blur';
 import { usePathname } from 'expo-router';
 import { TabList, Tabs, TabSlot, TabTrigger } from 'expo-router/ui';
-import { Platform, Pressable, Text, View } from 'react-native';
-import { useTheme } from 'tamagui';
+import { Platform, Pressable, Text } from 'react-native';
+import { getTokens, useTheme, View } from 'tamagui';
 
 const TAB_CONFIG = [
-  { name: 'index', label: 'Home', icon: Home },
+  { name: 'index', label: '地图', icon: Home },
   { name: 'profile', label: '我的', icon: User },
 ] as const;
 
@@ -58,28 +58,22 @@ export default function AppTabs() {
       </TabList>
 
       {/* Floating tab bar */}
-      <View
-        style={{
-          position: 'absolute',
-          bottom: Platform.OS === 'ios' ? 54 : 34,
-          left: 16,
-          right: 16,
-          borderRadius: 24,
-          overflow: 'visible',
-          boxShadow: theme === 'light' ? '0 0 10px 0 rgba(0, 0, 0, 0.1)' : '0 0 10px 0 rgba(255, 255, 255, 0.1)',
-        }}
-      >
+      <View rounded="$9" position="absolute" b={Platform.OS === 'ios' ? 54 : 34} l="$2.5" r="$2.5" p="$1.5">
         <BlurView
           intensity={80}
-          tint={theme === 'dark' ? 'dark' : 'light'}
-          style={{ borderRadius: 24, overflow: 'hidden' }}
+          tint={theme}
+          style={{
+            borderRadius: getTokens().radius['9'].val,
+            overflow: 'hidden',
+            boxShadow: theme === 'light' ? '0 0 10px 0 rgba(0, 0, 0, 0.1)' : '0 0 10px 0 rgba(255, 255, 255, 0.1)',
+          }}
         >
           <View
             style={{
               flexDirection: 'row',
               paddingVertical: 4,
               paddingHorizontal: 8,
-              borderRadius: 24,
+              borderRadius: getTokens().radius['9'].val,
             }}
           >
             {TAB_CONFIG.map((tab) => (

@@ -1,5 +1,5 @@
 import { getBangumiIcons } from '@/services/api';
-import { bangumiSpriteUrl } from '@/services/handlers';
+import { baseUrl } from '@/services/handlers';
 import type { Bangumi } from '@/services/types';
 import { Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
@@ -132,6 +132,7 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
   const [allowedIds, setAllowedIds] = useState<Set<number> | null>(null);
   const [allowedIdsList, setAllowedIdsList] = useState<number[]>([]);
   const [spriteCache, setSpriteCache] = useState<Map<number, string> | null>(null);
+  const [spriteUrl, setSpriteUrl] = useState<string | null>(null);
 
   useEffect(() => {
     getBangumiIcons()
@@ -139,6 +140,7 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
         const ids = resp.ids.map(Number);
         setAllowedIds(new Set(ids));
         setAllowedIdsList(ids);
+        setSpriteUrl(`${baseUrl}${resp.src}`);
       })
       .catch((err) => {
         console.error('获取有图标的番剧列表失败:', err);
@@ -147,10 +149,9 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
 
   // 2. 下载雪碧图并裁剪所有 icon（失败时指数退避重试）
   useEffect(() => {
-    if (!allowedIdsList.length) return;
+    if (!spriteUrl || !allowedIdsList.length) return;
     let cancelled = false;
     let retries = 0;
-    const spriteUrl = bangumiSpriteUrl;
 
     const loadSprite = async () => {
       try {
@@ -181,7 +182,7 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [allowedIdsList]);
+  }, [spriteUrl, allowedIdsList]);
 
   // 3. 过滤 + 重叠处理（带单调性保证）
   const prevZoomRef = useRef<number | null>(null);

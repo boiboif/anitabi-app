@@ -1,5 +1,6 @@
 import { Locate } from '@tamagui/lucide-icons-2';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity } from 'react-native';
+import { View } from 'tamagui';
 
 type Props = {
   onPress?: () => void;
@@ -7,7 +8,7 @@ type Props = {
 
 export default function LocateButton({ onPress }: Props) {
   return (
-    <View style={styles.wrapper}>
+    <View r="$2.5" p="$1.5" z={10} position="absolute" b={130}>
       <TouchableOpacity style={styles.button} activeOpacity={0.7} onPress={onPress}>
         <Locate size={24} color="#555" />
       </TouchableOpacity>
@@ -15,13 +16,6 @@ export default function LocateButton({ onPress }: Props) {
   );
 }
 const styles = StyleSheet.create({
-  wrapper: {
-    position: 'absolute',
-    bottom: 130,
-    right: 12,
-    zIndex: 10,
-    padding: 4,
-  },
   button: {
     width: 44,
     height: 44,

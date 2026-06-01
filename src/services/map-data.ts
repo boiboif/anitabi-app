@@ -122,7 +122,7 @@ const G_JSON_URLS = [getG0JSON, getG1JSON, getG2JSON, getG3JSON, getG4JSON, getG
 
 export async function fetchMapData(onProgress?: (p: FetchProgress) => void): Promise<AssembledData> {
   // 1. 检查本地缓存
-  onProgress?.({ phase: 'checking', message: '检查缓存…' });
+  onProgress?.({ phase: 'checking', message: '检查缓存是否过时…' });
 
   const cachedModified = getGModified();
   const cachedData = getCachedData();
@@ -146,19 +146,19 @@ export async function fetchMapData(onProgress?: (p: FetchProgress) => void): Pro
 }
 
 async function fetchFull(onProgress?: (p: FetchProgress) => void): Promise<AssembledData> {
-  onProgress?.({ phase: 'downloading', batch: 0, message: '拉取番剧列表…' });
+  onProgress?.({ phase: 'downloading', batch: 0, message: '加载番剧列表…' });
 
   // 先拉 g.json 获取基础信息
   const gRaw = (await getGJSON()) as [RawGBangumi[], number, number];
   const gList = gRaw[0] as RawGBangumi[];
 
-  onProgress?.({ phase: 'downloading', batch: 1, message: '拉取数据 1/6…' });
+  onProgress?.({ phase: 'downloading', batch: 1, message: '加载数据 1/6…' });
 
   // 并行拉取 g0-g5
   const detailResults = await Promise.allSettled(
     G_JSON_URLS.map((fn, i) =>
       fn().then((data) => {
-        onProgress?.({ phase: 'downloading', batch: i + 2, message: `拉取数据 ${i + 2}/6…` });
+        onProgress?.({ phase: 'downloading', batch: i + 2, message: `加载数据 ${i + 2}/6…` });
         return data as RawGDetail[];
       }),
     ),
