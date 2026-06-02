@@ -10,7 +10,7 @@
 
 ## 当前状态
 
-目前已实现地图容器和番剧点位渲染的基础框架，正在进行功能开发。详见下方 Roadmap。
+锐意制作中！目前已实现地图容器和番剧点位渲染的基础框架，正在进行功能开发。详见下方 Roadmap。
 
 ## 计划功能
 
@@ -54,7 +54,7 @@
 ```bash
 git clone <repo-url>
 cd anitabi-app
-npm install
+yarn install
 ```
 
 ### 环境变量
@@ -70,16 +70,16 @@ EXPO_PROJECT_ID=你的_expo_project_id
 
 ```bash
 # 开发服务器（Expo Go / 开发构建）
-npm start
+yarn start
 
 # 直连 Android 开发构建（真机或模拟器）
-npm run android
+yarn android
 
 # 直连 iOS 模拟器
-npm run ios
+yarn ios
 
 # Web 版（RN Web）
-npm run web
+yarn web
 ```
 
 ## 项目结构
@@ -128,14 +128,14 @@ anitabi-app/
 
 ## 脚本
 
-| 命令                  | 说明                 |
-| --------------------- | -------------------- |
-| `npm start`           | 启动 Expo 开发服务器 |
-| `npm run android`     | Android 开发构建     |
-| `npm run ios`         | iOS 模拟器构建       |
-| `npm run web`         | Web 版               |
-| `npm run lint`        | ESLint 检查          |
-| `npm run adb-connect` | ADB 无线调试连接     |
+| 命令               | 说明                 |
+| ------------------ | -------------------- |
+| `yarn start`       | 启动 Expo 开发服务器 |
+| `yarn android`     | Android 开发构建     |
+| `yarn ios`         | iOS 模拟器构建       |
+| `yarn web`         | Web 版               |
+| `yarn lint`        | ESLint 检查          |
+| `yarn adb-connect` | ADB 无线调试连接     |
 
 ## 许可
 
