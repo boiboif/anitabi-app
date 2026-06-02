@@ -8,7 +8,7 @@ type Props = {
 
 export default function LocateButton({ onPress }: Props) {
   return (
-    <View r="$2.5" p="$1.5" z={10} position="absolute" b={130}>
+    <View r="$2" p="$1.5" z={10} position="absolute" b={130}>
       <TouchableOpacity style={styles.button} activeOpacity={0.7} onPress={onPress}>
         <Locate size={24} color="#555" />
       </TouchableOpacity>

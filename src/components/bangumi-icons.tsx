@@ -195,7 +195,7 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
       return [];
     }
 
-    const candidates = bangumis.filter((b) => b.icon && b.cn && allowedIds.has(b.id));
+    const candidates = bangumis.filter((b) => b.cn && allowedIds.has(b.id));
 
     const result = selectVisible(candidates, zoom, prevZoomRef.current, prevVisibleIdsRef.current);
 

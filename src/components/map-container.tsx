@@ -2,7 +2,7 @@ import BangumiIcons from '@/components/bangumi-icons';
 import MapMarkers from '@/components/map-markers';
 import type { Bangumi } from '@/services/types';
 import { useSelectedBangumi } from '@/store/use-selected-bangumi';
-import { Camera, LocationPuck, MapView } from '@rnmapbox/maps';
+import { Camera, LocationPuck, MapState, MapView } from '@rnmapbox/maps';
 import { forwardRef, useCallback, useRef, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import type { EdgeInsets } from 'react-native-safe-area-context';
@@ -16,22 +16,24 @@ type Props = {
 };
 
 const DEFAULT_COORDINATES: [number, number] = [137, 35.2];
-const DEFAULT_ZOOM = 4.4;
+const DEFAULT_ZOOM = 4.6;
 
 const MapContainer = forwardRef<Camera, Props>(function MapContainer({ insets, bangumis }, ref) {
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const { setSelectedBangumi } = useSelectedBangumi();
-  const isFirstMount = useRef(true);
-  const handleCameraChanged = useCallback(
-    (state: { properties: { zoom: number } }) => {
-      if (isFirstMount.current) {
-        isFirstMount.current = false;
-        return;
-      }
-      setZoom(state.properties.zoom);
-    },
-    [isFirstMount],
-  );
+
+  // 地图初始化时 onCameraChanged 可能连续触发多次携带不稳定 zoom 值，
+  // 跳过前 N 次事件过滤掉这些中间态，避免误设 zoom 状态。
+  const cameraEventSkipCount = useRef(5);
+
+  const handleCameraChanged = useCallback((state: MapState) => {
+    if (cameraEventSkipCount.current > 0) {
+      cameraEventSkipCount.current--;
+      return;
+    }
+    if (state.properties.center.includes(0)) return;
+    setZoom(state.properties.zoom);
+  }, []);
 
   return (
     <View style={styles.container}>

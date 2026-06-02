@@ -23,12 +23,14 @@ function getProgressValue(p: FetchProgress): number {
 }
 
 export default function LoadingBadge({ progress, insets }: Props) {
+  const top = insets.top + 60;
+
   if (progress.phase === 'error') {
     return (
       <View
         style={{
           position: 'absolute',
-          top: insets.top + 80,
+          top,
           left: 16,
           zIndex: 20,
           elevation: 4,
@@ -42,10 +44,7 @@ export default function LoadingBadge({ progress, insets }: Props) {
             paddingHorizontal: 10,
             paddingVertical: 4,
             borderRadius: 10,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.12,
-            shadowRadius: 4,
+            boxShadow: '0 0 10px 0 rgba(0, 0, 0, 0.1)',
           }}
         >
           <Text fontSize={10} color="$red10" fontWeight="600">
@@ -62,7 +61,7 @@ export default function LoadingBadge({ progress, insets }: Props) {
     <View
       style={{
         position: 'absolute',
-        top: insets.top + 80,
+        top,
         left: 16,
         zIndex: 20,
         elevation: 4,
@@ -78,10 +77,7 @@ export default function LoadingBadge({ progress, insets }: Props) {
           paddingVertical: 4,
           borderRadius: 10,
           minWidth: 120,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.12,
-          shadowRadius: 4,
+          boxShadow: '0 0 10px 0 rgba(0, 0, 0, 0.1)',
         }}
       >
         <Text fontSize={10} color="$color" fontWeight="400">

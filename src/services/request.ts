@@ -23,7 +23,7 @@ const codeMessage: Record<string, string> = {
 
 const service = axios.create({
   withCredentials: false,
-  timeout: 15000,
+  timeout: 1000 * 60,
 });
 // request interceptor
 service.interceptors.request.use(

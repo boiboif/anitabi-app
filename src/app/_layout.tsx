@@ -50,18 +50,17 @@ export default function RootLayout() {
           <TamaguiProvider config={tamaguiConfig} defaultTheme={theme}>
             <ThemeProvider value={theme === 'dark' ? DarkTheme : DefaultTheme}>
               <AnimatedSplashOverlay />
-              <Stack screenOptions={{ headerShown: false }}>
+              <Stack screenOptions={{ headerShown: false, animation: 'ios_from_right' }}>
                 <Stack.Screen name="(tabs)" />
                 <Stack.Screen
                   name="dark-mode"
                   options={{
-                    presentation: 'modal',
-                    animation: 'ios_from_right',
                     headerShown: true,
                     headerTitleAlign: 'center',
                     title: '深色模式',
                   }}
                 />
+                <Stack.Screen name="search" options={{}} />
               </Stack>
               <Toaster enableStacking position="center" duration={1000} />
             </ThemeProvider>

@@ -4,11 +4,13 @@ import MapContainer from '@/components/map-container';
 import SearchBox from '@/components/search-box';
 import { fetchMapData } from '@/services/map-data';
 import type { AssembledData, FetchProgress } from '@/services/types';
+import { BottomSheet, Column } from '@expo/ui';
 import type { Camera } from '@rnmapbox/maps';
+import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { View } from 'tamagui';
+import { Text, View } from 'tamagui';
 
 export default function HomeScreen() {
   const cameraRef = useRef<Camera>(null);
@@ -18,6 +20,7 @@ export default function HomeScreen() {
     message: '检查数据更新…',
   });
   const [data, setData] = useState<AssembledData | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     let cancelled = false;
@@ -48,11 +51,30 @@ export default function HomeScreen() {
     // TODO: locate user
   }, []);
 
+  const [isSheetPresented, setIsSheetPresented] = useState(false);
+
   return (
     <View style={styles.container}>
+      <BottomSheet
+        snapPoints={['half', 'full']}
+        isPresented={isSheetPresented}
+        onDismiss={() => setIsSheetPresented(false)}
+      >
+        <Column spacing={12}>
+          <Text>Sheet contents</Text>
+          <Text>Drag down or tap the overlay to dismiss.</Text>
+        </Column>
+      </BottomSheet>
       <MapContainer ref={cameraRef} insets={insets} bangumis={data?.data.bangumis ?? []} />
 
-      <SearchBox insets={insets} />
+      <View position="absolute" t={insets.top === 0 ? '$2' : insets.top} l="$3" r="$3" pt="$2" z={10}>
+        <SearchBox
+          onPress={() => {
+            router.navigate('/search');
+          }}
+          readOnly
+        />
+      </View>
 
       {progress && <LoadingBadge progress={progress} insets={insets} />}
 

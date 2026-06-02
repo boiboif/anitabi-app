@@ -109,6 +109,8 @@ function assembleBangumis(gList: RawGBangumi[], detailMap: Map<number, RawGDetai
     };
   });
 
+  bangumis.sort((a, b) => b.modified - a.modified);
+
   return {
     data: { bangumis, modified: maxModified },
   };

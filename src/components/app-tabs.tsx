@@ -1,5 +1,5 @@
 import { useThemeOverride } from '@/lib/theme-context';
-import { Home, User } from '@tamagui/lucide-icons-2';
+import { Heart, Map, User } from '@tamagui/lucide-icons-2';
 import { BlurView } from 'expo-blur';
 import { usePathname } from 'expo-router';
 import { TabList, Tabs, TabSlot, TabTrigger } from 'expo-router/ui';
@@ -7,7 +7,8 @@ import { Platform, Pressable, Text } from 'react-native';
 import { getTokens, useTheme, View } from 'tamagui';
 
 const TAB_CONFIG = [
-  { name: 'index', label: '地图', icon: Home },
+  { name: 'index', label: '地图', icon: Map },
+  { name: 'favorites', label: '收藏', icon: Heart },
   { name: 'profile', label: '我的', icon: User },
 ] as const;
 
@@ -58,7 +59,7 @@ export default function AppTabs() {
       </TabList>
 
       {/* Floating tab bar */}
-      <View rounded="$9" position="absolute" b={Platform.OS === 'ios' ? 54 : 34} l="$2.5" r="$2.5" p="$1.5">
+      <View rounded="$9" position="absolute" b={Platform.OS === 'ios' ? 54 : 34} l="$3" r="$3">
         <BlurView
           intensity={80}
           tint={theme}
