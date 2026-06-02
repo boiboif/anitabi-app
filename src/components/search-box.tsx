@@ -1,9 +1,9 @@
 import { useThemeOverride } from '@/lib/theme-context';
-import { Search } from '@tamagui/lucide-icons-2';
+import { Search, X } from '@tamagui/lucide-icons-2';
 import { BlurView } from 'expo-blur';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useRef, type ComponentProps, type ReactNode } from 'react';
-import { StyleSheet, TouchableWithoutFeedback } from 'react-native';
+import { Keyboard, Pressable, StyleSheet, TouchableWithoutFeedback } from 'react-native';
 import { getTokens, Input, styled, TamaguiElement, View } from 'tamagui';
 
 const StyledInput = styled(Input, {
@@ -23,6 +23,8 @@ const StyledInput = styled(Input, {
 type Props = {
   placeholder?: string;
   left?: ReactNode;
+  right?: ReactNode;
+  allowClear?: boolean;
   onPress?: () => void;
   /** 路由跳转后延迟 focus（与原生 autoFocus 不同，等转场动画结束后才调起键盘） */
   focusOnRoute?: boolean;
@@ -31,6 +33,8 @@ type Props = {
 export default function SearchBox({
   placeholder = '城市、作品、地标',
   left,
+  right,
+  allowClear = false,
   onPress,
   readOnly = false,
   focusOnRoute,
@@ -38,6 +42,14 @@ export default function SearchBox({
 }: Props) {
   const { theme } = useThemeOverride();
   const ref = useRef<TamaguiElement | null>(null);
+
+  const hasValue = typeof props.value === 'string' && props.value.length > 0;
+  const showClear = allowClear && hasValue && !right;
+
+  const handleClear = useCallback(() => {
+    props.onChangeText?.('');
+    Keyboard.dismiss();
+  }, [props.onChangeText]);
 
   useFocusEffect(
     useCallback(() => {
@@ -78,8 +90,48 @@ export default function SearchBox({
             placeholderTextColor="$color9"
             readOnly={readOnly}
             ref={ref}
+            style={right || showClear ? { paddingRight: 40 } : undefined}
             {...props}
           />
+
+          {right ? (
+            <View
+              style={{
+                position: 'absolute',
+                right: 16,
+                top: '50%',
+                transform: [{ translateY: '-50%' }],
+                zIndex: 999,
+              }}
+            >
+              {right}
+            </View>
+          ) : showClear ? (
+            <View
+              style={{
+                position: 'absolute',
+                right: 16,
+                top: '50%',
+                transform: [{ translateY: '-50%' }],
+                zIndex: 999,
+              }}
+            >
+              <Pressable onPress={handleClear} hitSlop={8}>
+                <View
+                  style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: 10,
+                    backgroundColor: 'rgba(128, 128, 128, 0.6)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <X size={12} color="white" strokeWidth={3} />
+                </View>
+              </Pressable>
+            </View>
+          ) : null}
         </BlurView>
       </View>
     </TouchableWithoutFeedback>

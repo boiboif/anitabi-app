@@ -127,7 +127,7 @@ type Bangumi = {
     originLink?: string; // 来源地址
     folder?: string;
     density?: number; // 密度
-    priority: number; // 优先级
+    priority: number; // 优先级 越大优先级越高
     geo: [number, number]; // 地理位置
   }[];
   theme: {
@@ -140,7 +140,7 @@ type Bangumi = {
   };
   abbr?: string; // 缩写
   tags?: string[]; // 标签
-  priority?: number; // 优先级
+  priority?: number; // 优先级 越大优先级越高
   icon?: string; // 图标地址
 };
 ```

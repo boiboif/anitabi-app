@@ -64,7 +64,7 @@ export type Point = {
   uid?: number;
   image?: string;
   fid?: string;
-  ep?: number;
+  ep?: number | string;
   s?: number;
   mark?: string;
   origin?: string;
