@@ -1,110 +1,11 @@
-import { formatDuration } from '@/lib/formatDuration';
-import { baseUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
-import { CircleLayer, MarkerView, ShapeSource } from '@rnmapbox/maps';
-import { Image } from 'expo-image';
+import { CircleLayer, ShapeSource } from '@rnmapbox/maps';
 import { useCallback, useMemo } from 'react';
-import { getTokens, Text, useTheme, View } from 'tamagui';
 
 type Props = {
   bangumis: Bangumi[];
-  selectedPopupPoint?: { point: Point; bangumi: Bangumi } | null;
   onPointSelect?: (point: Point, bangumi: Bangumi) => void;
 };
-
-// ---------------------------------------------------------------------------
-// 弹窗卡片
-// ---------------------------------------------------------------------------
-function PopupCard({ point, bangumi }: { point: Point; bangumi: Bangumi }) {
-  const theme = useTheme();
-  const pointTitle = point.cn || point.name || '未命名点位';
-  const animeTitle = bangumi.cn || bangumi.title || bangumi.en || '未知';
-  const epLabel =
-    typeof point.ep === 'number' && point.ep > 0
-      ? `EP${point.ep}`
-      : typeof point.ep === 'string' && point.ep
-        ? point.ep
-        : undefined;
-  const timeLabel = typeof point.s === 'number' && point.s >= 0 ? formatDuration(point.s) : undefined;
-
-  const innerRadius = getTokens().radius['2'].val;
-  console.log(`${baseUrl}${point.image}?plan=h360`);
-
-  return (
-    <View bg="$color2" rounded="$3" boxShadow="0 2px 8px rgba(0,0,0,0.12)" width={200}>
-      {/* 图片 + EP / 时间覆盖层 */}
-      <View
-        style={{
-          borderRadius: innerRadius,
-          overflow: 'hidden',
-          position: 'relative',
-        }}
-      >
-        <Image
-          source={point.image ? { uri: `${baseUrl}${point.image}?plan=h360` } : undefined}
-          style={{
-            height: 120,
-            aspectRatio: 16 / 9,
-            backgroundColor: theme.color9.val,
-          }}
-          contentFit="contain"
-          contentPosition="center"
-          transition={0}
-        />
-        {epLabel && (
-          <View
-            position="absolute"
-            l={0}
-            b={0}
-            bg="rgba(0,0,0,0.55)"
-            px="$1.5"
-            py="$0.5"
-            style={{ borderTopRightRadius: innerRadius }}
-          >
-            <Text fontSize={10} fontWeight="700" color="white">
-              {epLabel}
-            </Text>
-          </View>
-        )}
-        {timeLabel && (
-          <View
-            position="absolute"
-            r={0}
-            b={0}
-            bg="rgba(0,0,0,0.55)"
-            px="$1.5"
-            py="$0.5"
-            style={{ borderTopLeftRadius: innerRadius }}
-          >
-            <Text fontSize={10} color="white">
-              {timeLabel}
-            </Text>
-          </View>
-        )}
-      </View>
-
-      {/* 文字内容 */}
-      <View px="$2" py="$1.5">
-        <Text fontWeight="600" fontSize={13} color="$color12" numberOfLines={1} mt="$1">
-          {pointTitle}
-        </Text>
-        {point.mark ? (
-          <Text fontSize={11} color="$color11" numberOfLines={2} mt="$0.5">
-            {point.mark}
-          </Text>
-        ) : null}
-        <Text fontSize={11} color="$primary" numberOfLines={1} mt="$0.5">
-          {animeTitle}
-        </Text>
-        {point.origin ? (
-          <Text fontSize={10} color="$color10" style={{ textAlign: 'right' }} mt="$0.5">
-            {point.origin}
-          </Text>
-        ) : null}
-      </View>
-    </View>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // 将所有点位展平为 GeoJSON FeatureCollection
@@ -158,7 +59,7 @@ const DENSITY_STOPS: [number, number][] = [
   [16, 0],
 ];
 
-export default function MapMarkers({ bangumis, selectedPopupPoint, onPointSelect }: Props) {
+export default function MapMarkers({ bangumis, onPointSelect }: Props) {
   const geoJSON = useMemo(() => toGeoJSON(bangumis), [bangumis]);
 
   /** 点击圆点标记 → 查找完整点/番数据 → 弹出详情 */
@@ -191,24 +92,13 @@ export default function MapMarkers({ bangumis, selectedPopupPoint, onPointSelect
           filter={['>=', ['get', 'density'], ['interpolate', ['linear'], ['zoom'], ...DENSITY_STOPS.flat()]]}
           style={{
             circleColor: ['get', 'color'],
-            circleOpacity: ['interpolate', ['linear'], ['zoom'], 0, 0.5, 8, 0.6, 14, 0.75],
+            circleOpacity: ['interpolate', ['linear'], ['zoom'], 0, 0.5, 8, 0.6, 14, 0.8],
             circleStrokeWidth: 1,
             circleStrokeColor: '#ffffff',
             circleRadius: ['interpolate', ['linear'], ['zoom'], 0, 2, 8, 4, 14, 6, 16, 7, 17, 8, 18, 9],
           }}
         />
       </ShapeSource>
-
-      {/* 选中点位弹窗 */}
-      {selectedPopupPoint && (
-        <MarkerView
-          coordinate={[selectedPopupPoint.point.geo[1], selectedPopupPoint.point.geo[0]]}
-          anchor={{ x: 0.5, y: 1 }}
-          allowOverlap
-        >
-          <PopupCard point={selectedPopupPoint.point} bangumi={selectedPopupPoint.bangumi} />
-        </MarkerView>
-      )}
     </>
   );
 }

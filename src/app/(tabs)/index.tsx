@@ -1,3 +1,4 @@
+import LayerSwitch from '@/components/layer-switch';
 import LoadingBadge from '@/components/loading-badge';
 import LocateButton from '@/components/locate-button';
 import MapContainer from '@/components/map-container';
@@ -97,6 +98,7 @@ export default function HomeScreen() {
 
   const [isSheetPresented, setIsSheetPresented] = useState(false);
   const { setSelectedBangumi } = useSelectedBangumi();
+  const [styleIndex, setStyleIndex] = useState(0);
 
   return (
     <View style={styles.container}>
@@ -114,6 +116,7 @@ export default function HomeScreen() {
         ref={cameraRef}
         insets={insets}
         bangumis={data?.data.bangumis ?? []}
+        styleIndex={styleIndex}
         onCameraChange={setCameraState}
       />
 
@@ -140,6 +143,8 @@ export default function HomeScreen() {
       {progress && <LoadingBadge progress={progress} insets={insets} />}
 
       <LocateButton onPress={handleLocate} />
+
+      <LayerSwitch styleIndex={styleIndex} onChange={setStyleIndex} />
     </View>
   );
 }

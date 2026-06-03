@@ -2,13 +2,14 @@ import { MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE } from '@/lib/constants';
 import { baseUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import type { Bounds } from './map-container';
 
 type Props = {
   bangumis: Bangumi[];
   zoom: number;
   bounds: Bounds | null;
+  onPointSelect?: (point: Point, bangumi: Bangumi) => void;
 };
 
 /** 判断点位是否在可视区域内 */
@@ -19,11 +20,11 @@ function isInBounds(geo: [number, number], bounds: Bounds): boolean {
   return lat >= swLat && lat <= neLat && lng >= swLng && lng <= neLng;
 }
 
-export default function PointImageMarkers({ bangumis, zoom, bounds }: Props) {
+export default function PointImageMarkers({ bangumis, zoom, bounds, onPointSelect }: Props) {
   const visible = useMemo(() => {
     if (zoom < MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE || !bounds) return [];
 
-    const items: { point: Point; imageUrl: string }[] = [];
+    const items: { point: Point; bangumi: Bangumi; imageUrl: string }[] = [];
 
     for (const b of bangumis) {
       for (const p of b.points) {
@@ -32,6 +33,7 @@ export default function PointImageMarkers({ bangumis, zoom, bounds }: Props) {
         if (!isInBounds(p.geo, bounds)) continue;
         items.push({
           point: p,
+          bangumi: b,
           imageUrl: `${baseUrl}${p.image}?plan=h160`,
         });
       }
@@ -54,6 +56,8 @@ export default function PointImageMarkers({ bangumis, zoom, bounds }: Props) {
           coordinates: [item.point.geo[1], item.point.geo[0]],
         },
         properties: {
+          id: item.point.id,
+          bangumiId: item.bangumi.id,
           iconImage: key,
         },
       });
@@ -65,12 +69,34 @@ export default function PointImageMarkers({ bangumis, zoom, bounds }: Props) {
     };
   }, [visible]);
 
+  /** 点击图片标记 → 查找完整点/番数据 → 弹出详情 */
+  const handlePress = useCallback(
+    (e: { features: GeoJSON.Feature[] }) => {
+      const feature = e.features?.[0];
+      if (!feature?.properties) return;
+      const pointId = feature.properties.id as string | undefined;
+      const bangumiId = feature.properties.bangumiId as number | undefined;
+      if (!pointId || bangumiId == null) return;
+
+      for (const b of bangumis) {
+        if (b.id !== bangumiId) continue;
+        for (const p of b.points) {
+          if (p.id === pointId) {
+            onPointSelect?.(p, b);
+            return;
+          }
+        }
+      }
+    },
+    [bangumis, onPointSelect],
+  );
+
   if (zoom < MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE || !bounds || visible.length === 0) return null;
 
   return (
     <>
       <Images images={imagesMap} />
-      <ShapeSource id="point-images-source" shape={geojson}>
+      <ShapeSource id="point-images-source" shape={geojson} onPress={handlePress}>
         <SymbolLayer
           id="point-images-layer"
           style={{

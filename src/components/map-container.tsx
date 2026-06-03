@@ -1,9 +1,11 @@
 import BangumiIcons from '@/components/bangumi-icons';
+import { MAP_STYLES } from '@/components/layer-switch';
 import MapMarkers from '@/components/map-markers';
 import PointImageMarkers from '@/components/point-image-markers';
+import PopupCard from '@/components/point-popup-card';
 import type { Bangumi, Point } from '@/services/types';
 import { useSelectedBangumi } from '@/store/use-selected-bangumi';
-import { Camera, LocationPuck, MapState, MapView } from '@rnmapbox/maps';
+import { Camera, LocationPuck, MapState, MapView, MarkerView } from '@rnmapbox/maps';
 import { forwardRef, useCallback, useRef, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import type { EdgeInsets } from 'react-native-safe-area-context';
@@ -14,13 +16,17 @@ export type Bounds = { ne: number[]; sw: number[] };
 type Props = {
   insets: EdgeInsets;
   bangumis: Bangumi[];
+  styleIndex: number;
   onCameraChange?: (state: { zoom: number; bounds: { ne: [number, number]; sw: [number, number] } | null }) => void;
 };
 
 const DEFAULT_COORDINATES: [number, number] = [137, 35.2];
 const DEFAULT_ZOOM = 4.6;
 
-const MapContainer = forwardRef<Camera, Props>(function MapContainer({ insets, bangumis, onCameraChange }, ref) {
+const MapContainer = forwardRef<Camera, Props>(function MapContainer(
+  { insets, bangumis, styleIndex, onCameraChange },
+  ref,
+) {
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const [bounds, setBounds] = useState<Bounds | null>(null);
   const [selectedPopupPoint, setSelectedPopupPoint] = useState<{
@@ -55,10 +61,10 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer({ insets, b
     <View style={styles.container}>
       <MapView
         style={styles.map}
-        styleURL="mapbox://styles/mapbox/streets-v12"
+        styleURL={MAP_STYLES[styleIndex].url}
         localizeLabels={{ locale: 'zh' }}
         compassEnabled
-        compassPosition={{ top: insets.top + 100, right: 16 }}
+        compassPosition={{ top: insets.top + 100, right: 8 }}
         scaleBarEnabled={false}
         onCameraChanged={handleCameraChanged}
         onPress={() => setSelectedPopupPoint(null)}
@@ -70,11 +76,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer({ insets, b
           puckBearing="heading"
           pulsing={{ isEnabled: true, color: '#007AFF' }}
         />
-        <MapMarkers
-          bangumis={bangumis}
-          selectedPopupPoint={selectedPopupPoint}
-          onPointSelect={(point, bangumi) => setSelectedPopupPoint({ point, bangumi })}
-        />
+        <MapMarkers bangumis={bangumis} onPointSelect={(point, bangumi) => setSelectedPopupPoint({ point, bangumi })} />
         <BangumiIcons
           bangumis={bangumis}
           zoom={zoom}
@@ -82,7 +84,23 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer({ insets, b
             setSelectedBangumi(bangumi);
           }}
         />
-        <PointImageMarkers bangumis={bangumis} zoom={zoom} bounds={bounds} />
+        <PointImageMarkers
+          bangumis={bangumis}
+          zoom={zoom}
+          bounds={bounds}
+          onPointSelect={(point, bangumi) => setSelectedPopupPoint({ point, bangumi })}
+        />
+
+        {/* 选中点位弹窗（图片标记 & 圆点标记共用） */}
+        {selectedPopupPoint && (
+          <MarkerView
+            coordinate={[selectedPopupPoint.point.geo[1], selectedPopupPoint.point.geo[0]]}
+            anchor={{ x: 0.5, y: 1 }}
+            allowOverlap
+          >
+            <PopupCard point={selectedPopupPoint.point} bangumi={selectedPopupPoint.bangumi} />
+          </MarkerView>
+        )}
       </MapView>
     </View>
   );
