@@ -1,3 +1,4 @@
+import { MAP_ICON_ZOOM_THRESHOLD } from '@/lib/constants';
 import { getBangumiIcons } from '@/services/api';
 import { baseUrl } from '@/services/handlers';
 import type { Bangumi } from '@/services/types';
@@ -8,9 +9,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 // ===========================================================================
 // Tunable constants — adjust these freely
 // ===========================================================================
-
-/** zoom >= 此值时完全隐藏所有 icon（地图足够放大后靠 marker 展示） */
-const ICON_HIDE_ZOOM = 11.5;
 
 /** 图标图片的基础像素尺寸（宽度），作为重叠阈值基准 */
 const ICON_BASE_SIZE = 60;
@@ -253,7 +251,7 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
     [bangumis, onIconPress],
   );
 
-  if (zoom >= ICON_HIDE_ZOOM || !allowedIds || !spriteCache) return null;
+  if (zoom >= MAP_ICON_ZOOM_THRESHOLD || !allowedIds || !spriteCache) return null;
 
   return (
     <>

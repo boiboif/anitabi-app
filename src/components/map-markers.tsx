@@ -71,7 +71,7 @@ export default function MapMarkers({ bangumis }: Props) {
           circleOpacity: ['interpolate', ['linear'], ['zoom'], 0, 0.5, 8, 0.6, 14, 0.75],
           circleStrokeWidth: 1,
           circleStrokeColor: '#ffffff',
-          circleRadius: ['interpolate', ['linear'], ['zoom'], 0, 2, 8, 3, 14, 5, 18, 6],
+          circleRadius: ['interpolate', ['linear'], ['zoom'], 0, 2, 8, 4, 14, 6, 16, 7, 17, 8, 18, 9],
         }}
       />
     </ShapeSource>

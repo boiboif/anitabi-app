@@ -6,11 +6,21 @@
 
 ### 为什么做这个
 
-前段时间去旅行时用了 anitabi 网页端，体验不太理想。索性自己写一个趁手的 App，下次去旅行时圣地巡礼能更方便。
+前段时间去旅行时用了 anitabi 网页端，体验不太理想。索性自己写一个趁手的 App，下次去旅行时圣地巡礼能更方便，也能帮助到别人。
 
 ## 当前状态
 
 锐意制作中！目前已实现地图容器和番剧海量点位渲染的基础框架，正在进行功能开发。详见下方 Roadmap。
+
+## 截图
+
+<p align="center">
+  <img src="http://i0.hdslb.com/bfs/new_dyn/bea415687b46c0f1890e8af61fff6d741519338.jpg" width="200" alt="地图主界面 - 深色模式" />
+  <img src="http://i0.hdslb.com/bfs/new_dyn/82915416b17ea3048a5cfac3c8d528ea1519338.jpg" width="200" alt="番剧筛选 - 顶部番剧图标" />
+  <img src="http://i0.hdslb.com/bfs/new_dyn/9c32a93c7dff85b7fad167c84caa60db1519338.jpg" width="200" alt="巡礼点搜索" />
+  <img src="http://i0.hdslb.com/bfs/new_dyn/4b5da38b7f362cb9a3a594b5b15dea361519338.jpg" width="200" alt="巡礼点图片展示" />
+  <img src="http://i0.hdslb.com/bfs/new_dyn/7476fa6e58e657dd0087f6176586539a1519338.jpg" width="200" alt="我的页面" />
+</p>
 
 ## 计划功能
 
@@ -19,7 +29,7 @@
 - [x] 地图基础渲染（Mapbox）
 - [x] 地图番剧巡礼点展示
 - [x] 番剧、巡礼点搜索
-- [ ] 地图展示巡礼点图片
+- [x] 地图展示巡礼点图片
 - [ ] 地图按照番剧筛选巡礼点
 - [ ] 巡礼点位详情
 - [ ] 巡礼点收藏
