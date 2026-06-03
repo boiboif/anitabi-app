@@ -15,6 +15,7 @@
 ## 截图
 
 <p align="center">
+  <img src="http://i0.hdslb.com/bfs/new_dyn/4b5466094bc33e7f5a508f59d641660e1519338.jpg" width="200" alt="世界地图 - 深色模式" />
   <img src="http://i0.hdslb.com/bfs/new_dyn/bea415687b46c0f1890e8af61fff6d741519338.jpg" width="200" alt="地图主界面 - 深色模式" />
   <img src="http://i0.hdslb.com/bfs/new_dyn/82915416b17ea3048a5cfac3c8d528ea1519338.jpg" width="200" alt="番剧筛选 - 顶部番剧图标" />
   <img src="http://i0.hdslb.com/bfs/new_dyn/9c32a93c7dff85b7fad167c84caa60db1519338.jpg" width="200" alt="巡礼点搜索" />
