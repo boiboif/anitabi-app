@@ -1,7 +1,7 @@
 import BangumiIcons from '@/components/bangumi-icons';
 import MapMarkers from '@/components/map-markers';
 import PointImageMarkers from '@/components/point-image-markers';
-import type { Bangumi } from '@/services/types';
+import type { Bangumi, Point } from '@/services/types';
 import { useSelectedBangumi } from '@/store/use-selected-bangumi';
 import { Camera, LocationPuck, MapState, MapView } from '@rnmapbox/maps';
 import { forwardRef, useCallback, useRef, useState } from 'react';
@@ -23,6 +23,10 @@ const DEFAULT_ZOOM = 4.6;
 const MapContainer = forwardRef<Camera, Props>(function MapContainer({ insets, bangumis, onCameraChange }, ref) {
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const [bounds, setBounds] = useState<Bounds | null>(null);
+  const [selectedPopupPoint, setSelectedPopupPoint] = useState<{
+    point: Point;
+    bangumi: Bangumi;
+  } | null>(null);
   const { setSelectedBangumi } = useSelectedBangumi();
 
   // 地图初始化时 onCameraChanged 可能连续触发多次携带不稳定 zoom 值，
@@ -57,6 +61,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer({ insets, b
         compassPosition={{ top: insets.top + 100, right: 16 }}
         scaleBarEnabled={false}
         onCameraChanged={handleCameraChanged}
+        onPress={() => setSelectedPopupPoint(null)}
       >
         <Camera ref={ref} centerCoordinate={DEFAULT_COORDINATES} zoomLevel={DEFAULT_ZOOM} animationMode="none" />
         <LocationPuck
@@ -65,7 +70,11 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer({ insets, b
           puckBearing="heading"
           pulsing={{ isEnabled: true, color: '#007AFF' }}
         />
-        <MapMarkers bangumis={bangumis} />
+        <MapMarkers
+          bangumis={bangumis}
+          selectedPopupPoint={selectedPopupPoint}
+          onPointSelect={(point, bangumi) => setSelectedPopupPoint({ point, bangumi })}
+        />
         <BangumiIcons
           bangumis={bangumis}
           zoom={zoom}

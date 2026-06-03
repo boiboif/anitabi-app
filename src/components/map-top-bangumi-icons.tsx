@@ -65,8 +65,6 @@ export default function MapTopBangumiIcons({ bangumis, zoom, bounds, onIconPress
       .slice(0, MAX_ICONS);
   }, [bangumis, zoom, bounds]);
 
-  console.log(visibleBangumis, 'visibleBangumis');
-
   const visibleBangumisCnLength = useMemo(() => {
     return visibleBangumis.map((b) => b.cn).length;
   }, [visibleBangumis]);
