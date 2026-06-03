@@ -15,12 +15,12 @@
 ## 截图
 
 <p align="center">
-  <img src="http://i0.hdslb.com/bfs/new_dyn/4b5466094bc33e7f5a508f59d641660e1519338.jpg" width="150" alt="世界地图 - 深色模式" />
-  <img src="http://i0.hdslb.com/bfs/new_dyn/bea415687b46c0f1890e8af61fff6d741519338.jpg" width="150" alt="地图主界面 - 深色模式" />
-  <img src="http://i0.hdslb.com/bfs/new_dyn/82915416b17ea3048a5cfac3c8d528ea1519338.jpg" width="150" alt="番剧筛选 - 顶部番剧图标" />
-  <img src="http://i0.hdslb.com/bfs/new_dyn/9c32a93c7dff85b7fad167c84caa60db1519338.jpg" width="150" alt="巡礼点搜索" />
-  <img src="http://i0.hdslb.com/bfs/new_dyn/4b5da38b7f362cb9a3a594b5b15dea361519338.jpg" width="150" alt="巡礼点图片展示" />
-  <img src="http://i0.hdslb.com/bfs/new_dyn/7476fa6e58e657dd0087f6176586539a1519338.jpg" width="150" alt="我的页面" />
+  <img src="http://i0.hdslb.com/bfs/new_dyn/4b5466094bc33e7f5a508f59d641660e1519338.jpg" width="180" alt="世界地图 - 深色模式" />
+  <img src="http://i0.hdslb.com/bfs/new_dyn/bea415687b46c0f1890e8af61fff6d741519338.jpg" width="180" alt="地图主界面 - 深色模式" />
+  <img src="http://i0.hdslb.com/bfs/new_dyn/82915416b17ea3048a5cfac3c8d528ea1519338.jpg" width="180" alt="番剧筛选 - 顶部番剧图标" />
+  <img src="http://i0.hdslb.com/bfs/new_dyn/9c32a93c7dff85b7fad167c84caa60db1519338.jpg" width="180" alt="巡礼点搜索" />
+  <img src="http://i0.hdslb.com/bfs/new_dyn/4b5da38b7f362cb9a3a594b5b15dea361519338.jpg" width="180" alt="巡礼点图片展示" />
+  <img src="http://i0.hdslb.com/bfs/new_dyn/7476fa6e58e657dd0087f6176586539a1519338.jpg" width="180" alt="我的页面" />
 </p>
 
 ## 计划功能
