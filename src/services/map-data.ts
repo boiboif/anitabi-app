@@ -123,40 +123,48 @@ function assembleBangumis(gList: RawGBangumi[], detailMap: Map<number, RawGDetai
 const G_JSON_URLS = [getG0JSON, getG1JSON, getG2JSON, getG3JSON, getG4JSON, getG5JSON] as const;
 
 export async function fetchMapData(onProgress?: (p: FetchProgress) => void): Promise<AssembledData> {
-  // 1. 检查本地缓存
-  onProgress?.({ phase: 'checking', message: '检查缓存是否过时…' });
-
-  const cachedModified = getGModified();
   const cachedData = getCachedData();
 
-  // 如果无缓存，必须全量拉取
-  if (cachedData === null || cachedModified === null) {
-    return fetchFull(onProgress);
-  }
-
-  // 2. 拉取 g.json 判断 modified 是否变化
-  const gRaw = (await getGJSON()) as [RawGBangumi[], number, number];
-  const remoteModified = gRaw[2];
-
-  if (remoteModified === cachedModified && cachedData) {
-    onProgress?.({ phase: 'done', message: '数据已是最新' });
+  if (cachedData) {
+    // 有缓存 → 优先使用，后台静默检查更新
+    refreshInBackground();
     return cachedData;
   }
 
-  // 3. 不一致 → 全量拉取
+  // 无缓存 → 首次全量拉取
   return fetchFull(onProgress);
+}
+
+/** 后台静默检查更新：拉 g.json 比对 modified，有变化则拉详情并更新缓存 */
+async function refreshInBackground(): Promise<void> {
+  try {
+    const gRaw = (await getGJSON()) as [RawGBangumi[], number, number];
+    const remoteModified = gRaw[2];
+    const cachedModified = getGModified();
+
+    if (remoteModified === cachedModified) return;
+
+    // 有更新 → 拉取详情并更新缓存
+    await fetchDetails(gRaw[0], remoteModified);
+  } catch {
+    // 后台刷新失败，静默保留现有缓存
+  }
 }
 
 async function fetchFull(onProgress?: (p: FetchProgress) => void): Promise<AssembledData> {
   onProgress?.({ phase: 'downloading', batch: 0, message: '加载番剧列表…' });
 
-  // 先拉 g.json 获取基础信息
   const gRaw = (await getGJSON()) as [RawGBangumi[], number, number];
-  const gList = gRaw[0] as RawGBangumi[];
+  return fetchDetails(gRaw[0], gRaw[2], onProgress);
+}
 
+async function fetchDetails(
+  gList: RawGBangumi[],
+  modified: number,
+  onProgress?: (p: FetchProgress) => void,
+): Promise<AssembledData> {
   onProgress?.({ phase: 'downloading', batch: 1, message: '加载数据 1/6…' });
 
-  // 并行拉取 g0-g5
   const detailResults = await Promise.allSettled(
     G_JSON_URLS.map((fn, i) =>
       fn().then((data) => {
@@ -166,7 +174,6 @@ async function fetchFull(onProgress?: (p: FetchProgress) => void): Promise<Assem
     ),
   );
 
-  // 合并所有成功的详情
   const detailMap = new Map<number, RawGDetail>();
   for (const result of detailResults) {
     if (result.status === 'fulfilled') {
@@ -178,12 +185,10 @@ async function fetchFull(onProgress?: (p: FetchProgress) => void): Promise<Assem
 
   onProgress?.({ phase: 'assembling', message: '数据组装中…' });
 
-  // 组装
   const assembled = assembleBangumis(gList, detailMap);
   console.log('组装后的数据:', assembled);
 
-  // 写入缓存
-  setGModified(gRaw[2]);
+  setGModified(modified);
   setCachedData(assembled);
 
   onProgress?.({ phase: 'done', message: '加载完成' });

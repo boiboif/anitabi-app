@@ -1,6 +1,5 @@
 import { Layers } from '@tamagui/lucide-icons-2';
 import { StyleSheet, Text, TouchableOpacity } from 'react-native';
-import { View } from 'tamagui';
 
 export const MAP_STYLES = [
   { key: 'streets', url: 'mapbox://styles/mapbox/streets-v12', label: '街道' },
@@ -17,16 +16,14 @@ type Props = {
 
 export default function LayerSwitch({ styleIndex, onChange }: Props) {
   return (
-    <View r="$2" p="$1.5" z={10} position="absolute" t={200}>
-      <TouchableOpacity
-        style={styles.button}
-        activeOpacity={0.7}
-        onPress={() => onChange((styleIndex + 1) % MAP_STYLES.length)}
-      >
-        <Layers size={24} color="#555" />
-        <Text style={styles.label}>{MAP_STYLES[styleIndex].label}</Text>
-      </TouchableOpacity>
-    </View>
+    <TouchableOpacity
+      style={styles.button}
+      activeOpacity={0.7}
+      onPress={() => onChange((styleIndex + 1) % MAP_STYLES.length)}
+    >
+      <Layers size={24} color="#555" />
+      <Text style={styles.label}>{MAP_STYLES[styleIndex].label}</Text>
+    </TouchableOpacity>
   );
 }
 

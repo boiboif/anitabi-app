@@ -1,12 +1,28 @@
-import type { Bangumi } from '@/services/types';
+import type { Bangumi, Point } from '@/services/types';
 import { create } from 'zustand';
+
+export type SelectedPointData = {
+  point: Point;
+  bangumi: Bangumi;
+};
 
 type SelectedBangumiStore = {
   selectedBangumi: Bangumi | null;
+  selectedPoint: SelectedPointData | null;
   setSelectedBangumi: (bangumi: Bangumi | null) => void;
+  setSelectedPoint: (data: SelectedPointData | null) => void;
 };
 
 export const useSelectedBangumi = create<SelectedBangumiStore>((set) => ({
   selectedBangumi: null,
-  setSelectedBangumi: (bangumi) => set({ selectedBangumi: bangumi }),
+  selectedPoint: null,
+
+  setSelectedBangumi: (bangumi) =>
+    set({ selectedBangumi: bangumi, selectedPoint: null }),
+
+  setSelectedPoint: (data) =>
+    set((state) => ({
+      selectedPoint: data,
+      selectedBangumi: data ? data.bangumi : state.selectedBangumi,
+    })),
 }));

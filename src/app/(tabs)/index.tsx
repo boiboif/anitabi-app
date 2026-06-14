@@ -1,3 +1,4 @@
+import BangumiDetailSheet, { type BangumiDetailSheetRef } from '@/components/bangumi-detail-sheet';
 import LayerSwitch from '@/components/layer-switch';
 import LoadingBadge from '@/components/loading-badge';
 import LocateButton from '@/components/locate-button';
@@ -7,7 +8,6 @@ import SearchBox from '@/components/search-box';
 import { fetchMapData } from '@/services/map-data';
 import type { AssembledData, FetchProgress } from '@/services/types';
 import { useSelectedBangumi } from '@/store/use-selected-bangumi';
-import { BottomSheet, Column } from '@expo/ui';
 import type { Camera, Location } from '@rnmapbox/maps';
 import { locationManager } from '@rnmapbox/maps';
 import { requestForegroundPermissionsAsync } from 'expo-location';
@@ -15,10 +15,11 @@ import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Text, View } from 'tamagui';
+import { View } from 'tamagui';
 
 export default function HomeScreen() {
   const cameraRef = useRef<Camera>(null);
+  const bangumiSheetRef = useRef<BangumiDetailSheetRef>(null);
   const insets = useSafeAreaInsets();
   const [progress, setProgress] = useState<FetchProgress | null>({
     phase: 'checking',
@@ -62,6 +63,20 @@ export default function HomeScreen() {
     };
   }, []);
 
+  const { selectedPoint, selectedBangumi, setSelectedBangumi } = useSelectedBangumi();
+
+  // 选中巡礼点时，地图 camera 飞到该点
+  useEffect(() => {
+    if (!selectedPoint) return;
+    const [lat, lng] = selectedPoint.point.geo;
+    cameraRef.current?.setCamera({
+      centerCoordinate: [lng, lat],
+      zoomLevel: 22,
+      animationMode: 'flyTo',
+      animationDuration: 500,
+    });
+  }, [selectedPoint]);
+
   const handleLocate = useCallback(async () => {
     try {
       const { status } = await requestForegroundPermissionsAsync();
@@ -96,22 +111,10 @@ export default function HomeScreen() {
     }
   }, []);
 
-  const [isSheetPresented, setIsSheetPresented] = useState(false);
-  const { setSelectedBangumi } = useSelectedBangumi();
   const [styleIndex, setStyleIndex] = useState(0);
 
   return (
     <View style={styles.container}>
-      <BottomSheet
-        snapPoints={['half', 'full']}
-        isPresented={isSheetPresented}
-        onDismiss={() => setIsSheetPresented(false)}
-      >
-        <Column spacing={12}>
-          <Text>Sheet contents</Text>
-          <Text>Drag down or tap the overlay to dismiss.</Text>
-        </Column>
-      </BottomSheet>
       <MapContainer
         ref={cameraRef}
         insets={insets}
@@ -120,8 +123,8 @@ export default function HomeScreen() {
         onCameraChange={setCameraState}
       />
 
-      <View position="absolute" l="$0" r="$0" t={insets.top === 0 ? '$2' : insets.top} pt="$2" z={10}>
-        <View mx="$3" mb="$3">
+      <View position="absolute" l="$0" r="$0" t={insets.top === 0 ? '$2' : insets.top} pt="$2" z={0}>
+        <View mx="$3">
           <SearchBox
             onPress={() => {
               router.navigate('/search');
@@ -136,15 +139,28 @@ export default function HomeScreen() {
           bounds={cameraState.bounds}
           onIconPress={(bangumi) => {
             setSelectedBangumi(bangumi);
+            bangumiSheetRef.current?.snapToIndex(1);
+          }}
+          onOpenSheet={() => {
+            bangumiSheetRef.current?.snapToIndex(1);
           }}
         />
       </View>
 
       {progress && <LoadingBadge progress={progress} insets={insets} />}
 
-      <LocateButton onPress={handleLocate} />
+      {!selectedBangumi && (
+        <>
+          <View r="$2" p="$1.5" position="absolute" b="26%" z={20}>
+            <LocateButton onPress={handleLocate} />
+          </View>
+          <View r="$2" p="$1.5" position="absolute" t={200} z={20}>
+            <LayerSwitch styleIndex={styleIndex} onChange={setStyleIndex} />
+          </View>
+        </>
+      )}
 
-      <LayerSwitch styleIndex={styleIndex} onChange={setStyleIndex} />
+      <BangumiDetailSheet ref={bangumiSheetRef} />
     </View>
   );
 }

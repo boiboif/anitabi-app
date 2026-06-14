@@ -1,6 +1,7 @@
-import { MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE } from '@/lib/constants';
+import { FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE, MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE } from '@/lib/constants';
 import { baseUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
+import { useSelectedBangumi } from '@/store/use-selected-bangumi';
 import { Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
 import { useCallback, useMemo } from 'react';
 import type { Bounds } from './map-container';
@@ -21,8 +22,14 @@ function isInBounds(geo: [number, number], bounds: Bounds): boolean {
 }
 
 export default function PointImageMarkers({ bangumis, zoom, bounds, onPointSelect }: Props) {
+  const { selectedBangumi } = useSelectedBangumi();
+
+  const zoomThreshold = useMemo(() => {
+    return selectedBangumi ? FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE : MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE;
+  }, [zoom]);
+
   const visible = useMemo(() => {
-    if (zoom < MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE || !bounds) return [];
+    if (zoom < zoomThreshold || !bounds) return [];
 
     const items: { point: Point; bangumi: Bangumi; imageUrl: string }[] = [];
 
@@ -91,7 +98,7 @@ export default function PointImageMarkers({ bangumis, zoom, bounds, onPointSelec
     [bangumis, onPointSelect],
   );
 
-  if (zoom < MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE || !bounds || visible.length === 0) return null;
+  if (zoom < zoomThreshold || !bounds || visible.length === 0) return null;
 
   return (
     <>

@@ -2,9 +2,10 @@ import { MAP_ICON_ZOOM_THRESHOLD } from '@/lib/constants';
 import { getBangumiIcons } from '@/services/api';
 import { baseUrl } from '@/services/handlers';
 import type { Bangumi } from '@/services/types';
+import { useSelectedBangumi } from '@/store/use-selected-bangumi';
 import { Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 // ===========================================================================
 // Tunable constants — adjust these freely
@@ -126,6 +127,8 @@ type Props = {
 };
 
 export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
+  const { selectedBangumi } = useSelectedBangumi();
+
   // 1. 从 API 获取需要显示 icon 的番剧 ID 列表
   const [allowedIds, setAllowedIds] = useState<Set<number> | null>(null);
   const [allowedIdsList, setAllowedIdsList] = useState<number[]>([]);
@@ -253,12 +256,18 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
 
   if (zoom >= MAP_ICON_ZOOM_THRESHOLD || !allowedIds || !spriteCache) return null;
 
+  // 筛选模式下通过 filter 在底层隐藏所有 icon，不 unmount 图层
+  const bangumiIconFilter: ComponentProps<typeof SymbolLayer>['filter'] = selectedBangumi
+    ? ['==', ['get', 'bangumiId'], -1]
+    : undefined;
+
   return (
     <>
       <Images images={imagesMap} />
       <ShapeSource id="bangumi-icons" shape={geojson} onPress={handlePress as any}>
         <SymbolLayer
           id="bangumi-icons-layer"
+          filter={bangumiIconFilter}
           style={{
             iconImage: ['get', 'iconImage'],
             iconSize: ICON_SCALE,

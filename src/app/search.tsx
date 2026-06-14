@@ -3,10 +3,12 @@ import { formatDuration } from '@/lib/formatDuration';
 import { baseUrl } from '@/services/handlers';
 import { fetchMapData } from '@/services/map-data';
 import type { AssembledData, Bangumi, Point } from '@/services/types';
+import { useSelectedBangumi } from '@/store/use-selected-bangumi';
 import { FlashList, FlashListRef } from '@shopify/flash-list';
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard } from 'react-native';
 import { Pressable } from 'react-native-gesture-handler';
@@ -27,79 +29,81 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'popular', label: '热门作品' },
 ];
 
-const coverUrl = (cover: string) =>
-  cover.startsWith('http://') || cover.startsWith('https://') ? cover : baseUrl + cover;
+const coverUrl = (cover: string, query?: string) =>
+  cover.startsWith('http://') || cover.startsWith('https://') ? cover : baseUrl + cover + (query ? `?${query}` : '');
 
 // ---------------------------------------------------------------------------
 // Bangumi 卡片
 // ---------------------------------------------------------------------------
-function BangumiCard({ bangumi }: { bangumi: Bangumi }) {
+function BangumiCard({ bangumi, onPress }: { bangumi: Bangumi; onPress: () => void }) {
   const theme = useTheme();
   return (
-    <View
-      bg="$color2"
-      p="$3"
-      mb="$2"
-      display="flex"
-      flexDirection="row"
-      rounded="$4"
-      shadowColor="$shadowColor"
-      boxShadow="0 1px 4px $shadowColor"
-      gap="$2.5"
-    >
-      <Image
-        key={coverUrl(bangumi.cover ?? '')}
-        source={coverUrl(bangumi.cover ?? '')}
-        style={{
-          width: 100,
-          height: 100,
-          borderRadius: getTokens().radius['4'].val,
-          backgroundColor: bangumi.color || theme.color9.val,
-        }}
-        contentFit="cover"
-      />
-      <View flex={1}>
-        {bangumi.cn ? (
-          <Text fontWeight="600" fontSize={16} color="$color12" pr="$8" numberOfLines={2}>
-            {bangumi.cn}
+    <Pressable onPress={onPress}>
+      <View
+        bg="$color2"
+        p="$3"
+        mb="$2"
+        display="flex"
+        flexDirection="row"
+        rounded="$4"
+        shadowColor="$shadowColor"
+        boxShadow="0 1px 4px $shadowColor"
+        gap="$2.5"
+      >
+        <Image
+          key={coverUrl(bangumi.cover ?? '')}
+          source={coverUrl(bangumi.cover ?? '')}
+          style={{
+            width: 100,
+            height: 100,
+            borderRadius: getTokens().radius['4'].val,
+            backgroundColor: bangumi.color || theme.color9.val,
+          }}
+          contentFit="cover"
+        />
+        <View flex={1}>
+          {bangumi.cn ? (
+            <Text fontWeight="600" fontSize={16} color="$color12" pr="$8" numberOfLines={2}>
+              {bangumi.cn}
+            </Text>
+          ) : null}
+          <Text fontSize={12} color="$color11" mt="$1" mb="$1" numberOfLines={1}>
+            {bangumi.title}
           </Text>
-        ) : null}
-        <Text fontSize={12} color="$color11" mt="$1" mb="$1" numberOfLines={1}>
-          {bangumi.title}
-        </Text>
-        <View flexDirection="row">
-          {bangumi.city && (
+          <View flexDirection="row">
+            {bangumi.city && (
+              <Text fontSize={12} color="$color11">
+                {bangumi.city} {'· '}
+              </Text>
+            )}
             <Text fontSize={12} color="$color11">
-              {bangumi.city} {'· '}
+              <Text color="$primary" fontWeight="bold">
+                {bangumi.points.length}
+              </Text>
+              个巡礼点
             </Text>
-          )}
-          <Text fontSize={12} color="$color11">
-            <Text color="$primary" fontWeight="bold">
-              {bangumi.points.length}
-            </Text>
-            个巡礼点
+          </View>
+          <Text fontSize={10} color="$color11" position="absolute" r="$0" b="$0">
+            最近更新：{dayjs(bangumi.modified).format('YYYY-MM-DD HH:mm')}
           </Text>
         </View>
-        <Text fontSize={10} color="$color11" position="absolute" r="$0" b="$0">
-          最近更新：{dayjs(bangumi.modified).format('YYYY-MM-DD HH:mm')}
-        </Text>
+        {bangumi.cat?.trim() ? (
+          <View
+            position="absolute"
+            t="$2"
+            r="$2"
+            px="$2"
+            py="$1"
+            rounded="$2"
+            style={{ backgroundColor: bangumi.color || theme.color9.val }}
+          >
+            <Text fontSize={10} color="white" fontWeight="500">
+              {bangumi.cat}
+            </Text>
+          </View>
+        ) : null}
       </View>
-      {bangumi.cat?.trim() ? (
-        <View
-          position="absolute"
-          t="$2"
-          r="$2"
-          px="$2"
-          py="$1"
-          rounded="$2"
-          style={{ backgroundColor: bangumi.color || theme.color9.val }}
-        >
-          <Text fontSize={10} color="white" fontWeight="500">
-            {bangumi.cat}
-          </Text>
-        </View>
-      ) : null}
-    </View>
+    </Pressable>
   );
 }
 
@@ -134,7 +138,7 @@ function PointCard({ point, bangumi }: { point: Point; bangumi: Bangumi }) {
       <View width={150} height={100} style={{ borderRadius: getTokens().radius['4'].val, overflow: 'hidden' }}>
         <Image
           key={point.image ? coverUrl(point.image) : 'none'}
-          source={point.image ? coverUrl(point.image) : undefined}
+          source={point.image ? coverUrl(point.image, 'plan=h160') : undefined}
           style={{ width: 150, height: 100, backgroundColor: theme.color9.val }}
           contentFit="cover"
         />
@@ -211,6 +215,16 @@ const Search = () => {
   const [query, setQuery] = useState('');
   const loadingRef = useRef(false);
   const flashListRef = useRef<FlashListRef<SearchListItem>>(null);
+  const router = useRouter();
+  const { setSelectedBangumi } = useSelectedBangumi();
+
+  const handleBangumiPress = useCallback(
+    (bangumi: Bangumi) => {
+      setSelectedBangumi(bangumi);
+      router.back();
+    },
+    [setSelectedBangumi, router],
+  );
 
   const searchMode = query.trim().length > 0;
 
@@ -318,14 +332,17 @@ const Search = () => {
       .map((b) => ({ type: 'bangumi' as const, data: b }));
   }, [data, tab, searchMode, bangumiResults, pointResults, query]);
 
-  const renderItem = useCallback(({ item }: { item: SearchListItem }) => {
-    switch (item.type) {
-      case 'bangumi':
-        return <BangumiCard bangumi={item.data} />;
-      case 'point':
-        return <PointCard point={item.data} bangumi={item.bangumi} />;
-    }
-  }, []);
+  const renderItem = useCallback(
+    ({ item }: { item: SearchListItem }) => {
+      switch (item.type) {
+        case 'bangumi':
+          return <BangumiCard bangumi={item.data} onPress={() => handleBangumiPress(item.data)} />;
+        case 'point':
+          return <PointCard point={item.data} bangumi={item.bangumi} />;
+      }
+    },
+    [handleBangumiPress],
+  );
 
   const keyExtractor = useCallback((item: SearchListItem) => {
     switch (item.type) {

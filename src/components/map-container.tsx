@@ -3,10 +3,11 @@ import { MAP_STYLES } from '@/components/layer-switch';
 import MapMarkers from '@/components/map-markers';
 import PointImageMarkers from '@/components/point-image-markers';
 import PopupCard from '@/components/point-popup-card';
-import type { Bangumi, Point } from '@/services/types';
+import type { Bangumi } from '@/services/types';
 import { useSelectedBangumi } from '@/store/use-selected-bangumi';
 import { Camera, LocationPuck, MapState, MapView, MarkerView } from '@rnmapbox/maps';
-import { forwardRef, useCallback, useRef, useState } from 'react';
+import { useIsFocused } from 'expo-router';
+import { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import type { EdgeInsets } from 'react-native-safe-area-context';
 import { View } from 'tamagui';
@@ -29,11 +30,40 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
 ) {
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const [bounds, setBounds] = useState<Bounds | null>(null);
-  const [selectedPopupPoint, setSelectedPopupPoint] = useState<{
-    point: Point;
-    bangumi: Bangumi;
-  } | null>(null);
-  const { setSelectedBangumi } = useSelectedBangumi();
+  const { selectedBangumi, setSelectedBangumi, selectedPoint, setSelectedPoint } =
+    useSelectedBangumi();
+
+  const cameraRef = useRef<any>(null);
+
+  // 合并本地 cameraRef 与外部转发 ref
+  const setCameraRef = useCallback(
+    (node: any) => {
+      cameraRef.current = node;
+      if (ref) {
+        if (typeof ref === 'function') ref(node);
+        else ref.current = node;
+      }
+    },
+    [ref],
+  );
+
+  const flag = useRef(false);
+
+  const isFocused = useIsFocused();
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    if (isFocused) {
+      timer = setTimeout(() => {
+        flag.current = true;
+      }, 500);
+    }
+
+    return () => {
+      flag.current = false;
+      clearTimeout(timer);
+    };
+  }, [isFocused]);
 
   // 地图初始化时 onCameraChanged 可能连续触发多次携带不稳定 zoom 值，
   // 跳过前 N 次事件过滤掉这些中间态，避免误设 zoom 状态。
@@ -41,6 +71,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
 
   const handleCameraChanged = useCallback(
     (state: MapState) => {
+      if (!flag.current) return;
       if (cameraEventSkipCount.current > 0) {
         cameraEventSkipCount.current--;
         return;
@@ -57,6 +88,53 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     [onCameraChange],
   );
 
+  // 筛选模式：自动将地图缩放到选中番剧的所有巡礼点范围
+  useEffect(() => {
+    const cam = cameraRef.current;
+    if (!cam) return;
+
+    if (!selectedBangumi) {
+      return;
+    }
+
+    const bangumi = bangumis.find((b) => b.id === selectedBangumi.id);
+    if (!bangumi || bangumi.points.length === 0) return;
+
+    const validPoints = bangumi.points.filter((p) => !(p.geo[0] === 0 && p.geo[1] === 0));
+    if (validPoints.length === 0) return;
+
+    let minLat = Infinity,
+      maxLat = -Infinity;
+    let minLng = Infinity,
+      maxLng = -Infinity;
+
+    for (const p of validPoints) {
+      const [lat, lng] = p.geo;
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
+      if (lng < minLng) minLng = lng;
+      if (lng > maxLng) maxLng = lng;
+    }
+
+    // 单点 → 中心定位 + 固定 zoom
+    if (minLat === maxLat && minLng === maxLng) {
+      cam.setCamera({
+        centerCoordinate: [minLng, minLat],
+        zoomLevel: 14,
+        animationDuration: 500,
+        animationMode: 'flyTo',
+      });
+      return;
+    }
+
+    cam.fitBounds(
+      [maxLng, maxLat], // ne
+      [minLng, minLat], // sw
+      [60, 60, 60, 60], // padding [top, right, bottom, left]
+      500,
+    );
+  }, [selectedBangumi, bangumis]);
+
   return (
     <View style={styles.container}>
       <MapView
@@ -67,16 +145,21 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
         compassPosition={{ top: insets.top + 100, right: 8 }}
         scaleBarEnabled={false}
         onCameraChanged={handleCameraChanged}
-        onPress={() => setSelectedPopupPoint(null)}
+        onPress={() => setSelectedPoint(null)}
       >
-        <Camera ref={ref} centerCoordinate={DEFAULT_COORDINATES} zoomLevel={DEFAULT_ZOOM} animationMode="none" />
+        <Camera
+          ref={setCameraRef}
+          centerCoordinate={DEFAULT_COORDINATES}
+          zoomLevel={DEFAULT_ZOOM}
+          animationMode="none"
+        />
         <LocationPuck
           visible
           puckBearingEnabled
           puckBearing="heading"
           pulsing={{ isEnabled: true, color: '#007AFF' }}
         />
-        <MapMarkers bangumis={bangumis} onPointSelect={(point, bangumi) => setSelectedPopupPoint({ point, bangumi })} />
+        <MapMarkers bangumis={bangumis} onPointSelect={(point, bangumi) => setSelectedPoint({ point, bangumi })} />
         <BangumiIcons
           bangumis={bangumis}
           zoom={zoom}
@@ -88,17 +171,17 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
           bangumis={bangumis}
           zoom={zoom}
           bounds={bounds}
-          onPointSelect={(point, bangumi) => setSelectedPopupPoint({ point, bangumi })}
+          onPointSelect={(point, bangumi) => setSelectedPoint({ point, bangumi })}
         />
 
         {/* 选中点位弹窗（图片标记 & 圆点标记共用） */}
-        {selectedPopupPoint && (
+        {selectedPoint && (
           <MarkerView
-            coordinate={[selectedPopupPoint.point.geo[1], selectedPopupPoint.point.geo[0]]}
+            coordinate={[selectedPoint.point.geo[1], selectedPoint.point.geo[0]]}
             anchor={{ x: 0.5, y: 1 }}
             allowOverlap
           >
-            <PopupCard point={selectedPopupPoint.point} bangumi={selectedPopupPoint.bangumi} />
+            <PopupCard point={selectedPoint.point} bangumi={selectedPoint.bangumi} />
           </MarkerView>
         )}
       </MapView>
