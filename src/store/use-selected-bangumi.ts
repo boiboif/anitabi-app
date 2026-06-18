@@ -17,12 +17,7 @@ export const useSelectedBangumi = create<SelectedBangumiStore>((set) => ({
   selectedBangumi: null,
   selectedPoint: null,
 
-  setSelectedBangumi: (bangumi) =>
-    set({ selectedBangumi: bangumi, selectedPoint: null }),
+  setSelectedBangumi: (bangumi) => set({ selectedBangumi: bangumi, selectedPoint: null }),
 
-  setSelectedPoint: (data) =>
-    set((state) => ({
-      selectedPoint: data,
-      selectedBangumi: data ? data.bangumi : state.selectedBangumi,
-    })),
+  setSelectedPoint: (data) => set({ selectedPoint: data }),
 }));

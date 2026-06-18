@@ -67,7 +67,7 @@ export default function HomeScreen() {
 
   // 选中巡礼点时，地图 camera 飞到该点
   useEffect(() => {
-    if (!selectedPoint) return;
+    if (!selectedPoint || !selectedBangumi) return;
     const [lat, lng] = selectedPoint.point.geo;
     cameraRef.current?.setCamera({
       centerCoordinate: [lng, lat],
@@ -75,7 +75,7 @@ export default function HomeScreen() {
       animationMode: 'flyTo',
       animationDuration: 500,
     });
-  }, [selectedPoint]);
+  }, [selectedPoint, selectedBangumi]);
 
   const handleLocate = useCallback(async () => {
     try {

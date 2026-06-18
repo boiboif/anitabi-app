@@ -5,7 +5,7 @@ import { useSelectedBangumi } from '@/store/use-selected-bangumi';
 import BottomSheet, { BottomSheetSectionList } from '@gorhom/bottom-sheet';
 import dayjs from 'dayjs';
 import { Image } from 'expo-image';
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { Pressable } from 'react-native-gesture-handler';
 import { getTokens, Text, useTheme, View } from 'tamagui';
 
@@ -14,91 +14,96 @@ const coverUrl = (cover?: string, query?: string) =>
     ? cover
     : baseUrl + cover + (query ? `?${query}` : '');
 
-function PointCard({ point, bangumi, onPress }: { point: Point; bangumi: Bangumi; onPress?: () => void }) {
-  const theme = useTheme();
-  const pointTitle = point.cn || point.name || '未命名点位';
-  const epLabel =
-    typeof point.ep === 'number' && point.ep > 0
-      ? `EP${point.ep}`
-      : typeof point.ep === 'string' && point.ep
-        ? point.ep
-        : undefined;
-  const timeLabel = typeof point.s === 'number' && point.s >= 0 ? formatDuration(point.s) : undefined;
+const PointCard = memo(
+  function PointCard({ point, bangumi, onPress }: { point: Point; bangumi: Bangumi; onPress?: () => void }) {
+    const theme = useTheme();
+    const pointTitle = point.cn || point.name || '未命名点位';
+    const epLabel =
+      typeof point.ep === 'number' && point.ep > 0
+        ? `EP${point.ep}`
+        : typeof point.ep === 'string' && point.ep
+          ? point.ep
+          : undefined;
+    const timeLabel = typeof point.s === 'number' && point.s >= 0 ? formatDuration(point.s) : undefined;
 
-  return (
-    <Pressable onPress={onPress}>
-      <View
-        bg="$color2"
-        mb="$2"
-        mx="$2"
-        display="flex"
-        flexDirection="row"
-        rounded="$4"
-        shadowColor="$shadowColor"
-        boxShadow="0 1px 4px $shadowColor"
-      >
-        <View width={150} height={100} style={{ borderRadius: getTokens().radius['4'].val, overflow: 'hidden' }}>
-          <Image
-            key={point.image ? coverUrl(point.image) : 'none'}
-            source={point.image ? coverUrl(point.image, 'plan=h160') : undefined}
-            style={{ width: 150, height: 100, backgroundColor: theme.color9.val }}
-            contentFit="cover"
-          />
-          {epLabel && (
-            <View
-              position="absolute"
-              l={0}
-              b={0}
-              bg="rgba(0,0,0,0.55)"
-              px="$1.5"
-              py="$0.5"
-              style={{ borderTopRightRadius: getTokens().radius['2'].val }}
-            >
-              <Text fontSize={11} fontWeight="700" color="white">
-                {epLabel}
-              </Text>
-            </View>
-          )}
-          {timeLabel && (
-            <View
-              position="absolute"
-              r={0}
-              b={0}
-              bg="rgba(0,0,0,0.55)"
-              px="$1.5"
-              py="$0.5"
-              style={{ borderTopLeftRadius: getTokens().radius['2'].val }}
-            >
-              <Text fontSize={11} color="white">
-                {timeLabel}
-              </Text>
-            </View>
-          )}
-        </View>
-        <View flex={1} p="$2" style={{ justifyContent: 'space-between' }}>
-          <View>
-            <Text fontWeight="600" fontSize={14} color="$color12" numberOfLines={1}>
-              {pointTitle}
-            </Text>
-            <Text fontSize={12} color="$primary" mt="$1" numberOfLines={1}>
-              {bangumi.cn || bangumi.title || bangumi.en || '未知'}
-            </Text>
-            {point.mark ? (
-              <Text fontSize={11} color="$color11" mt="$0.5" numberOfLines={3}>
-                {point.mark}
-              </Text>
-            ) : null}
+    return (
+      <Pressable onPress={onPress}>
+        <View
+          bg="$color2"
+          mb="$2"
+          mx="$2"
+          display="flex"
+          flexDirection="row"
+          rounded="$4"
+          height={100}
+          overflow="hidden"
+          shadowColor="$shadowColor"
+          boxShadow="0 1px 4px $shadowColor"
+        >
+          <View width={150} height={100} style={{ borderRadius: getTokens().radius['4'].val, overflow: 'hidden' }}>
+            <Image
+              key={point.image ? coverUrl(point.image) : 'none'}
+              source={point.image ? coverUrl(point.image, 'plan=h160') : undefined}
+              style={{ width: 150, height: 100, backgroundColor: theme.color9.val }}
+              contentFit="cover"
+            />
+            {epLabel && (
+              <View
+                position="absolute"
+                l={0}
+                b={0}
+                bg="rgba(0,0,0,0.55)"
+                px="$1.5"
+                py="$0.5"
+                style={{ borderTopRightRadius: getTokens().radius['2'].val }}
+              >
+                <Text fontSize={11} fontWeight="700" color="white">
+                  {epLabel}
+                </Text>
+              </View>
+            )}
+            {timeLabel && (
+              <View
+                position="absolute"
+                r={0}
+                b={0}
+                bg="rgba(0,0,0,0.55)"
+                px="$1.5"
+                py="$0.5"
+                style={{ borderTopLeftRadius: getTokens().radius['2'].val }}
+              >
+                <Text fontSize={11} color="white">
+                  {timeLabel}
+                </Text>
+              </View>
+            )}
           </View>
-          {point.folder && (
-            <Text fontSize={11} color="$color10" style={{ textAlign: 'right' }} mt="$1">
-              {point.folder}
-            </Text>
-          )}
+          <View flex={1} p="$2" style={{ justifyContent: 'space-between' }}>
+            <View>
+              <Text fontWeight="600" fontSize={14} color="$color12" numberOfLines={1}>
+                {pointTitle}
+              </Text>
+              <Text fontSize={11} color="$primary" mt="$1" numberOfLines={1}>
+                {bangumi.cn || bangumi.title || bangumi.en || '未知'}
+              </Text>
+              {point.mark ? (
+                <Text fontSize={11} lineHeight={11} color="$color11" mt="$0.5" numberOfLines={3}>
+                  {point.mark}
+                </Text>
+              ) : null}
+            </View>
+            {point.folder && (
+              <Text position="absolute" r="$2" b="$1.5" fontSize={11} color="$color10" style={{ textAlign: 'right' }}>
+                {point.folder}
+              </Text>
+            )}
+          </View>
         </View>
-      </View>
-    </Pressable>
-  );
-}
+      </Pressable>
+    );
+  },
+  (prev, next) => prev.point.id === next.point.id && prev.bangumi.id === next.bangumi.id,
+);
 
 export interface BangumiDetailSheetRef {
   snapToIndex: (index: number) => void;
@@ -237,6 +242,73 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>((_, ref) => {
     [sections, expandedKeys],
   );
 
+  const renderItem = useCallback(
+    ({ item }: { item: Point }) => (
+      <PointCard
+        point={item}
+        bangumi={selectedBangumi!}
+        onPress={() => {
+          setSelectedPoint({ point: item, bangumi: selectedBangumi! });
+          sheetRef.current?.snapToIndex(0);
+        }}
+      />
+    ),
+    [selectedBangumi, setSelectedPoint],
+  );
+
+  const renderSectionHeader = useCallback(
+    ({ section }: { section: AccordionSection }) => (
+      <Pressable onPress={() => toggleSection(section.key)}>
+        <View position="absolute" t={-1} l={0} r={0} height={2} bg="$color1" />
+        <View
+          flexDirection="row"
+          style={{ alignItems: 'center', borderBottomWidth: 0.5, borderBottomColor: theme.color5.val }}
+          px="$2"
+          py="$2"
+          bg="$color1"
+        >
+          <Text fontWeight="600" fontSize={14} color="$color12" flex={1}>
+            {section.title}
+          </Text>
+          <Text fontSize={12} color="$color10">
+            {expandedKeys.has(section.key) ? '▲' : '▼'}
+          </Text>
+        </View>
+      </Pressable>
+    ),
+    [toggleSection, expandedKeys, theme],
+  );
+
+  const ITEM_HEIGHT = 140;
+  const SECTION_HEADER_HEIGHT = 36;
+
+  const getItemLayout = useCallback(
+    (_data: unknown, index: number) => {
+      let remaining = index;
+      let offset = 0;
+
+      for (const section of filteredSections) {
+        // section header
+        if (remaining === 0) {
+          return { length: SECTION_HEADER_HEIGHT, offset, index };
+        }
+        offset += SECTION_HEADER_HEIGHT;
+        remaining--;
+
+        const count = section.data.length;
+        if (remaining < count) {
+          offset += remaining * ITEM_HEIGHT;
+          return { length: ITEM_HEIGHT, offset, index };
+        }
+        offset += count * ITEM_HEIGHT;
+        remaining -= count;
+      }
+
+      return { length: ITEM_HEIGHT, offset: index * ITEM_HEIGHT, index };
+    },
+    [filteredSections],
+  );
+
   return (
     <BottomSheet
       index={selectedBangumi ? 1 : -1}
@@ -253,36 +325,13 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>((_, ref) => {
           sections={filteredSections}
           stickySectionHeadersEnabled={true}
           keyExtractor={(item: Point) => item.id}
-          renderItem={({ item }) => (
-            <PointCard
-              point={item}
-              bangumi={selectedBangumi!}
-              onPress={() => {
-                setSelectedPoint({ point: item, bangumi: selectedBangumi! });
-                sheetRef.current?.snapToIndex(0);
-              }}
-            />
-          )}
-          renderSectionHeader={({ section }) => (
-            <Pressable onPress={() => toggleSection(section.key)}>
-              <View position="absolute" t={-1} l={0} r={0} height={2} bg="$color1" />
-              <View
-                flexDirection="row"
-                style={{ alignItems: 'center', borderBottomWidth: 0.5, borderBottomColor: theme.color5.val }}
-                px="$2"
-                py="$2"
-                bg="$color1"
-              >
-                <Text fontWeight="600" fontSize={14} color="$color12" flex={1}>
-                  {section.title}
-                </Text>
-                <Text fontSize={12} color="$color10">
-                  {expandedKeys.has(section.key) ? '▲' : '▼'}
-                </Text>
-              </View>
-            </Pressable>
-          )}
+          renderItem={renderItem}
+          renderSectionHeader={renderSectionHeader}
+          getItemLayout={getItemLayout}
           initialNumToRender={8}
+          maxToRenderPerBatch={10}
+          windowSize={7}
+          removeClippedSubviews={true}
           ListHeaderComponent={
             <>
               <View px="$2" mb="$4" display="flex" flexDirection="row" rounded="$4" gap="$2.5">

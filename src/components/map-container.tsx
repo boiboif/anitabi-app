@@ -30,8 +30,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
 ) {
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const [bounds, setBounds] = useState<Bounds | null>(null);
-  const { selectedBangumi, setSelectedBangumi, selectedPoint, setSelectedPoint } =
-    useSelectedBangumi();
+  const { selectedBangumi, setSelectedBangumi, selectedPoint, setSelectedPoint } = useSelectedBangumi();
 
   const cameraRef = useRef<any>(null);
 
