@@ -113,7 +113,7 @@ export default function MapMarkers({ bangumis, onPointSelect }: Props) {
         circleOpacity: ['interpolate', ['linear'], ['zoom'], 0, 0.7, 8, 0.85, 14, 0.95],
         circleStrokeWidth: 1,
         circleStrokeColor: '#ffffff',
-        circleRadius: ['interpolate', ['linear'], ['zoom'], 0, 3, 8, 5, 14, 7, 16, 8, 17, 9, 18, 10],
+        circleRadius: ['interpolate', ['linear'], ['zoom'], 0, 3, 8, 5, 14, 7, 16, 7.5, 17, 8.5, 18, 9.5],
       };
     }
     // 普通模式

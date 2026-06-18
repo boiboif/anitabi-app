@@ -37,7 +37,7 @@
         0, // origin
         0, // originLink
         '兵库', // folder
-        10358, // density
+        10358, // density 到最近邻点的距离（米）
       ],
     ],
     1725342953859, // modified
@@ -126,7 +126,7 @@ type Bangumi = {
     origin?: string; // 来源
     originLink?: string; // 来源地址
     folder?: string;
-    density?: number; // 密度
+    density?: number; // 密度 到最近邻点的距离（米）
     priority: number; // 优先级 越大优先级越高
     geo: [number, number]; // 地理位置
   }[];

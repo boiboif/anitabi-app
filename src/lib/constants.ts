@@ -2,5 +2,6 @@
 export const MAP_ICON_ZOOM_THRESHOLD = 12.5;
 
 /** 当zoom大于此值时，地图中显示巡礼点的图片 */
-export const MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE = 17.5;
-export const FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE = 16;
+export const MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE = 18;
+/** 筛选模式下，当zoom大于此值时，地图中显示巡礼点的图片 */
+export const FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE = 17.5;

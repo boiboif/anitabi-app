@@ -68,10 +68,20 @@ export default function HomeScreen() {
   // 选中巡礼点时，地图 camera 飞到该点
   useEffect(() => {
     if (!selectedPoint || !selectedBangumi) return;
+    const { density } = selectedPoint.point;
     const [lat, lng] = selectedPoint.point.geo;
+
+    // density = 到最近邻点的距离（米）
+    // density 越小 → 附近有其他点 → 放大地图显示更友好
+    // density 为空 → 固定一个相对较小的 zoom
+    const zoomLevel =
+      density == null
+        ? 14
+        : Math.max(13, Math.min(18, 16 - Math.log10(density / 10)));
+
     cameraRef.current?.setCamera({
       centerCoordinate: [lng, lat],
-      zoomLevel: 22,
+      zoomLevel,
       animationMode: 'flyTo',
       animationDuration: 500,
     });
