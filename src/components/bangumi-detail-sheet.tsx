@@ -177,11 +177,13 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>((_, ref) => {
 
   // 选中番剧时打开 sheet，关闭时清除选中
   useEffect(() => {
-    if (selectedBangumi) {
-      sheetRef.current?.snapToIndex(1);
-    } else {
-      sheetRef.current?.close();
-    }
+    setTimeout(() => {
+      if (selectedBangumi) {
+        sheetRef.current?.snapToIndex(1);
+      } else {
+        sheetRef.current?.close();
+      }
+    }, 100);
   }, [selectedBangumi]);
 
   const handleSheetChange = useCallback(
@@ -311,7 +313,7 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>((_, ref) => {
 
   return (
     <BottomSheet
-      index={selectedBangumi ? 1 : -1}
+      index={-1}
       ref={sheetRef}
       snapPoints={['25%', '80%']}
       // enablePanDownToClose

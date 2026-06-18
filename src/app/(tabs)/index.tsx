@@ -74,10 +74,7 @@ export default function HomeScreen() {
     // density = 到最近邻点的距离（米）
     // density 越小 → 附近有其他点 → 放大地图显示更友好
     // density 为空 → 固定一个相对较小的 zoom
-    const zoomLevel =
-      density == null
-        ? 14
-        : Math.max(13, Math.min(18, 16 - Math.log10(density / 10)));
+    const zoomLevel = density == null ? 14 : Math.max(13, Math.min(18, 16 - Math.log10(density / 10)));
 
     cameraRef.current?.setCamera({
       centerCoordinate: [lng, lat],
