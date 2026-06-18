@@ -5,7 +5,7 @@ import type { Bangumi } from '@/services/types';
 import { useSelectedBangumi } from '@/store/use-selected-bangumi';
 import { Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
-import { ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ComponentProps, useCallback, useEffect, useMemo, useState } from 'react';
 
 // ===========================================================================
 // Tunable constants — adjust these freely
@@ -49,57 +49,18 @@ function pixelDistance(lat1: number, lng1: number, lat2: number, lng2: number, z
  * 就跳过它（不绘制）。注意这里不是只和「已被选中的」item 比较，而是和
  * sorted 中所有排在它前面的 item 比较——因为一个高 priority 的 item 可能
  * 因与更高 priority 重叠而被跳过，但低 priority 的 item 仍需避开它。
- *
- * 单调性保证（通过 ref 追踪上一帧 zoom 与可见集）：
- * - zoom 增大（放大）：上一帧可见的 icon 强制保留，再贪心补充新的
- * - zoom 减小（缩小）：重新贪心，低 priority 的 icon 在重叠时自然消失
- *
- * 这确保了：地图放大过程中已绘制的 icon 不会闪烁消失。
  */
 function selectVisible(
   candidates: Bangumi[],
   zoom: number,
-  prevZoom: number | null,
-  prevVisibleIds: Set<number>,
-): { visible: Bangumi[]; visibleIds: Set<number> } {
+): Bangumi[] {
   const thresholdPx = ICON_BASE_SIZE * ICON_SCALE * OVERLAP_MULTIPLIER;
   const sorted = [...candidates].sort((a, b) => (b.priority ?? -Infinity) - (a.priority ?? -Infinity));
 
-  const isZoomingIn = prevZoom !== null && zoom > prevZoom;
-
-  if (!isZoomingIn) {
-    // 缩小 / 首帧：比较与所有更高 priority item 是否重叠（不仅是已选中的）
-    const picked: Bangumi[] = [];
-    for (let i = 0; i < sorted.length; i++) {
-      const item = sorted[i];
-      const [lat, lng] = item.geo;
-      let overlaps = false;
-      for (let j = 0; j < i; j++) {
-        if (pixelDistance(lat, lng, sorted[j].geo[0], sorted[j].geo[1], zoom) < thresholdPx) {
-          overlaps = true;
-          break;
-        }
-      }
-      if (!overlaps) picked.push(item);
-    }
-    return { visible: picked, visibleIds: new Set(picked.map((x) => x.id)) };
-  }
-
-  // 放大：强制保留上一帧可见的 icon，其余按 priority 检查与所有更高 priority item
-  const mustIncludeIds = new Set(prevVisibleIds);
   const picked: Bangumi[] = [];
-  const pickedIds = new Set<number>();
-
   for (let i = 0; i < sorted.length; i++) {
     const item = sorted[i];
     const [lat, lng] = item.geo;
-
-    if (mustIncludeIds.has(item.id)) {
-      picked.push(item);
-      pickedIds.add(item.id);
-      continue;
-    }
-
     let overlaps = false;
     for (let j = 0; j < i; j++) {
       if (pixelDistance(lat, lng, sorted[j].geo[0], sorted[j].geo[1], zoom) < thresholdPx) {
@@ -107,13 +68,9 @@ function selectVisible(
         break;
       }
     }
-    if (!overlaps) {
-      picked.push(item);
-      pickedIds.add(item.id);
-    }
+    if (!overlaps) picked.push(item);
   }
-
-  return { visible: picked, visibleIds: pickedIds };
+  return picked;
 }
 
 // ===========================================================================
@@ -185,24 +142,13 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
     };
   }, [spriteUrl, allowedIdsList]);
 
-  // 3. 过滤 + 重叠处理（带单调性保证）
-  const prevZoomRef = useRef<number | null>(null);
-  const prevVisibleIdsRef = useRef<Set<number>>(new Set());
+  // 3. 过滤 + 重叠处理
 
   const visible = useMemo(() => {
-    if (!allowedIds) {
-      prevZoomRef.current = null;
-      prevVisibleIdsRef.current = new Set();
-      return [];
-    }
+    if (!allowedIds) return [];
 
     const candidates = bangumis.filter((b) => b.cn && allowedIds.has(b.id));
-
-    const result = selectVisible(candidates, zoom, prevZoomRef.current, prevVisibleIdsRef.current);
-
-    prevZoomRef.current = zoom;
-    prevVisibleIdsRef.current = result.visibleIds;
-    return result.visible;
+    return selectVisible(candidates, zoom);
   }, [bangumis, allowedIds, zoom]);
 
   const { imagesMap, geojson } = useMemo(() => {
