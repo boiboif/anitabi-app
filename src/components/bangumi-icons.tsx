@@ -4,6 +4,7 @@ import { baseUrl } from '@/services/handlers';
 import type { Bangumi } from '@/services/types';
 import { useSelectedBangumi } from '@/store/use-selected-bangumi';
 import { Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
+import { File, Directory, Paths } from 'expo-file-system';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { ComponentProps, useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -93,16 +94,51 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
   const [spriteUrl, setSpriteUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    getBangumiIcons()
-      .then((resp) => {
+    let cancelled = false;
+
+    const CACHE_DIR = 'bangumi-icons';
+
+    const load = async () => {
+      try {
+        // 1. Try API — spriteUrl 设远程 URL，裁剪用远程源，后台偷写缓存
+        const resp = await getBangumiIcons();
         const ids = resp.ids.map(Number);
+        if (cancelled) return;
         setAllowedIds(new Set(ids));
         setAllowedIdsList(ids);
-        setSpriteUrl(`${baseUrl}${resp.src}`);
-      })
-      .catch((err) => {
+        const remoteUrl = `${baseUrl}${resp.src}`;
+        setSpriteUrl(remoteUrl);
+
+        // 缓存写是 fire-and-forget，不影响当前裁剪
+        try {
+          const dir = new Directory(Paths.document, CACHE_DIR);
+          if (!dir.exists) dir.create();
+          const spriteFile = new File(dir, 'sprite.png');
+          if (spriteFile.exists) spriteFile.delete();
+          File.downloadFileAsync(remoteUrl, spriteFile);
+          new File(dir, 'meta.json').write(JSON.stringify({ ids: resp.ids }));
+        } catch {}
+      } catch (err) {
+        // 2. API 失败 → 降级到本地缓存
         console.error('获取有图标的番剧列表失败:', err);
-      });
+        try {
+          const dir = new Directory(Paths.document, CACHE_DIR);
+          const meta = new File(dir, 'meta.json');
+          const sprite = new File(dir, 'sprite.png');
+          if (meta.exists && sprite.exists) {
+            const cached = JSON.parse(meta.textSync());
+            if (!cancelled) {
+              setAllowedIds(new Set(cached.ids.map(Number)));
+              setAllowedIdsList(cached.ids.map(Number));
+              setSpriteUrl(sprite.uri);
+            }
+          }
+        } catch {}
+      }
+    };
+
+    load();
+    return () => { cancelled = true; };
   }, []);
 
   // 2. 下载雪碧图并裁剪所有 icon（失败时指数退避重试）
