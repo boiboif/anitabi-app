@@ -91,13 +91,26 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
   );
 
   // =====================================================================
-  // 1. 获取雪碧图来源（远程 API 优先，失败则走本地缓存）
+  // 1. 获取雪碧图来源（缓存优先，后台静默更新远程）
   // =====================================================================
 
   useEffect(() => {
     let cancelled = false;
 
     const load = async () => {
+      // 优先从本地缓存加载，无网时也能立即显示
+      try {
+        const metaFile = cacheFile('meta.json');
+        const sprite = cacheFile('sprite.png');
+        if (metaFile.exists && sprite.exists) {
+          const cached = JSON.parse(metaFile.textSync());
+          if (!cancelled) {
+            setSpriteMeta({ ids: cached.ids.map(Number), url: sprite.uri });
+          }
+        }
+      } catch {}
+
+      // 后台从远程获取最新数据，成功后更新缓存
       try {
         const resp = await getBangumiIcons();
         if (cancelled) return;
@@ -105,7 +118,7 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
         const url = `${baseUrl}${resp.src}`;
         setSpriteMeta({ ids, url });
 
-        // 缓存到本地供无网时使用（先写临时文件再原子替换）
+        // 更新本地缓存（先写临时文件再原子替换）
         try {
           const dir = cacheDir();
           if (!dir.exists) dir.create();
@@ -118,16 +131,14 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
           cacheFile('meta.json').write(JSON.stringify({ ids: resp.ids }));
         } catch {}
       } catch (err) {
-        console.error('获取有图标的番剧列表失败:', err);
-        // API 失败 → 降级到本地缓存
-        try {
-          const meta = cacheFile('meta.json');
+        if (!cancelled) {
+          // 无缓存且远程失败时才打印错误
+          const metaFile = cacheFile('meta.json');
           const sprite = cacheFile('sprite.png');
-          if (meta.exists && sprite.exists) {
-            const cached = JSON.parse(meta.textSync());
-            if (!cancelled) setSpriteMeta({ ids: cached.ids.map(Number), url: sprite.uri });
+          if (!metaFile.exists || !sprite.exists) {
+            console.error('获取有图标的番剧列表失败:', err);
           }
-        } catch {}
+        }
       }
     };
 

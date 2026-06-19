@@ -25,9 +25,11 @@ const match = configContent.match(/version:\s*'([^']+)'/);
 const version = match ? match[1] : '1.0.0';
 
 const isPreview = profile === 'preview';
-const tag = isPreview ? `v${version}-preview-${shortHash}` : `v${version}`;
+const tag = isPreview ? `v${version}-preview+${shortHash}` : `v${version}`;
 
-console.log(`[eas-post-build] profile=${profile}, platform=${platform}, version=${version}, tag=${tag}${repo ? `, repo=${repo}` : ''}`);
+console.log(
+  `[eas-post-build] profile=${profile}, platform=${platform}, version=${version}, tag=${tag}${repo ? `, repo=${repo}` : ''}`,
+);
 
 // 查找构建产物
 function findArtifact() {
@@ -44,18 +46,17 @@ function findArtifact() {
 const artifact = findArtifact();
 const displayName = artifact ? `anitabi-app-${tag}-${platform}.${artifact.ext}` : null;
 
-const args = [
-  'gh release create',
-  tag,
-];
+const args = ['gh release create', tag];
 
 if (artifact) {
   args.push(`${artifact.filepath}#${displayName}`);
 }
 
 args.push(
-  '--title', isPreview ? `"v${version} (preview)"` : `"v${version}"`,
-  '--target', fullHash,
+  '--title',
+  isPreview ? `"v${version}-preview+${shortHash}"` : `"v${version}"`,
+  '--target',
+  fullHash,
   '--generate-notes',
 );
 
