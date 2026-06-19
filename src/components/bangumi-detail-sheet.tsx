@@ -133,6 +133,7 @@ interface FlatSectionHeader {
   type: typeof ITEM_TYPE_HEADER;
   id: string;
   title: string;
+  count: number;
 }
 
 interface FlatPointItem {
@@ -164,24 +165,59 @@ function groupPoints(points: Point[], mode: AccordionMode, bangumi: Bangumi): Ac
     return sections;
   }
 
-  const map = new Map<string, Point[]>();
+  // 第1层：先统计同名频率
+  const nameFreq = new Map<string, number>();
   for (const p of points) {
-    const key = p.folder || '__bangumi__';
-    if (!map.has(key)) map.set(key, []);
-    map.get(key)!.push(p);
+    if (p.name) nameFreq.set(p.name, (nameFreq.get(p.name) || 0) + 1);
   }
-  const sections: AccordionSection[] = [];
-  if (map.has('__bangumi__')) {
-    sections.push({
+
+  // 第1.5层：同名 >1 的形成 name-group
+  const nameMap = new Map<string, Point[]>();
+  const afterName: Point[] = [];
+  for (const p of points) {
+    if (p.name && (nameFreq.get(p.name) || 0) > 1) {
+      if (!nameMap.has(p.name)) nameMap.set(p.name, []);
+      nameMap.get(p.name)!.push(p);
+    } else {
+      afterName.push(p);
+    }
+  }
+
+  // 第2层：从剩余点中统计 folder 频率
+  const folderFreq = new Map<string, number>();
+  for (const p of afterName) {
+    const key = p.folder || '__bangumi__';
+    folderFreq.set(key, (folderFreq.get(key) || 0) + 1);
+  }
+
+  // 第2.5层：同 folder >1 的形成 folder-group（排除 __bangumi__）
+  const folderMap = new Map<string, Point[]>();
+  const leftover: Point[] = [];
+  for (const p of afterName) {
+    const key = p.folder || '__bangumi__';
+    if (key !== '__bangumi__' && (folderFreq.get(key) || 0) >= 1) {
+      if (!folderMap.has(key)) folderMap.set(key, []);
+      folderMap.get(key)!.push(p);
+    } else {
+      leftover.push(p);
+    }
+  }
+
+  // 组装 sections：__bangumi__ → name → folder
+  const sections: AccordionSection[] = [
+    {
       key: 'folder-bangumi',
       title: bangumi.cn || bangumi.title || bangumi.en || '番剧',
-      data: map.get('__bangumi__')!,
-    });
-    map.delete('__bangumi__');
+      data: leftover,
+    },
+  ];
+  const nameKeys = Array.from(nameMap.keys()).sort();
+  for (const k of nameKeys) {
+    sections.push({ key: `name-${k}`, title: k, data: nameMap.get(k)! });
   }
-  const folderKeys = Array.from(map.keys()).sort();
+  const folderKeys = Array.from(folderMap.keys()).sort();
   for (const k of folderKeys) {
-    sections.push({ key: `folder-${k}`, title: k, data: map.get(k)! });
+    sections.push({ key: `folder-${k}`, title: k, data: folderMap.get(k)! });
   }
   return sections;
 }
@@ -272,15 +308,24 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>((_, ref) => {
 
   // 拍平为含 section header 的扁平数组
   const flatData: FlatItem[] = useMemo(() => {
+    const countMap = new Map<string, number>();
+    for (const s of sections) {
+      countMap.set(s.key, s.data.length);
+    }
     const items: FlatItem[] = [];
     for (const section of filteredSections) {
-      items.push({ type: ITEM_TYPE_HEADER, id: `header-${section.key}`, title: section.title });
+      items.push({
+        type: ITEM_TYPE_HEADER,
+        id: `header-${section.key}`,
+        title: section.title,
+        count: countMap.get(section.key) ?? 0,
+      });
       for (const point of section.data) {
         items.push({ type: ITEM_TYPE_POINT, id: `point-${point.id}-${point.name}`, point });
       }
     }
     return items;
-  }, [filteredSections]);
+  }, [filteredSections, sections]);
 
   // 计算 sticky header 索引
   const stickyHeaderIndices = useMemo(
@@ -304,6 +349,9 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>((_, ref) => {
             >
               <Text fontWeight="600" fontSize={14} color="$color12" flex={1}>
                 {item.title}
+              </Text>
+              <Text fontSize={11} color="$color10" mr="$1">
+                {item.count}
               </Text>
               <Text fontSize={12} color="$color10">
                 {expandedKeys.has(sectionKey) ? '▲' : '▼'}
