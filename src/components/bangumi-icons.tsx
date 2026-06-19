@@ -4,7 +4,7 @@ import { baseUrl } from '@/services/handlers';
 import type { Bangumi } from '@/services/types';
 import { useSelectedBangumi } from '@/store/use-selected-bangumi';
 import { Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
-import { File, Directory, Paths } from 'expo-file-system';
+import { Directory, File, Paths } from 'expo-file-system';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { ComponentProps, useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -85,10 +85,7 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
   const [icons, setIcons] = useState<Map<number, string> | null>(null);
 
   // 从 spriteMeta 衍生允许显示的 id 集合
-  const allowedIds = useMemo(
-    () => (spriteMeta ? new Set(spriteMeta.ids) : null),
-    [spriteMeta],
-  );
+  const allowedIds = useMemo(() => (spriteMeta ? new Set(spriteMeta.ids) : null), [spriteMeta]);
 
   // =====================================================================
   // 1. 获取雪碧图来源（缓存优先，后台静默更新远程）
@@ -105,7 +102,7 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
         if (metaFile.exists && sprite.exists) {
           const cached = JSON.parse(metaFile.textSync());
           if (!cancelled) {
-            setSpriteMeta({ ids: cached.ids.map(Number), url: sprite.uri });
+            setSpriteMeta({ ids: cached.ids.map(Number), url: sprite.contentUri ?? sprite.uri });
           }
         }
       } catch {}
@@ -143,7 +140,9 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
     };
 
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // =====================================================================
@@ -179,7 +178,9 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
     };
 
     crop();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [spriteMeta]);
 
   // =====================================================================
