@@ -29,13 +29,35 @@ const tag = isPreview ? `v${version}-preview-${shortHash}` : `v${version}`;
 
 console.log(`[eas-post-build] profile=${profile}, platform=${platform}, version=${version}, tag=${tag}${repo ? `, repo=${repo}` : ''}`);
 
+// 查找构建产物
+function findArtifact() {
+  const buildDir = path.join(__dirname, '..');
+  if (platform === 'android') {
+    const apk = path.join(buildDir, 'android', 'app', 'build', 'outputs', 'apk', 'release', 'app-release.apk');
+    if (fs.existsSync(apk)) return { filepath: apk, ext: 'apk' };
+    const aab = path.join(buildDir, 'android', 'app', 'build', 'outputs', 'bundle', 'release', 'app-release.aab');
+    if (fs.existsSync(aab)) return { filepath: aab, ext: 'aab' };
+  }
+  return null;
+}
+
+const artifact = findArtifact();
+const displayName = artifact ? `anitabi-app-${tag}-${platform}.${artifact.ext}` : null;
+
 const args = [
   'gh release create',
   tag,
+];
+
+if (artifact) {
+  args.push(`${artifact.filepath}#${displayName}`);
+}
+
+args.push(
   '--title', isPreview ? `"v${version} (preview)"` : `"v${version}"`,
   '--target', fullHash,
   '--generate-notes',
-];
+);
 
 if (repo) {
   args.push('--repo', repo);
