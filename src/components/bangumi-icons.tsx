@@ -9,29 +9,27 @@ import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { ComponentProps, useCallback, useEffect, useMemo, useState } from 'react';
 
 // ===========================================================================
-// Tunable constants — adjust these freely
+// Tunable constants
 // ===========================================================================
 
-/** 图标图片的基础像素尺寸（宽度），作为重叠阈值基准 */
 const ICON_BASE_SIZE = 60;
-
 const ICON_SCALE = 0.5;
-
-/** 重叠阈值倍率：实际阈值 = ICON_BASE_SIZE * ICON_SCALE * OVERLAP_MULTIPLIER */
 const OVERLAP_MULTIPLIER = 1.2;
-
-/** 雪碧图加载最大重试次数 */
 const SPRITE_MAX_RETRIES = 3;
+
+// ===========================================================================
+// Cache helpers
+// ===========================================================================
+
+const CACHE_DIR = 'bangumi-icons';
+const cacheDir = () => new Directory(Paths.document, CACHE_DIR);
+const cacheFile = (name: string) => new File(cacheDir(), name);
 
 // ===========================================================================
 // Helpers
 // ===========================================================================
 
-/** Web Mercator 近似：计算两点在给定 zoom 下的像素距离
- *
- * 注意：Mapbox GL 使用 512px 的 tile，分辨率公式比 256px tile 小一倍（/ 2）。
- * 如果不调整，像素距离会被低估约 2x，导致重叠检测过度激进。
- */
+/** Web Mercator 近似：两点在给定 zoom 下的像素距离 */
 function pixelDistance(lat1: number, lng1: number, lat2: number, lng2: number, zoom: number): number {
   const avgLat = ((lat1 + lat2) / 2) * (Math.PI / 180);
   const cosLat = Math.cos(avgLat) || 1e-4;
@@ -45,16 +43,9 @@ function pixelDistance(lat1: number, lng1: number, lat2: number, lng2: number, z
 
 /**
  * 按 priority 降序挑选互不重叠的 icon。
- *
- * 核心规则：一个 item 只要与任何一个 priority 更高的 item 在像素上重叠，
- * 就跳过它（不绘制）。注意这里不是只和「已被选中的」item 比较，而是和
- * sorted 中所有排在它前面的 item 比较——因为一个高 priority 的 item 可能
- * 因与更高 priority 重叠而被跳过，但低 priority 的 item 仍需避开它。
+ * 一个 item 与任一更高 priority 的 item 在像素上重叠即跳过。
  */
-function selectVisible(
-  candidates: Bangumi[],
-  zoom: number,
-): Bangumi[] {
+function selectVisible(candidates: Bangumi[], zoom: number): Bangumi[] {
   const thresholdPx = ICON_BASE_SIZE * ICON_SCALE * OVERLAP_MULTIPLIER;
   const sorted = [...candidates].sort((a, b) => (b.priority ?? -Infinity) - (a.priority ?? -Infinity));
 
@@ -87,51 +78,54 @@ type Props = {
 export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
   const { selectedBangumi } = useSelectedBangumi();
 
-  // 1. 从 API 获取需要显示 icon 的番剧 ID 列表
-  const [allowedIds, setAllowedIds] = useState<Set<number> | null>(null);
-  const [allowedIdsList, setAllowedIdsList] = useState<number[]>([]);
-  const [spriteCache, setSpriteCache] = useState<Map<number, string> | null>(null);
-  const [spriteUrl, setSpriteUrl] = useState<string | null>(null);
+  const [spriteMeta, setSpriteMeta] = useState<{
+    ids: number[];
+    url: string;
+  } | null>(null);
+  const [icons, setIcons] = useState<Map<number, string> | null>(null);
+
+  // 从 spriteMeta 衍生允许显示的 id 集合
+  const allowedIds = useMemo(
+    () => (spriteMeta ? new Set(spriteMeta.ids) : null),
+    [spriteMeta],
+  );
+
+  // =====================================================================
+  // 1. 获取雪碧图来源（远程 API 优先，失败则走本地缓存）
+  // =====================================================================
 
   useEffect(() => {
     let cancelled = false;
 
-    const CACHE_DIR = 'bangumi-icons';
-
     const load = async () => {
       try {
-        // 1. Try API — spriteUrl 设远程 URL，裁剪用远程源，后台偷写缓存
         const resp = await getBangumiIcons();
-        const ids = resp.ids.map(Number);
         if (cancelled) return;
-        setAllowedIds(new Set(ids));
-        setAllowedIdsList(ids);
-        const remoteUrl = `${baseUrl}${resp.src}`;
-        setSpriteUrl(remoteUrl);
+        const ids = resp.ids.map(Number);
+        const url = `${baseUrl}${resp.src}`;
+        setSpriteMeta({ ids, url });
 
-        // 缓存写是 fire-and-forget，不影响当前裁剪
+        // 缓存到本地供无网时使用（先写临时文件再原子替换）
         try {
-          const dir = new Directory(Paths.document, CACHE_DIR);
+          const dir = cacheDir();
           if (!dir.exists) dir.create();
-          const spriteFile = new File(dir, 'sprite.png');
-          if (spriteFile.exists) spriteFile.delete();
-          File.downloadFileAsync(remoteUrl, spriteFile);
-          new File(dir, 'meta.json').write(JSON.stringify({ ids: resp.ids }));
+          const tmp = cacheFile('sprite.tmp');
+          if (tmp.exists) tmp.delete();
+          await File.downloadFileAsync(url, tmp);
+          const target = cacheFile('sprite.png');
+          if (target.exists) target.delete();
+          tmp.rename('sprite.png');
+          cacheFile('meta.json').write(JSON.stringify({ ids: resp.ids }));
         } catch {}
       } catch (err) {
-        // 2. API 失败 → 降级到本地缓存
         console.error('获取有图标的番剧列表失败:', err);
+        // API 失败 → 降级到本地缓存
         try {
-          const dir = new Directory(Paths.document, CACHE_DIR);
-          const meta = new File(dir, 'meta.json');
-          const sprite = new File(dir, 'sprite.png');
+          const meta = cacheFile('meta.json');
+          const sprite = cacheFile('sprite.png');
           if (meta.exists && sprite.exists) {
             const cached = JSON.parse(meta.textSync());
-            if (!cancelled) {
-              setAllowedIds(new Set(cached.ids.map(Number)));
-              setAllowedIdsList(cached.ids.map(Number));
-              setSpriteUrl(sprite.uri);
-            }
+            if (!cancelled) setSpriteMeta({ ids: cached.ids.map(Number), url: sprite.uri });
           }
         } catch {}
       }
@@ -141,54 +135,54 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
     return () => { cancelled = true; };
   }, []);
 
-  // 2. 下载雪碧图并裁剪所有 icon（失败时指数退避重试）
+  // =====================================================================
+  // 2. 从雪碧图中裁剪出每个番剧的独立图标
+  // =====================================================================
+
   useEffect(() => {
-    if (!spriteUrl || !allowedIdsList.length) return;
+    if (!spriteMeta) return;
     let cancelled = false;
     let retries = 0;
 
-    const loadSprite = async () => {
+    const crop = async () => {
       try {
         const results = await Promise.all(
-          allowedIdsList.map(async (id, i) => {
+          spriteMeta.ids.map(async (id, i) => {
             const row = Math.floor(i / 20);
             const col = i % 20;
-            const result = await ImageManipulator.manipulate(spriteUrl)
+            const { uri } = await ImageManipulator.manipulate(spriteMeta.url)
               .crop({ originX: col * 60, originY: row * 60, width: 60, height: 60 })
               .renderAsync()
-              .then((image) => image.saveAsync({ compress: 1, format: SaveFormat.PNG }));
-            return [id, result.uri] as const;
+              .then((img) => img.saveAsync({ compress: 1, format: SaveFormat.PNG }));
+            return [id, uri] as const;
           }),
         );
-        if (!cancelled) setSpriteCache(new Map(results));
+        if (!cancelled) setIcons(new Map(results));
       } catch (err) {
         console.error('雪碧图加载/裁剪失败:', err);
         if (!cancelled && retries < SPRITE_MAX_RETRIES) {
           retries++;
-          const delay = Math.pow(2, retries) * 1000;
-          setTimeout(loadSprite, delay);
+          setTimeout(crop, Math.pow(2, retries) * 1000);
         }
       }
     };
 
-    loadSprite();
+    crop();
+    return () => { cancelled = true; };
+  }, [spriteMeta]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [spriteUrl, allowedIdsList]);
-
-  // 3. 过滤 + 重叠处理
+  // =====================================================================
+  // 3. 重叠过滤 + 组装 Mapbox 数据
+  // =====================================================================
 
   const visible = useMemo(() => {
     if (!allowedIds) return [];
-
     const candidates = bangumis.filter((b) => b.cn && allowedIds.has(b.id));
     return selectVisible(candidates, zoom);
   }, [bangumis, allowedIds, zoom]);
 
   const { imagesMap, geojson } = useMemo(() => {
-    if (!spriteCache) {
+    if (!icons) {
       return {
         imagesMap: {},
         geojson: { type: 'FeatureCollection', features: [] } as GeoJSON.FeatureCollection,
@@ -199,7 +193,7 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
     const features: GeoJSON.Feature[] = [];
 
     for (const b of visible) {
-      const url = spriteCache.get(b.id);
+      const url = icons.get(b.id);
       if (!url) continue;
       const key = `icon_${b.id}`;
       images[key] = { uri: url };
@@ -219,7 +213,7 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
       imagesMap: images,
       geojson: { type: 'FeatureCollection', features } as GeoJSON.FeatureCollection,
     };
-  }, [visible, spriteCache]);
+  }, [visible, icons]);
 
   const handlePress = useCallback(
     (
@@ -236,9 +230,9 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
     [bangumis, onIconPress],
   );
 
-  if (zoom >= MAP_ICON_ZOOM_THRESHOLD || !allowedIds || !spriteCache) return null;
+  if (zoom >= MAP_ICON_ZOOM_THRESHOLD || !spriteMeta || !icons) return null;
 
-  // 筛选模式下通过 filter 在底层隐藏所有 icon，不 unmount 图层
+  // 筛选模式下在底层隐藏所有 icon（保留图层结构）
   const bangumiIconFilter: ComponentProps<typeof SymbolLayer>['filter'] = selectedBangumi
     ? ['==', ['get', 'bangumiId'], -1]
     : undefined;

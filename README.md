@@ -19,6 +19,8 @@
   <img src="http://i0.hdslb.com/bfs/new_dyn/bea415687b46c0f1890e8af61fff6d741519338.jpg" width="172" alt="地图主界面 - 深色模式" />
   <img src="http://i0.hdslb.com/bfs/new_dyn/98d34218bac01aa98cbbffae1f4d22eb1519338.jpg" width="172" alt="番剧筛选 - 顶部番剧图标" />
   <img src="http://i0.hdslb.com/bfs/new_dyn/9c32a93c7dff85b7fad167c84caa60db1519338.jpg" width="172" alt="巡礼点搜索" />
+  <img src="http://i0.hdslb.com/bfs/new_dyn/f63ff7505c25abd916bd00c8791aa92a1519338.jpg" width="172" alt="番剧详情" />
+  <img src="http://i0.hdslb.com/bfs/new_dyn/a70b92105c4d4faef874781460bf9b2b1519338.jpg" width="172" alt="番剧详情" /> 
   <img src="http://i0.hdslb.com/bfs/new_dyn/4b5da38b7f362cb9a3a594b5b15dea361519338.jpg" width="172" alt="巡礼点图片展示" />
   <img src="http://i0.hdslb.com/bfs/new_dyn/7476fa6e58e657dd0087f6176586539a1519338.jpg" width="172" alt="我的页面" />
 </p>

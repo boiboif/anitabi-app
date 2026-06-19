@@ -62,7 +62,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "adb-connect": "adb connect 192.168.31.95:5555"
+    "adb-connect": "adb connect 192.168.31.95:5555",
+    "eas-build-on-success": "node scripts/eas-post-build.cjs"
   },
   "private": true
 }
