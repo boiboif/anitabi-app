@@ -102,10 +102,16 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
         if (metaFile.exists && sprite.exists) {
           const cached = JSON.parse(metaFile.textSync());
           if (!cancelled) {
-            setSpriteMeta({ ids: cached.ids.map(Number), url: sprite.contentUri ?? sprite.uri });
+            const cacheUrl = sprite.contentUri ?? sprite.uri;
+            console.log('[bangumi-icons] 缓存命中, size:', sprite.size, 'url:', cacheUrl);
+            setSpriteMeta({ ids: cached.ids.map(Number), url: cacheUrl });
           }
+        } else {
+          console.warn('[bangumi-icons] 缓存不存在, meta:', metaFile.exists, 'sprite:', sprite.exists);
         }
-      } catch {}
+      } catch (e) {
+        console.warn('[bangumi-icons] 缓存读取异常:', e);
+      }
 
       // 后台从远程获取最新数据，成功后更新缓存
       try {
@@ -129,11 +135,12 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
         } catch {}
       } catch (err) {
         if (!cancelled) {
-          // 无缓存且远程失败时才打印错误
           const metaFile = cacheFile('meta.json');
           const sprite = cacheFile('sprite.png');
           if (!metaFile.exists || !sprite.exists) {
-            console.error('获取有图标的番剧列表失败:', err);
+            console.error('[bangumi-icons] 缓存不存在且远程获取失败:', err);
+          } else {
+            console.log('[bangumi-icons] 远程获取失败，使用缓存, meta存在:', metaFile.exists, 'sprite存在:', sprite.exists, 'sprite大小:', sprite.size);
           }
         }
       }
@@ -155,6 +162,7 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
     let retries = 0;
 
     const crop = async () => {
+      console.log('[bangumi-icons] crop 开始, url:', spriteMeta.url, 'ids count:', spriteMeta.ids.length);
       try {
         const results = await Promise.all(
           spriteMeta.ids.map(async (id, i) => {
