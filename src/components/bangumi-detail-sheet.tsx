@@ -41,7 +41,6 @@ const PointCard = memo(
           rounded="$4"
           height={CARD_HEIGHT}
           overflow="hidden"
-          shadowColor="$shadowColor"
           boxShadow="0 1px 4px $shadowColor"
         >
           <View
@@ -338,15 +337,13 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>((_, ref) => {
       if (item.type === ITEM_TYPE_HEADER) {
         const sectionKey = item.id.slice('header-'.length);
         return (
-          <Pressable style={{ height: SECTION_HEADER_HEIGHT }} onPress={() => toggleSection(sectionKey)}>
+          <Pressable
+            android_ripple={{ color: theme.color5.val }}
+            style={{ height: SECTION_HEADER_HEIGHT, backgroundColor: theme.color1.val }}
+            onPress={() => toggleSection(sectionKey)}
+          >
             <View position="absolute" t={-1} l={0} r={0} height={2} bg="$color1" />
-            <View
-              flexDirection="row"
-              style={{ alignItems: 'center', borderBottomWidth: 0.5, borderBottomColor: theme.color5.val }}
-              px="$2"
-              py="$2"
-              bg="$color1"
-            >
+            <View flexDirection="row" style={{ alignItems: 'center' }} px="$2" py="$2">
               <Text fontWeight="600" fontSize={14} color="$color12" flex={1}>
                 {item.title}
               </Text>
@@ -376,14 +373,14 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>((_, ref) => {
 
   return (
     <BottomSheet
-      index={-1}
+      index={selectedBangumi ? 1 : -1}
       ref={sheetRef}
       snapPoints={['25%', '80%']}
       // enablePanDownToClose
       enableDynamicSizing={false}
       onChange={handleSheetChange}
       backgroundStyle={{ backgroundColor: theme.color1.val }}
-      handleIndicatorStyle={{ backgroundColor: theme.color9.val }}
+      handleIndicatorStyle={{ backgroundColor: theme.primary.val }}
     >
       {selectedBangumi && (
         <FlashList
