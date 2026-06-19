@@ -163,12 +163,12 @@ async function fetchDetails(
   modified: number,
   onProgress?: (p: FetchProgress) => void,
 ): Promise<AssembledData> {
-  onProgress?.({ phase: 'downloading', batch: 1, message: '加载数据 1/6…' });
+  onProgress?.({ phase: 'downloading', batch: 0, message: '加载番剧列表…' });
 
   const detailResults = await Promise.allSettled(
     G_JSON_URLS.map((fn, i) =>
       fn().then((data) => {
-        onProgress?.({ phase: 'downloading', batch: i + 2, message: `加载数据 ${i + 2}/6…` });
+        onProgress?.({ phase: 'downloading', batch: i + 1, message: `加载数据 ${i + 1}/6…` });
         return data as RawGDetail[];
       }),
     ),

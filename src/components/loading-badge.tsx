@@ -12,7 +12,7 @@ function getProgressValue(p: FetchProgress): number {
     case 'checking':
       return 5;
     case 'downloading':
-      return Math.round(((p.batch ?? 0) / 7) * 100);
+      return Math.round(((p.batch ?? 0) / 6) * 100);
     case 'assembling':
       return 92;
     case 'done':

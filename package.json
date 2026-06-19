@@ -15,6 +15,7 @@
     "dayjs": "^1.11.21",
     "expo": "~56.0.11",
     "expo-blur": "~56.0.3",
+    "expo-build-properties": "~56.0.19",
     "expo-constants": "~56.0.18",
     "expo-dev-client": "~56.0.20",
     "expo-device": "~56.0.4",
@@ -53,7 +54,8 @@
     "@types/react": "~19.2.2",
     "dotenv": "^17.4.2",
     "prettier": "^3.8.3",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "babel-plugin-transform-remove-console": "^6.9.4"
   },
   "scripts": {
     "start": "expo start",
@@ -63,6 +65,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "adb-connect": "adb connect 192.168.31.95:5555",
+    "build:apk": "cd android && gradlew.bat assembleRelease",
     "eas-build-on-success": "node scripts/eas-post-build.cjs"
   },
   "private": true

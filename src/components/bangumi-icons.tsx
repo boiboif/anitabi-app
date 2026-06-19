@@ -96,6 +96,7 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
 
     const load = async () => {
       // 优先从本地缓存加载，无网时也能立即显示
+      let cacheLoaded = false;
       try {
         const metaFile = cacheFile('meta.json');
         const sprite = cacheFile('sprite.png');
@@ -105,6 +106,7 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
             const cacheUrl = sprite.contentUri ?? sprite.uri;
             console.log('[bangumi-icons] 缓存命中, size:', sprite.size, 'url:', cacheUrl);
             setSpriteMeta({ ids: cached.ids.map(Number), url: cacheUrl });
+            cacheLoaded = true;
           }
         } else {
           console.warn('[bangumi-icons] 缓存不存在, meta:', metaFile.exists, 'sprite:', sprite.exists);
@@ -114,12 +116,17 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
       }
 
       // 后台从远程获取最新数据，成功后更新缓存
+      // 注意：缓存已加载时不要覆盖 spriteMeta（本地 contentUri），
+      // 否则 crop 会尝试用远程 URL 裁剪，离线时必然失败。      
+
       try {
         const resp = await getBangumiIcons();
         if (cancelled) return;
         const ids = resp.ids.map(Number);
         const url = `${baseUrl}${resp.src}`;
-        setSpriteMeta({ ids, url });
+        if (!cacheLoaded) {
+          setSpriteMeta({ ids, url });
+        }
 
         // 更新本地缓存（先写临时文件再原子替换）
         try {
@@ -140,7 +147,14 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
           if (!metaFile.exists || !sprite.exists) {
             console.error('[bangumi-icons] 缓存不存在且远程获取失败:', err);
           } else {
-            console.log('[bangumi-icons] 远程获取失败，使用缓存, meta存在:', metaFile.exists, 'sprite存在:', sprite.exists, 'sprite大小:', sprite.size);
+            console.log(
+              '[bangumi-icons] 远程获取失败，使用缓存, meta存在:',
+              metaFile.exists,
+              'sprite存在:',
+              sprite.exists,
+              'sprite大小:',
+              sprite.size,
+            );
           }
         }
       }
