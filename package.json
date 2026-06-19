@@ -6,10 +6,10 @@
     "@expo/ui": "~56.0.17",
     "@gorhom/bottom-sheet": "^5.2.14",
     "@rnmapbox/maps": "^10.3.1",
-    "@shopify/flash-list": "2.0.2",
-    "@tamagui/babel-plugin": "^2.2.0",
-    "@tamagui/config": "^2.2.0",
-    "@tamagui/lucide-icons-2": "^2.2.0",
+    "@shopify/flash-list": "2.3.2",
+    "@tamagui/babel-plugin": "^2.3.1",
+    "@tamagui/config": "^2.3.1",
+    "@tamagui/lucide-icons-2": "^2.3.1",
     "ahooks": "^3.9.7",
     "axios": "^1.16.1",
     "dayjs": "^1.11.21",
@@ -45,7 +45,7 @@
     "react-native-web": "~0.21.0",
     "react-native-worklets": "0.8.3",
     "sonner-native": "^0.25.1",
-    "tamagui": "^2.2.0",
+    "tamagui": "^2.3.1",
     "zustand": "^5.0.14"
   },
   "devDependencies": {

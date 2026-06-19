@@ -2,12 +2,16 @@ import { formatDuration } from '@/lib/formatDuration';
 import { baseUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useSelectedBangumi } from '@/store/use-selected-bangumi';
-import BottomSheet, { BottomSheetSectionList } from '@gorhom/bottom-sheet';
+import BottomSheet, { useBottomSheetScrollableCreator } from '@gorhom/bottom-sheet';
+import { FlashList } from '@shopify/flash-list';
 import dayjs from 'dayjs';
 import { Image } from 'expo-image';
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { Pressable } from 'react-native-gesture-handler';
 import { getTokens, Text, useTheme, View } from 'tamagui';
+
+const CARD_HEIGHT = 100;
+const SECTION_HEADER_HEIGHT = 32;
 
 const coverUrl = (cover?: string, query?: string) =>
   cover && (cover.startsWith('http://') || cover.startsWith('https://'))
@@ -35,16 +39,20 @@ const PointCard = memo(
           display="flex"
           flexDirection="row"
           rounded="$4"
-          height={100}
+          height={CARD_HEIGHT}
           overflow="hidden"
           shadowColor="$shadowColor"
           boxShadow="0 1px 4px $shadowColor"
         >
-          <View width={150} height={100} style={{ borderRadius: getTokens().radius['4'].val, overflow: 'hidden' }}>
+          <View
+            width={150}
+            height={CARD_HEIGHT}
+            style={{ borderRadius: getTokens().radius['4'].val, overflow: 'hidden' }}
+          >
             <Image
               key={point.image ? coverUrl(point.image) : 'none'}
               source={point.image ? coverUrl(point.image, 'plan=h160') : undefined}
-              style={{ width: 150, height: 100, backgroundColor: theme.color9.val }}
+              style={{ width: 150, height: CARD_HEIGHT, backgroundColor: theme.color9.val }}
               contentFit="cover"
             />
             {epLabel && (
@@ -118,6 +126,23 @@ interface AccordionSection {
   data: Point[];
 }
 
+const ITEM_TYPE_HEADER = 'sectionHeader';
+const ITEM_TYPE_POINT = 'point';
+
+interface FlatSectionHeader {
+  type: typeof ITEM_TYPE_HEADER;
+  id: string;
+  title: string;
+}
+
+interface FlatPointItem {
+  type: typeof ITEM_TYPE_POINT;
+  id: string;
+  point: Point;
+}
+
+type FlatItem = FlatSectionHeader | FlatPointItem;
+
 function groupPoints(points: Point[], mode: AccordionMode, bangumi: Bangumi): AccordionSection[] {
   if (mode === 'ep') {
     const map = new Map<string, Point[]>();
@@ -169,6 +194,7 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>((_, ref) => {
   const [accordionMode, setAccordionMode] = useState<AccordionMode>('ep');
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const allExpandedRef = useRef(true);
+  const BottomSheetScrollable = useBottomSheetScrollableCreator();
 
   useImperativeHandle(ref, () => ({
     snapToIndex: (index: number) => sheetRef.current?.snapToIndex(index),
@@ -244,71 +270,60 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>((_, ref) => {
     [sections, expandedKeys],
   );
 
-  const renderItem = useCallback(
-    ({ item }: { item: Point }) => (
-      <PointCard
-        point={item}
-        bangumi={selectedBangumi!}
-        onPress={() => {
-          setSelectedPoint({ point: item, bangumi: selectedBangumi! });
-          sheetRef.current?.snapToIndex(0);
-        }}
-      />
-    ),
-    [selectedBangumi, setSelectedPoint],
-  );
-
-  const renderSectionHeader = useCallback(
-    ({ section }: { section: AccordionSection }) => (
-      <Pressable onPress={() => toggleSection(section.key)}>
-        <View position="absolute" t={-1} l={0} r={0} height={2} bg="$color1" />
-        <View
-          flexDirection="row"
-          style={{ alignItems: 'center', borderBottomWidth: 0.5, borderBottomColor: theme.color5.val }}
-          px="$2"
-          py="$2"
-          bg="$color1"
-        >
-          <Text fontWeight="600" fontSize={14} color="$color12" flex={1}>
-            {section.title}
-          </Text>
-          <Text fontSize={12} color="$color10">
-            {expandedKeys.has(section.key) ? '▲' : '▼'}
-          </Text>
-        </View>
-      </Pressable>
-    ),
-    [toggleSection, expandedKeys, theme],
-  );
-
-  const ITEM_HEIGHT = 140;
-  const SECTION_HEADER_HEIGHT = 36;
-
-  const getItemLayout = useCallback(
-    (_data: unknown, index: number) => {
-      let remaining = index;
-      let offset = 0;
-
-      for (const section of filteredSections) {
-        // section header
-        if (remaining === 0) {
-          return { length: SECTION_HEADER_HEIGHT, offset, index };
-        }
-        offset += SECTION_HEADER_HEIGHT;
-        remaining--;
-
-        const count = section.data.length;
-        if (remaining < count) {
-          offset += remaining * ITEM_HEIGHT;
-          return { length: ITEM_HEIGHT, offset, index };
-        }
-        offset += count * ITEM_HEIGHT;
-        remaining -= count;
+  // 拍平为含 section header 的扁平数组
+  const flatData: FlatItem[] = useMemo(() => {
+    const items: FlatItem[] = [];
+    for (const section of filteredSections) {
+      items.push({ type: ITEM_TYPE_HEADER, id: `header-${section.key}`, title: section.title });
+      for (const point of section.data) {
+        items.push({ type: ITEM_TYPE_POINT, id: `point-${point.id}-${point.name}`, point });
       }
+    }
+    return items;
+  }, [filteredSections]);
 
-      return { length: ITEM_HEIGHT, offset: index * ITEM_HEIGHT, index };
+  // 计算 sticky header 索引
+  const stickyHeaderIndices = useMemo(
+    () => flatData.map((item, index) => (item.type === ITEM_TYPE_HEADER ? index : -1)).filter((i) => i >= 0),
+    [flatData],
+  );
+
+  const renderFlashItem = useCallback(
+    ({ item }: { item: FlatItem }) => {
+      if (item.type === ITEM_TYPE_HEADER) {
+        const sectionKey = item.id.slice('header-'.length);
+        return (
+          <Pressable style={{ height: SECTION_HEADER_HEIGHT }} onPress={() => toggleSection(sectionKey)}>
+            <View position="absolute" t={-1} l={0} r={0} height={2} bg="$color1" />
+            <View
+              flexDirection="row"
+              style={{ alignItems: 'center', borderBottomWidth: 0.5, borderBottomColor: theme.color5.val }}
+              px="$2"
+              py="$2"
+              bg="$color1"
+            >
+              <Text fontWeight="600" fontSize={14} color="$color12" flex={1}>
+                {item.title}
+              </Text>
+              <Text fontSize={12} color="$color10">
+                {expandedKeys.has(sectionKey) ? '▲' : '▼'}
+              </Text>
+            </View>
+          </Pressable>
+        );
+      }
+      return (
+        <PointCard
+          point={item.point}
+          bangumi={selectedBangumi!}
+          onPress={() => {
+            setSelectedPoint({ point: item.point, bangumi: selectedBangumi! });
+            sheetRef.current?.snapToIndex(0);
+          }}
+        />
+      );
     },
-    [filteredSections],
+    [selectedBangumi, setSelectedPoint, toggleSection, expandedKeys, theme],
   );
 
   return (
@@ -323,17 +338,13 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>((_, ref) => {
       handleIndicatorStyle={{ backgroundColor: theme.color9.val }}
     >
       {selectedBangumi && (
-        <BottomSheetSectionList
-          sections={filteredSections}
-          stickySectionHeadersEnabled={true}
-          keyExtractor={(item: Point) => item.id}
-          renderItem={renderItem}
-          renderSectionHeader={renderSectionHeader}
-          getItemLayout={getItemLayout}
-          initialNumToRender={8}
-          maxToRenderPerBatch={10}
-          windowSize={7}
-          removeClippedSubviews={true}
+        <FlashList
+          data={flatData}
+          renderItem={renderFlashItem}
+          getItemType={(item) => item.type}
+          keyExtractor={(item: FlatItem) => item.id}
+          stickyHeaderIndices={stickyHeaderIndices}
+          renderScrollComponent={BottomSheetScrollable}
           ListHeaderComponent={
             <>
               <View px="$2" mb="$4" display="flex" flexDirection="row" rounded="$4" gap="$2.5">
