@@ -7,7 +7,8 @@ const fs = require('fs');
 const path = require('path');
 
 const profile = process.env.EAS_BUILD_PROFILE;
-const commitHash = (process.env.EAS_BUILD_GIT_COMMIT_HASH || '').slice(0, 7);
+const fullHash = process.env.EAS_BUILD_GIT_COMMIT_HASH || '';
+const shortHash = fullHash.slice(0, 7);
 const platform = process.env.EAS_BUILD_PLATFORM;
 const repo = process.env.GH_REPO;
 
@@ -24,7 +25,7 @@ const match = configContent.match(/version:\s*'([^']+)'/);
 const version = match ? match[1] : '1.0.0';
 
 const isPreview = profile === 'preview';
-const tag = isPreview ? `v${version}-preview+${commitHash}` : `v${version}`;
+const tag = isPreview ? `v${version}-preview-${shortHash}` : `v${version}`;
 
 console.log(`[eas-post-build] profile=${profile}, platform=${platform}, version=${version}, tag=${tag}${repo ? `, repo=${repo}` : ''}`);
 
@@ -32,7 +33,7 @@ const args = [
   'gh release create',
   tag,
   '--title', isPreview ? `"v${version} (preview)"` : `"v${version}"`,
-  '--target', commitHash,
+  '--target', fullHash,
   '--generate-notes',
 ];
 
