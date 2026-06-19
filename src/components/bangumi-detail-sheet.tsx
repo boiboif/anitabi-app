@@ -3,7 +3,7 @@ import { baseUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useSelectedBangumi } from '@/store/use-selected-bangumi';
 import BottomSheet, { useBottomSheetScrollableCreator } from '@gorhom/bottom-sheet';
-import { FlashList } from '@shopify/flash-list';
+import { FlashList, FlashListRef } from '@shopify/flash-list';
 import dayjs from 'dayjs';
 import { Image } from 'expo-image';
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
@@ -49,7 +49,6 @@ const PointCard = memo(
             style={{ borderRadius: getTokens().radius['4'].val, overflow: 'hidden' }}
           >
             <Image
-              key={point.image ? coverUrl(point.image) : 'none'}
               source={point.image ? coverUrl(point.image, 'plan=h160') : undefined}
               style={{ width: 150, height: CARD_HEIGHT, backgroundColor: theme.color9.val }}
               contentFit="cover"
@@ -156,10 +155,10 @@ function groupPoints(points: Point[], mode: AccordionMode, bangumi: Bangumi): Ac
       .filter((k) => k !== '__no_ep__')
       .sort((a, b) => Number(a) - Number(b));
     for (const k of numericKeys) {
-      sections.push({ key: `ep-${k}`, title: `EP${k}`, data: map.get(k)! });
+      sections.push({ key: `${bangumi.id}-ep-${k}`, title: `EP${k}`, data: map.get(k)! });
     }
     if (map.has('__no_ep__')) {
-      sections.push({ key: 'ep-other', title: '其他', data: map.get('__no_ep__')! });
+      sections.push({ key: `${bangumi.id}-ep-other`, title: '其他', data: map.get('__no_ep__')! });
     }
     return sections;
   }
@@ -238,13 +237,14 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>((_, ref) => {
 
   // 选中番剧时打开 sheet，关闭时清除选中
   useEffect(() => {
-    setTimeout(() => {
-      if (selectedBangumi) {
-        sheetRef.current?.snapToIndex(1);
-      } else {
-        sheetRef.current?.close();
-      }
-    }, 100);
+    if (selectedBangumi) {
+      sheetRef.current?.snapToIndex(1);
+      requestIdleCallback(() => {
+        flashListRef.current?.scrollToTop();
+      });
+    } else {
+      sheetRef.current?.close();
+    }
   }, [selectedBangumi]);
 
   const handleSheetChange = useCallback(
@@ -371,9 +371,11 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>((_, ref) => {
     [selectedBangumi, setSelectedPoint, toggleSection, expandedKeys, theme],
   );
 
+  const flashListRef = useRef<FlashListRef<FlatItem>>(null);
+
   return (
     <BottomSheet
-      index={selectedBangumi ? 1 : -1}
+      index={-1}
       ref={sheetRef}
       snapPoints={['25%', '80%']}
       // enablePanDownToClose
@@ -381,132 +383,131 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>((_, ref) => {
       onChange={handleSheetChange}
       backgroundStyle={{ backgroundColor: theme.color1.val }}
       handleIndicatorStyle={{ backgroundColor: theme.primary.val }}
+      onClose={() => flashListRef.current?.scrollToTop()}
     >
-      {selectedBangumi && (
-        <FlashList
-          data={flatData}
-          renderItem={renderFlashItem}
-          getItemType={(item) => item.type}
-          keyExtractor={(item: FlatItem) => item.id}
-          stickyHeaderIndices={stickyHeaderIndices}
-          renderScrollComponent={BottomSheetScrollable}
-          ListHeaderComponent={
-            <>
-              <View px="$2" mb="$4" display="flex" flexDirection="row" rounded="$4" gap="$2.5">
-                <Image
-                  key={coverUrl(selectedBangumi.cover ?? '')}
-                  source={coverUrl(selectedBangumi.cover ?? '')}
-                  style={{
-                    width: 180,
-                    height: 140,
-                    borderRadius: getTokens().radius['4'].val,
-                    backgroundColor: selectedBangumi.color || '$color9',
-                  }}
-                  contentFit="cover"
-                />
-                <View flex={1}>
-                  {selectedBangumi.cn ? (
-                    <Text fontWeight="600" fontSize={16} color="$color12" pr="$8" numberOfLines={2}>
-                      {selectedBangumi.cn}
-                    </Text>
-                  ) : null}
-                  <Text fontSize={12} color="$color11" mt="$1" mb="$1" numberOfLines={1}>
-                    {selectedBangumi.title}
+      <FlashList
+        ref={flashListRef}
+        data={flatData}
+        renderItem={renderFlashItem}
+        getItemType={(item) => item.type}
+        keyExtractor={(item: FlatItem) => item.id}
+        stickyHeaderIndices={stickyHeaderIndices}
+        renderScrollComponent={BottomSheetScrollable}
+        ListHeaderComponent={
+          <>
+            <View px="$2" mb="$4" display="flex" flexDirection="row" rounded="$4" gap="$2.5">
+              <Image
+                source={coverUrl(selectedBangumi?.cover ?? '')}
+                style={{
+                  width: 180,
+                  height: 140,
+                  borderRadius: getTokens().radius['4'].val,
+                  backgroundColor: selectedBangumi?.color || '$color9',
+                }}
+                contentFit="cover"
+              />
+              <View flex={1}>
+                {selectedBangumi?.cn ? (
+                  <Text fontWeight="600" fontSize={16} color="$color12" pr="$8" numberOfLines={2}>
+                    {selectedBangumi?.cn}
                   </Text>
-                  <View flexDirection="row">
-                    {selectedBangumi.city && (
-                      <Text fontSize={12} color="$color11">
-                        {selectedBangumi.city} {'· '}
-                      </Text>
-                    )}
-                    <Text fontSize={12} color="$color11">
-                      <Text color="$primary" fontWeight="bold">
-                        {selectedBangumi.points.length}
-                      </Text>
-                      个巡礼点
-                    </Text>
-                  </View>
-                  <Text fontSize={10} color="$color11" position="absolute" r="$0" b="$0">
-                    最近更新：{dayjs(selectedBangumi.modified).format('YYYY-MM-DD HH:mm')}
-                  </Text>
-                </View>
-                {selectedBangumi.cat?.trim() ? (
-                  <View
-                    position="absolute"
-                    t="$2"
-                    r="$2"
-                    px="$2"
-                    py="$1"
-                    rounded="$2"
-                    style={{ backgroundColor: selectedBangumi.color || '$color9' }}
-                  >
-                    <Text fontSize={10} color="white" fontWeight="500">
-                      {selectedBangumi.cat}
-                    </Text>
-                  </View>
                 ) : null}
+                <Text fontSize={12} color="$color11" mt="$1" mb="$1" numberOfLines={1}>
+                  {selectedBangumi?.title}
+                </Text>
+                <View flexDirection="row">
+                  {selectedBangumi?.city && (
+                    <Text fontSize={12} color="$color11">
+                      {selectedBangumi?.city} {'· '}
+                    </Text>
+                  )}
+                  <Text fontSize={12} color="$color11">
+                    <Text color="$primary" fontWeight="bold">
+                      {selectedBangumi?.points.length}
+                    </Text>
+                    个巡礼点
+                  </Text>
+                </View>
+                <Text fontSize={10} color="$color11" position="absolute" r="$0" b="$0">
+                  最近更新：{dayjs(selectedBangumi?.modified).format('YYYY-MM-DD HH:mm')}
+                </Text>
               </View>
+              {selectedBangumi?.cat?.trim() ? (
+                <View
+                  position="absolute"
+                  t="$2"
+                  r="$2"
+                  px="$2"
+                  py="$1"
+                  rounded="$2"
+                  style={{ backgroundColor: selectedBangumi?.color || '$color9' }}
+                >
+                  <Text fontSize={10} color="white" fontWeight="500">
+                    {selectedBangumi?.cat}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
 
-              {/* Tab 栏 + 折叠/展开全部 */}
-              <View flexDirection="row" items="center" px="$2" mb="$2" gap="$2">
-                <View flexDirection="row" gap="$1" flex={1}>
-                  <Pressable onPress={() => setAccordionMode('ep')}>
-                    <View
-                      bg={accordionMode === 'ep' ? '$color3' : 'transparent'}
-                      p="$2"
-                      px="$3.5"
-                      rounded={accordionMode === 'ep' ? '$9' : undefined}
-                    >
-                      <Text
-                        fontWeight={accordionMode === 'ep' ? '600' : '400'}
-                        color={accordionMode === 'ep' ? '$primary' : '$color11'}
-                        fontSize={14}
-                      >
-                        集数
-                      </Text>
-                    </View>
-                  </Pressable>
-                  <Pressable onPress={() => setAccordionMode('folder')}>
-                    <View
-                      bg={accordionMode === 'folder' ? '$color3' : 'transparent'}
-                      p="$2"
-                      px="$3.5"
-                      rounded={accordionMode === 'folder' ? '$9' : undefined}
-                    >
-                      <Text
-                        fontWeight={accordionMode === 'folder' ? '600' : '400'}
-                        color={accordionMode === 'folder' ? '$primary' : '$color11'}
-                        fontSize={14}
-                      >
-                        区域
-                      </Text>
-                    </View>
-                  </Pressable>
-                </View>
-                <View flexDirection="row" gap="$2">
-                  <Pressable
-                    onPress={expandAll}
-                    style={({ pressed }: { pressed: boolean }) => ({ opacity: pressed ? 0.6 : 1 })}
+            {/* Tab 栏 + 折叠/展开全部 */}
+            <View flexDirection="row" items="center" px="$2" mb="$2" gap="$2">
+              <View flexDirection="row" gap="$1" flex={1}>
+                <Pressable onPress={() => setAccordionMode('ep')}>
+                  <View
+                    bg={accordionMode === 'ep' ? '$color3' : 'transparent'}
+                    p="$2"
+                    px="$3.5"
+                    rounded={accordionMode === 'ep' ? '$9' : undefined}
                   >
-                    <Text fontSize={13} color="$primary">
-                      展开全部
+                    <Text
+                      fontWeight={accordionMode === 'ep' ? '600' : '400'}
+                      color={accordionMode === 'ep' ? '$primary' : '$color11'}
+                      fontSize={14}
+                    >
+                      集数
                     </Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={collapseAll}
-                    style={({ pressed }: { pressed: boolean }) => ({ opacity: pressed ? 0.6 : 1 })}
+                  </View>
+                </Pressable>
+                <Pressable onPress={() => setAccordionMode('folder')}>
+                  <View
+                    bg={accordionMode === 'folder' ? '$color3' : 'transparent'}
+                    p="$2"
+                    px="$3.5"
+                    rounded={accordionMode === 'folder' ? '$9' : undefined}
                   >
-                    <Text fontSize={13} color="$primary">
-                      折叠全部
+                    <Text
+                      fontWeight={accordionMode === 'folder' ? '600' : '400'}
+                      color={accordionMode === 'folder' ? '$primary' : '$color11'}
+                      fontSize={14}
+                    >
+                      区域
                     </Text>
-                  </Pressable>
-                </View>
+                  </View>
+                </Pressable>
               </View>
-            </>
-          }
-          contentContainerStyle={{ paddingBottom: 100 }}
-        />
-      )}
+              <View flexDirection="row" gap="$2">
+                <Pressable
+                  onPress={expandAll}
+                  style={({ pressed }: { pressed: boolean }) => ({ opacity: pressed ? 0.6 : 1 })}
+                >
+                  <Text fontSize={13} color="$primary">
+                    展开全部
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={collapseAll}
+                  style={({ pressed }: { pressed: boolean }) => ({ opacity: pressed ? 0.6 : 1 })}
+                >
+                  <Text fontSize={13} color="$primary">
+                    折叠全部
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          </>
+        }
+        contentContainerStyle={{ paddingBottom: 100 }}
+      />
     </BottomSheet>
   );
 });

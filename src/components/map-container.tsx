@@ -10,7 +10,6 @@ import { useIsFocused } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import type { EdgeInsets } from 'react-native-safe-area-context';
-import { View } from 'tamagui';
 
 export type Bounds = { ne: number[]; sw: number[] };
 
@@ -135,66 +134,45 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   }, [selectedBangumi, bangumis]);
 
   return (
-    <View style={styles.container}>
-      <MapView
-        style={styles.map}
-        styleURL={MAP_STYLES[styleIndex].url}
-        localizeLabels={{ locale: 'zh' }}
-        compassEnabled
-        compassPosition={{ top: insets.top + 100, right: 8 }}
-        scaleBarEnabled={false}
-        onCameraChanged={handleCameraChanged}
-        onPress={() => setSelectedPoint(null)}
-      >
-        <Camera
-          ref={setCameraRef}
-          centerCoordinate={DEFAULT_COORDINATES}
-          zoomLevel={DEFAULT_ZOOM}
-          animationMode="none"
-        />
-        <LocationPuck
-          visible
-          puckBearingEnabled
-          puckBearing="heading"
-          pulsing={{ isEnabled: true, color: '#007AFF' }}
-        />
-        <MapMarkers bangumis={bangumis} onPointSelect={(point, bangumi) => setSelectedPoint({ point, bangumi })} />
-        <BangumiIcons
-          bangumis={bangumis}
-          zoom={zoom}
-          onIconPress={(bangumi) => {
-            setSelectedBangumi(bangumi);
-          }}
-        />
-        <PointImageMarkers
-          bangumis={bangumis}
-          zoom={zoom}
-          bounds={bounds}
-          onPointSelect={(point, bangumi) => setSelectedPoint({ point, bangumi })}
-        />
+    <MapView
+      style={[StyleSheet.absoluteFill, { bottom: selectedBangumi ? StyleSheet.hairlineWidth : 0 }]}
+      styleURL={MAP_STYLES[styleIndex].url}
+      localizeLabels={{ locale: 'zh' }}
+      compassEnabled
+      compassPosition={{ top: insets.top + 100, right: 8 }}
+      scaleBarEnabled={false}
+      onCameraChanged={handleCameraChanged}
+      onPress={() => setSelectedPoint(null)}
+    >
+      <Camera ref={setCameraRef} centerCoordinate={DEFAULT_COORDINATES} zoomLevel={DEFAULT_ZOOM} animationMode="none" />
+      <LocationPuck visible puckBearingEnabled puckBearing="heading" pulsing={{ isEnabled: true, color: '#007AFF' }} />
+      <MapMarkers bangumis={bangumis} onPointSelect={(point, bangumi) => setSelectedPoint({ point, bangumi })} />
+      <BangumiIcons
+        bangumis={bangumis}
+        zoom={zoom}
+        onIconPress={(bangumi) => {
+          setSelectedBangumi(bangumi);
+        }}
+      />
+      <PointImageMarkers
+        bangumis={bangumis}
+        zoom={zoom}
+        bounds={bounds}
+        onPointSelect={(point, bangumi) => setSelectedPoint({ point, bangumi })}
+      />
 
-        {/* 选中点位弹窗（图片标记 & 圆点标记共用） */}
-        {selectedPoint && (
-          <MarkerView
-            coordinate={[selectedPoint.point.geo[1], selectedPoint.point.geo[0]]}
-            anchor={{ x: 0.5, y: 1 }}
-            allowOverlap
-          >
-            <PopupCard point={selectedPoint.point} bangumi={selectedPoint.bangumi} />
-          </MarkerView>
-        )}
-      </MapView>
-    </View>
+      {/* 选中点位弹窗（图片标记 & 圆点标记共用） */}
+      {selectedPoint && (
+        <MarkerView
+          coordinate={[selectedPoint.point.geo[1], selectedPoint.point.geo[0]]}
+          anchor={{ x: 0.5, y: 1 }}
+          allowOverlap
+        >
+          <PopupCard point={selectedPoint.point} bangumi={selectedPoint.bangumi} />
+        </MarkerView>
+      )}
+    </MapView>
   );
-});
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  map: {
-    flex: 1,
-  },
 });
 
 export default MapContainer;
