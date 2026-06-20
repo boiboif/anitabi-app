@@ -117,7 +117,7 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
 
       // 后台从远程获取最新数据，成功后更新缓存
       // 注意：缓存已加载时不要覆盖 spriteMeta（本地 contentUri），
-      // 否则 crop 会尝试用远程 URL 裁剪，离线时必然失败。      
+      // 否则 crop 会尝试用远程 URL 裁剪，离线时必然失败。
 
       try {
         const resp = await getBangumiIcons();

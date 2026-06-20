@@ -1,5 +1,5 @@
 import { formatDuration } from '@/lib/formatDuration';
-import { baseUrl } from '@/services/handlers';
+import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useSelectedBangumi } from '@/store/use-selected-bangumi';
 import BottomSheet, { useBottomSheetScrollableCreator } from '@gorhom/bottom-sheet';
@@ -12,11 +12,6 @@ import { getTokens, Text, useTheme, View } from 'tamagui';
 
 const CARD_HEIGHT = 100;
 const SECTION_HEADER_HEIGHT = 32;
-
-const coverUrl = (cover?: string, query?: string) =>
-  cover && (cover.startsWith('http://') || cover.startsWith('https://'))
-    ? cover
-    : baseUrl + cover + (query ? `?${query}` : '');
 
 const PointCard = memo(
   function PointCard({ point, bangumi, onPress }: { point: Point; bangumi: Bangumi; onPress?: () => void }) {
@@ -49,7 +44,7 @@ const PointCard = memo(
             style={{ borderRadius: getTokens().radius['4'].val, overflow: 'hidden' }}
           >
             <Image
-              source={point.image ? coverUrl(point.image, 'plan=h160') : undefined}
+              source={point.image ? buildImageUrl(point.image, 'plan=h160') : undefined}
               style={{ width: 150, height: CARD_HEIGHT, backgroundColor: theme.color9.val }}
               contentFit="cover"
             />
@@ -239,9 +234,6 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>((_, ref) => {
   useEffect(() => {
     if (selectedBangumi) {
       sheetRef.current?.snapToIndex(1);
-      requestIdleCallback(() => {
-        flashListRef.current?.scrollToTop();
-      });
     } else {
       sheetRef.current?.close();
     }
@@ -383,9 +375,9 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>((_, ref) => {
       onChange={handleSheetChange}
       backgroundStyle={{ backgroundColor: theme.color1.val }}
       handleIndicatorStyle={{ backgroundColor: theme.primary.val }}
-      onClose={() => flashListRef.current?.scrollToTop()}
     >
       <FlashList
+        key={selectedBangumi?.id}
         ref={flashListRef}
         data={flatData}
         renderItem={renderFlashItem}
@@ -397,7 +389,7 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>((_, ref) => {
           <>
             <View px="$2" mb="$4" display="flex" flexDirection="row" rounded="$4" gap="$2.5">
               <Image
-                source={coverUrl(selectedBangumi?.cover ?? '')}
+                source={buildImageUrl(selectedBangumi?.cover ?? '')}
                 style={{
                   width: 180,
                   height: 140,
@@ -464,7 +456,7 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>((_, ref) => {
                       color={accordionMode === 'ep' ? '$primary' : '$color11'}
                       fontSize={14}
                     >
-                      集数
+                      话数
                     </Text>
                   </View>
                 </Pressable>
@@ -480,26 +472,26 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>((_, ref) => {
                       color={accordionMode === 'folder' ? '$primary' : '$color11'}
                       fontSize={14}
                     >
-                      区域
+                      分组
                     </Text>
                   </View>
                 </Pressable>
               </View>
               <View flexDirection="row" gap="$2">
                 <Pressable
-                  onPress={expandAll}
-                  style={({ pressed }: { pressed: boolean }) => ({ opacity: pressed ? 0.6 : 1 })}
-                >
-                  <Text fontSize={13} color="$primary">
-                    展开全部
-                  </Text>
-                </Pressable>
-                <Pressable
                   onPress={collapseAll}
                   style={({ pressed }: { pressed: boolean }) => ({ opacity: pressed ? 0.6 : 1 })}
                 >
                   <Text fontSize={13} color="$primary">
                     折叠全部
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={expandAll}
+                  style={({ pressed }: { pressed: boolean }) => ({ opacity: pressed ? 0.6 : 1 })}
+                >
+                  <Text fontSize={13} color="$primary">
+                    展开全部
                   </Text>
                 </Pressable>
               </View>

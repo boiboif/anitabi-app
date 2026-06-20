@@ -1,5 +1,5 @@
 import { FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE, MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE } from '@/lib/constants';
-import { baseUrl } from '@/services/handlers';
+import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useSelectedBangumi } from '@/store/use-selected-bangumi';
 import { Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
@@ -41,7 +41,7 @@ export default function PointImageMarkers({ bangumis, zoom, bounds, onPointSelec
         items.push({
           point: p,
           bangumi: b,
-          imageUrl: `${baseUrl}${p.image}?plan=h160`,
+          imageUrl: buildImageUrl(p.image, 'plan=h160'),
         });
       }
     }

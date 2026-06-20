@@ -1,4 +1,4 @@
-import { anitabiApiHandler, anitabiHandler } from './handlers';
+import { anitabiHandler } from './handlers';
 
 /**
  * d = 每日轮换的查询参数，用于绕过 anitabi.cn 的 CDN 缓存。
@@ -36,6 +36,6 @@ export const getG5JSON = anitabiHandler.get<any[][]>('/d/g5.json' + '?d=' + d())
 
 export const getGJSON = anitabiHandler.get<[any[][], number, number]>('/d/g.json' + '?d=' + d());
 
-export const getBangumiIcons = anitabiApiHandler.get<{ ids: string[]; src: string }>(
-  '/bangumi/icons.svg' + '?d=' + d(),
+export const getBangumiIcons = anitabiHandler.get<{ ids: string[]; src: string }>(
+  '/d/bangumi-icons.json' + '?d=' + d(),
 );

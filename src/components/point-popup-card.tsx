@@ -1,5 +1,5 @@
 import { formatDuration } from '@/lib/formatDuration';
-import { baseUrl } from '@/services/handlers';
+import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { Image } from 'expo-image';
 import { Linking } from 'react-native';
@@ -36,9 +36,10 @@ export default function PopupCard({ point, bangumi }: Props) {
       >
         {point.image ? (
           <Image
-            source={{ uri: `${baseUrl}${point.image}?plan=h360` }}
+            key={point.image}
+            source={{ uri: buildImageUrl(point.image, 'plan=h360') }}
             style={{
-              width: 220,
+              width: 250,
               aspectRatio: 16 / 9,
               backgroundColor: theme.color9.val,
             }}
@@ -49,13 +50,13 @@ export default function PopupCard({ point, bangumi }: Props) {
         ) : (
           <View
             style={{
-              width: 220,
+              width: 250,
               aspectRatio: 16 / 9,
               position: 'relative',
             }}
           >
             <Image
-              source={{ uri: `${baseUrl}${bangumi.cover}` }}
+              source={{ uri: buildImageUrl(bangumi.cover ?? '') }}
               style={{ height: '100%', width: '100%' }}
               contentFit="cover"
               contentPosition="center"

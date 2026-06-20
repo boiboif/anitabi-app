@@ -1,6 +1,6 @@
 import { hexToRgba } from '@/lib/color';
 import { MAP_ICON_ZOOM_THRESHOLD } from '@/lib/constants';
-import { baseUrl } from '@/services/handlers';
+import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi } from '@/services/types';
 import { useSelectedBangumi } from '@/store/use-selected-bangumi';
 import { X } from '@tamagui/lucide-icons-2';
@@ -32,8 +32,6 @@ function countVisiblePoints(points: Bangumi['points'], bounds: { ne: [number, nu
   return points.filter((p) => isWithinBounds(p.geo[0], p.geo[1], bounds)).length;
 }
 
-const iconUrl = (icon: string): string =>
-  icon.startsWith('http://') || icon.startsWith('https://') ? icon : `${baseUrl}${icon}`;
 
 // ===========================================================================
 // Component
@@ -112,7 +110,7 @@ export default function MapTopBangumiIcons({ bangumis, zoom, bounds, onIconPress
               <View style={[styles.iconWrapper, { borderColor }]}>
                 <Image
                   key={`top-icon-${b.id}`}
-                  source={iconUrl(b.icon || b.cover || '')}
+                  source={buildImageUrl(b.icon || b.cover || '')}
                   style={styles.icon}
                   contentFit="cover"
                 />
@@ -220,7 +218,7 @@ export default function MapTopBangumiIcons({ bangumis, zoom, bounds, onIconPress
                 <View style={[styles.iconWrapper, { borderColor }]}>
                   <Image
                     key={`top-icon-${b.id}`}
-                    source={iconUrl(b.icon || b.cover || '')}
+                    source={buildImageUrl(b.icon || b.cover || '')}
                     style={styles.icon}
                     contentFit="cover"
                   />

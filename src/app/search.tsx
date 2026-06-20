@@ -1,6 +1,6 @@
 import SearchBox from '@/components/search-box';
 import { formatDuration } from '@/lib/formatDuration';
-import { baseUrl } from '@/services/handlers';
+import { buildImageUrl } from '@/services/handlers';
 import { fetchMapData } from '@/services/map-data';
 import type { AssembledData, Bangumi, Point } from '@/services/types';
 import { useSelectedBangumi } from '@/store/use-selected-bangumi';
@@ -29,9 +29,6 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'popular', label: '热门作品' },
 ];
 
-const coverUrl = (cover: string, query?: string) =>
-  cover.startsWith('http://') || cover.startsWith('https://') ? cover : baseUrl + cover + (query ? `?${query}` : '');
-
 // ---------------------------------------------------------------------------
 // Bangumi 卡片
 // ---------------------------------------------------------------------------
@@ -51,8 +48,8 @@ function BangumiCard({ bangumi, onPress }: { bangumi: Bangumi; onPress: () => vo
         gap="$2.5"
       >
         <Image
-          key={coverUrl(bangumi.cover ?? '')}
-          source={coverUrl(bangumi.cover ?? '')}
+          key={buildImageUrl(bangumi.cover ?? '')}
+          source={buildImageUrl(bangumi.cover ?? '')}
           style={{
             width: 100,
             height: 100,
@@ -137,8 +134,8 @@ function PointCard({ point, bangumi }: { point: Point; bangumi: Bangumi }) {
       {/* 左侧：图片 + EP / 时间覆盖层 */}
       <View width={150} height={100} style={{ borderRadius: getTokens().radius['4'].val, overflow: 'hidden' }}>
         <Image
-          key={point.image ? coverUrl(point.image) : 'none'}
-          source={point.image ? coverUrl(point.image, 'plan=h160') : undefined}
+          key={point.image ? buildImageUrl(point.image) : 'none'}
+          source={point.image ? buildImageUrl(point.image, 'plan=h160') : undefined}
           style={{ width: 150, height: 100, backgroundColor: theme.color9.val }}
           contentFit="cover"
         />

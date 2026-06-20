@@ -6,7 +6,6 @@ import PopupCard from '@/components/point-popup-card';
 import type { Bangumi } from '@/services/types';
 import { useSelectedBangumi } from '@/store/use-selected-bangumi';
 import { Camera, LocationPuck, MapState, MapView, MarkerView } from '@rnmapbox/maps';
-import { useIsFocused } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import type { EdgeInsets } from 'react-native-safe-area-context';
@@ -31,7 +30,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   const [bounds, setBounds] = useState<Bounds | null>(null);
   const { selectedBangumi, setSelectedBangumi, selectedPoint, setSelectedPoint } = useSelectedBangumi();
 
-  const cameraRef = useRef<any>(null);
+  const cameraRef = useRef<Camera>(null);
 
   // 合并本地 cameraRef 与外部转发 ref
   const setCameraRef = useCallback(
@@ -45,31 +44,12 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     [ref],
   );
 
-  const flag = useRef(false);
-
-  const isFocused = useIsFocused();
-
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>;
-    if (isFocused) {
-      timer = setTimeout(() => {
-        flag.current = true;
-      }, 500);
-    }
-
-    return () => {
-      flag.current = false;
-      clearTimeout(timer);
-    };
-  }, [isFocused]);
-
   // 地图初始化时 onCameraChanged 可能连续触发多次携带不稳定 zoom 值，
   // 跳过前 N 次事件过滤掉这些中间态，避免误设 zoom 状态。
   const cameraEventSkipCount = useRef(5);
 
   const handleCameraChanged = useCallback(
     (state: MapState) => {
-      if (!flag.current) return;
       if (cameraEventSkipCount.current > 0) {
         cameraEventSkipCount.current--;
         return;
