@@ -8,7 +8,6 @@ const path = require('path');
 
 const profile = process.env.EAS_BUILD_PROFILE;
 const fullHash = process.env.EAS_BUILD_GIT_COMMIT_HASH || '';
-const shortHash = fullHash.slice(0, 7);
 const platform = process.env.EAS_BUILD_PLATFORM;
 const repo = process.env.GH_REPO;
 
@@ -25,11 +24,38 @@ const match = configContent.match(/version:\s*'([^']+)'/);
 const version = match ? match[1] : '1.0.0';
 
 const isPreview = profile === 'preview';
-const tag = isPreview ? `v${version}-preview+${shortHash}` : `v${version}`;
+
+// preview: 查询已有 release，自动递增编号（版本号变化时自动归零）
+let previewNum = 0;
+if (isPreview) {
+  previewNum = getNextPreviewNumber(version, repo);
+}
+
+const tag = isPreview ? `v${version}-preview.${previewNum}` : `v${version}`;
 
 console.log(
   `[eas-post-build] profile=${profile}, platform=${platform}, version=${version}, tag=${tag}${repo ? `, repo=${repo}` : ''}`,
 );
+
+// 查询已有 release tag，找到当前版本号下最大的 preview 编号并 +1
+function getNextPreviewNumber(version, repoFlag) {
+  try {
+    const repoArg = repoFlag ? `--repo ${repoFlag} ` : '';
+    const cmd = `gh release list ${repoArg}--limit 200 --json tagName --jq '.[].tagName'`;
+    const output = execSync(cmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+    const prefix = `v${version}-preview.`;
+    let maxNum = -1;
+    for (const t of output.split('\n')) {
+      if (t.startsWith(prefix)) {
+        const num = parseInt(t.slice(prefix.length), 10);
+        if (!isNaN(num) && num > maxNum) maxNum = num;
+      }
+    }
+    return maxNum + 1;
+  } catch {
+    return 0;
+  }
+}
 
 // 查找构建产物
 function findArtifact() {
@@ -54,7 +80,7 @@ if (artifact) {
 
 args.push(
   '--title',
-  isPreview ? `"v${version}-preview+${shortHash}"` : `"v${version}"`,
+  `"${tag}"`,
   '--target',
   fullHash,
   '--generate-notes',
