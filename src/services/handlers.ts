@@ -16,5 +16,5 @@ export const anitabiApiHandler = createHandler({
 
 export const buildImageUrl = (path: string, query?: string) =>
   path.startsWith('http://') || path.startsWith('https://')
-    ? path + (query ? `?${query}` : '')
+    ? path.replace('http://', 'https://')
     : `${imageUrl}${path}${query ? `?${query}` : ''}`.replace('/images', '');
