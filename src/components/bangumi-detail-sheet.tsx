@@ -7,6 +7,7 @@ import { FlashList, FlashListRef } from '@shopify/flash-list';
 import dayjs from 'dayjs';
 import { Image } from 'expo-image';
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { BackHandler } from 'react-native';
 import { Pressable } from 'react-native-gesture-handler';
 import { getTokens, Text, useTheme, View } from 'tamagui';
 
@@ -216,13 +217,14 @@ function groupPoints(points: Point[], mode: AccordionMode, bangumi: Bangumi): Ac
 }
 
 const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>((_, ref) => {
-  const { selectedBangumi, setSelectedPoint } = useSelectedBangumi();
+  const { selectedBangumi, setSelectedPoint, setSelectedBangumi } = useSelectedBangumi();
   const theme = useTheme();
   const sheetRef = useRef<BottomSheet>(null);
 
   const [accordionMode, setAccordionMode] = useState<AccordionMode>('ep');
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const allExpandedRef = useRef(true);
+  const isSheetOpenRef = useRef(false);
   const BottomSheetScrollable = useBottomSheetScrollableCreator();
 
   useImperativeHandle(ref, () => ({
@@ -241,10 +243,25 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>((_, ref) => {
 
   const handleSheetChange = useCallback(
     (index: number) => {
-      if (index < 0) setSelectedPoint(null);
+      isSheetOpenRef.current = index >= 0;
+      if (index < 0) {
+        setSelectedPoint(null);
+        setSelectedBangumi(null);
+      }
     },
     [setSelectedPoint],
   );
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (isSheetOpenRef.current) {
+        sheetRef.current?.close();
+        return true;
+      }
+      return false;
+    });
+    return () => subscription.remove();
+  }, []);
 
   const sections = useMemo(() => {
     if (!selectedBangumi) return [];
