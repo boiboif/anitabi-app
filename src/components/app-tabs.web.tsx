@@ -44,11 +44,12 @@ export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps
   );
 }
 
-export function CustomTabList(props: TabListProps) {
+export function CustomTabList({ style, ...props }: TabListProps) {
   const theme = useTheme();
 
   return (
-    <View {...props} style={styles.tabListContainer}>
+    // TabListProps 允许 onBlur=null，与 Tamagui View 的 DOM 事件类型不完全兼容
+    <View {...(props as object)} style={[styles.tabListContainer, style]}>
       <View bg="$color2" style={styles.innerContainer}>
         <Text fontSize={14} lineHeight={20} fontWeight="700" style={styles.brandText}>
           Expo Starter

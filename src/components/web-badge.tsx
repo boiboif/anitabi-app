@@ -9,7 +9,7 @@ export function WebBadge() {
 
   return (
     <View bg="$background" style={styles.container}>
-      <Text fontFamily={Platform.select({ios:'ui-monospace',android:'monospace',default:'monospace'})} fontWeight={(Platform.select({android:700})??500)} fontSize={12} color="$color11" style={styles.versionText}>
+      <Text fontWeight={(Platform.select({android:700})??500)} fontSize={12} color="$color11" style={styles.versionText}>
         v{version}
       </Text>
       <Image
@@ -32,6 +32,7 @@ const styles = StyleSheet.create({
   },
   versionText: {
     textAlign: 'center',
+    fontFamily: Platform.select({ ios: 'ui-monospace', android: 'monospace', default: 'monospace' }),
   },
   badgeImage: {
     width: 123,
