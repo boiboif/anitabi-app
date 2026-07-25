@@ -1,3 +1,4 @@
+import FavoritePointButton from '@/components/favorite-point-button';
 import SearchBox from '@/components/search-box';
 import { formatDuration } from '@/lib/formatDuration';
 import { buildImageUrl } from '@/services/handlers';
@@ -107,7 +108,7 @@ function BangumiCard({ bangumi, onPress }: { bangumi: Bangumi; onPress: () => vo
 // ---------------------------------------------------------------------------
 // 巡礼点卡片（搜索结果用）
 // ---------------------------------------------------------------------------
-function PointCard({ point, bangumi }: { point: Point; bangumi: Bangumi }) {
+function PointCard({ point, bangumi, onPress }: { point: Point; bangumi: Bangumi; onPress: () => void }) {
   const theme = useTheme();
   const pointTitle = point.cn || point.name || '未命名点位';
   const animeTitle = bangumi.cn || bangumi.title || bangumi.en || '未知';
@@ -131,72 +132,75 @@ function PointCard({ point, bangumi }: { point: Point; bangumi: Bangumi }) {
       boxShadow="0 1px 4px $shadowColor"
       gap="$2.5"
     >
-      {/* 左侧：图片 + EP / 时间覆盖层 */}
-      <View width={150} height={100} style={{ borderRadius: getTokens().radius['4'].val, overflow: 'hidden' }}>
-        <Image
-          key={point.image ? buildImageUrl(point.image) : 'none'}
-          source={point.image ? buildImageUrl(point.image, 'plan=h160') : undefined}
-          style={{ width: 150, height: 100, backgroundColor: theme.color9.val }}
-          contentFit="cover"
-        />
-        {/* EP — 左下 */}
-        {epLabel && (
-          <View
-            position="absolute"
-            l={0}
-            b={0}
-            bg="rgba(0,0,0,0.55)"
-            px="$1.5"
-            py="$0.5"
-            style={{ borderTopRightRadius: getTokens().radius['2'].val }}
-          >
-            <Text fontSize={11} fontWeight="700" color="white">
-              {epLabel}
-            </Text>
-          </View>
-        )}
-        {/* 时分 — 右下 */}
-        {timeLabel && (
-          <View
-            position="absolute"
-            r={0}
-            b={0}
-            bg="rgba(0,0,0,0.55)"
-            px="$1.5"
-            py="$0.5"
-            style={{ borderTopLeftRadius: getTokens().radius['2'].val }}
-          >
-            <Text fontSize={11} color="white">
-              {timeLabel}
-            </Text>
-          </View>
-        )}
-      </View>
-
-      {/* 右侧：文字内容 */}
-      <View flex={1} style={{ justifyContent: 'space-between' }}>
-        {/* 上部 */}
-        <View>
-          <Text fontWeight="600" fontSize={14} color="$color12" numberOfLines={1}>
-            {pointTitle}
-          </Text>
-          <Text fontSize={12} color="$primary" mt="$1" numberOfLines={1}>
-            {animeTitle}
-          </Text>
-          {point.mark ? (
-            <Text fontSize={11} color="$color11" mt="$0.5" numberOfLines={3}>
-              {point.mark}
-            </Text>
-          ) : null}
+      <Pressable onPress={onPress} style={{ flex: 1, flexDirection: 'row', gap: 10 }}>
+        {/* 左侧：图片 + EP / 时间覆盖层 */}
+        <View width={150} height={100} style={{ borderRadius: getTokens().radius['4'].val, overflow: 'hidden' }}>
+          <Image
+            key={point.image ? buildImageUrl(point.image) : 'none'}
+            source={point.image ? buildImageUrl(point.image, 'plan=h160') : undefined}
+            style={{ width: 150, height: 100, backgroundColor: theme.color9.val }}
+            contentFit="cover"
+          />
+          {/* EP — 左下 */}
+          {epLabel && (
+            <View
+              position="absolute"
+              l={0}
+              b={0}
+              bg="rgba(0,0,0,0.55)"
+              px="$1.5"
+              py="$0.5"
+              style={{ borderTopRightRadius: getTokens().radius['2'].val }}
+            >
+              <Text fontSize={11} fontWeight="700" color="white">
+                {epLabel}
+              </Text>
+            </View>
+          )}
+          {/* 时分 — 右下 */}
+          {timeLabel && (
+            <View
+              position="absolute"
+              r={0}
+              b={0}
+              bg="rgba(0,0,0,0.55)"
+              px="$1.5"
+              py="$0.5"
+              style={{ borderTopLeftRadius: getTokens().radius['2'].val }}
+            >
+              <Text fontSize={11} color="white">
+                {timeLabel}
+              </Text>
+            </View>
+          )}
         </View>
 
-        {/* 下部：folder 右下 */}
-        {point.folder && (
-          <Text fontSize={11} color="$color10" style={{ textAlign: 'right' }} mt="$1">
-            {point.folder}
-          </Text>
-        )}
-      </View>
+        {/* 右侧：文字内容 */}
+        <View flex={1} style={{ justifyContent: 'space-between' }}>
+          {/* 上部 */}
+          <View>
+            <Text fontWeight="600" fontSize={14} color="$color12" numberOfLines={1}>
+              {pointTitle}
+            </Text>
+            <Text fontSize={12} color="$primary" mt="$1" numberOfLines={1}>
+              {animeTitle}
+            </Text>
+            {point.mark ? (
+              <Text fontSize={11} color="$color11" mt="$0.5" numberOfLines={3}>
+                {point.mark}
+              </Text>
+            ) : null}
+          </View>
+
+          {/* 下部：folder 右下 */}
+          {point.folder && (
+            <Text fontSize={11} color="$color10" style={{ textAlign: 'right' }} mt="$1">
+              {point.folder}
+            </Text>
+          )}
+        </View>
+      </Pressable>
+      <FavoritePointButton point={point} bangumi={bangumi} overlay />
     </View>
   );
 }
@@ -213,7 +217,7 @@ const Search = () => {
   const loadingRef = useRef(false);
   const flashListRef = useRef<FlashListRef<SearchListItem>>(null);
   const router = useRouter();
-  const { setSelectedBangumi } = useSelectedBangumi();
+  const { setSelectedBangumi, setSelectedPoint } = useSelectedBangumi();
 
   const handleBangumiPress = useCallback(
     (bangumi: Bangumi) => {
@@ -221,6 +225,15 @@ const Search = () => {
       router.back();
     },
     [setSelectedBangumi, router],
+  );
+
+  const handlePointPress = useCallback(
+    (point: Point, bangumi: Bangumi) => {
+      setSelectedBangumi(bangumi);
+      setSelectedPoint({ point, bangumi });
+      router.back();
+    },
+    [router, setSelectedBangumi, setSelectedPoint],
   );
 
   const searchMode = query.trim().length > 0;
@@ -335,10 +348,16 @@ const Search = () => {
         case 'bangumi':
           return <BangumiCard bangumi={item.data} onPress={() => handleBangumiPress(item.data)} />;
         case 'point':
-          return <PointCard point={item.data} bangumi={item.bangumi} />;
+          return (
+            <PointCard
+              point={item.data}
+              bangumi={item.bangumi}
+              onPress={() => handlePointPress(item.data, item.bangumi)}
+            />
+          );
       }
     },
-    [handleBangumiPress],
+    [handleBangumiPress, handlePointPress],
   );
 
   const keyExtractor = useCallback((item: SearchListItem) => {

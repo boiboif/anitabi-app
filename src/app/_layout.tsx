@@ -60,7 +60,6 @@ export default function RootLayout() {
                     title: '深色模式',
                   }}
                 />
-                <Stack.Screen name="search" options={{}} />
               </Stack>
               <Toaster enableStacking position="center" duration={1000} />
             </ThemeProvider>

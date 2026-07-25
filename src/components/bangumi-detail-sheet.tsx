@@ -1,3 +1,4 @@
+import FavoritePointButton from '@/components/favorite-point-button';
 import { formatDuration } from '@/lib/formatDuration';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
@@ -27,18 +28,18 @@ const PointCard = memo(
     const timeLabel = typeof point.s === 'number' && point.s >= 0 ? formatDuration(point.s) : undefined;
 
     return (
-      <Pressable onPress={onPress}>
-        <View
-          bg="$color2"
-          mb="$2"
-          mx="$2"
-          display="flex"
-          flexDirection="row"
-          rounded="$4"
-          height={CARD_HEIGHT}
-          overflow="hidden"
-          boxShadow="0 1px 4px $shadowColor"
-        >
+      <View
+        bg="$color2"
+        mb="$2"
+        mx="$2"
+        display="flex"
+        flexDirection="row"
+        rounded="$4"
+        height={CARD_HEIGHT}
+        overflow="hidden"
+        boxShadow="0 1px 4px $shadowColor"
+      >
+        <Pressable onPress={onPress} style={{ flex: 1, flexDirection: 'row' }}>
           <View
             width={150}
             height={CARD_HEIGHT}
@@ -82,7 +83,7 @@ const PointCard = memo(
           </View>
           <View flex={1} p="$2" style={{ justifyContent: 'space-between' }}>
             <View>
-              <Text fontWeight="600" fontSize={14} color="$color12" numberOfLines={1}>
+              <Text fontWeight="600" fontSize={14} color="$color12" numberOfLines={1} pr="$8">
                 {pointTitle}
               </Text>
               <Text fontSize={11} color="$primary" mt="$1" numberOfLines={1}>
@@ -100,8 +101,9 @@ const PointCard = memo(
               </Text>
             )}
           </View>
-        </View>
-      </Pressable>
+        </Pressable>
+        <FavoritePointButton point={point} bangumi={bangumi} overlay />
+      </View>
     );
   },
   (prev, next) => prev.point.id === next.point.id && prev.bangumi.id === next.bangumi.id,

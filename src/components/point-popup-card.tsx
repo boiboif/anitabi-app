@@ -1,3 +1,4 @@
+import FavoritePointButton from '@/components/favorite-point-button';
 import { formatDuration } from '@/lib/formatDuration';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
@@ -99,6 +100,7 @@ export default function PopupCard({ point, bangumi }: Props) {
             </Text>
           </View>
         )}
+        <FavoritePointButton point={point} bangumi={bangumi} overlay />
       </View>
 
       {/* 文字内容 */}
