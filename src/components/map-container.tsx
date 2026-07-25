@@ -16,6 +16,7 @@ type Props = {
   insets: EdgeInsets;
   bangumis: Bangumi[];
   styleIndex: number;
+  showPointImageMarkers: boolean;
   onCameraChange?: (state: { zoom: number; bounds: { ne: [number, number]; sw: [number, number] } | null }) => void;
 };
 
@@ -23,7 +24,7 @@ const DEFAULT_COORDINATES: [number, number] = [137, 35.2];
 const DEFAULT_ZOOM = 4.6;
 
 const MapContainer = forwardRef<Camera, Props>(function MapContainer(
-  { insets, bangumis, styleIndex, onCameraChange },
+  { insets, bangumis, styleIndex, showPointImageMarkers, onCameraChange },
   ref,
 ) {
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
@@ -134,12 +135,14 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
           setSelectedBangumi(bangumi);
         }}
       />
-      <PointImageMarkers
-        bangumis={bangumis}
-        zoom={zoom}
-        bounds={bounds}
-        onPointSelect={(point, bangumi) => setSelectedPoint({ point, bangumi })}
-      />
+      {showPointImageMarkers && (
+        <PointImageMarkers
+          bangumis={bangumis}
+          zoom={zoom}
+          bounds={bounds}
+          onPointSelect={(point, bangumi) => setSelectedPoint({ point, bangumi })}
+        />
+      )}
 
       {/* 选中点位弹窗（图片标记 & 圆点标记共用） */}
       {selectedPoint && (

@@ -26,7 +26,7 @@ export default function PointImageMarkers({ bangumis, zoom, bounds, onPointSelec
 
   const zoomThreshold = useMemo(() => {
     return selectedBangumi ? FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE : MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE;
-  }, [zoom]);
+  }, [selectedBangumi]);
 
   const visible = useMemo(() => {
     if (zoom < zoomThreshold || !bounds) return [];

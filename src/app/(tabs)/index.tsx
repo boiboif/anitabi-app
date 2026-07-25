@@ -4,7 +4,9 @@ import LoadingBadge from '@/components/loading-badge';
 import LocateButton from '@/components/locate-button';
 import MapContainer from '@/components/map-container';
 import MapTopBangumiIcons from '@/components/map-top-bangumi-icons';
+import PointImageMarkerSwitch from '@/components/point-image-marker-switch';
 import SearchBox from '@/components/search-box';
+import { FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE } from '@/lib/constants';
 import { fetchMapData } from '@/services/map-data';
 import type { AssembledData, FetchProgress } from '@/services/types';
 import { useSelectedBangumi } from '@/store/use-selected-bangumi';
@@ -34,6 +36,7 @@ export default function HomeScreen() {
     zoom: 4.6,
     bounds: null,
   });
+  const [showPointImageMarkers, setShowPointImageMarkers] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -127,6 +130,7 @@ export default function HomeScreen() {
         insets={insets}
         bangumis={data?.data.bangumis ?? []}
         styleIndex={styleIndex}
+        showPointImageMarkers={showPointImageMarkers}
         onCameraChange={setCameraState}
       />
 
@@ -165,6 +169,12 @@ export default function HomeScreen() {
             <LayerSwitch styleIndex={styleIndex} onChange={setStyleIndex} />
           </View>
         </>
+      )}
+
+      {cameraState.zoom >= FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE && (
+        <View r="$2" p="$1.5" position="absolute" t={200} z={20}>
+          <PointImageMarkerSwitch visible={showPointImageMarkers} onChange={setShowPointImageMarkers} />
+        </View>
       )}
 
       <BangumiDetailSheet ref={bangumiSheetRef} />
