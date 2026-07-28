@@ -1,4 +1,4 @@
-import BangumiDetailSheet, { type BangumiDetailSheetRef } from '@/components/bangumi-detail-sheet';
+import BangumiDetailSheet from '@/components/bangumi-detail-sheet';
 import LayerSwitch from '@/components/layer-switch';
 import LoadingBadge from '@/components/loading-badge';
 import LocateButton from '@/components/locate-button';
@@ -20,7 +20,6 @@ import { View } from 'tamagui';
 
 export default function HomeScreen() {
   const cameraRef = useRef<Camera>(null);
-  const bangumiSheetRef = useRef<BangumiDetailSheetRef>(null);
   const insets = useSafeAreaInsets();
   const data = useMapData((state) => state.data);
   const progress = useMapData((state) => state.progress);
@@ -42,7 +41,6 @@ export default function HomeScreen() {
   const bangumis = data?.data.bangumis ?? [];
   const selectedBangumiId = useSelectedBangumi((state) => state.selectedBangumiId);
   const selectedPoint = useSelectedBangumi((state) => state.selectedPoint);
-  const setSelectedBangumi = useSelectedBangumi((state) => state.setSelectedBangumi);
   const selectedBangumi = useMemo(
     () => bangumis.find((bangumi) => bangumi.id === selectedBangumiId) ?? null,
     [bangumis, selectedBangumiId],
@@ -130,18 +128,7 @@ export default function HomeScreen() {
           />
         </View>
 
-        <MapTopBangumiIcons
-          bangumis={bangumis}
-          zoom={cameraState.zoom}
-          bounds={cameraState.bounds}
-          onIconPress={(bangumi) => {
-            setSelectedBangumi(bangumi.id);
-            bangumiSheetRef.current?.snapToIndex(1);
-          }}
-          onOpenSheet={() => {
-            bangumiSheetRef.current?.snapToIndex(1);
-          }}
-        />
+        <MapTopBangumiIcons bangumis={bangumis} zoom={cameraState.zoom} bounds={cameraState.bounds} />
       </View>
 
       {progress && <LoadingBadge progress={progress} insets={insets} />}
@@ -163,7 +150,7 @@ export default function HomeScreen() {
         </View>
       )}
 
-      <BangumiDetailSheet ref={bangumiSheetRef} />
+      <BangumiDetailSheet />
     </View>
   );
 }

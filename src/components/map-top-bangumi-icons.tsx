@@ -2,6 +2,7 @@ import { hexToRgba } from '@/lib/color';
 import { MAP_ICON_ZOOM_THRESHOLD } from '@/lib/constants';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi } from '@/services/types';
+import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
 import { useSelectedBangumi } from '@/store/use-selected-bangumi';
 import { X } from '@tamagui/lucide-icons-2';
 import { Image } from 'expo-image';
@@ -32,7 +33,6 @@ function countVisiblePoints(points: Bangumi['points'], bounds: { ne: [number, nu
   return points.filter((p) => isWithinBounds(p.geo[0], p.geo[1], bounds)).length;
 }
 
-
 // ===========================================================================
 // Component
 // ===========================================================================
@@ -41,21 +41,23 @@ type Props = {
   bangumis: Bangumi[];
   zoom: number;
   bounds: { ne: [number, number]; sw: [number, number] } | null;
-  onIconPress?: (bangumi: Bangumi) => void;
-  onOpenSheet?: () => void;
 };
 
-export default function MapTopBangumiIcons({ bangumis, zoom, bounds, onIconPress, onOpenSheet }: Props) {
+export default function MapTopBangumiIcons({ bangumis, zoom, bounds }: Props) {
   const scrollViewRef = useRef<ScrollView>(null);
   const theme = useTheme();
   const selectedBangumiId = useSelectedBangumi((state) => state.selectedBangumiId);
   const setSelectedBangumi = useSelectedBangumi((state) => state.setSelectedBangumi);
+  const selectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
+  const toggleMapBangumi = useMapBangumiFilter((state) => state.toggleBangumi);
+  const clearMapBangumiFilter = useMapBangumiFilter((state) => state.clear);
+  const hasMapBangumiFilter = selectedMapBangumiIds.length > 0;
   const selectedBangumi = useMemo(
     () => bangumis.find((bangumi) => bangumi.id === selectedBangumiId) ?? null,
     [bangumis, selectedBangumiId],
   );
 
-  const visibleBangumis = useMemo(() => {
+  const inViewBangumis = useMemo(() => {
     if (zoom < MAP_ICON_ZOOM_THRESHOLD || !bounds) return [];
 
     const inView = bangumis.filter((b) => {
@@ -68,13 +70,26 @@ export default function MapTopBangumiIcons({ bangumis, zoom, bounds, onIconPress
         visibleCount: b.points?.filter((p) => isWithinBounds(p.geo[0], p.geo[1], bounds)).length ?? 0,
       }))
       .sort((a, b) => b.visibleCount - a.visibleCount)
-      .map((entry) => entry.bangumi)
-      .slice(0, MAX_ICONS);
+      .map((entry) => entry.bangumi);
   }, [bangumis, zoom, bounds]);
 
-  const visibleBangumisCnLength = useMemo(() => {
-    return visibleBangumis.map((b) => b.cn).length;
-  }, [visibleBangumis]);
+  const displayedBangumis = useMemo(() => {
+    const selectedIds = new Set(selectedMapBangumiIds);
+    const inViewIds = new Set(inViewBangumis.map((bangumi) => bangumi.id));
+    const selectedInView = inViewBangumis.filter((bangumi) => selectedIds.has(bangumi.id));
+    const selectedOutOfView = selectedMapBangumiIds
+      .filter((id) => !inViewIds.has(id))
+      .map((id) => bangumis.find((bangumi) => bangumi.id === id))
+      .filter((bangumi): bangumi is Bangumi => bangumi != null);
+    const unselectedInView = inViewBangumis.filter((bangumi) => !selectedIds.has(bangumi.id));
+
+    return [...selectedInView, ...selectedOutOfView, ...unselectedInView].slice(0, MAX_ICONS);
+  }, [bangumis, inViewBangumis, selectedMapBangumiIds]);
+
+  const displayedBangumiIds = useMemo(
+    () => displayedBangumis.map((bangumi) => bangumi.id).join(','),
+    [displayedBangumis],
+  );
 
   useEffect(() => {
     if (scrollViewRef.current) {
@@ -84,7 +99,7 @@ export default function MapTopBangumiIcons({ bangumis, zoom, bounds, onIconPress
         animated: false,
       });
     }
-  }, [visibleBangumisCnLength]);
+  }, [displayedBangumiIds]);
 
   // 筛选模式：只显示选中的番剧 + X 取消按钮
   if (selectedBangumi) {
@@ -103,54 +118,45 @@ export default function MapTopBangumiIcons({ bangumis, zoom, bounds, onIconPress
             paddingHorizontal: 14,
           }}
         >
-          <Pressable onPress={() => onIconPress?.(b)}>
-            <View
-              bg="$color2"
-              gap="$2"
-              rounded="$10"
-              flexDirection="row"
-              items="center"
-              boxShadow="0 2px 6px rgba(0,0,0,0.15)"
-            >
-              <View style={[styles.iconWrapper, { borderColor }]}>
-                <Image
-                  key={`top-icon-${b.id}`}
-                  source={buildImageUrl(b.icon || b.cover || '')}
-                  style={styles.icon}
-                  contentFit="cover"
-                />
-              </View>
-
-              <Text
-                maxW={80}
-                color="$color11"
-                fontSize={12}
-                fontWeight="500"
-                numberOfLines={1}
-                style={{ flexShrink: 1 }}
-              >
-                {b.cn}
-              </Text>
-
-              <View
-                rounded={999}
-                mr="$1.5"
-                height="70%"
-                items="center"
-                justify="center"
-                style={{
-                  width: 34,
-                  textAlign: 'center',
-                  backgroundColor: hexToRgba(borderColor, 0.2),
-                  borderRadius: 999,
-                }}
-              >
-                <Text fontSize={12} fontWeight="600" numberOfLines={1} style={{ color: borderColor }}>
-                  {visibleCount}
-                </Text>
-              </View>
+          <View
+            bg="$color2"
+            gap="$2"
+            rounded="$10"
+            flexDirection="row"
+            items="center"
+            boxShadow="0 2px 6px rgba(0,0,0,0.15)"
+          >
+            <View style={[styles.iconWrapper, { borderColor }]}>
+              <Image
+                key={`top-icon-${b.id}`}
+                source={buildImageUrl(b.icon || b.cover || '')}
+                style={styles.icon}
+                contentFit="cover"
+              />
             </View>
-          </Pressable>
+
+            <Text maxW={80} color="$color11" fontSize={12} fontWeight="500" numberOfLines={1} style={{ flexShrink: 1 }}>
+              {b.cn}
+            </Text>
+
+            <View
+              rounded={999}
+              mr="$1.5"
+              height="70%"
+              items="center"
+              justify="center"
+              style={{
+                width: 34,
+                textAlign: 'center',
+                backgroundColor: hexToRgba(borderColor, 0.2),
+                borderRadius: 999,
+              }}
+            >
+              <Text fontSize={12} fontWeight="600" numberOfLines={1} style={{ color: borderColor }}>
+                {visibleCount}
+              </Text>
+            </View>
+          </View>
 
           {/* <Pressable
             onPress={() => onOpenSheet?.()}
@@ -196,7 +202,7 @@ export default function MapTopBangumiIcons({ bangumis, zoom, bounds, onIconPress
     );
   }
 
-  if (visibleBangumis.length === 0) return null;
+  if (displayedBangumis.length === 0) return null;
 
   return (
     <View py="$3">
@@ -206,12 +212,22 @@ export default function MapTopBangumiIcons({ bangumis, zoom, bounds, onIconPress
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ gap: 8, paddingHorizontal: 14, height: 32 }}
       >
-        {visibleBangumis.map((b) => {
+        {displayedBangumis.map((b) => {
           const visibleCount = bounds ? countVisiblePoints(b.points, bounds) : 0;
           const borderColor = b.color || theme.color12.val;
+          const isSelected = selectedMapBangumiIds.includes(b.id);
 
           return (
-            <Pressable key={b.id} onPress={() => onIconPress?.(b)}>
+            <Pressable
+              key={b.id}
+              onPress={() =>
+                toggleMapBangumi(
+                  b.id,
+                  inViewBangumis.map((bangumi) => bangumi.id),
+                )
+              }
+              style={({ pressed }) => ({ opacity: pressed ? 0.3 : !hasMapBangumiFilter || isSelected ? 1 : 0.5 })}
+            >
               <View
                 bg="$color4"
                 gap="$2"
@@ -262,6 +278,23 @@ export default function MapTopBangumiIcons({ bangumis, zoom, bounds, onIconPress
           );
         })}
       </ScrollView>
+      {hasMapBangumiFilter && (
+        <Pressable
+          onPress={clearMapBangumiFilter}
+          style={({ pressed }) => ({
+            alignSelf: 'flex-start',
+            marginTop: 8,
+            marginLeft: 14,
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <View bg="$color2" px="$3" py="$1.5" rounded="$10" boxShadow="0 2px 6px rgba(0,0,0,0.15)">
+            <Text color="$color11" fontSize={12} fontWeight="500">
+              清除筛选
+            </Text>
+          </View>
+        </Pressable>
+      )}
     </View>
   );
 }

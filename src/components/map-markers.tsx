@@ -1,4 +1,5 @@
 import type { Bangumi, Point } from '@/services/types';
+import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
 import { useSelectedBangumi } from '@/store/use-selected-bangumi';
 import { CircleLayer, ShapeSource } from '@rnmapbox/maps';
 import { ComponentProps, useCallback, useMemo } from 'react';
@@ -62,6 +63,8 @@ const DENSITY_STOPS: [number, number][] = [
 
 export default function MapMarkers({ bangumis, onPointSelect }: Props) {
   const selectedBangumiId = useSelectedBangumi((state) => state.selectedBangumiId);
+  const selectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
+  const isFilterActive = selectedBangumiId !== null || selectedMapBangumiIds.length > 0;
 
   // 始终用完整数据生成 GeoJSON，筛选通过 filter 表达式实现
   const geoJSON = useMemo(() => toGeoJSON(bangumis), [bangumis]);
@@ -75,13 +78,20 @@ export default function MapMarkers({ bangumis, onPointSelect }: Props) {
         ['>=', ['get', 'density'], 0],
       ] satisfies ComponentProps<typeof CircleLayer>['filter'];
     }
+    if (selectedMapBangumiIds.length > 0) {
+      return [
+        'all',
+        ['in', ['get', 'bangumiId'], ['literal', selectedMapBangumiIds]],
+        ['>=', ['get', 'density'], 0],
+      ] satisfies ComponentProps<typeof CircleLayer>['filter'];
+    }
     // 普通模式：zoom-density 动态阈值
     return [
       '>=',
       ['get', 'density'],
       ['interpolate', ['linear'], ['zoom'], ...DENSITY_STOPS.flat()],
     ] satisfies ComponentProps<typeof CircleLayer>['filter'];
-  }, [selectedBangumiId]);
+  }, [selectedBangumiId, selectedMapBangumiIds]);
 
   /** 点击圆点标记 → 查找完整点/番数据 → 弹出详情 */
   const handlePress = useCallback(
@@ -106,7 +116,7 @@ export default function MapMarkers({ bangumis, onPointSelect }: Props) {
   );
 
   const circleStyle = useMemo((): ComponentProps<typeof CircleLayer>['style'] => {
-    if (selectedBangumiId !== null) {
+    if (isFilterActive) {
       // 筛选模式：放大、更不透明
       return {
         circleColor: ['get', 'color'],
@@ -124,7 +134,7 @@ export default function MapMarkers({ bangumis, onPointSelect }: Props) {
       circleStrokeColor: '#ffffff',
       circleRadius: ['interpolate', ['linear'], ['zoom'], 0, 2, 8, 4, 14, 6, 16, 5.5, 17, 6.5, 18, 7],
     };
-  }, [selectedBangumiId]);
+  }, [isFilterActive]);
 
   return (
     <>

@@ -1,6 +1,7 @@
 import { FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE, MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE } from '@/lib/constants';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
+import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
 import { useSelectedBangumi } from '@/store/use-selected-bangumi';
 import { Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
 import { useCallback, useMemo } from 'react';
@@ -23,17 +24,22 @@ function isInBounds(geo: [number, number], bounds: Bounds): boolean {
 
 export default function PointImageMarkers({ bangumis, zoom, bounds, onPointSelect }: Props) {
   const selectedBangumiId = useSelectedBangumi((state) => state.selectedBangumiId);
+  const selectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
+  const isFilterActive = selectedBangumiId !== null || selectedMapBangumiIds.length > 0;
 
   const zoomThreshold = useMemo(() => {
-    return selectedBangumiId !== null ? FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE : MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE;
-  }, [selectedBangumiId]);
+    return isFilterActive ? FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE : MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE;
+  }, [isFilterActive]);
 
   const visible = useMemo(() => {
     if (zoom < zoomThreshold || !bounds) return [];
 
     const items: { point: Point; bangumi: Bangumi; imageUrl: string }[] = [];
+    const selectedIds = new Set(selectedMapBangumiIds);
 
     for (const b of bangumis) {
+      if (selectedBangumiId !== null && b.id !== selectedBangumiId) continue;
+      if (selectedBangumiId === null && selectedIds.size > 0 && !selectedIds.has(b.id)) continue;
       for (const p of b.points) {
         if (!p.image) continue;
         if (p.geo[0] === 0 && p.geo[1] === 0) continue;
@@ -47,7 +53,7 @@ export default function PointImageMarkers({ bangumis, zoom, bounds, onPointSelec
     }
 
     return items;
-  }, [bangumis, zoom, bounds]);
+  }, [bangumis, zoom, bounds, selectedBangumiId, selectedMapBangumiIds]);
 
   const { imagesMap, geojson } = useMemo(() => {
     const images: Record<string, { uri: string }> = {};
