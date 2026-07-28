@@ -2,6 +2,7 @@ import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import '@/global.css';
 import { getDarkModeConfig, setDarkModeConfig } from '@/lib/storage';
 import { ThemeOverrideContext } from '@/lib/theme-context';
+import { useMapData } from '@/store/use-map-data';
 import tamaguiConfig from '@/tamagui.config';
 import Mapbox from '@rnmapbox/maps';
 import Constants from 'expo-constants';
@@ -32,6 +33,11 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const config = getDarkModeConfig();
   const [theme, setTheme] = useState<'light' | 'dark'>(() => resolveTheme(colorScheme, config));
+  const initializeMapData = useMapData((state) => state.initialize);
+
+  useEffect(() => {
+    void initializeMapData();
+  }, [initializeMapData]);
 
   // Sync with system when followSystem is enabled
   useEffect(() => {

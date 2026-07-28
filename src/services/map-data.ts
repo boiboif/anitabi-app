@@ -122,40 +122,29 @@ function assembleBangumis(gList: RawGBangumi[], detailMap: Map<number, RawGDetai
 
 const G_JSON_URLS = [getG0JSON, getG1JSON, getG2JSON, getG3JSON, getG4JSON, getG5JSON] as const;
 
-export async function fetchMapData(onProgress?: (p: FetchProgress) => void): Promise<AssembledData> {
-  const cachedData = getCachedData();
+/** 读取持久化缓存，不发起网络请求。 */
+export function getCachedMapData(): AssembledData | null {
+  return getCachedData();
+}
 
-  if (cachedData) {
-    // 有缓存 → 优先使用，后台静默检查更新
-    refreshInBackground();
+/**
+ * 检查远端版本并返回当前最新数据。
+ *
+ * 调用方负责决定何时刷新，以及如何把刷新结果同步到 UI。这样缓存更新
+ * 不会发生在页面订阅范围之外。
+ */
+export async function refreshMapData(onProgress?: (p: FetchProgress) => void): Promise<AssembledData> {
+  const cachedData = getCachedData();
+  onProgress?.({ phase: 'checking', message: '检查数据更新…' });
+
+  const gRaw = (await getGJSON()) as [RawGBangumi[], number, number];
+  const remoteModified = gRaw[2];
+
+  if (cachedData && remoteModified === getGModified()) {
     return cachedData;
   }
 
-  // 无缓存 → 首次全量拉取
-  return fetchFull(onProgress);
-}
-
-/** 后台静默检查更新：拉 g.json 比对 modified，有变化则拉详情并更新缓存 */
-async function refreshInBackground(): Promise<void> {
-  try {
-    const gRaw = (await getGJSON()) as [RawGBangumi[], number, number];
-    const remoteModified = gRaw[2];
-    const cachedModified = getGModified();
-
-    if (remoteModified === cachedModified) return;
-
-    // 有更新 → 拉取详情并更新缓存
-    await fetchDetails(gRaw[0], remoteModified);
-  } catch {
-    // 后台刷新失败，静默保留现有缓存
-  }
-}
-
-async function fetchFull(onProgress?: (p: FetchProgress) => void): Promise<AssembledData> {
-  onProgress?.({ phase: 'downloading', batch: 0, message: '加载番剧列表…' });
-
-  const gRaw = (await getGJSON()) as [RawGBangumi[], number, number];
-  return fetchDetails(gRaw[0], gRaw[2], onProgress);
+  return fetchDetails(gRaw[0], remoteModified, onProgress);
 }
 
 async function fetchDetails(

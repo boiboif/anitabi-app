@@ -6,7 +6,7 @@ import PopupCard from '@/components/point-popup-card';
 import type { Bangumi } from '@/services/types';
 import { useSelectedBangumi } from '@/store/use-selected-bangumi';
 import { Camera, LocationPuck, MapState, MapView, MarkerView } from '@rnmapbox/maps';
-import { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import type { EdgeInsets } from 'react-native-safe-area-context';
 
@@ -29,7 +29,20 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
 ) {
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const [bounds, setBounds] = useState<Bounds | null>(null);
-  const { selectedBangumi, setSelectedBangumi, selectedPoint, setSelectedPoint } = useSelectedBangumi();
+  const selectedBangumiId = useSelectedBangumi((state) => state.selectedBangumiId);
+  const selectedPoint = useSelectedBangumi((state) => state.selectedPoint);
+  const setSelectedBangumi = useSelectedBangumi((state) => state.setSelectedBangumi);
+  const setSelectedPoint = useSelectedBangumi((state) => state.setSelectedPoint);
+  const selectedBangumi = useMemo(
+    () => bangumis.find((bangumi) => bangumi.id === selectedBangumiId) ?? null,
+    [bangumis, selectedBangumiId],
+  );
+  const selectedPointData = useMemo(() => {
+    if (!selectedPoint) return null;
+    const bangumi = bangumis.find((item) => item.id === selectedPoint.bangumiId);
+    const point = bangumi?.points.find((item) => item.id === selectedPoint.pointId);
+    return bangumi && point ? { bangumi, point } : null;
+  }, [bangumis, selectedPoint]);
 
   const cameraRef = useRef<Camera>(null);
 
@@ -112,7 +125,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
       [60, 60, 60, 60], // padding [top, right, bottom, left]
       500,
     );
-  }, [selectedBangumi, bangumis]);
+  }, [selectedBangumi]);
 
   return (
     <MapView
@@ -127,12 +140,15 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     >
       <Camera ref={setCameraRef} centerCoordinate={DEFAULT_COORDINATES} zoomLevel={DEFAULT_ZOOM} animationMode="none" />
       <LocationPuck visible puckBearingEnabled puckBearing="heading" pulsing={{ isEnabled: true, color: '#007AFF' }} />
-      <MapMarkers bangumis={bangumis} onPointSelect={(point, bangumi) => setSelectedPoint({ point, bangumi })} />
+      <MapMarkers
+        bangumis={bangumis}
+        onPointSelect={(point, bangumi) => setSelectedPoint({ bangumiId: bangumi.id, pointId: point.id })}
+      />
       <BangumiIcons
         bangumis={bangumis}
         zoom={zoom}
         onIconPress={(bangumi) => {
-          setSelectedBangumi(bangumi);
+          setSelectedBangumi(bangumi.id);
         }}
       />
       {showPointImageMarkers && (
@@ -140,18 +156,18 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
           bangumis={bangumis}
           zoom={zoom}
           bounds={bounds}
-          onPointSelect={(point, bangumi) => setSelectedPoint({ point, bangumi })}
+          onPointSelect={(point, bangumi) => setSelectedPoint({ bangumiId: bangumi.id, pointId: point.id })}
         />
       )}
 
       {/* 选中点位弹窗（图片标记 & 圆点标记共用） */}
-      {selectedPoint && (
+      {selectedPointData && (
         <MarkerView
-          coordinate={[selectedPoint.point.geo[1], selectedPoint.point.geo[0]]}
+          coordinate={[selectedPointData.point.geo[1], selectedPointData.point.geo[0]]}
           anchor={{ x: 0.5, y: 1 }}
           allowOverlap
         >
-          <PopupCard point={selectedPoint.point} bangumi={selectedPoint.bangumi} />
+          <PopupCard point={selectedPointData.point} bangumi={selectedPointData.bangumi} />
         </MarkerView>
       )}
     </MapView>

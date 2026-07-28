@@ -61,17 +61,17 @@ const DENSITY_STOPS: [number, number][] = [
 ];
 
 export default function MapMarkers({ bangumis, onPointSelect }: Props) {
-  const { selectedBangumi } = useSelectedBangumi();
+  const selectedBangumiId = useSelectedBangumi((state) => state.selectedBangumiId);
 
   // 始终用完整数据生成 GeoJSON，筛选通过 filter 表达式实现
   const geoJSON = useMemo(() => toGeoJSON(bangumis), [bangumis]);
 
   const pointFilter: ComponentProps<typeof CircleLayer>['filter'] = useMemo(() => {
-    if (selectedBangumi) {
+    if (selectedBangumiId !== null) {
       // 筛选模式：只显示选中番剧的点 + 不限制 density
       return [
         'all',
-        ['==', ['get', 'bangumiId'], selectedBangumi.id],
+        ['==', ['get', 'bangumiId'], selectedBangumiId],
         ['>=', ['get', 'density'], 0],
       ] satisfies ComponentProps<typeof CircleLayer>['filter'];
     }
@@ -81,7 +81,7 @@ export default function MapMarkers({ bangumis, onPointSelect }: Props) {
       ['get', 'density'],
       ['interpolate', ['linear'], ['zoom'], ...DENSITY_STOPS.flat()],
     ] satisfies ComponentProps<typeof CircleLayer>['filter'];
-  }, [selectedBangumi]);
+  }, [selectedBangumiId]);
 
   /** 点击圆点标记 → 查找完整点/番数据 → 弹出详情 */
   const handlePress = useCallback(
@@ -106,7 +106,7 @@ export default function MapMarkers({ bangumis, onPointSelect }: Props) {
   );
 
   const circleStyle = useMemo((): ComponentProps<typeof CircleLayer>['style'] => {
-    if (selectedBangumi) {
+    if (selectedBangumiId !== null) {
       // 筛选模式：放大、更不透明
       return {
         circleColor: ['get', 'color'],
@@ -124,7 +124,7 @@ export default function MapMarkers({ bangumis, onPointSelect }: Props) {
       circleStrokeColor: '#ffffff',
       circleRadius: ['interpolate', ['linear'], ['zoom'], 0, 2, 8, 4, 14, 6, 16, 5.5, 17, 6.5, 18, 7],
     };
-  }, [selectedBangumi]);
+  }, [selectedBangumiId]);
 
   return (
     <>

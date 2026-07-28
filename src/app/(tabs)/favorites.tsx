@@ -1,15 +1,15 @@
 import FavoritePointButton from '@/components/favorite-point-button';
 import { type FavoritePoint } from '@/lib/favorite-storage';
 import { buildImageUrl } from '@/services/handlers';
-import { fetchMapData } from '@/services/map-data';
-import type { AssembledData, Bangumi, Point } from '@/services/types';
+import type { Bangumi, Point } from '@/services/types';
 import { useFavoritePoints } from '@/store/use-favorite-points';
+import { useMapData } from '@/store/use-map-data';
 import { useSelectedBangumi } from '@/store/use-selected-bangumi';
 import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
 import { Heart } from '@tamagui/lucide-icons-2';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, View, XStack, YStack, getTokens, useTheme } from 'tamagui';
@@ -166,35 +166,18 @@ export default function FavoritesScreen() {
   const theme = useTheme();
   const router = useRouter();
   const favoritePoints = useFavoritePoints((state) => state.favoritePoints);
-  const { setSelectedBangumi, setSelectedPoint } = useSelectedBangumi();
+  const data = useMapData((state) => state.data);
+  const status = useMapData((state) => state.status);
+  const setSelectedBangumi = useSelectedBangumi((state) => state.setSelectedBangumi);
+  const setSelectedPoint = useSelectedBangumi((state) => state.setSelectedPoint);
   const [view, setView] = useState<FavoriteView>('bangumi');
-  const [data, setData] = useState<AssembledData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadFailed, setLoadFailed] = useState(false);
+  const loading = data === null && (status === 'idle' || status === 'loading');
+  const loadFailed = data === null && status === 'error';
 
   const insets = {
     ...safeAreaInsets,
     bottom: safeAreaInsets.bottom + BottomTabInset + 16,
   };
-
-  useEffect(() => {
-    let cancelled = false;
-
-    fetchMapData()
-      .then((result) => {
-        if (!cancelled) setData(result);
-      })
-      .catch(() => {
-        if (!cancelled) setLoadFailed(true);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const resolvedFavorites = useMemo(() => {
     const remaining = new Map(favoritePoints.map((item) => [item.key, item]));
@@ -256,8 +239,8 @@ export default function FavoritesScreen() {
   const openPoint = useCallback(
     (item: ResolvedFavorite) => {
       if (!item.point || !item.bangumi) return;
-      setSelectedBangumi(item.bangumi);
-      setSelectedPoint({ point: item.point, bangumi: item.bangumi });
+      setSelectedBangumi(item.bangumi.id);
+      setSelectedPoint({ bangumiId: item.bangumi.id, pointId: item.point.id });
       router.navigate('/');
     },
     [router, setSelectedBangumi, setSelectedPoint],

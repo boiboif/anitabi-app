@@ -2,6 +2,7 @@ import FavoritePointButton from '@/components/favorite-point-button';
 import { formatDuration } from '@/lib/formatDuration';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
+import { useMapData } from '@/store/use-map-data';
 import { useSelectedBangumi } from '@/store/use-selected-bangumi';
 import BottomSheet, { useBottomSheetScrollableCreator } from '@gorhom/bottom-sheet';
 import { FlashList, FlashListRef } from '@shopify/flash-list';
@@ -219,7 +220,14 @@ function groupPoints(points: Point[], mode: AccordionMode, bangumi: Bangumi): Ac
 }
 
 const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>((_, ref) => {
-  const { selectedBangumi, setSelectedPoint, setSelectedBangumi } = useSelectedBangumi();
+  const bangumis = useMapData((state) => state.data)?.data.bangumis ?? [];
+  const selectedBangumiId = useSelectedBangumi((state) => state.selectedBangumiId);
+  const setSelectedPoint = useSelectedBangumi((state) => state.setSelectedPoint);
+  const setSelectedBangumi = useSelectedBangumi((state) => state.setSelectedBangumi);
+  const selectedBangumi = useMemo(
+    () => bangumis.find((bangumi) => bangumi.id === selectedBangumiId) ?? null,
+    [bangumis, selectedBangumiId],
+  );
   const theme = useTheme();
   const sheetRef = useRef<BottomSheet>(null);
 
@@ -373,7 +381,7 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>((_, ref) => {
           point={item.point}
           bangumi={selectedBangumi!}
           onPress={() => {
-            setSelectedPoint({ point: item.point, bangumi: selectedBangumi! });
+            setSelectedPoint({ bangumiId: selectedBangumi!.id, pointId: item.point.id });
             sheetRef.current?.snapToIndex(0);
           }}
         />

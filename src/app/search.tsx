@@ -2,8 +2,8 @@ import FavoritePointButton from '@/components/favorite-point-button';
 import SearchBox from '@/components/search-box';
 import { formatDuration } from '@/lib/formatDuration';
 import { buildImageUrl } from '@/services/handlers';
-import { fetchMapData } from '@/services/map-data';
-import type { AssembledData, Bangumi, Point } from '@/services/types';
+import type { Bangumi, Point } from '@/services/types';
+import { useMapData } from '@/store/use-map-data';
 import { useSelectedBangumi } from '@/store/use-selected-bangumi';
 import { FlashList, FlashListRef } from '@shopify/flash-list';
 import dayjs from 'dayjs';
@@ -210,18 +210,18 @@ function PointCard({ point, bangumi, onPress }: { point: Point; bangumi: Bangumi
 // ---------------------------------------------------------------------------
 const Search = () => {
   const insets = useSafeAreaInsets();
-  const [data, setData] = useState<AssembledData | null>(null);
   const [tab, setTab] = useState<TabKey>('recent');
   const [inputText, setInputText] = useState('');
   const [query, setQuery] = useState('');
-  const loadingRef = useRef(false);
   const flashListRef = useRef<FlashListRef<SearchListItem>>(null);
   const router = useRouter();
-  const { setSelectedBangumi, setSelectedPoint } = useSelectedBangumi();
+  const data = useMapData((state) => state.data);
+  const setSelectedBangumi = useSelectedBangumi((state) => state.setSelectedBangumi);
+  const setSelectedPoint = useSelectedBangumi((state) => state.setSelectedPoint);
 
   const handleBangumiPress = useCallback(
     (bangumi: Bangumi) => {
-      setSelectedBangumi(bangumi);
+      setSelectedBangumi(bangumi.id);
       router.back();
     },
     [setSelectedBangumi, router],
@@ -229,8 +229,8 @@ const Search = () => {
 
   const handlePointPress = useCallback(
     (point: Point, bangumi: Bangumi) => {
-      setSelectedBangumi(bangumi);
-      setSelectedPoint({ point, bangumi });
+      setSelectedBangumi(bangumi.id);
+      setSelectedPoint({ bangumiId: bangumi.id, pointId: point.id });
       router.back();
     },
     [router, setSelectedBangumi, setSelectedPoint],
@@ -246,14 +246,6 @@ const Search = () => {
     const timer = setTimeout(() => setQuery(inputText), 300);
     return () => clearTimeout(timer);
   }, [inputText]);
-
-  useEffect(() => {
-    if (loadingRef.current) return;
-    loadingRef.current = true;
-    fetchMapData()
-      .then(setData)
-      .catch((e) => console.error('search fetchMapData error:', e));
-  }, []);
 
   const { bangumiResults, pointResults } = useMemo(() => {
     if (!data || !searchMode) return { bangumiResults: [], pointResults: [] };

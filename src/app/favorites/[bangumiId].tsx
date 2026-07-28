@@ -1,15 +1,15 @@
 import FavoritePointButton from '@/components/favorite-point-button';
 import { type FavoritePoint } from '@/lib/favorite-storage';
 import { buildImageUrl } from '@/services/handlers';
-import { fetchMapData } from '@/services/map-data';
-import type { AssembledData, Bangumi, Point } from '@/services/types';
+import type { Bangumi, Point } from '@/services/types';
 import { useFavoritePoints } from '@/store/use-favorite-points';
+import { useMapData } from '@/store/use-map-data';
 import { useSelectedBangumi } from '@/store/use-selected-bangumi';
 import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
 import { Heart } from '@tamagui/lucide-icons-2';
 import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { Platform, Pressable, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, View, XStack, YStack, getTokens, useTheme } from 'tamagui';
@@ -115,24 +115,12 @@ export default function FavoriteBangumiScreen() {
   const router = useRouter();
   const { bangumiId } = useLocalSearchParams<{ bangumiId: string }>();
   const favoritePoints = useFavoritePoints((state) => state.favoritePoints);
-  const { setSelectedBangumi, setSelectedPoint } = useSelectedBangumi();
-  const [data, setData] = useState<AssembledData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const data = useMapData((state) => state.data);
+  const status = useMapData((state) => state.status);
+  const setSelectedBangumi = useSelectedBangumi((state) => state.setSelectedBangumi);
+  const setSelectedPoint = useSelectedBangumi((state) => state.setSelectedPoint);
+  const loading = data === null && (status === 'idle' || status === 'loading');
   const id = Number(bangumiId);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchMapData()
-      .then((result) => {
-        if (!cancelled) setData(result);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const favorites = useMemo(() => {
     const favoritesByPointId = new Map(
@@ -156,8 +144,8 @@ export default function FavoriteBangumiScreen() {
   const openPoint = useCallback(
     (item: ResolvedFavorite) => {
       if (!item.point || !item.bangumi) return;
-      setSelectedBangumi(item.bangumi);
-      setSelectedPoint({ point: item.point, bangumi: item.bangumi });
+      setSelectedBangumi(item.bangumi.id);
+      setSelectedPoint({ bangumiId: item.bangumi.id, pointId: item.point.id });
       router.navigate('/');
     },
     [router, setSelectedBangumi, setSelectedPoint],

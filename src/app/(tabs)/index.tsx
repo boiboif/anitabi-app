@@ -7,14 +7,13 @@ import MapTopBangumiIcons from '@/components/map-top-bangumi-icons';
 import PointImageMarkerSwitch from '@/components/point-image-marker-switch';
 import SearchBox from '@/components/search-box';
 import { FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE } from '@/lib/constants';
-import { fetchMapData } from '@/services/map-data';
-import type { AssembledData, FetchProgress } from '@/services/types';
+import { useMapData } from '@/store/use-map-data';
 import { useSelectedBangumi } from '@/store/use-selected-bangumi';
 import type { Camera, Location } from '@rnmapbox/maps';
 import { locationManager } from '@rnmapbox/maps';
 import { requestForegroundPermissionsAsync } from 'expo-location';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { View } from 'tamagui';
@@ -23,11 +22,8 @@ export default function HomeScreen() {
   const cameraRef = useRef<Camera>(null);
   const bangumiSheetRef = useRef<BangumiDetailSheetRef>(null);
   const insets = useSafeAreaInsets();
-  const [progress, setProgress] = useState<FetchProgress | null>({
-    phase: 'checking',
-    message: '检查数据更新…',
-  });
-  const [data, setData] = useState<AssembledData | null>(null);
+  const data = useMapData((state) => state.data);
+  const progress = useMapData((state) => state.progress);
   const router = useRouter();
   const [cameraState, setCameraState] = useState<{
     zoom: number;
@@ -39,40 +35,30 @@ export default function HomeScreen() {
   const [showPointImageMarkers, setShowPointImageMarkers] = useState(true);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      // 首次进入即请求定位权限，使 LocationPuck 能正常显示
-      requestForegroundPermissionsAsync().catch(() => {});
-
-      try {
-        const result = await fetchMapData((p) => {
-          if (!cancelled) setProgress(p);
-        });
-        if (!cancelled) {
-          setData(result);
-          console.log('data', result);
-          setProgress(null);
-        }
-      } catch (e) {
-        console.error('fetchMapData error:', e);
-        if (!cancelled) setProgress({ phase: 'error', message: '数据加载失败' });
-      }
-    }
-
-    load();
-    return () => {
-      cancelled = true;
-    };
+    // 首次进入即请求定位权限，使 LocationPuck 能正常显示
+    requestForegroundPermissionsAsync().catch(() => {});
   }, []);
 
-  const { selectedPoint, selectedBangumi, setSelectedBangumi } = useSelectedBangumi();
+  const bangumis = data?.data.bangumis ?? [];
+  const selectedBangumiId = useSelectedBangumi((state) => state.selectedBangumiId);
+  const selectedPoint = useSelectedBangumi((state) => state.selectedPoint);
+  const setSelectedBangumi = useSelectedBangumi((state) => state.setSelectedBangumi);
+  const selectedBangumi = useMemo(
+    () => bangumis.find((bangumi) => bangumi.id === selectedBangumiId) ?? null,
+    [bangumis, selectedBangumiId],
+  );
+  const selectedPointData = useMemo(() => {
+    if (!selectedPoint) return null;
+    const bangumi = bangumis.find((item) => item.id === selectedPoint.bangumiId);
+    const point = bangumi?.points.find((item) => item.id === selectedPoint.pointId);
+    return bangumi && point ? { bangumi, point } : null;
+  }, [bangumis, selectedPoint]);
 
   // 选中巡礼点时，地图 camera 飞到该点
   useEffect(() => {
-    if (!selectedPoint || !selectedBangumi) return;
-    const { density } = selectedPoint.point;
-    const [lat, lng] = selectedPoint.point.geo;
+    if (!selectedPointData) return;
+    const { density } = selectedPointData.point;
+    const [lat, lng] = selectedPointData.point.geo;
 
     // density = 到最近邻点的距离（米）
     // density 越小 → 附近有其他点 → 放大地图显示更友好
@@ -85,7 +71,7 @@ export default function HomeScreen() {
       animationMode: 'flyTo',
       animationDuration: 500,
     });
-  }, [selectedPoint, selectedBangumi]);
+  }, [selectedPointData]);
 
   const handleLocate = useCallback(async () => {
     try {
@@ -128,7 +114,7 @@ export default function HomeScreen() {
       <MapContainer
         ref={cameraRef}
         insets={insets}
-        bangumis={data?.data.bangumis ?? []}
+        bangumis={bangumis}
         styleIndex={styleIndex}
         showPointImageMarkers={showPointImageMarkers}
         onCameraChange={setCameraState}
@@ -145,11 +131,11 @@ export default function HomeScreen() {
         </View>
 
         <MapTopBangumiIcons
-          bangumis={data?.data.bangumis ?? []}
+          bangumis={bangumis}
           zoom={cameraState.zoom}
           bounds={cameraState.bounds}
           onIconPress={(bangumi) => {
-            setSelectedBangumi(bangumi);
+            setSelectedBangumi(bangumi.id);
             bangumiSheetRef.current?.snapToIndex(1);
           }}
           onOpenSheet={() => {

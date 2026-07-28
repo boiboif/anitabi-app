@@ -48,7 +48,12 @@ type Props = {
 export default function MapTopBangumiIcons({ bangumis, zoom, bounds, onIconPress, onOpenSheet }: Props) {
   const scrollViewRef = useRef<ScrollView>(null);
   const theme = useTheme();
-  const { selectedBangumi, setSelectedBangumi } = useSelectedBangumi();
+  const selectedBangumiId = useSelectedBangumi((state) => state.selectedBangumiId);
+  const setSelectedBangumi = useSelectedBangumi((state) => state.setSelectedBangumi);
+  const selectedBangumi = useMemo(
+    () => bangumis.find((bangumi) => bangumi.id === selectedBangumiId) ?? null,
+    [bangumis, selectedBangumiId],
+  );
 
   const visibleBangumis = useMemo(() => {
     if (zoom < MAP_ICON_ZOOM_THRESHOLD || !bounds) return [];

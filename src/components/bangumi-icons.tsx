@@ -76,7 +76,7 @@ type Props = {
 };
 
 export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
-  const { selectedBangumi } = useSelectedBangumi();
+  const selectedBangumiId = useSelectedBangumi((state) => state.selectedBangumiId);
 
   const [spriteMeta, setSpriteMeta] = useState<{
     ids: number[];
@@ -267,7 +267,7 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
   if (zoom >= MAP_ICON_ZOOM_THRESHOLD || !spriteMeta || !icons) return null;
 
   // 筛选模式下在底层隐藏所有 icon（保留图层结构）
-  const bangumiIconFilter: ComponentProps<typeof SymbolLayer>['filter'] = selectedBangumi
+  const bangumiIconFilter: ComponentProps<typeof SymbolLayer>['filter'] = selectedBangumiId !== null
     ? ['==', ['get', 'bangumiId'], -1]
     : undefined;
 

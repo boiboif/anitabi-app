@@ -22,11 +22,11 @@ function isInBounds(geo: [number, number], bounds: Bounds): boolean {
 }
 
 export default function PointImageMarkers({ bangumis, zoom, bounds, onPointSelect }: Props) {
-  const { selectedBangumi } = useSelectedBangumi();
+  const selectedBangumiId = useSelectedBangumi((state) => state.selectedBangumiId);
 
   const zoomThreshold = useMemo(() => {
-    return selectedBangumi ? FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE : MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE;
-  }, [selectedBangumi]);
+    return selectedBangumiId !== null ? FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE : MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE;
+  }, [selectedBangumiId]);
 
   const visible = useMemo(() => {
     if (zoom < zoomThreshold || !bounds) return [];
