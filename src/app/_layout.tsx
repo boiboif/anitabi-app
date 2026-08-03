@@ -44,8 +44,11 @@ export default function RootLayout() {
     const cfg = getDarkModeConfig();
     if (cfg.followSystem && colorScheme) {
       const next = colorScheme === 'dark' ? 'dark' : 'light';
-      setTheme(next);
-      setDarkModeConfig({ followSystem: true, manualTheme: next });
+      const frame = requestAnimationFrame(() => {
+        setTheme(next);
+        setDarkModeConfig({ followSystem: true, manualTheme: next });
+      });
+      return () => cancelAnimationFrame(frame);
     }
   }, [colorScheme]);
 
@@ -56,7 +59,7 @@ export default function RootLayout() {
           <TamaguiProvider config={tamaguiConfig} defaultTheme={theme}>
             <ThemeProvider value={theme === 'dark' ? DarkTheme : DefaultTheme}>
               <AnimatedSplashOverlay />
-              <Stack screenOptions={{ headerShown: false, animation: 'ios_from_right' }}>
+              <Stack screenOptions={{ headerShown: false, animation: 'ios_from_right', orientation: 'portrait' }}>
                 <Stack.Screen name="(tabs)" />
                 <Stack.Screen
                   name="dark-mode"
@@ -64,6 +67,14 @@ export default function RootLayout() {
                     headerShown: true,
                     headerTitleAlign: 'center',
                     title: '深色模式',
+                  }}
+                />
+                <Stack.Screen
+                  name="comparison-camera"
+                  options={{
+                    animation: 'fade',
+                    orientation: 'all',
+                    gestureEnabled: false,
                   }}
                 />
               </Stack>

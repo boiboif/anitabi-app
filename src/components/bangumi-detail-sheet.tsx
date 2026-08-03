@@ -8,6 +8,7 @@ import BottomSheet, { useBottomSheetScrollableCreator } from '@gorhom/bottom-she
 import { FlashList, FlashListRef } from '@shopify/flash-list';
 import dayjs from 'dayjs';
 import { Image } from 'expo-image';
+import { useFocusEffect } from 'expo-router';
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { BackHandler } from 'react-native';
 import { Pressable } from 'react-native-gesture-handler';
@@ -143,74 +144,71 @@ type FlatItem = FlatSectionHeader | FlatPointItem;
 
 function groupPoints(points: Point[], mode: AccordionMode, bangumi: Bangumi): AccordionSection[] {
   if (mode === 'ep') {
-    const map = new Map<string, Point[]>();
+    const numericEpMap = new Map<number, Point[]>();
+    const namedEpMap = new Map<string, Point[]>();
+    const pointsWithoutEp: Point[] = [];
     for (const p of points) {
-      const key = typeof p.ep === 'number' ? String(p.ep) : '__no_ep__';
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(p);
+      if (typeof p.ep === 'number') {
+        if (!numericEpMap.has(p.ep)) numericEpMap.set(p.ep, []);
+        numericEpMap.get(p.ep)!.push(p);
+      } else if (p.ep !== undefined) {
+        if (!namedEpMap.has(p.ep)) namedEpMap.set(p.ep, []);
+        namedEpMap.get(p.ep)!.push(p);
+      } else {
+        pointsWithoutEp.push(p);
+      }
     }
     const sections: AccordionSection[] = [];
-    const numericKeys = Array.from(map.keys())
-      .filter((k) => k !== '__no_ep__')
-      .sort((a, b) => Number(a) - Number(b));
+    const numericKeys = Array.from(numericEpMap.keys()).sort((a, b) => a - b);
     for (const k of numericKeys) {
-      sections.push({ key: `${bangumi.id}-ep-${k}`, title: `EP${k}`, data: map.get(k)! });
+      sections.push({ key: `${bangumi.id}-ep-${k}`, title: `EP${k}`, data: numericEpMap.get(k)! });
     }
-    if (map.has('__no_ep__')) {
-      sections.push({ key: `${bangumi.id}-ep-other`, title: '其他', data: map.get('__no_ep__')! });
+    for (const [name, data] of namedEpMap) {
+      sections.push({ key: `${bangumi.id}-ep-name-${name}`, title: name, data });
+    }
+    if (pointsWithoutEp.length > 0) {
+      sections.push({ key: `${bangumi.id}-ep-other`, title: '其他', data: pointsWithoutEp });
     }
     return sections;
   }
 
-  // 第1层：先统计同名频率
-  const nameFreq = new Map<string, number>();
+  const pilgrimageGroups = new Map<string, { title: string; data: Point[] }>();
   for (const p of points) {
-    if (p.name) nameFreq.set(p.name, (nameFreq.get(p.name) || 0) + 1);
-  }
-
-  // 第1.5层：同名 >1 的形成 name-group
-  const nameMap = new Map<string, Point[]>();
-  const afterName: Point[] = [];
-  for (const p of points) {
-    if (p.name && (nameFreq.get(p.name) || 0) > 1) {
-      if (!nameMap.has(p.name)) nameMap.set(p.name, []);
-      nameMap.get(p.name)!.push(p);
-    } else {
-      afterName.push(p);
+    if (p.isFolder) {
+      pilgrimageGroups.set(p.id, { title: p.name || p.folder || '未命名合辑', data: [p] });
     }
   }
 
-  // 第2层：从剩余点中统计 folder 频率
-  const folderFreq = new Map<string, number>();
-  for (const p of afterName) {
-    const key = p.folder || '__bangumi__';
-    folderFreq.set(key, (folderFreq.get(key) || 0) + 1);
-  }
-
-  // 第2.5层：同 folder >1 的形成 folder-group（排除 __bangumi__）
   const folderMap = new Map<string, Point[]>();
-  const leftover: Point[] = [];
-  for (const p of afterName) {
-    const key = p.folder || '__bangumi__';
-    if (key !== '__bangumi__' && (folderFreq.get(key) || 0) >= 1) {
-      if (!folderMap.has(key)) folderMap.set(key, []);
-      folderMap.get(key)!.push(p);
+  const bangumiPoints: Point[] = [];
+
+  for (const p of points) {
+    if (p.isFolder) continue;
+
+    if (p.fid && pilgrimageGroups.has(p.fid)) {
+      pilgrimageGroups.get(p.fid)!.data.push(p);
+    } else if (p.folder) {
+      if (!folderMap.has(p.folder)) folderMap.set(p.folder, []);
+      folderMap.get(p.folder)!.push(p);
     } else {
-      leftover.push(p);
+      bangumiPoints.push(p);
     }
   }
 
-  // 组装 sections：__bangumi__ → name → folder
-  const sections: AccordionSection[] = [
-    {
+  const sections: AccordionSection[] = [];
+  if (bangumiPoints.length > 0) {
+    sections.push({
       key: 'folder-bangumi',
       title: bangumi.cn || bangumi.title || bangumi.en || '番剧',
-      data: leftover,
-    },
-  ];
-  const nameKeys = Array.from(nameMap.keys()).sort();
-  for (const k of nameKeys) {
-    sections.push({ key: `name-${k}`, title: k, data: nameMap.get(k)! });
+      data: bangumiPoints,
+    });
+  }
+  const pilgrimageGroupKeys = Array.from(pilgrimageGroups.keys()).sort((a, b) =>
+    pilgrimageGroups.get(a)!.title.localeCompare(pilgrimageGroups.get(b)!.title),
+  );
+  for (const k of pilgrimageGroupKeys) {
+    const group = pilgrimageGroups.get(k)!;
+    sections.push({ key: `pilgrimage-${k}`, title: group.title, data: group.data });
   }
   const folderKeys = Array.from(folderMap.keys()).sort();
   for (const k of folderKeys) {
@@ -219,13 +217,13 @@ function groupPoints(points: Point[], mode: AccordionMode, bangumi: Bangumi): Ac
   return sections;
 }
 
-const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>((_, ref) => {
-  const bangumis = useMapData((state) => state.data)?.data.bangumis ?? [];
+const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>(function BangumiDetailSheet(_, ref) {
+  const bangumis = useMapData((state) => state.data)?.data.bangumis;
   const selectedBangumiId = useSelectedBangumi((state) => state.selectedBangumiId);
   const setSelectedPoint = useSelectedBangumi((state) => state.setSelectedPoint);
   const setSelectedBangumi = useSelectedBangumi((state) => state.setSelectedBangumi);
   const selectedBangumi = useMemo(
-    () => bangumis.find((bangumi) => bangumi.id === selectedBangumiId) ?? null,
+    () => bangumis?.find((bangumi) => bangumi.id === selectedBangumiId),
     [bangumis, selectedBangumiId],
   );
   const theme = useTheme();
@@ -247,19 +245,31 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>((_, ref) => {
     if (selectedBangumi) {
       sheetRef.current?.snapToIndex(1);
     } else {
-      sheetRef.current?.close();
+      sheetRef.current?.forceClose();
     }
   }, [selectedBangumi]);
+
+  // Tab screens can retain the sheet instance while the map is unfocused.
+  // forceClose bypasses BottomSheet's layout/animation guard after returning from Favorites.
+  useFocusEffect(
+    useCallback(() => {
+      if (selectedBangumiId === null) {
+        sheetRef.current?.forceClose();
+      }
+    }, [selectedBangumiId]),
+  );
 
   const handleSheetChange = useCallback(
     (index: number) => {
       isSheetOpenRef.current = index >= 0;
       if (index < 0) {
-        setSelectedPoint(null);
-        setSelectedBangumi(null);
+        // Closing a sheet for an externally selected point must not clear that point's popup.
+        if (useSelectedBangumi.getState().selectedBangumiId !== null) {
+          setSelectedBangumi(null);
+        }
       }
     },
-    [setSelectedPoint],
+    [setSelectedBangumi],
   );
 
   useEffect(() => {

@@ -10,7 +10,7 @@
 
 ## 当前状态
 
-锐意制作中！目前已实现地图容器和番剧海量点位渲染的基础框架，正在进行功能开发。详见下方 Roadmap。
+锐意制作中！目前已实现地图容器、番剧海量点位渲染，以及巡礼点收藏与本地持久化等功能，正在持续迭代。详见下方 Roadmap。
 
 ## 截图
 
@@ -35,7 +35,7 @@
 - [x] 地图展示巡礼点图片
 - [x] 地图按照番剧筛选巡礼点
 - [x] 巡礼点位详情
-- [ ] 巡礼点收藏
+- [x] 巡礼点收藏
 - [ ] 我的巡礼路线
 - [ ] 分享巡礼路线
 - [ ] 拍照并生成巡礼对比图
@@ -44,18 +44,18 @@
 
 ## 技术栈
 
-| 类别 | 技术                                       |
-| ---- | ------------------------------------------ |
-| 框架 | Expo SDK 56 / React Native 0.85 / React 19 |
-| 路由 | expo-router（文件路由）                    |
-| 地图 | @rnmapbox/maps                             |
-| UI   | Tamagui（styled-components 设计系统）      |
-| 状态 | Zustand + React Context                    |
-| 网络 | Axios + 请求处理器工厂                     |
-| 存储 | react-native-mmkv                          |
-| 动画 | react-native-reanimated                    |
-| 图标 | @tamagui/lucide-icons-2                    |
-| 构建 | EAS Build（dev / preview / production）    |
+| 类别 | 技术                                         |
+| ---- | -------------------------------------------- |
+| 框架 | Expo SDK 57 / React Native 0.86 / React 19.2 |
+| 路由 | expo-router（文件路由）                      |
+| 地图 | @rnmapbox/maps                               |
+| UI   | Tamagui（styled-components 设计系统）        |
+| 状态 | Zustand + React Context                      |
+| 网络 | Axios + 请求处理器工厂                       |
+| 存储 | react-native-mmkv 4（配置、地图缓存和收藏）  |
+| 动画 | react-native-reanimated                      |
+| 图标 | @tamagui/lucide-icons-2                      |
+| 构建 | EAS Build（dev / preview / production）      |
 
 ## 快速开始
 
@@ -115,7 +115,9 @@ anitabi-app/
     │   ├── (tabs)/         # 标签页组
     │   │   ├── _layout.tsx # 标签布局
     │   │   ├── index.tsx   # 主页地图
+    │   │   ├── favorites.tsx # 收藏列表
     │   │   └── profile.tsx # 我的页面
+    │   ├── favorites/      # 按作品查看收藏的巡礼点
     │   └── dark-mode.tsx   # 深色模式设置
     ├── components/         # UI 组件
     │   ├── map-container   # Mapbox 地图容器
@@ -125,7 +127,8 @@ anitabi-app/
     │   └── ...
     ├── lib/                # 工具库
     │   ├── storage.ts      # MMKV 配置持久化
-    │   └── map-storage.ts  # 地图数据缓存
+    │   ├── map-storage.ts  # 地图数据缓存
+    │   └── favorite-storage.ts # 收藏数据持久化
     ├── services/           # 数据层
     │   ├── request.ts      # Axios 实例
     │   ├── createHandler   # API 处理器工厂
@@ -134,7 +137,8 @@ anitabi-app/
     │   ├── map-data.ts     # 数据拉取 + 组装
     │   └── types.ts        # 类型定义
     └── store/
-        └── use-selected-bangumi.ts  # Zustand store
+        ├── use-selected-bangumi.ts  # 地图番剧筛选 store
+        └── use-favorite-points.ts   # 收藏点位 store
 ```
 
 ## 数据流

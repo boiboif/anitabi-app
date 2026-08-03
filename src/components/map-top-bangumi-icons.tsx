@@ -142,7 +142,7 @@ export default function MapTopBangumiIcons({ bangumis, zoom, bounds }: Props) {
             <View
               rounded={999}
               mr="$1.5"
-              height="70%"
+              height={22}
               items="center"
               justify="center"
               style={{
@@ -226,10 +226,10 @@ export default function MapTopBangumiIcons({ bangumis, zoom, bounds }: Props) {
                   inViewBangumis.map((bangumi) => bangumi.id),
                 )
               }
-              style={({ pressed }) => ({ opacity: pressed ? 0.3 : !hasMapBangumiFilter || isSelected ? 1 : 0.5 })}
+              style={({ pressed }) => ({ opacity: pressed ? 0.3 : !hasMapBangumiFilter || isSelected ? 1 : 0.8 })}
             >
               <View
-                bg="$color4"
+                bg="$color2"
                 gap="$2"
                 rounded="$10"
                 flexDirection="row"

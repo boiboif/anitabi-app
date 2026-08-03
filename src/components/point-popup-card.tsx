@@ -1,9 +1,11 @@
+import ComparisonCameraButton from '@/components/comparison-camera-button';
 import FavoritePointButton from '@/components/favorite-point-button';
 import { formatDuration } from '@/lib/formatDuration';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
+import { useSelectedBangumi } from '@/store/use-selected-bangumi';
 import { Image } from 'expo-image';
-import { Linking } from 'react-native';
+import { Linking, Pressable } from 'react-native';
 import { getTokens, Text, useTheme, View } from 'tamagui';
 
 type Props = {
@@ -13,6 +15,7 @@ type Props = {
 
 export default function PopupCard({ point, bangumi }: Props) {
   const theme = useTheme();
+  const setSelectedBangumi = useSelectedBangumi((state) => state.setSelectedBangumi);
   const pointTitle = point.cn || point.name || '未命名点位';
   const animeTitle = bangumi.cn || bangumi.title || bangumi.en || '未知';
   const epLabel =
@@ -113,9 +116,17 @@ export default function PopupCard({ point, bangumi }: Props) {
             {point.mark}
           </Text>
         ) : null}
-        <Text fontSize={13} color="$primary" numberOfLines={2}>
-          {animeTitle}
-        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`筛选番剧：${animeTitle}`}
+          hitSlop={6}
+          onPress={() => setSelectedBangumi(bangumi.id)}
+          style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
+        >
+          <Text fontSize={13} color="$primary" numberOfLines={2}>
+            {animeTitle}
+          </Text>
+        </Pressable>
         {point.origin ? (
           <Text
             onPress={() => point.originLink && Linking.openURL(point.originLink)}
@@ -127,6 +138,9 @@ export default function PopupCard({ point, bangumi }: Props) {
             @{point.origin}
           </Text>
         ) : null}
+        <View pt="$2">
+          <ComparisonCameraButton point={point} bangumi={bangumi} compact />
+        </View>
       </View>
     </View>
   );

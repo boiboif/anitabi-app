@@ -6,7 +6,10 @@ import MapContainer from '@/components/map-container';
 import MapTopBangumiIcons from '@/components/map-top-bangumi-icons';
 import PointImageMarkerSwitch from '@/components/point-image-marker-switch';
 import SearchBox from '@/components/search-box';
-import { FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE } from '@/lib/constants';
+import {
+  FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE,
+  MAP_CAMERA_FLY_TO_POINT_ZOOM_THRESHOLD,
+} from '@/lib/constants';
 import { useMapData } from '@/store/use-map-data';
 import { useSelectedBangumi } from '@/store/use-selected-bangumi';
 import type { Camera, Location } from '@rnmapbox/maps';
@@ -18,36 +21,44 @@ import { Alert, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { View } from 'tamagui';
 
+type CameraState = {
+  zoom: number;
+  bounds: { ne: [number, number]; sw: [number, number] } | null;
+};
+
 export default function HomeScreen() {
   const cameraRef = useRef<Camera>(null);
   const insets = useSafeAreaInsets();
   const data = useMapData((state) => state.data);
   const progress = useMapData((state) => state.progress);
   const router = useRouter();
-  const [cameraState, setCameraState] = useState<{
-    zoom: number;
-    bounds: { ne: [number, number]; sw: [number, number] } | null;
-  }>({
+  const [cameraState, setCameraState] = useState<CameraState>({
     zoom: 4.6,
     bounds: null,
   });
+  const cameraZoomRef = useRef(cameraState.zoom);
   const [showPointImageMarkers, setShowPointImageMarkers] = useState(true);
+
+  const handleCameraChange = useCallback((nextCameraState: CameraState) => {
+    cameraZoomRef.current = nextCameraState.zoom;
+    setCameraState(nextCameraState);
+  }, []);
 
   useEffect(() => {
     // 首次进入即请求定位权限，使 LocationPuck 能正常显示
     requestForegroundPermissionsAsync().catch(() => {});
   }, []);
 
-  const bangumis = data?.data.bangumis ?? [];
+  const bangumis = useMemo(() => data?.data.bangumis ?? [], [data]);
   const selectedBangumiId = useSelectedBangumi((state) => state.selectedBangumiId);
   const selectedPoint = useSelectedBangumi((state) => state.selectedPoint);
   const selectedBangumi = useMemo(
-    () => bangumis.find((bangumi) => bangumi.id === selectedBangumiId) ?? null,
+    () => bangumis?.find((bangumi) => bangumi.id === selectedBangumiId) ?? null,
     [bangumis, selectedBangumiId],
   );
   const selectedPointData = useMemo(() => {
     if (!selectedPoint) return null;
-    const bangumi = bangumis.find((item) => item.id === selectedPoint.bangumiId);
+    const bangumi = bangumis?.find((item) => item.id === selectedPoint.bangumiId);
     const point = bangumi?.points.find((item) => item.id === selectedPoint.pointId);
     return bangumi && point ? { bangumi, point } : null;
   }, [bangumis, selectedPoint]);
@@ -55,6 +66,7 @@ export default function HomeScreen() {
   // 选中巡礼点时，地图 camera 飞到该点
   useEffect(() => {
     if (!selectedPointData) return;
+    if (cameraZoomRef.current > MAP_CAMERA_FLY_TO_POINT_ZOOM_THRESHOLD) return;
     const { density } = selectedPointData.point;
     const [lat, lng] = selectedPointData.point.geo;
 
@@ -115,7 +127,7 @@ export default function HomeScreen() {
         bangumis={bangumis}
         styleIndex={styleIndex}
         showPointImageMarkers={showPointImageMarkers}
-        onCameraChange={setCameraState}
+        onCameraChange={handleCameraChange}
       />
 
       <View position="absolute" l="$0" r="$0" t={insets.top === 0 ? '$2' : insets.top} pt="$2" z={0}>

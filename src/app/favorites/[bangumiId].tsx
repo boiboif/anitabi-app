@@ -1,3 +1,4 @@
+import ComparisonCameraButton from '@/components/comparison-camera-button';
 import FavoritePointButton from '@/components/favorite-point-button';
 import { type FavoritePoint } from '@/lib/favorite-storage';
 import { buildImageUrl } from '@/services/handlers';
@@ -81,7 +82,12 @@ function FavoriteCard({ item, onPress }: { item: ResolvedFavorite; onPress: () =
         </XStack>
       </Pressable>
       {item.point && item.bangumi ? (
-        <FavoritePointButton point={item.point} bangumi={item.bangumi} overlay />
+        <>
+          <FavoritePointButton point={item.point} bangumi={item.bangumi} overlay />
+          <View position="absolute" b="$2" r="$2">
+            <ComparisonCameraButton point={item.point} bangumi={item.bangumi} compact />
+          </View>
+        </>
       ) : (
         <View position="absolute" t="$2" r="$2">
           <Pressable
@@ -117,8 +123,7 @@ export default function FavoriteBangumiScreen() {
   const favoritePoints = useFavoritePoints((state) => state.favoritePoints);
   const data = useMapData((state) => state.data);
   const status = useMapData((state) => state.status);
-  const setSelectedBangumi = useSelectedBangumi((state) => state.setSelectedBangumi);
-  const setSelectedPoint = useSelectedBangumi((state) => state.setSelectedPoint);
+  const selectPointOnMap = useSelectedBangumi((state) => state.selectPointOnMap);
   const loading = data === null && (status === 'idle' || status === 'loading');
   const id = Number(bangumiId);
 
@@ -144,11 +149,10 @@ export default function FavoriteBangumiScreen() {
   const openPoint = useCallback(
     (item: ResolvedFavorite) => {
       if (!item.point || !item.bangumi) return;
-      setSelectedBangumi(item.bangumi.id);
-      setSelectedPoint({ bangumiId: item.bangumi.id, pointId: item.point.id });
-      router.navigate('/');
+      selectPointOnMap({ bangumiId: item.bangumi.id, pointId: item.point.id });
+      router.dismissTo('/');
     },
-    [router, setSelectedBangumi, setSelectedPoint],
+    [router, selectPointOnMap],
   );
   const bottomInset = safeAreaInsets.bottom + BottomTabInset + 16;
   const contentPlatformStyle = Platform.select({

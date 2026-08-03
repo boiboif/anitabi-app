@@ -1,9 +1,29 @@
+import { SettingCell } from '@/components/setting-cell';
+import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
+import { Info, Moon } from '@tamagui/lucide-icons-2';
 import { router } from 'expo-router';
-import { Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
+import type { ReactNode } from 'react';
+import { Platform, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, View, useTheme } from 'tamagui';
 
-import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
+type SettingsSectionProps = {
+  title: string;
+  children: ReactNode;
+};
+
+function SettingsSection({ title, children }: SettingsSectionProps) {
+  return (
+    <View gap="$2.5">
+      <Text fontSize={13} lineHeight={18} fontWeight="600" color="$color11" px="$1">
+        {title}
+      </Text>
+      <View bg="$color2" rounded="$2" overflow="hidden" style={{ borderCurve: 'continuous' }}>
+        {children}
+      </View>
+    </View>
+  );
+}
 
 export default function ProfileScreen() {
   const safeAreaInsets = useSafeAreaInsets();
@@ -21,73 +41,39 @@ export default function ProfileScreen() {
       paddingBottom: insets.bottom,
     },
     web: {
-      paddingTop: 64,
+      paddingTop: 40,
       paddingBottom: 24,
+    },
+    ios: {
+      paddingTop: 28,
+      paddingBottom: insets.bottom,
     },
   });
 
   return (
     <ScrollView
-      style={[styles.scrollView, { backgroundColor: theme.background?.val }]}
+      style={{ flex: 1, backgroundColor: theme.background?.val }}
       contentInset={insets}
-      contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}
+      contentContainerStyle={{ flexDirection: 'row', justifyContent: 'center', ...contentPlatformStyle }}
     >
-      <View bg="$background" style={styles.container}>
-        <View bg="$background" style={styles.header}>
-          <Text fontSize={32} lineHeight={44} fontWeight="600">我的</Text>
-        </View>
+      <View bg="$background" width="100%" maxW={MaxContentWidth} flex={1} px="$5" gap="$5">
+        <Text fontSize={22} lineHeight={30} fontWeight="700" color="$color12" px="$1" mb="$1">
+          我的
+        </Text>
 
-        <View bg="$background" style={styles.section}>
-          <Text fontSize={14} lineHeight={20} fontWeight="700" color="$color11" style={styles.sectionTitle}>
-            设置
-          </Text>
+        <SettingsSection title="应用与外观">
+          <SettingCell
+            icon={Moon}
+            title="深色模式"
+            description="设置应用显示外观"
+            onPress={() => router.push('/dark-mode')}
+          />
+        </SettingsSection>
 
-          <Pressable onPress={() => router.push('/dark-mode')} style={({ pressed }) => pressed && styles.pressed}>
-            <View bg="$color2" style={styles.settingRow}>
-              <Text color="$color" fontSize={16} lineHeight={24} fontWeight="500">深色模式</Text>
-            </View>
-          </Pressable>
-        </View>
+        <SettingsSection title="其他">
+          <SettingCell icon={Info} title="Anitabi" description="动漫巡礼地图" value="1.0.0" />
+        </SettingsSection>
       </View>
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-  },
-  contentContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  container: {
-    maxWidth: MaxContentWidth,
-    flexGrow: 1,
-  },
-  header: {
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 64,
-  },
-  section: {
-    gap: 8,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    paddingLeft: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  settingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderRadius: 16,
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-});

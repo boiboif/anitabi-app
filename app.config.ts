@@ -7,12 +7,15 @@ const config: ExpoConfig = {
   name: 'anitabi-app',
   slug: 'anitabi-app',
   version: '0.0.1',
-  orientation: 'portrait',
+  orientation: 'default',
   icon: './assets/images/icon.png',
   scheme: 'anitabiapp',
   userInterfaceStyle: 'automatic',
   ios: {
     icon: './assets/expo.icon',
+    infoPlist: {
+      NSCameraUsageDescription: '用于拍摄巡礼点的实景对比照片',
+    },
   },
   android: {
     adaptiveIcon: {
@@ -23,6 +26,7 @@ const config: ExpoConfig = {
     },
     predictiveBackGestureEnabled: false,
     package: 'bbf.anitabiapp',
+    permissions: ['android.permission.CAMERA'],
   },
   web: {
     output: 'static',
@@ -35,6 +39,21 @@ const config: ExpoConfig = {
     'expo-build-properties',
     'expo-status-bar',
     'expo-web-browser',
+    [
+      'expo-image-picker',
+      {
+        photosPermission: '用于选择动漫巡礼点的参考图片',
+        microphonePermission: false,
+      },
+    ],
+    [
+      'expo-media-library',
+      {
+        photosPermission: '用于读取对比图相关照片',
+        savePhotosPermission: '用于将生成的巡礼对比图保存到相册',
+        granularPermissions: [],
+      },
+    ],
     [
       'expo-splash-screen',
       {

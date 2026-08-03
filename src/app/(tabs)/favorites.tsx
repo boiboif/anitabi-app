@@ -168,8 +168,7 @@ export default function FavoritesScreen() {
   const favoritePoints = useFavoritePoints((state) => state.favoritePoints);
   const data = useMapData((state) => state.data);
   const status = useMapData((state) => state.status);
-  const setSelectedBangumi = useSelectedBangumi((state) => state.setSelectedBangumi);
-  const setSelectedPoint = useSelectedBangumi((state) => state.setSelectedPoint);
+  const selectPointOnMap = useSelectedBangumi((state) => state.selectPointOnMap);
   const [view, setView] = useState<FavoriteView>('bangumi');
   const loading = data === null && (status === 'idle' || status === 'loading');
   const loadFailed = data === null && status === 'error';
@@ -239,11 +238,10 @@ export default function FavoritesScreen() {
   const openPoint = useCallback(
     (item: ResolvedFavorite) => {
       if (!item.point || !item.bangumi) return;
-      setSelectedBangumi(item.bangumi.id);
-      setSelectedPoint({ bangumiId: item.bangumi.id, pointId: item.point.id });
+      selectPointOnMap({ bangumiId: item.bangumi.id, pointId: item.point.id });
       router.navigate('/');
     },
-    [router, setSelectedBangumi, setSelectedPoint],
+    [router, selectPointOnMap],
   );
 
   const contentPlatformStyle = Platform.select({
@@ -311,7 +309,7 @@ export default function FavoritesScreen() {
                   key={group.id}
                   group={group}
                   onPress={() =>
-                    router.push({
+                    router.navigate({
                       pathname: '/favorites/[bangumiId]',
                       params: { bangumiId: String(group.id) },
                     })

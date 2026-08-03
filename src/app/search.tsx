@@ -217,7 +217,7 @@ const Search = () => {
   const router = useRouter();
   const data = useMapData((state) => state.data);
   const setSelectedBangumi = useSelectedBangumi((state) => state.setSelectedBangumi);
-  const setSelectedPoint = useSelectedBangumi((state) => state.setSelectedPoint);
+  const selectPointOnMap = useSelectedBangumi((state) => state.selectPointOnMap);
 
   const handleBangumiPress = useCallback(
     (bangumi: Bangumi) => {
@@ -229,20 +229,21 @@ const Search = () => {
 
   const handlePointPress = useCallback(
     (point: Point, bangumi: Bangumi) => {
-      setSelectedBangumi(bangumi.id);
-      setSelectedPoint({ bangumiId: bangumi.id, pointId: point.id });
+      selectPointOnMap({ bangumiId: bangumi.id, pointId: point.id });
       router.back();
     },
-    [router, setSelectedBangumi, setSelectedPoint],
+    [router, selectPointOnMap],
   );
 
   const searchMode = query.trim().length > 0;
 
+  const handleInputTextChange = useCallback((value: string) => {
+    setInputText(value);
+    if (value === '') setQuery('');
+  }, []);
+
   useEffect(() => {
-    if (inputText === '') {
-      setQuery('');
-      return;
-    }
+    if (inputText === '') return;
     const timer = setTimeout(() => setQuery(inputText), 300);
     return () => clearTimeout(timer);
   }, [inputText]);
@@ -332,7 +333,7 @@ const Search = () => {
       .filter((item) => item.cat !== '小说')
       .slice(0, 50)
       .map((b) => ({ type: 'bangumi' as const, data: b }));
-  }, [data, tab, searchMode, bangumiResults, pointResults, query]);
+  }, [data, tab, searchMode, bangumiResults, pointResults]);
 
   const renderItem = useCallback(
     ({ item }: { item: SearchListItem }) => {
@@ -363,9 +364,9 @@ const Search = () => {
 
   return (
     <Pressable disabled={!Keyboard.isVisible()} style={{ flex: 1 }} onPress={Keyboard.dismiss}>
-      <View flex={1} pt={insets.top === 0 ? '$2' : insets.top} mt="$2">
+      <View flex={1} pt={insets.top === 0 ? '$2' : insets.top} mt="$2" bg="$background">
         <View px="$3">
-          <SearchBox focusOnRoute value={inputText} onChangeText={setInputText} allowClear />
+          <SearchBox focusOnRoute value={inputText} onChangeText={handleInputTextChange} allowClear />
         </View>
 
         {/* Tab 切换栏 — 搜索时隐藏 */}

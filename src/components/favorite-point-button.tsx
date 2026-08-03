@@ -33,7 +33,6 @@ export default function FavoritePointButton({ point, bangumi, size = 18, overlay
         bg="$color2"
         items="center"
         justify="center"
-        boxShadow="0 1px 3px $shadowColor"
       >
         <Heart size={size} color={iconColor} fill={isFavorite ? iconColor : 'transparent'} />
       </View>

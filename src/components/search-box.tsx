@@ -11,8 +11,8 @@ const StyledInput = styled(Input, {
   paddingInlineStart: 40,
   height: 44,
   fontSize: 16,
-  borderColor: '$color6',
-  borderWidth: StyleSheet.hairlineWidth * 2,
+  borderColor: '$color4',
+  borderWidth: StyleSheet.hairlineWidth,
   focusStyle: {
     borderColor: '$primary',
   },
