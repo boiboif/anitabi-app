@@ -1,11 +1,11 @@
+import Toast from '@/../modules/toaster';
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import '@/global.css';
 import { useMapData } from '@/store/use-map-data';
 import { useThemePreference } from '@/store/use-theme-preference';
 import tamaguiConfig from '@/tamagui.config';
+import { TrueSheetProvider } from '@lodev09/react-native-true-sheet';
 import Mapbox from '@rnmapbox/maps';
-import '@tamagui/native/setup-burnt';
-import { Toaster as TamaguiToast } from '@tamagui/toast/v2';
 import Constants from 'expo-constants';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -15,6 +15,12 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Toaster } from 'sonner-native';
 import { TamaguiProvider } from 'tamagui';
+
+Toast.config({
+  defaultOptions: {
+    position: 'center',
+  },
+});
 
 const MAPBOX_ACCESS_TOKEN = Constants.expoConfig?.extra?.mapboxAccessToken as string | undefined;
 
@@ -46,28 +52,28 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <TamaguiProvider config={tamaguiConfig} defaultTheme={theme}>
           <ThemeProvider value={theme === 'dark' ? DarkTheme : DefaultTheme}>
-            <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
-            <AnimatedSplashOverlay />
-            <Stack screenOptions={{ headerShown: false, animation: 'ios_from_right', orientation: 'portrait' }}>
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen
-                name="dark-mode"
-                options={{
-                  headerShown: true,
-                  headerTitleAlign: 'center',
-                  title: '深色模式',
-                }}
-              />
-              <Stack.Screen
-                name="comparison-camera"
-                options={{
-                  animation: 'fade',
-                  gestureEnabled: false,
-                }}
-              />
-            </Stack>
-            <Toaster enableStacking position="center" duration={1000} />
-            <TamaguiToast position="bottom-center" />
+            <TrueSheetProvider>
+              <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+              <AnimatedSplashOverlay />
+              <Stack screenOptions={{ headerShown: false, animation: 'ios_from_right', orientation: 'portrait' }}>
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen
+                  name="dark-mode"
+                  options={{
+                    headerShown: true,
+                    headerTitleAlign: 'center',
+                    title: '深色模式',
+                  }}
+                />
+                <Stack.Screen
+                  name="comparison-camera"
+                  options={{
+                    gestureEnabled: false,
+                  }}
+                />
+              </Stack>
+              <Toaster enableStacking position="center" duration={1000} />
+            </TrueSheetProvider>
           </ThemeProvider>
         </TamaguiProvider>
       </GestureHandlerRootView>

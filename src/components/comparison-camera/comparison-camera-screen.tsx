@@ -190,7 +190,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
   const [cameraPosition, setCameraPosition] = useState<'back' | 'front'>('back');
   const device = useCameraDevice(cameraPosition);
   const photoOutput = usePhotoOutput({
-    targetResolution: CommonResolutions.HIGHEST_16_9,
+    targetResolution: CommonResolutions.HIGHEST_4_3,
     containerFormat: 'jpeg',
     quality: 1,
     qualityPrioritization: 'quality',
@@ -290,7 +290,6 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
 
     try {
       setCapturing(true);
-      console.log('capturePhotoToFile');
       const photo = await photoOutput.capturePhotoToFile({ flashMode: device.hasFlash ? flashMode : 'off' }, {});
       setPhotoUri(normalizeFileUri(photo.filePath));
       setResultVisible(true);

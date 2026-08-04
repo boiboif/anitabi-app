@@ -4,14 +4,23 @@ import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapData } from '@/store/use-map-data';
 import { useSelectedBangumi } from '@/store/use-selected-bangumi';
-import BottomSheet, { useBottomSheetScrollableCreator } from '@gorhom/bottom-sheet';
-import { FlashList, FlashListRef } from '@shopify/flash-list';
+import { TrueSheet } from '@lodev09/react-native-true-sheet';
+import { FlashList } from '@shopify/flash-list';
 import dayjs from 'dayjs';
 import { Image } from 'expo-image';
-import { useFocusEffect } from 'expo-router';
-import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { BackHandler } from 'react-native';
-import { Pressable } from 'react-native-gesture-handler';
+import {
+  forwardRef,
+  memo,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { Platform } from 'react-native';
+import { GestureHandlerRootView, Pressable } from 'react-native-gesture-handler';
 import { getTokens, Text, useTheme, View } from 'tamagui';
 
 const CARD_HEIGHT = 100;
@@ -142,6 +151,14 @@ interface FlatPointItem {
 
 type FlatItem = FlatSectionHeader | FlatPointItem;
 
+function SheetContent({ children }: { children: ReactNode }) {
+  if (Platform.OS === 'android') {
+    return <GestureHandlerRootView style={{ flexGrow: 1 }}>{children}</GestureHandlerRootView>;
+  }
+
+  return children;
+}
+
 function groupPoints(points: Point[], mode: AccordionMode, bangumi: Bangumi): AccordionSection[] {
   if (mode === 'ep') {
     const numericEpMap = new Map<number, Point[]>();
@@ -227,53 +244,45 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>(function BangumiDet
     [bangumis, selectedBangumiId],
   );
   const theme = useTheme();
-  const sheetRef = useRef<BottomSheet>(null);
+  const sheetRef = useRef<TrueSheet>(null);
 
   const [accordionMode, setAccordionMode] = useState<AccordionMode>('ep');
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const allExpandedRef = useRef(true);
   const isSheetOpenRef = useRef(false);
-  const BottomSheetScrollable = useBottomSheetScrollableCreator();
 
   useImperativeHandle(ref, () => ({
-    snapToIndex: (index: number) => sheetRef.current?.snapToIndex(index),
-    close: () => sheetRef.current?.close(),
+    snapToIndex: (index: number) => {
+      void sheetRef.current?.resize(index);
+    },
+    close: () => {
+      void sheetRef.current?.dismiss();
+    },
   }));
 
   // 选中番剧时打开 sheet，关闭时清除选中
   useEffect(() => {
     if (selectedBangumi) {
-      sheetRef.current?.snapToIndex(1);
+      if (isSheetOpenRef.current) {
+        void sheetRef.current?.resize(1);
+      } else {
+        isSheetOpenRef.current = true;
+        void sheetRef.current?.present(1).catch(() => {
+          isSheetOpenRef.current = false;
+        });
+      }
     } else {
-      sheetRef.current?.close();
+      void sheetRef.current?.dismiss();
     }
   }, [selectedBangumi]);
 
-  const handleSheetChange = useCallback(
-    (index: number) => {
-      isSheetOpenRef.current = index >= 0;
-      if (index < 0) {
-        // Closing a sheet for an externally selected point must not clear that point's popup.
-        if (useSelectedBangumi.getState().selectedBangumiId !== null) {
-          setSelectedBangumi(null);
-        }
-      }
-    },
-    [setSelectedBangumi],
-  );
-
-  useFocusEffect(
-    useCallback(() => {
-      const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-        if (isSheetOpenRef.current) {
-          sheetRef.current?.close();
-          return true;
-        }
-        return false;
-      });
-      return () => subscription.remove();
-    }, []),
-  );
+  const handleSheetDismiss = useCallback(() => {
+    isSheetOpenRef.current = false;
+    // Closing a sheet for an externally selected point must not clear that point's popup.
+    if (useSelectedBangumi.getState().selectedBangumiId !== null) {
+      setSelectedBangumi(null);
+    }
+  }, [setSelectedBangumi]);
 
   const sections = useMemo(() => {
     if (!selectedBangumi) return [];
@@ -299,6 +308,8 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>(function BangumiDet
 
   // 番剧切换时重置为全部展开
   useEffect(() => {
+    // A new selection must reset the user-controlled accordion state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setExpandedKeys(new Set(sections.map((s) => s.key)));
     allExpandedRef.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -384,7 +395,7 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>(function BangumiDet
           bangumi={selectedBangumi!}
           onPress={() => {
             setSelectedPoint({ bangumiId: selectedBangumi!.id, pointId: item.point.id });
-            sheetRef.current?.snapToIndex(0);
+            void sheetRef.current?.resize(0);
           }}
         />
       );
@@ -392,149 +403,146 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>(function BangumiDet
     [selectedBangumi, setSelectedPoint, toggleSection, expandedKeys, theme],
   );
 
-  const flashListRef = useRef<FlashListRef<FlatItem>>(null);
-
   return (
-    <BottomSheet
-      index={-1}
+    <TrueSheet
       ref={sheetRef}
-      snapPoints={['25%', '80%']}
-      // enablePanDownToClose
-      enableDynamicSizing={false}
-      onChange={handleSheetChange}
-      backgroundStyle={{ backgroundColor: theme.color1.val }}
-      handleIndicatorStyle={{ backgroundColor: theme.primary.val }}
+      detents={[0.25, 0.8]}
+      scrollable
+      dimmed={false}
+      backgroundColor={theme.color1.val}
+      cornerRadius={getTokens().radius['4'].val}
+      grabberOptions={{ color: theme.primary.val, adaptive: false, topMargin: 12 }}
+      onDidPresent={() => {
+        isSheetOpenRef.current = true;
+      }}
+      onDidDismiss={handleSheetDismiss}
+      style={{ paddingTop: 26 }}
     >
-      <FlashList
-        key={selectedBangumi?.id}
-        ref={flashListRef}
-        data={flatData}
-        renderItem={renderFlashItem}
-        getItemType={(item) => item.type}
-        keyExtractor={(item: FlatItem) => item.id}
-        stickyHeaderIndices={stickyHeaderIndices}
-        renderScrollComponent={BottomSheetScrollable}
-        onLayout={() => {
-          if (!selectedBangumi && isSheetOpenRef.current) {
-            sheetRef.current?.close();
-          }
-        }}
-        ListHeaderComponent={
-          <>
-            <View px="$2" mb="$4" display="flex" flexDirection="row" rounded="$4" gap="$2.5">
-              <Image
-                source={buildImageUrl(selectedBangumi?.cover ?? '')}
-                style={{
-                  width: 180,
-                  height: 140,
-                  borderRadius: getTokens().radius['4'].val,
-                  backgroundColor: selectedBangumi?.color || '$color9',
-                }}
-                contentFit="cover"
-              />
-              <View flex={1}>
-                {selectedBangumi?.cn ? (
-                  <Text fontWeight="600" fontSize={16} color="$color12" pr="$8" numberOfLines={2}>
-                    {selectedBangumi?.cn}
+      <SheetContent>
+        <FlashList
+          key={selectedBangumi?.id}
+          data={flatData}
+          renderItem={renderFlashItem}
+          getItemType={(item) => item.type}
+          keyExtractor={(item: FlatItem) => item.id}
+          stickyHeaderIndices={stickyHeaderIndices}
+          ListHeaderComponent={
+            <>
+              <View px="$2" mb="$4" display="flex" flexDirection="row" rounded="$4" gap="$2.5">
+                <Image
+                  source={buildImageUrl(selectedBangumi?.cover ?? '')}
+                  style={{
+                    width: 180,
+                    height: 140,
+                    borderRadius: getTokens().radius['4'].val,
+                    backgroundColor: selectedBangumi?.color || '$color9',
+                  }}
+                  contentFit="cover"
+                />
+                <View flex={1}>
+                  {selectedBangumi?.cn ? (
+                    <Text fontWeight="600" fontSize={16} color="$color12" pr="$8" numberOfLines={2}>
+                      {selectedBangumi?.cn}
+                    </Text>
+                  ) : null}
+                  <Text fontSize={12} color="$color11" mt="$1" mb="$1" numberOfLines={1}>
+                    {selectedBangumi?.title}
                   </Text>
-                ) : null}
-                <Text fontSize={12} color="$color11" mt="$1" mb="$1" numberOfLines={1}>
-                  {selectedBangumi?.title}
-                </Text>
-                <View flexDirection="row">
-                  {selectedBangumi?.city && (
+                  <View flexDirection="row">
+                    {selectedBangumi?.city && (
+                      <Text fontSize={12} color="$color11">
+                        {selectedBangumi?.city} {'· '}
+                      </Text>
+                    )}
                     <Text fontSize={12} color="$color11">
-                      {selectedBangumi?.city} {'· '}
+                      <Text color="$primary" fontWeight="bold">
+                        {selectedBangumi?.points.length}
+                      </Text>
+                      个巡礼点
                     </Text>
-                  )}
-                  <Text fontSize={12} color="$color11">
-                    <Text color="$primary" fontWeight="bold">
-                      {selectedBangumi?.points.length}
-                    </Text>
-                    个巡礼点
+                  </View>
+                  <Text fontSize={10} color="$color11" position="absolute" r="$0" b="$0">
+                    最近更新：{dayjs(selectedBangumi?.modified).format('YYYY-MM-DD HH:mm')}
                   </Text>
                 </View>
-                <Text fontSize={10} color="$color11" position="absolute" r="$0" b="$0">
-                  最近更新：{dayjs(selectedBangumi?.modified).format('YYYY-MM-DD HH:mm')}
-                </Text>
+                {selectedBangumi?.cat?.trim() ? (
+                  <View
+                    position="absolute"
+                    t="$2"
+                    r="$2"
+                    px="$2"
+                    py="$1"
+                    rounded="$2"
+                    style={{ backgroundColor: selectedBangumi?.color || '$color9' }}
+                  >
+                    <Text fontSize={10} color="white" fontWeight="500">
+                      {selectedBangumi?.cat}
+                    </Text>
+                  </View>
+                ) : null}
               </View>
-              {selectedBangumi?.cat?.trim() ? (
-                <View
-                  position="absolute"
-                  t="$2"
-                  r="$2"
-                  px="$2"
-                  py="$1"
-                  rounded="$2"
-                  style={{ backgroundColor: selectedBangumi?.color || '$color9' }}
-                >
-                  <Text fontSize={10} color="white" fontWeight="500">
-                    {selectedBangumi?.cat}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
 
-            {/* Tab 栏 + 折叠/展开全部 */}
-            <View flexDirection="row" items="center" px="$2" mb="$2" gap="$2">
-              <View flexDirection="row" gap="$1" flex={1}>
-                <Pressable onPress={() => setAccordionMode('ep')}>
-                  <View
-                    bg={accordionMode === 'ep' ? '$color3' : 'transparent'}
-                    p="$2"
-                    px="$3.5"
-                    rounded={accordionMode === 'ep' ? '$9' : undefined}
-                  >
-                    <Text
-                      fontWeight={accordionMode === 'ep' ? '600' : '400'}
-                      color={accordionMode === 'ep' ? '$primary' : '$color11'}
-                      fontSize={14}
+              {/* Tab 栏 + 折叠/展开全部 */}
+              <View flexDirection="row" items="center" px="$2" mb="$2" gap="$2">
+                <View flexDirection="row" gap="$1" flex={1}>
+                  <Pressable onPress={() => setAccordionMode('ep')}>
+                    <View
+                      bg={accordionMode === 'ep' ? '$color3' : 'transparent'}
+                      p="$2"
+                      px="$3.5"
+                      rounded={accordionMode === 'ep' ? '$9' : undefined}
                     >
-                      话数
-                    </Text>
-                  </View>
-                </Pressable>
-                <Pressable onPress={() => setAccordionMode('folder')}>
-                  <View
-                    bg={accordionMode === 'folder' ? '$color3' : 'transparent'}
-                    p="$2"
-                    px="$3.5"
-                    rounded={accordionMode === 'folder' ? '$9' : undefined}
-                  >
-                    <Text
-                      fontWeight={accordionMode === 'folder' ? '600' : '400'}
-                      color={accordionMode === 'folder' ? '$primary' : '$color11'}
-                      fontSize={14}
+                      <Text
+                        fontWeight={accordionMode === 'ep' ? '600' : '400'}
+                        color={accordionMode === 'ep' ? '$primary' : '$color11'}
+                        fontSize={14}
+                      >
+                        话数
+                      </Text>
+                    </View>
+                  </Pressable>
+                  <Pressable onPress={() => setAccordionMode('folder')}>
+                    <View
+                      bg={accordionMode === 'folder' ? '$color3' : 'transparent'}
+                      p="$2"
+                      px="$3.5"
+                      rounded={accordionMode === 'folder' ? '$9' : undefined}
                     >
-                      分组
+                      <Text
+                        fontWeight={accordionMode === 'folder' ? '600' : '400'}
+                        color={accordionMode === 'folder' ? '$primary' : '$color11'}
+                        fontSize={14}
+                      >
+                        分组
+                      </Text>
+                    </View>
+                  </Pressable>
+                </View>
+                <View flexDirection="row" gap="$2">
+                  <Pressable
+                    onPress={collapseAll}
+                    style={({ pressed }: { pressed: boolean }) => ({ opacity: pressed ? 0.6 : 1 })}
+                  >
+                    <Text fontSize={13} color="$primary">
+                      折叠全部
                     </Text>
-                  </View>
-                </Pressable>
+                  </Pressable>
+                  <Pressable
+                    onPress={expandAll}
+                    style={({ pressed }: { pressed: boolean }) => ({ opacity: pressed ? 0.6 : 1 })}
+                  >
+                    <Text fontSize={13} color="$primary">
+                      展开全部
+                    </Text>
+                  </Pressable>
+                </View>
               </View>
-              <View flexDirection="row" gap="$2">
-                <Pressable
-                  onPress={collapseAll}
-                  style={({ pressed }: { pressed: boolean }) => ({ opacity: pressed ? 0.6 : 1 })}
-                >
-                  <Text fontSize={13} color="$primary">
-                    折叠全部
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={expandAll}
-                  style={({ pressed }: { pressed: boolean }) => ({ opacity: pressed ? 0.6 : 1 })}
-                >
-                  <Text fontSize={13} color="$primary">
-                    展开全部
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-          </>
-        }
-        contentContainerStyle={{ paddingBottom: 100 }}
-      />
-    </BottomSheet>
+            </>
+          }
+          contentContainerStyle={{ paddingBottom: 12 }}
+        />
+      </SheetContent>
+    </TrueSheet>
   );
 });
 

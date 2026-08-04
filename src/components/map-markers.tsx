@@ -29,7 +29,8 @@ function toGeoJSON(bangumis: Bangumi[]): GeoJSON.FeatureCollection {
         },
         properties: {
           id: p.id,
-          density: p.density ?? 0,
+          // 上游未提供 density 的点视为孤立点，直接通过地图筛选。
+          ...(p.density == null ? {} : { density: p.density }),
           priority: p.priority,
           bangumiId: b.id,
           color: b.color,
@@ -75,21 +76,23 @@ export default function MapMarkers({ bangumis, onPointSelect }: Props) {
       return [
         'all',
         ['==', ['get', 'bangumiId'], selectedBangumiId],
-        ['>=', ['get', 'density'], 0],
       ] satisfies ComponentProps<typeof CircleLayer>['filter'];
     }
     if (selectedMapBangumiIds.length > 0) {
       return [
         'all',
         ['in', ['get', 'bangumiId'], ['literal', selectedMapBangumiIds]],
-        ['>=', ['get', 'density'], 0],
       ] satisfies ComponentProps<typeof CircleLayer>['filter'];
     }
     // 普通模式：zoom-density 动态阈值
     return [
-      '>=',
-      ['get', 'density'],
-      ['interpolate', ['linear'], ['zoom'], ...DENSITY_STOPS.flat()],
+      'any',
+      ['!', ['has', 'density']],
+      [
+        '>=',
+        ['get', 'density'],
+        ['interpolate', ['linear'], ['zoom'], ...DENSITY_STOPS.flat()],
+      ],
     ] satisfies ComponentProps<typeof CircleLayer>['filter'];
   }, [selectedBangumiId, selectedMapBangumiIds]);
 

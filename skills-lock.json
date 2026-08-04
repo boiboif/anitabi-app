@@ -126,6 +126,12 @@
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-web-to-native/SKILL.md",
       "computedHash": "a14267b77b454d840c1913d0c9693d85ca92d412f2d920711fca16489410f704"
+    },
+    "truesheet-usage": {
+      "source": "lodev09/react-native-true-sheet",
+      "sourceType": "github",
+      "skillPath": "skills/truesheet-usage/SKILL.md",
+      "computedHash": "9f4759f7beacb9b86e43565f2187111dde9598351996100bdd865e942bbc0131"
     }
   }
 }

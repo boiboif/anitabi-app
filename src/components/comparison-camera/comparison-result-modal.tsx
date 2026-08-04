@@ -1,3 +1,4 @@
+import Toast from '@/../modules/toaster';
 import {
   COMPARISON_CAMERA_BOTTOM_REGION_HEIGHT,
   COMPARISON_CAMERA_TOP_REGION_HEIGHT,
@@ -11,7 +12,6 @@ import { useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Pressable, StatusBar, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ViewShot, { type ViewShotRef } from 'react-native-view-shot';
-import { toast, Toaster } from 'sonner-native';
 import { View, XStack } from 'tamagui';
 
 type Props = {
@@ -96,7 +96,7 @@ export default function ComparisonResultModal({
       }
       const uri = await viewShotRef.current.capture();
       await MediaLibrary.Asset.create(uri);
-      toast.success('对比图已保存到相册');
+      Toast.show('对比图已保存到相册');
     } catch {
       Alert.alert('保存失败', '生成或保存对比图时出现问题，请稍后重试。');
     } finally {
@@ -208,7 +208,6 @@ export default function ComparisonResultModal({
           />
         </XStack>
       </View>
-      <Toaster enableStacking position="center" duration={1000} />
     </Modal>
   );
 }
