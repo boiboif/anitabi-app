@@ -1,10 +1,10 @@
-import Toast from '@/../modules/toaster';
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import '@/global.css';
 import { useMapData } from '@/store/use-map-data';
 import { useThemePreference } from '@/store/use-theme-preference';
 import tamaguiConfig from '@/tamagui.config';
 import { TrueSheetProvider } from '@lodev09/react-native-true-sheet';
+import Toast from '@modules/toaster';
 import Mapbox from '@rnmapbox/maps';
 import Constants from 'expo-constants';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';

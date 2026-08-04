@@ -1,4 +1,4 @@
-import Toast from '@/../modules/toaster';
+import Toast from '@modules/toaster';
 import {
   COMPARISON_CAMERA_BOTTOM_REGION_HEIGHT,
   COMPARISON_CAMERA_TOP_REGION_HEIGHT,

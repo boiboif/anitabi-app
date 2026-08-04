@@ -1,4 +1,4 @@
-import BangumiDetailSheet from '@/components/bangumi-detail-sheet';
+import BangumiDetailSheet, { type BangumiDetailSheetRef } from '@/components/bangumi-detail-sheet';
 import LayerSwitch from '@/components/layer-switch';
 import LoadingBadge from '@/components/loading-badge';
 import LocateButton from '@/components/locate-button';
@@ -38,7 +38,7 @@ export default function HomeScreen() {
   });
   const cameraZoomRef = useRef(cameraState.zoom);
   const [showPointImageMarkers, setShowPointImageMarkers] = useState(true);
-
+  const bangumiDetailSheetRef = useRef<BangumiDetailSheetRef>(null);
   const handleCameraChange = useCallback((nextCameraState: CameraState) => {
     cameraZoomRef.current = nextCameraState.zoom;
     setCameraState(nextCameraState);
@@ -134,6 +134,7 @@ export default function HomeScreen() {
         <View mx="$3">
           <SearchBox
             onPress={() => {
+              bangumiDetailSheetRef.current?.close();
               router.navigate('/search');
             }}
             readOnly
@@ -162,7 +163,7 @@ export default function HomeScreen() {
         </View>
       )}
 
-      <BangumiDetailSheet />
+      <BangumiDetailSheet ref={bangumiDetailSheetRef} />
     </View>
   );
 }

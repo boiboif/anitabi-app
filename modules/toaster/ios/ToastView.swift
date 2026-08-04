@@ -6,8 +6,8 @@ struct ToastStyle {
   var textColor: UIColor = .white
   var textSize: CGFloat = 14
   var borderRadius: CGFloat = 10
-  var paddingHorizontal: CGFloat = 24
-  var paddingVertical: CGFloat = 16
+  var paddingHorizontal: CGFloat = 16
+  var paddingVertical: CGFloat = 10
   var maxLines: Int = 2
 }
 
@@ -137,13 +137,13 @@ class ToastView: UIView {
       self.layer.rasterizationScale = UIScreen.main.scale
     }
     
-    // 自动隐藏
-    // Timer 会自动添加到当前 RunLoop（主线程），闭包也在主线程执行
-    hideTimer = Timer.scheduledTimer(withTimeInterval: duration.timeInterval, repeats: false) { [weak self] timer in
+    // Keep the timeout running while the user is scrolling.
+    let timer = Timer(timeInterval: duration.timeInterval, repeats: false) { [weak self] timer in
       timer.invalidate()
-      // Timer 的闭包已经在主线程执行，直接调用 hide
       self?.hide()
     }
+    RunLoop.main.add(timer, forMode: .common)
+    hideTimer = timer
   }
   
   /// 隐藏 Toast（带动画）

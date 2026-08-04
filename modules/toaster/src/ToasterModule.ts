@@ -5,15 +5,15 @@ import type { ToastStyleOptions, ToasterModuleEvents } from './Toaster.types';
 /**
  * Toaster 原生模块接口
  * 
- * 此接口定义了与 Android 原生模块的通信协议。
- * 在 iOS/Web 平台上，这些方法都是空实现（no-op）。
+ * 此接口定义了跨平台原生模块的通信协议。
  */
 declare class ToasterModule extends NativeModule<ToasterModuleEvents> {
   /**
    * 是否支持 Toast 功能
    * 
    * - Android: `true`
-   * - iOS/Web: `false`
+   * - iOS: `true`
+   * - Web: `false`
    */
   isSupported: boolean;
   
@@ -118,7 +118,6 @@ declare class ToasterModule extends NativeModule<ToasterModuleEvents> {
 /**
  * 加载 Toaster 原生模块
  * 
- * 在 Android 平台上返回真实的原生模块实现，
- * 在 iOS/Web 平台上返回空实现（no-op）。
+ * 在 Android/iOS 平台上返回原生模块实现。
  */
 export default requireNativeModule<ToasterModule>('Toaster');

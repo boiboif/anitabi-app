@@ -1,6 +1,6 @@
 import { registerWebModule, NativeModule } from 'expo';
 
-import { ToasterModuleEvents } from './Toaster.types';
+import type { ToastStyleOptions, ToasterModuleEvents } from './Toaster.types';
 
 class ToasterModule extends NativeModule<ToasterModuleEvents> {
   isSupported = false;
@@ -16,7 +16,7 @@ class ToasterModule extends NativeModule<ToasterModuleEvents> {
   delayedShow(_message: string, _delayMillis: number) {}
   showSystem(_message: string) {}
   cancel() {}
-  setDefaultStyle(_style: Record<string, unknown> | null) {}
+  setDefaultStyle(_style: ToastStyleOptions | null) {}
   setGravity(_gravity: number) {}
   setGravityWithOffset(_gravity: number, _xOffset: number, _yOffset: number) {}
 };
