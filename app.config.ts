@@ -1,7 +1,7 @@
 import { config as dotenvConfig } from 'dotenv';
-dotenvConfig({ path: '.env.local' });
 
 import type { ExpoConfig } from 'expo/config';
+dotenvConfig({ path: '.env.local' });
 
 const config: ExpoConfig = {
   name: 'anitabi-app',
@@ -69,6 +69,18 @@ const config: ExpoConfig = {
       'expo-location',
       {
         locationWhenInUsePermission: '显示当前位置在地图上',
+      },
+    ],
+    [
+      'expo-screen-orientation',
+      {
+        initialOrientation: 'DEFAULT',
+      },
+    ],
+    [
+      'expo-sensors',
+      {
+        motionPermission: 'Allow $(PRODUCT_NAME) to access your device motion.',
       },
     ],
   ],

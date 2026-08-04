@@ -1,136 +1,72 @@
-import { useEffect, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, useColorScheme } from 'react-native';
+import { ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Text, View, useTheme } from 'tamagui';
+import { Text, View, XStack, YStack, useTheme, useThemeName } from 'tamagui';
 
 import { ThemeSwitch } from '@/components/theme-switch';
 
-import type { DarkModeConfig } from '@/lib/storage';
-import { getDarkModeConfig, setDarkModeConfig } from '@/lib/storage';
-import { useThemeOverride } from '@/lib/theme-context';
+import { useThemePreference } from '@/store/use-theme-preference';
 import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
 
 export default function DarkModeScreen() {
   const safeAreaInsets = useSafeAreaInsets();
   const theme = useTheme();
-  const { theme: currentTheme, setTheme } = useThemeOverride();
-  const systemColorScheme = useColorScheme();
+  const themeName = useThemeName();
+  const preference = useThemePreference((state) => state.preference);
+  const setPreference = useThemePreference((state) => state.setPreference);
 
-  const [followSystem, setFollowSystem] = useState(() => getDarkModeConfig().followSystem);
+  const followSystem = preference === 'system';
+  const currentTheme = themeName === 'dark' ? 'dark' : 'light';
   const isDark = currentTheme === 'dark';
   const insets = {
     ...safeAreaInsets,
     bottom: safeAreaInsets.bottom + BottomTabInset + 16,
   };
 
-  // Sync when followSystem or system color scheme changes
-  useEffect(() => {
-    if (followSystem && systemColorScheme) {
-      setTheme(systemColorScheme === 'dark' ? 'dark' : 'light');
-    }
-  }, [followSystem, systemColorScheme, setTheme]);
-
   const handleFollowSystemChange = (value: boolean) => {
-    setFollowSystem(value);
-    if (value && systemColorScheme) {
-      const next = systemColorScheme === 'dark' ? 'dark' : 'light';
-      setTheme(next);
-      setDarkModeConfig({ followSystem: true, manualTheme: next });
-    } else {
-      setDarkModeConfig({ followSystem: false, manualTheme: currentTheme });
-    }
+    setPreference(value ? 'system' : currentTheme);
   };
 
   const toggleDarkMode = (value: boolean) => {
-    const next = value ? 'dark' : 'light';
-    setTheme(next);
-    setDarkModeConfig({ followSystem: false, manualTheme: next });
+    setPreference(value ? 'dark' : 'light');
   };
-
-  // Keep persisted config in sync
-  useEffect(() => {
-    const config: DarkModeConfig = getDarkModeConfig();
-    if (!followSystem && config.manualTheme !== currentTheme) {
-      setDarkModeConfig({ followSystem: false, manualTheme: currentTheme });
-    }
-  }, [isDark, followSystem, currentTheme]);
-
-  const contentPlatformStyle = Platform.select({
-    android: {
-      paddingTop: insets.top,
-      paddingLeft: insets.left,
-      paddingRight: insets.right,
-      paddingBottom: insets.bottom,
-    },
-    web: {
-      paddingTop: 0,
-      paddingBottom: 24,
-    },
-  });
 
   return (
     <ScrollView
-      style={[styles.scrollView, { backgroundColor: theme.background?.val }]}
+      style={{ flex: 1, backgroundColor: theme.background?.val }}
       contentInset={insets}
-      contentContainerStyle={[styles.contentContainer, contentPlatformStyle]}
+      contentContainerStyle={{ flexDirection: 'row', justifyContent: 'center' }}
     >
-      <View bg="$background" style={styles.container}>
-        <View bg="$background" style={styles.section}>
-          <View bg="$color2" style={styles.settingRow}>
+      <View bg="$background" width="100%" maxW={MaxContentWidth} flex={1}>
+        <YStack bg="$background" gap="$1" px="$3" pt="$3">
+          <XStack
+            bg="$color2"
+            px="$3"
+            py="$2.5"
+            rounded="$2"
+            style={{ justifyContent: 'space-between', alignItems: 'center' }}
+          >
             <Text color="$color" fontSize={16} lineHeight={24} fontWeight="500">
               跟随系统
             </Text>
             <ThemeSwitch checked={followSystem} onCheckedChange={handleFollowSystemChange} />
-          </View>
+          </XStack>
 
           {!followSystem && (
-            <View bg="$color2" style={styles.settingRow}>
+            <XStack
+              bg="$color2"
+              px="$3"
+              py="$2.5"
+              rounded="$2"
+              style={{ justifyContent: 'space-between', alignItems: 'center' }}
+            >
               <Text color="$color" fontSize={16} lineHeight={24} fontWeight="500">
                 深色模式
               </Text>
               <ThemeSwitch checked={isDark} onCheckedChange={toggleDarkMode} />
-            </View>
+            </XStack>
           )}
-        </View>
+        </YStack>
       </View>
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-  },
-  contentContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  container: {
-    maxWidth: MaxContentWidth,
-    flexGrow: 1,
-  },
-  header: {
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 32,
-    gap: 16,
-  },
-  backText: {
-    alignSelf: 'flex-start',
-  },
-  section: {
-    gap: 8,
-    paddingHorizontal: 16,
-  },
-  settingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderRadius: 16,
-  },
-  pressed: {
-    opacity: 0.7,
-  },
-});

@@ -175,7 +175,7 @@ async function fetchDetails(
   onProgress?.({ phase: 'assembling', message: '数据组装中…' });
 
   const assembled = assembleBangumis(gList, detailMap);
-  console.log('组装后的数据:', assembled);
+  // console.log('组装后的数据:', assembled);
 
   setGModified(modified);
   setCachedData(assembled);

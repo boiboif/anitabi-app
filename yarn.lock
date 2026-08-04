@@ -5142,6 +5142,18 @@ expo-router@~57.0.4:
     standard-navigation "^0.0.5"
     vaul "^1.1.2"
 
+expo-screen-orientation@~57.0.1:
+  version "57.0.1"
+  resolved "https://registry.yarnpkg.com/expo-screen-orientation/-/expo-screen-orientation-57.0.1.tgz#f3fc1f2c2a2217347301a40e5de87ba039e253cc"
+  integrity sha512-pvMaOf2N5mcJNiYijIj0+Anza6vrHvcnAfFeO2yjquvPbejiE8oEh9BP9+Hx8VRnzFMoxiO6bG9W/oOFhtFIDA==
+
+expo-sensors@~57.0.2:
+  version "57.0.2"
+  resolved "https://registry.yarnpkg.com/expo-sensors/-/expo-sensors-57.0.2.tgz#d729fefcfe3571e3881db449a289153abd2d32c6"
+  integrity sha512-5TjX3b207CZWqMhbV8PMbvRCq+oLLEpnHCzB9TOGqGvcWx6LUx50vuGdPIGMPhuvBzlrPm4jvZik1U712j9BuQ==
+  dependencies:
+    invariant "^2.2.4"
+
 expo-server@^57.0.0:
   version "57.0.0"
   resolved "https://registry.yarnpkg.com/expo-server/-/expo-server-57.0.0.tgz#5b9d9a126008007dd998ba019a0bf0fa2a0fd387"

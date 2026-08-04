@@ -245,19 +245,9 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>(function BangumiDet
     if (selectedBangumi) {
       sheetRef.current?.snapToIndex(1);
     } else {
-      sheetRef.current?.forceClose();
+      sheetRef.current?.close();
     }
   }, [selectedBangumi]);
-
-  // Tab screens can retain the sheet instance while the map is unfocused.
-  // forceClose bypasses BottomSheet's layout/animation guard after returning from Favorites.
-  useFocusEffect(
-    useCallback(() => {
-      if (selectedBangumiId === null) {
-        sheetRef.current?.forceClose();
-      }
-    }, [selectedBangumiId]),
-  );
 
   const handleSheetChange = useCallback(
     (index: number) => {
@@ -272,16 +262,18 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>(function BangumiDet
     [setSelectedBangumi],
   );
 
-  useEffect(() => {
-    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (isSheetOpenRef.current) {
-        sheetRef.current?.close();
-        return true;
-      }
-      return false;
-    });
-    return () => subscription.remove();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+        if (isSheetOpenRef.current) {
+          sheetRef.current?.close();
+          return true;
+        }
+        return false;
+      });
+      return () => subscription.remove();
+    }, []),
+  );
 
   const sections = useMemo(() => {
     if (!selectedBangumi) return [];
@@ -422,6 +414,11 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>(function BangumiDet
         keyExtractor={(item: FlatItem) => item.id}
         stickyHeaderIndices={stickyHeaderIndices}
         renderScrollComponent={BottomSheetScrollable}
+        onLayout={() => {
+          if (!selectedBangumi && isSheetOpenRef.current) {
+            sheetRef.current?.close();
+          }
+        }}
         ListHeaderComponent={
           <>
             <View px="$2" mb="$4" display="flex" flexDirection="row" rounded="$4" gap="$2.5">

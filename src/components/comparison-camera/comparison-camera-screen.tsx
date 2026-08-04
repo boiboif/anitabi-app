@@ -1,3 +1,7 @@
+import {
+  COMPARISON_CAMERA_BOTTOM_REGION_HEIGHT,
+  COMPARISON_CAMERA_TOP_REGION_HEIGHT,
+} from '@/components/comparison-camera/comparison-camera-layout';
 import ComparisonResultModal from '@/components/comparison-camera/comparison-result-modal';
 import type { Bangumi, Point } from '@/services/types';
 import {
@@ -16,7 +20,15 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useIsFocused, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Pressable, StatusBar, StyleSheet, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Pressable, StatusBar, StyleSheet } from 'react-native';
+import Animated, {
+  Easing,
+  LinearTransition,
+  type SharedValue,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Camera,
@@ -25,6 +37,7 @@ import {
   type FlashMode,
   useCameraDevice,
   useCameraPermission,
+  useOrientation,
   usePhotoOutput,
 } from 'react-native-vision-camera';
 import { Slider, Text, View, XStack, YStack } from 'tamagui';
@@ -36,6 +49,7 @@ type Props = {
   bangumi: Bangumi;
   point: Point;
   initialReferenceUri?: string;
+  fullReferenceUri?: string;
 };
 
 type IconButtonProps = {
@@ -47,7 +61,75 @@ type IconButtonProps = {
   showBackground?: boolean;
 };
 
+type ReferenceViewport = {
+  height: number;
+  width: number;
+};
+
 const FLASH_SEQUENCE: FlashMode[] = ['off', 'auto', 'on'];
+const ORIENTATION_DEBOUNCE_MS = 500;
+const ORIENTATION_ANIMATION_DURATION_MS = 280;
+const AnimatedImage = Animated.createAnimatedComponent(Image);
+
+function getReferenceImageLayout(orientationRotation: string, viewport?: ReferenceViewport) {
+  const isQuarterTurn = orientationRotation === '90deg' || orientationRotation === '270deg';
+
+  if (!isQuarterTurn || !viewport) return StyleSheet.absoluteFill;
+
+  return {
+    position: 'absolute' as const,
+    width: viewport.height,
+    height: viewport.width,
+    left: (viewport.width - viewport.height) / 2,
+    top: (viewport.height - viewport.width) / 2,
+  };
+}
+
+function getNearestRotation(currentRotation: number, targetRotation: number) {
+  return targetRotation + Math.round((currentRotation - targetRotation) / 360) * 360;
+}
+
+function OrientationRotation({ children, rotation }: { children: React.ReactNode; rotation: SharedValue<number> }) {
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}deg` }],
+  }));
+
+  return <Animated.View style={animatedStyle}>{children}</Animated.View>;
+}
+
+function RotatingReferenceImage({
+  contentFit,
+  opacity,
+  orientationRotation,
+  pointerEvents,
+  rotation,
+  uri,
+  viewport,
+}: {
+  contentFit: ReferenceFit;
+  opacity?: number;
+  orientationRotation: string;
+  pointerEvents?: 'none';
+  rotation: SharedValue<number>;
+  uri: string;
+  viewport?: ReferenceViewport;
+}) {
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}deg` }],
+  }));
+
+  return (
+    <AnimatedImage
+      pointerEvents={pointerEvents}
+      source={{ uri }}
+      contentFit={contentFit}
+      cachePolicy="disk"
+      layout={LinearTransition.duration(ORIENTATION_ANIMATION_DURATION_MS).easing(Easing.out(Easing.cubic))}
+      style={[getReferenceImageLayout(orientationRotation, viewport), { opacity }, animatedStyle]}
+      transition={0}
+    />
+  );
+}
 
 function IconButton({
   accessibilityLabel,
@@ -72,7 +154,7 @@ function IconButton({
         rounded="$9"
         items="center"
         justify="center"
-        bg={showBackground ? '#242426' : 'transparent'}
+        bg={showBackground ? 'rgba(0,0,0,0.5)' : 'transparent'}
       >
         {children}
       </View>
@@ -95,26 +177,27 @@ function normalizeFileUri(filePath: string): string {
   return filePath.startsWith('file://') ? filePath : `file://${filePath}`;
 }
 
-export default function ComparisonCameraScreen({ bangumi, point, initialReferenceUri }: Props) {
+export default function ComparisonCameraScreen({ bangumi, point, initialReferenceUri, fullReferenceUri }: Props) {
   const router = useRouter();
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
-  const { width, height } = useWindowDimensions();
-  const isLandscape = width > height;
+  const orientation = useOrientation('device');
+  const [orientationRotation, setOrientationRotation] = useState('0deg');
+  const orientationRotationValue = useSharedValue(0);
   const { hasPermission, requestPermission } = useCameraPermission();
   const permissionRequested = useRef(false);
   const cameraRef = useRef<CameraRef>(null);
   const [cameraPosition, setCameraPosition] = useState<'back' | 'front'>('back');
   const device = useCameraDevice(cameraPosition);
   const photoOutput = usePhotoOutput({
-    targetResolution: CommonResolutions.UHD_16_9,
+    targetResolution: CommonResolutions.HIGHEST_16_9,
     containerFormat: 'jpeg',
     quality: 1,
     qualityPrioritization: 'quality',
   });
   const [assistMode, setAssistMode] = useState<CameraAssistMode>('split');
   const [referenceFit, setReferenceFit] = useState<ReferenceFit>('cover');
-  const [overlayOpacity, setOverlayOpacity] = useState(0.5);
+  const [overlayOpacity, setOverlayOpacity] = useState(0.4);
   const [referenceUri, setReferenceUri] = useState(initialReferenceUri);
   const [photoUri, setPhotoUri] = useState<string>();
   const [resultVisible, setResultVisible] = useState(false);
@@ -123,11 +206,53 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
   const [capturing, setCapturing] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [referenceViewport, setReferenceViewport] = useState<ReferenceViewport>();
+  const [overlayViewport, setOverlayViewport] = useState<ReferenceViewport>();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setOrientationRotation(orientation === 'right' ? '90deg' : orientation === 'left' ? '270deg' : '0deg');
+    }, ORIENTATION_DEBOUNCE_MS);
+
+    return () => clearTimeout(timer);
+  }, [orientation]);
+
+  useEffect(() => {
+    const targetRotation = orientationRotation === '90deg' ? 90 : orientationRotation === '270deg' ? 270 : 0;
+
+    orientationRotationValue.value = withTiming(getNearestRotation(orientationRotationValue.value, targetRotation), {
+      duration: ORIENTATION_ANIMATION_DURATION_MS,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [orientationRotation, orientationRotationValue]);
+
+  useEffect(() => {
+    if (!fullReferenceUri || fullReferenceUri === initialReferenceUri) return;
+
+    let cancelled = false;
+
+    void Image.prefetch(fullReferenceUri, 'memory-disk').then((prefetched) => {
+      if (!cancelled && prefetched) {
+        setReferenceUri((current) => (current === initialReferenceUri ? fullReferenceUri : current));
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fullReferenceUri, initialReferenceUri]);
+
+  const initialZoom = useCallback(() => {
+    if (!device) return 1;
+
+    return Math.min(device.maxZoom, Math.max(device.minZoom, 1));
+  }, [device]);
 
   const quickZoomValues = useMemo(() => {
     if (!device) return [];
 
-    const values = [device.minZoom, 1, ...device.zoomLensSwitchFactors]
+    const values = [...new Set([device.minZoom, 1, 2, 5, ...device.zoomLensSwitchFactors])]
+      .sort()
       .filter((value) => value >= device.minZoom && value <= device.maxZoom)
       .sort((a, b) => a - b);
 
@@ -167,7 +292,6 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
       setCapturing(true);
       console.log('capturePhotoToFile');
       const photo = await photoOutput.capturePhotoToFile({ flashMode: device.hasFlash ? flashMode : 'off' }, {});
-      console.log('photo', photo);
       setPhotoUri(normalizeFileUri(photo.filePath));
       setResultVisible(true);
     } catch (error) {
@@ -206,7 +330,15 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
       size={34}
       onPress={() => setReferenceFit((current) => (current === 'cover' ? 'contain' : 'cover'))}
     >
-      {referenceFit === 'contain' ? <Maximize2 size={17} color="white" /> : <Minimize2 size={17} color="white" />}
+      {referenceFit === 'contain' ? (
+        <OrientationRotation rotation={orientationRotationValue}>
+          <Maximize2 size={17} color="white" />
+        </OrientationRotation>
+      ) : (
+        <OrientationRotation rotation={orientationRotationValue}>
+          <Minimize2 size={17} color="white" />
+        </OrientationRotation>
+      )}
     </IconButton>
   );
   const assistModeLabel = assistMode === 'split' ? '切换为叠图模式' : '切换为分图模式';
@@ -216,32 +348,48 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
       accessibilityLabel={assistModeLabel}
       onPress={() => setAssistMode((current) => (current === 'split' ? 'overlay' : 'split'))}
     >
-      {assistMode === 'split' ? <Layers2 size={19} color="white" /> : <Columns2 size={19} color="white" />}
+      {assistMode === 'split' ? (
+        <OrientationRotation rotation={orientationRotationValue}>
+          <Layers2 size={19} color="white" />
+        </OrientationRotation>
+      ) : (
+        <OrientationRotation rotation={orientationRotationValue}>
+          <Columns2 size={19} color="white" />
+        </OrientationRotation>
+      )}
     </IconButton>
   );
   const quickZoomControl =
-    !isLandscape && quickZoomValues.length > 1 ? (
+    quickZoomValues.length > 1 ? (
       <XStack position="absolute" b={8} l={0} r={0} items="center" justify="center" gap={6}>
         {quickZoomValues.map((value) => {
           const selected = Math.abs(zoom - value) < 0.01;
           const label = `${Number(value.toFixed(1))}x`;
 
           return (
-            <Pressable
-              key={value}
-              accessibilityRole="button"
-              accessibilityLabel={`切换至 ${label} 变焦`}
-              accessibilityState={{ selected }}
-              disabled={!cameraReady}
-              onPress={() => selectQuickZoom(value)}
-              style={({ pressed }) => ({ opacity: !cameraReady ? 0.38 : pressed ? 0.68 : 1 })}
-            >
-              <View width={36} height={36} rounded="$9" items="center" justify="center" bg={selected ? 'white' : '#242426'}>
-                <Text color={selected ? '#111111' : 'white'} fontSize={11} fontWeight="700">
-                  {label}
-                </Text>
-              </View>
-            </Pressable>
+            <OrientationRotation key={value} rotation={orientationRotationValue}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`切换至 ${label} 变焦`}
+                accessibilityState={{ selected }}
+                disabled={!cameraReady}
+                onPress={() => selectQuickZoom(value)}
+                style={({ pressed }) => ({ opacity: !cameraReady ? 0.38 : pressed ? 0.68 : 1 })}
+              >
+                <View
+                  width={32}
+                  height={32}
+                  rounded="$9"
+                  items="center"
+                  justify="center"
+                  bg={selected ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.15)'}
+                >
+                  <Text color={selected ? '$primary' : 'white'} fontSize={11} fontWeight="700">
+                    {label}
+                  </Text>
+                </View>
+              </Pressable>
+            </OrientationRotation>
           );
         })}
       </XStack>
@@ -255,11 +403,10 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
       enableNativeTapToFocusGesture
       enableNativeZoomGesture
       isActive={cameraIsActive}
+      getInitialZoom={initialZoom}
       mirrorMode="auto"
       onPreviewStarted={() => {
-        const nextZoom = Math.min(device.maxZoom, Math.max(device.minZoom, 1));
-        setZoom(nextZoom);
-        void cameraRef.current?.controller?.setZoom(nextZoom);
+        setZoom(initialZoom());
         setCameraReady(true);
       }}
       onPreviewStopped={() => setCameraReady(false)}
@@ -315,18 +462,27 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
         onPress={pickReference}
         style={{ flex: 1, minHeight: 0, minWidth: 0 }}
       >
-        <View flex={1} minH={0} minW={0} overflow="hidden" bg="#090909">
+        <View
+          flex={1}
+          minH={0}
+          minW={0}
+          overflow="hidden"
+          bg="#090909"
+          onLayout={({ nativeEvent: { layout } }) => setReferenceViewport(layout)}
+        >
           {referenceUri ? (
-            <Image
-              source={{ uri: referenceUri }}
+            <RotatingReferenceImage
+              uri={referenceUri}
               contentFit={referenceFit}
-              cachePolicy="disk"
-              style={StyleSheet.absoluteFill}
-              transition={0}
+              orientationRotation={orientationRotation}
+              rotation={orientationRotationValue}
+              viewport={referenceViewport}
             />
           ) : (
             <View position="absolute" t={0} r={0} b={0} l={0} items="center" justify="center" bg="#161616">
-              <Images size={22} color="#ffffff" />
+              <OrientationRotation rotation={orientationRotationValue}>
+                <Images size={22} color="#ffffff" />
+              </OrientationRotation>
             </View>
           )}
         </View>
@@ -339,30 +495,37 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
 
   const stage =
     assistMode === 'split' ? (
-      <View flex={1} minH={0} overflow="hidden" bg="#090909" flexDirection={isLandscape ? 'row' : 'column'}>
+      <View flex={1} minH={0} overflow="hidden" bg="#090909" flexDirection="column">
         {referencePane}
         <View flex={1} minH={0} minW={0} overflow="hidden" bg="#090909">
           {cameraView}
           <GridOverlay />
           {quickZoomControl}
-          <View position="absolute" b={8} l={isLandscape ? undefined : 8} r={isLandscape ? 8 : undefined}>
+          <View position="absolute" b={8} l={8}>
             {assistModeControl}
           </View>
         </View>
       </View>
     ) : (
-      <View flex={1} minH={0} overflow="hidden" bg="#090909">
+      <View
+        flex={1}
+        minH={0}
+        overflow="hidden"
+        bg="#090909"
+        onLayout={({ nativeEvent: { layout } }) => setOverlayViewport(layout)}
+      >
         {cameraView}
         <GridOverlay />
         {referenceUri ? (
           <>
-            <Image
+            <RotatingReferenceImage
               pointerEvents="none"
-              source={{ uri: referenceUri }}
+              uri={referenceUri}
               contentFit={referenceFit}
-              cachePolicy="disk"
-              style={[StyleSheet.absoluteFill, { opacity: overlayOpacity }]}
-              transition={0}
+              opacity={overlayOpacity}
+              orientationRotation={orientationRotation}
+              rotation={orientationRotationValue}
+              viewport={overlayViewport}
             />
             <View position="absolute" t={8} r={8}>
               {referenceFitControl}
@@ -376,12 +539,14 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
             style={{ position: 'absolute', alignSelf: 'center', top: '40%' }}
           >
             <View width={44} height={44} rounded="$9" items="center" justify="center" bg="rgba(0,0,0,0.58)">
-              <Images size={20} color="#ffffff" />
+              <OrientationRotation rotation={orientationRotationValue}>
+                <Images size={20} color="#ffffff" />
+              </OrientationRotation>
             </View>
           </Pressable>
         )}
         {quickZoomControl}
-        <View position="absolute" b={8} l={isLandscape ? undefined : 8} r={isLandscape ? 8 : undefined}>
+        <View position="absolute" b={8} l={8}>
           {assistModeControl}
         </View>
       </View>
@@ -390,23 +555,25 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
   const controlPanel = (
     <YStack
       shrink={0}
+      height={COMPARISON_CAMERA_BOTTOM_REGION_HEIGHT + insets.bottom}
       gap={8}
-      px={isLandscape ? 8 : 12}
-      pt={isLandscape ? 8 : 16}
-      pb={isLandscape ? 8 : 24}
+      px={12}
+      pt={12}
+      pb={Math.max(insets.bottom, 24)}
       bg="black"
-      width={isLandscape ? 92 : undefined}
-      items={isLandscape ? 'center' : 'stretch'}
-      justify={isLandscape ? 'center' : undefined}
+      items="stretch"
+      justify="center"
     >
       <View height={20} justify="center">
         {assistMode === 'overlay' ? (
-          <XStack width={isLandscape ? 76 : 104} height={30} gap={5} rounded="$9" items="center">
-            <Blend size={14} color="#c7c7cc" />
+          <XStack width={150} height={30} gap={5} rounded="$9" items="center">
+            <OrientationRotation rotation={orientationRotationValue}>
+              <Blend size={14} color="#c7c7cc" />
+            </OrientationRotation>
             <Slider
               aria-label="叠图透明度"
-              min={0.1}
-              max={0.9}
+              min={0}
+              max={1}
               step={0.05}
               value={[overlayOpacity]}
               onValueChange={(values) => setOverlayOpacity(values[0] ?? 0.5)}
@@ -421,15 +588,11 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
           </XStack>
         ) : null}
       </View>
-      <View
-        flexDirection={isLandscape ? 'column' : 'row'}
-        items="center"
-        justify="space-around"
-        gap={isLandscape ? 8 : 28}
-        width="100%"
-      >
+      <View flexDirection="row" items="center" justify="space-around" gap={28} width="100%">
         <IconButton showBackground accessibilityLabel="从相册选择参考图" onPress={pickReference}>
-          <Images size={18} color="white" />
+          <OrientationRotation rotation={orientationRotationValue}>
+            <Images size={18} color="white" />
+          </OrientationRotation>
         </IconButton>
         <Pressable
           accessibilityRole="button"
@@ -458,7 +621,9 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
           </View>
         </Pressable>
         <IconButton showBackground accessibilityLabel="切换前后摄像头" onPress={switchCamera}>
-          <SwitchCamera size={19} color="white" />
+          <OrientationRotation rotation={orientationRotationValue}>
+            <SwitchCamera size={19} color="white" />
+          </OrientationRotation>
         </IconButton>
       </View>
     </YStack>
@@ -469,13 +634,31 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
   return (
     <View flex={1} bg="black">
       <StatusBar hidden />
-      <XStack z={2} items="center" justify="space-between" px={12} pt={insets.top} height={insets.top + 66} bg="black">
+      <XStack
+        z={2}
+        items="center"
+        justify="space-between"
+        px={12}
+        pt={insets.top}
+        height={insets.top + COMPARISON_CAMERA_TOP_REGION_HEIGHT}
+        bg="black"
+      >
         <IconButton accessibilityLabel="关闭相机" onPress={() => router.back()}>
-          <X size={20} color="white" />
+          <OrientationRotation rotation={orientationRotationValue}>
+            <X size={20} color="white" />
+          </OrientationRotation>
         </IconButton>
         <View flex={1} />
         <IconButton accessibilityLabel={flashLabel} disabled={!device?.hasFlash} onPress={cycleFlash}>
-          {flashMode === 'off' ? <ZapOff size={19} color="white" /> : <Zap size={19} color="white" />}
+          {flashMode === 'off' ? (
+            <OrientationRotation rotation={orientationRotationValue}>
+              <ZapOff size={19} color="white" />
+            </OrientationRotation>
+          ) : (
+            <OrientationRotation rotation={orientationRotationValue}>
+              <Zap size={19} color="white" />
+            </OrientationRotation>
+          )}
           {flashMode !== 'off' ? (
             <Text position="absolute" r={3} b={2} color="white" fontSize={8} fontWeight="800">
               {flashMode === 'auto' ? 'A' : 'ON'}
@@ -483,7 +666,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
           ) : null}
         </IconButton>
       </XStack>
-      <View flex={1} minH={0} flexDirection={isLandscape ? 'row' : 'column'} pb={isLandscape ? insets.bottom : 0}>
+      <View flex={1} minH={0} flexDirection="column">
         {stage}
         {controlPanel}
       </View>

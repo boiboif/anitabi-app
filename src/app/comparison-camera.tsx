@@ -41,7 +41,8 @@ export default function ComparisonCameraRoute() {
     <ComparisonCameraScreen
       bangumi={bangumi}
       point={point}
-      initialReferenceUri={point.image ? buildImageUrl(point.image) : undefined}
+      initialReferenceUri={point.image ? buildImageUrl(point.image, 'plan=h160') : undefined}
+      fullReferenceUri={point.image ? buildImageUrl(point.image) : undefined}
     />
   );
 }

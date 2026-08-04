@@ -29,6 +29,8 @@
     "expo-location": "~57.0.2",
     "expo-media-library": "~57.0.3",
     "expo-router": "~57.0.4",
+    "expo-screen-orientation": "~57.0.1",
+    "expo-sensors": "~57.0.2",
     "expo-splash-screen": "~57.0.2",
     "expo-status-bar": "~57.0.0",
     "expo-symbols": "~57.0.0",

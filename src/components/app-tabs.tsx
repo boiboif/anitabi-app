@@ -1,10 +1,9 @@
-import { useThemeOverride } from '@/lib/theme-context';
 import { Heart, Map, User } from '@tamagui/lucide-icons-2';
 import { BlurView } from 'expo-blur';
 import { usePathname } from 'expo-router';
 import { TabList, Tabs, TabSlot, TabTrigger } from 'expo-router/ui';
 import { Platform, Pressable, Text } from 'react-native';
-import { getTokens, useTheme, View } from 'tamagui';
+import { getTokens, useTheme, useThemeName, View } from 'tamagui';
 
 const TAB_CONFIG = [
   { name: 'index', label: '地图', icon: Map },
@@ -45,7 +44,8 @@ function TabItem({ name, label, icon: Icon }: (typeof TAB_CONFIG)[number]) {
 }
 
 export default function AppTabs() {
-  const { theme } = useThemeOverride();
+  const themeName = useThemeName();
+  const theme = themeName === 'dark' ? 'dark' : 'light';
 
   return (
     <Tabs>

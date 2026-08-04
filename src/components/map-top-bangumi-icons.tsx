@@ -226,7 +226,7 @@ export default function MapTopBangumiIcons({ bangumis, zoom, bounds }: Props) {
                   inViewBangumis.map((bangumi) => bangumi.id),
                 )
               }
-              style={({ pressed }) => ({ opacity: pressed ? 0.3 : !hasMapBangumiFilter || isSelected ? 1 : 0.8 })}
+              style={({ pressed }) => ({ opacity: pressed ? 0.3 : !hasMapBangumiFilter || isSelected ? 1 : 0.5 })}
             >
               <View
                 bg="$color2"
@@ -234,7 +234,7 @@ export default function MapTopBangumiIcons({ bangumis, zoom, bounds }: Props) {
                 rounded="$10"
                 flexDirection="row"
                 items="center"
-                boxShadow="0 2px 6px rgba(0,0,0,0.15)"
+                boxShadow="0 2px 4px rgba(0,0,0,0.05)"
               >
                 <View style={[styles.iconWrapper, { borderColor }]}>
                   <Image
@@ -253,7 +253,7 @@ export default function MapTopBangumiIcons({ bangumis, zoom, bounds }: Props) {
                   numberOfLines={1}
                   style={{ flexShrink: 1 }}
                 >
-                  {b.cn}
+                  {b.cn || b.title}
                 </Text>
 
                 <View
@@ -288,7 +288,7 @@ export default function MapTopBangumiIcons({ bangumis, zoom, bounds }: Props) {
             opacity: pressed ? 0.6 : 1,
           })}
         >
-          <View bg="$color2" px="$3" py="$1.5" rounded="$10" boxShadow="0 2px 6px rgba(0,0,0,0.15)">
+          <View bg="$color2" px="$3" py="$1.5" rounded="$10" boxShadow="0 2px 4px rgba(0,0,0,0.05)">
             <Text color="$color11" fontSize={12} fontWeight="500">
               清除筛选
             </Text>

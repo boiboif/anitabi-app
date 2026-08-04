@@ -17,12 +17,10 @@ export default function ComparisonCameraButton({ bangumi, point, compact = false
 
   const openCamera = (event: GestureResponderEvent) => {
     event.stopPropagation();
-    router.push(
-      {
-        pathname: '/comparison-camera',
-        params: { bangumiId: String(bangumi.id), pointId: point.id },
-      } as Href,
-    );
+    router.push({
+      pathname: '/comparison-camera',
+      params: { bangumiId: String(bangumi.id), pointId: point.id },
+    } as Href);
   };
 
   return (
@@ -34,26 +32,11 @@ export default function ComparisonCameraButton({ bangumi, point, compact = false
       style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
     >
       {compact ? (
-        <View
-          width={36}
-          height={36}
-          rounded="$9"
-          bg="$color2"
-          items="center"
-          justify="center"
-        >
+        <View width={36} height={36} rounded="$9" bg="$color2" items="center" justify="center">
           <Camera size={18} color={theme.primary.val} />
         </View>
       ) : (
-        <XStack
-          height={38}
-          rounded="$2"
-          bg="$primary"
-          items="center"
-          justify="center"
-          gap="$1.5"
-          px="$3"
-        >
+        <XStack height={38} rounded="$2" bg="$primary" items="center" justify="center" gap="$1.5" px="$3">
           <Camera size={17} color="white" />
           <Text color="white" fontSize={13} fontWeight="700">
             对比拍摄

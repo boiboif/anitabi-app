@@ -1,13 +1,17 @@
+import {
+  COMPARISON_CAMERA_BOTTOM_REGION_HEIGHT,
+  COMPARISON_CAMERA_TOP_REGION_HEIGHT,
+} from '@/components/comparison-camera/comparison-camera-layout';
 import type { ReferenceFit } from '@/components/comparison-camera/comparison-camera-screen';
 import type { Bangumi, Point } from '@/services/types';
 import { Download, Images, RotateCcw, X } from '@tamagui/lucide-icons-2';
 import { Image } from 'expo-image';
 import * as MediaLibrary from 'expo-media-library';
 import { useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Pressable, StatusBar, StyleSheet, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Pressable, StatusBar, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ViewShot, { type ViewShotRef } from 'react-native-view-shot';
-import { toast } from 'sonner-native';
+import { toast, Toaster } from 'sonner-native';
 import { View, XStack } from 'tamagui';
 
 type Props = {
@@ -15,6 +19,7 @@ type Props = {
   bangumi: Bangumi;
   point: Point;
   photoUri?: string;
+  /** @deprecated */
   referenceFit: ReferenceFit;
   referenceUri?: string;
   onClose: () => void;
@@ -70,8 +75,6 @@ export default function ComparisonResultModal({
   onRetake,
 }: Props) {
   const insets = useSafeAreaInsets();
-  const { width, height } = useWindowDimensions();
-  const isLandscape = width > height;
   const viewShotRef = useRef<ViewShotRef>(null);
   const [loadedReferenceUri, setLoadedReferenceUri] = useState<string>();
   const [loadedPhotoUri, setLoadedPhotoUri] = useState<string>();
@@ -81,13 +84,6 @@ export default function ComparisonResultModal({
   const referenceLoaded = Boolean(referenceUri && loadedReferenceUri === referenceUri);
   const photoLoaded = Boolean(photoUri && loadedPhotoUri === photoUri && photoDimensions?.uri === photoUri);
   const readyToSave = referenceLoaded && photoLoaded && !saving;
-  const exportPhotoWidth = photoDimensions ? Math.max(photoDimensions.width, photoDimensions.height) : undefined;
-  const exportPhotoHeight = photoDimensions ? Math.min(photoDimensions.width, photoDimensions.height) : undefined;
-  const portraitAvailableHeight = height - insets.top - insets.bottom - 136;
-  const landscapeAvailableHeight = height - insets.top - insets.bottom - 24;
-  const previewWidth = isLandscape
-    ? Math.max(160, Math.min(width - 120, landscapeAvailableHeight * (8 / 9)))
-    : Math.max(220, Math.min(width - 24, portraitAvailableHeight * (8 / 9)));
 
   const saveComparison = async () => {
     if (!readyToSave || !viewShotRef.current) return;
@@ -114,12 +110,12 @@ export default function ComparisonResultModal({
       onRequestClose={onRetake}
       presentationStyle="fullScreen"
       statusBarTranslucent
-      supportedOrientations={['portrait', 'portrait-upside-down', 'landscape', 'landscape-left', 'landscape-right']}
+      supportedOrientations={['portrait', 'portrait-upside-down']}
       visible={visible}
     >
       <StatusBar hidden />
       <View flex={1} bg="black">
-        <XStack z={2} items="center" px={12} pt={insets.top} height={insets.top + 66}>
+        <XStack z={2} items="center" px={12} pt={insets.top} height={insets.top + COMPARISON_CAMERA_TOP_REGION_HEIGHT}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="关闭拍摄结果"
@@ -133,34 +129,23 @@ export default function ComparisonResultModal({
           </Pressable>
         </XStack>
 
-        <View
-          flex={1}
-          minH={0}
-          items="center"
-          justify="center"
-          gap={isLandscape ? 16 : 14}
-          px={isLandscape ? 12 : 0}
-          pb={isLandscape ? 0 : Math.max(insets.bottom, 24)}
-          flexDirection={isLandscape ? 'row' : 'column'}
-        >
-          <View overflow="hidden" rounded={4} bg="black" boxShadow="0 2px 8px rgba(0,0,0,0.38)">
+        <View flex={1} minH={0} overflow="hidden" bg="black">
+          <View flex={1} minH={0} overflow="hidden" rounded={4} bg="black" boxShadow="0 2px 8px rgba(0,0,0,0.38)">
             <ViewShot
               ref={viewShotRef}
               options={{
                 format: 'jpg',
                 quality: 1,
                 result: 'tmpfile',
-                width: exportPhotoWidth,
-                height: exportPhotoHeight ? exportPhotoHeight * 2 : undefined,
               }}
-              style={{ width: previewWidth, aspectRatio: 8 / 9, backgroundColor: '#000000' }}
+              style={{ flex: 1, backgroundColor: '#000000' }}
             >
               <View flex={1} minH={0} overflow="hidden" bg="black">
                 {referenceUri ? (
                   <Image
                     source={{ uri: referenceUri }}
                     cachePolicy="disk"
-                    contentFit={referenceFit}
+                    contentFit="cover"
                     onLoad={() => setLoadedReferenceUri(referenceUri)}
                     style={StyleSheet.absoluteFill}
                     transition={0}
@@ -199,28 +184,31 @@ export default function ComparisonResultModal({
               </View>
             ) : null}
           </View>
-
-          <View
-            shrink={0}
-            flexDirection={isLandscape ? 'column' : 'row'}
-            justify="space-evenly"
-            items="center"
-            width="100%"
-            gap={isLandscape ? 10 : 18}
-            pr={isLandscape ? Math.max(insets.right, 12) : 0}
-          >
-            <ActionButton label="更换参考图" icon={<Images size={17} color="white" />} onPress={onPickReference} />
-            <ActionButton label="重拍" icon={<RotateCcw size={17} color="white" />} onPress={onRetake} />
-            <ActionButton
-              label={saving ? '保存中' : '保存'}
-              icon={saving ? <ActivityIndicator color="white" /> : <Download size={21} color="white" />}
-              primary
-              disabled={!readyToSave}
-              onPress={saveComparison}
-            />
-          </View>
         </View>
+
+        <XStack
+          shrink={0}
+          height={COMPARISON_CAMERA_BOTTOM_REGION_HEIGHT + insets.bottom}
+          px={12}
+          pt={12}
+          pb={Math.max(insets.bottom, 24)}
+          items="center"
+          justify="space-around"
+          gap={28}
+          bg="black"
+        >
+          <ActionButton label="更换参考图" icon={<Images size={17} color="white" />} onPress={onPickReference} />
+          <ActionButton label="重拍" icon={<RotateCcw size={17} color="white" />} onPress={onRetake} />
+          <ActionButton
+            label={saving ? '保存中' : '保存'}
+            icon={saving ? <ActivityIndicator color="white" /> : <Download size={21} color="white" />}
+            primary
+            disabled={!readyToSave}
+            onPress={saveComparison}
+          />
+        </XStack>
       </View>
+      <Toaster enableStacking position="center" duration={1000} />
     </Modal>
   );
 }

@@ -1,10 +1,9 @@
-import { useThemeOverride } from '@/lib/theme-context';
 import { Search, X } from '@tamagui/lucide-icons-2';
 import { BlurView } from 'expo-blur';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useRef, type ComponentProps, type ReactNode } from 'react';
 import { Keyboard, Pressable, StyleSheet, TouchableWithoutFeedback } from 'react-native';
-import { getTokens, Input, styled, TamaguiElement, View } from 'tamagui';
+import { getTokens, Input, styled, TamaguiElement, useThemeName, View } from 'tamagui';
 
 const StyledInput = styled(Input, {
   rounded: 28,
@@ -40,7 +39,8 @@ export default function SearchBox({
   focusOnRoute,
   ...props
 }: Props) {
-  const { theme } = useThemeOverride();
+  const themeName = useThemeName();
+  const theme = themeName === 'dark' ? 'dark' : 'light';
   const ref = useRef<TamaguiElement | null>(null);
 
   const hasValue = typeof props.value === 'string' && props.value.length > 0;

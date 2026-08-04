@@ -1,6 +1,7 @@
 import { SettingCell } from '@/components/setting-cell';
 import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
 import { Info, Moon } from '@tamagui/lucide-icons-2';
+import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Platform, ScrollView } from 'react-native';
@@ -71,7 +72,7 @@ export default function ProfileScreen() {
         </SettingsSection>
 
         <SettingsSection title="其他">
-          <SettingCell icon={Info} title="Anitabi" description="动漫巡礼地图" value="1.0.0" />
+          <SettingCell icon={Info} title="Anitabi" description="动漫巡礼地图" value={Constants.expoConfig?.version} />
         </SettingsSection>
       </View>
     </ScrollView>

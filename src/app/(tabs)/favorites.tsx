@@ -1,3 +1,4 @@
+import ComparisonCameraButton from '@/components/comparison-camera-button';
 import FavoritePointButton from '@/components/favorite-point-button';
 import { type FavoritePoint } from '@/lib/favorite-storage';
 import { buildImageUrl } from '@/services/handlers';
@@ -107,7 +108,12 @@ function FavoriteCard({ item, onPress }: { item: ResolvedFavorite; onPress: () =
         </XStack>
       </Pressable>
       {item.point && item.bangumi ? (
-        <FavoritePointButton point={item.point} bangumi={item.bangumi} overlay />
+        <>
+          <FavoritePointButton point={item.point} bangumi={item.bangumi} overlay />
+          <View position="absolute" b="$2" r="$2">
+            <ComparisonCameraButton point={item.point} bangumi={item.bangumi} compact />
+          </View>
+        </>
       ) : (
         <View position="absolute" t="$2" r="$2">
           <Pressable
