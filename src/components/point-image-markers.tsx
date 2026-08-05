@@ -2,7 +2,7 @@ import { FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE, MAP_ICON_ZOOM_THRESHOLD
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
-import { useSelectedBangumi } from '@/store/use-selected-bangumi';
+import { useMapBrowse } from '@/store/use-map-browse';
 import { Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
 import { useCallback, useMemo } from 'react';
 import type { Bounds } from './map-container';
@@ -23,9 +23,9 @@ function isInBounds(geo: [number, number], bounds: Bounds): boolean {
 }
 
 export default function PointImageMarkers({ bangumis, zoom, bounds, onPointSelect }: Props) {
-  const selectedBangumiId = useSelectedBangumi((state) => state.selectedBangumiId);
+  const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const selectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
-  const isFilterActive = selectedBangumiId !== null || selectedMapBangumiIds.length > 0;
+  const isFilterActive = openedBangumiDetailsId !== null || selectedMapBangumiIds.length > 0;
 
   const zoomThreshold = useMemo(() => {
     return isFilterActive ? FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE : MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE;
@@ -38,8 +38,8 @@ export default function PointImageMarkers({ bangumis, zoom, bounds, onPointSelec
     const selectedIds = new Set(selectedMapBangumiIds);
 
     for (const b of bangumis) {
-      if (selectedBangumiId !== null && b.id !== selectedBangumiId) continue;
-      if (selectedBangumiId === null && selectedIds.size > 0 && !selectedIds.has(b.id)) continue;
+      if (openedBangumiDetailsId !== null && b.id !== openedBangumiDetailsId) continue;
+      if (openedBangumiDetailsId === null && selectedIds.size > 0 && !selectedIds.has(b.id)) continue;
       for (const p of b.points) {
         if (!p.image) continue;
         if (p.geo[0] === 0 && p.geo[1] === 0) continue;
@@ -53,7 +53,7 @@ export default function PointImageMarkers({ bangumis, zoom, bounds, onPointSelec
     }
 
     return items;
-  }, [bangumis, zoom, bounds, selectedBangumiId, selectedMapBangumiIds]);
+  }, [bangumis, zoom, bounds, openedBangumiDetailsId, selectedMapBangumiIds]);
 
   const { imagesMap, geojson } = useMemo(() => {
     const images: Record<string, { uri: string }> = {};

@@ -3,7 +3,7 @@ import { getBangumiIcons } from '@/services/api';
 import { baseUrl } from '@/services/handlers';
 import type { Bangumi } from '@/services/types';
 import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
-import { useSelectedBangumi } from '@/store/use-selected-bangumi';
+import { useMapBrowse } from '@/store/use-map-browse';
 import { Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
 import { Directory, File, Paths } from 'expo-file-system';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
@@ -77,7 +77,7 @@ type Props = {
 };
 
 export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
-  const selectedBangumiId = useSelectedBangumi((state) => state.selectedBangumiId);
+  const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const selectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
 
   const [spriteMeta, setSpriteMeta] = useState<{
@@ -273,7 +273,7 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
 
   // 筛选模式下在底层隐藏所有 icon（保留图层结构）
   const bangumiIconFilter: ComponentProps<typeof SymbolLayer>['filter'] =
-    selectedBangumiId !== null ? ['==', ['get', 'bangumiId'], -1] : undefined;
+    openedBangumiDetailsId !== null ? ['==', ['get', 'bangumiId'], -1] : undefined;
 
   return (
     <>

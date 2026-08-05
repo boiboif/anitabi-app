@@ -3,7 +3,7 @@ import FavoritePointButton from '@/components/favorite-point-button';
 import { formatDuration } from '@/lib/formatDuration';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
-import { useSelectedBangumi } from '@/store/use-selected-bangumi';
+import { useMapBrowse } from '@/store/use-map-browse';
 import { Image } from 'expo-image';
 import { Linking, Pressable } from 'react-native';
 import { getTokens, Text, useTheme, View } from 'tamagui';
@@ -15,7 +15,7 @@ type Props = {
 
 export default function PopupCard({ point, bangumi }: Props) {
   const theme = useTheme();
-  const setSelectedBangumi = useSelectedBangumi((state) => state.setSelectedBangumi);
+  const openBangumiDetails = useMapBrowse((state) => state.openBangumiDetails);
   const pointTitle = point.cn || point.name || '未命名点位';
   const animeTitle = bangumi.cn || bangumi.title || bangumi.en || '未知';
   const epLabel =
@@ -120,7 +120,7 @@ export default function PopupCard({ point, bangumi }: Props) {
           accessibilityRole="button"
           accessibilityLabel={`筛选番剧：${animeTitle}`}
           hitSlop={6}
-          onPress={() => setSelectedBangumi(bangumi.id)}
+          onPress={() => openBangumiDetails(bangumi.id)}
           style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
         >
           <Text fontSize={13} color="$primary" numberOfLines={2}>

@@ -1,6 +1,6 @@
 import type { Bangumi, Point } from '@/services/types';
 import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
-import { useSelectedBangumi } from '@/store/use-selected-bangumi';
+import { useMapBrowse } from '@/store/use-map-browse';
 import { CircleLayer, ShapeSource } from '@rnmapbox/maps';
 import { ComponentProps, useCallback, useMemo } from 'react';
 
@@ -63,19 +63,19 @@ const DENSITY_STOPS: [number, number][] = [
 ];
 
 export default function MapMarkers({ bangumis, onPointSelect }: Props) {
-  const selectedBangumiId = useSelectedBangumi((state) => state.selectedBangumiId);
+  const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const selectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
-  const isFilterActive = selectedBangumiId !== null || selectedMapBangumiIds.length > 0;
+  const isFilterActive = openedBangumiDetailsId !== null || selectedMapBangumiIds.length > 0;
 
   // 始终用完整数据生成 GeoJSON，筛选通过 filter 表达式实现
   const geoJSON = useMemo(() => toGeoJSON(bangumis), [bangumis]);
 
   const pointFilter: ComponentProps<typeof CircleLayer>['filter'] = useMemo(() => {
-    if (selectedBangumiId !== null) {
+    if (openedBangumiDetailsId !== null) {
       // 筛选模式：只显示选中番剧的点 + 不限制 density
       return [
         'all',
-        ['==', ['get', 'bangumiId'], selectedBangumiId],
+        ['==', ['get', 'bangumiId'], openedBangumiDetailsId],
       ] satisfies ComponentProps<typeof CircleLayer>['filter'];
     }
     if (selectedMapBangumiIds.length > 0) {
@@ -94,7 +94,7 @@ export default function MapMarkers({ bangumis, onPointSelect }: Props) {
         ['interpolate', ['linear'], ['zoom'], ...DENSITY_STOPS.flat()],
       ],
     ] satisfies ComponentProps<typeof CircleLayer>['filter'];
-  }, [selectedBangumiId, selectedMapBangumiIds]);
+  }, [openedBangumiDetailsId, selectedMapBangumiIds]);
 
   /** 点击圆点标记 → 查找完整点/番数据 → 弹出详情 */
   const handlePress = useCallback(

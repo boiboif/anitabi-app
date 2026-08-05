@@ -1,4 +1,4 @@
-import BangumiDetailSheet, { type BangumiDetailSheetRef } from '@/components/bangumi-detail-sheet';
+import BangumiDetailSheet from '@/components/bangumi-detail-sheet';
 import LayerSwitch from '@/components/layer-switch';
 import LoadingBadge from '@/components/loading-badge';
 import LocateButton from '@/components/locate-button';
@@ -11,7 +11,7 @@ import {
   MAP_CAMERA_FLY_TO_POINT_ZOOM_THRESHOLD,
 } from '@/lib/constants';
 import { useMapData } from '@/store/use-map-data';
-import { useSelectedBangumi } from '@/store/use-selected-bangumi';
+import { useMapBrowse } from '@/store/use-map-browse';
 import type { Camera, Location } from '@rnmapbox/maps';
 import { locationManager } from '@rnmapbox/maps';
 import { requestForegroundPermissionsAsync } from 'expo-location';
@@ -28,6 +28,7 @@ type CameraState = {
 
 export default function HomeScreen() {
   const cameraRef = useRef<Camera>(null);
+  const [isCameraReady, setIsCameraReady] = useState(false);
   const insets = useSafeAreaInsets();
   const data = useMapData((state) => state.data);
   const progress = useMapData((state) => state.progress);
@@ -38,7 +39,10 @@ export default function HomeScreen() {
   });
   const cameraZoomRef = useRef(cameraState.zoom);
   const [showPointImageMarkers, setShowPointImageMarkers] = useState(true);
-  const bangumiDetailSheetRef = useRef<BangumiDetailSheetRef>(null);
+  const setCameraRef = useCallback((camera: Camera | null) => {
+    cameraRef.current = camera;
+    setIsCameraReady(camera !== null);
+  }, []);
   const handleCameraChange = useCallback((nextCameraState: CameraState) => {
     cameraZoomRef.current = nextCameraState.zoom;
     setCameraState(nextCameraState);
@@ -50,38 +54,53 @@ export default function HomeScreen() {
   }, []);
 
   const bangumis = useMemo(() => data?.data.bangumis ?? [], [data]);
-  const selectedBangumiId = useSelectedBangumi((state) => state.selectedBangumiId);
-  const selectedPoint = useSelectedBangumi((state) => state.selectedPoint);
+  const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
+  const mapCameraRequest = useMapBrowse((state) => state.mapCameraRequest);
+  const completeMapCameraRequest = useMapBrowse((state) => state.completeMapCameraRequest);
   const selectedBangumi = useMemo(
-    () => bangumis?.find((bangumi) => bangumi.id === selectedBangumiId) ?? null,
-    [bangumis, selectedBangumiId],
+    () => bangumis?.find((bangumi) => bangumi.id === openedBangumiDetailsId) ?? null,
+    [bangumis, openedBangumiDetailsId],
   );
-  const selectedPointData = useMemo(() => {
-    if (!selectedPoint) return null;
-    const bangumi = bangumis?.find((item) => item.id === selectedPoint.bangumiId);
-    const point = bangumi?.points.find((item) => item.id === selectedPoint.pointId);
-    return bangumi && point ? { bangumi, point } : null;
-  }, [bangumis, selectedPoint]);
+  const mapCameraRequestData = useMemo(() => {
+    if (!mapCameraRequest) return null;
+    const bangumi = bangumis?.find((item) => item.id === mapCameraRequest.bangumiId);
+    const point = bangumi?.points.find((item) => item.id === mapCameraRequest.pointId);
+    return bangumi && point ? { request: mapCameraRequest, point } : null;
+  }, [bangumis, mapCameraRequest]);
 
-  // 选中巡礼点时，地图 camera 飞到该点
   useEffect(() => {
-    if (!selectedPointData) return;
-    if (cameraZoomRef.current > MAP_CAMERA_FLY_TO_POINT_ZOOM_THRESHOLD) return;
-    const { density } = selectedPointData.point;
-    const [lat, lng] = selectedPointData.point.geo;
+    if (!mapCameraRequestData) {
+      if (data && mapCameraRequest) {
+        completeMapCameraRequest(mapCameraRequest.id);
+      }
+      return;
+    }
+    const { request, point } = mapCameraRequestData;
+    const camera = cameraRef.current;
+
+    if (!isCameraReady || !camera) return;
+
+    if (request.source === 'map-point-selection' && cameraZoomRef.current > MAP_CAMERA_FLY_TO_POINT_ZOOM_THRESHOLD) {
+      completeMapCameraRequest(request.id);
+      return;
+    }
+
+    const { density } = point;
+    const [lat, lng] = point.geo;
 
     // density = 到最近邻点的距离（米）
     // density 越小 → 附近有其他点 → 放大地图显示更友好
     // density 为空 → 固定一个相对较小的 zoom
     const zoomLevel = density == null ? 14 : Math.max(13, Math.min(18, 16 - Math.log10(density / 10)));
 
-    cameraRef.current?.setCamera({
+    camera.setCamera({
       centerCoordinate: [lng, lat],
       zoomLevel,
       animationMode: 'flyTo',
       animationDuration: 500,
     });
-  }, [selectedPointData]);
+    completeMapCameraRequest(request.id);
+  }, [completeMapCameraRequest, data, isCameraReady, mapCameraRequest, mapCameraRequestData]);
 
   const handleLocate = useCallback(async () => {
     try {
@@ -122,7 +141,7 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <MapContainer
-        ref={cameraRef}
+        ref={setCameraRef}
         insets={insets}
         bangumis={bangumis}
         styleIndex={styleIndex}
@@ -134,7 +153,6 @@ export default function HomeScreen() {
         <View mx="$3">
           <SearchBox
             onPress={() => {
-              bangumiDetailSheetRef.current?.close();
               router.navigate('/search');
             }}
             readOnly
@@ -163,7 +181,7 @@ export default function HomeScreen() {
         </View>
       )}
 
-      <BangumiDetailSheet ref={bangumiDetailSheetRef} />
+      <BangumiDetailSheet />
     </View>
   );
 }

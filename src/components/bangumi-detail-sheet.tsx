@@ -2,23 +2,14 @@ import FavoritePointButton from '@/components/favorite-point-button';
 import { formatDuration } from '@/lib/formatDuration';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
+import { useMapBrowse } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
-import { useSelectedBangumi } from '@/store/use-selected-bangumi';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { FlashList } from '@shopify/flash-list';
 import dayjs from 'dayjs';
 import { Image } from 'expo-image';
-import {
-  forwardRef,
-  memo,
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { useFocusEffect } from 'expo-router';
+import { memo, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { GestureHandlerRootView, Pressable } from 'react-native-gesture-handler';
 import { getTokens, Text, useTheme, View } from 'tamagui';
@@ -119,11 +110,6 @@ const PointCard = memo(
   },
   (prev, next) => prev.point.id === next.point.id && prev.bangumi.id === next.bangumi.id,
 );
-
-export interface BangumiDetailSheetRef {
-  snapToIndex: (index: number) => void;
-  close: () => void;
-}
 
 type AccordionMode = 'ep' | 'folder';
 
@@ -234,14 +220,14 @@ function groupPoints(points: Point[], mode: AccordionMode, bangumi: Bangumi): Ac
   return sections;
 }
 
-const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>(function BangumiDetailSheet(_, ref) {
+function BangumiDetailSheet() {
   const bangumis = useMapData((state) => state.data)?.data.bangumis;
-  const selectedBangumiId = useSelectedBangumi((state) => state.selectedBangumiId);
-  const setSelectedPoint = useSelectedBangumi((state) => state.setSelectedPoint);
-  const setSelectedBangumi = useSelectedBangumi((state) => state.setSelectedBangumi);
+  const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
+  const selectMapPoint = useMapBrowse((state) => state.selectMapPoint);
+  const closeBangumiDetails = useMapBrowse((state) => state.closeBangumiDetails);
   const selectedBangumi = useMemo(
-    () => bangumis?.find((bangumi) => bangumi.id === selectedBangumiId),
-    [bangumis, selectedBangumiId],
+    () => bangumis?.find((bangumi) => bangumi.id === openedBangumiDetailsId),
+    [bangumis, openedBangumiDetailsId],
   );
   const theme = useTheme();
   const sheetRef = useRef<TrueSheet>(null);
@@ -251,14 +237,13 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>(function BangumiDet
   const allExpandedRef = useRef(true);
   const isSheetOpenRef = useRef(false);
 
-  useImperativeHandle(ref, () => ({
-    snapToIndex: (index: number) => {
-      void sheetRef.current?.resize(index);
-    },
-    close: () => {
-      void sheetRef.current?.dismiss();
-    },
-  }));
+  const dismissSheet = useCallback(() => {
+    if (!isSheetOpenRef.current) return;
+
+    // Clear synchronously so state changes triggered by onDidDismiss cannot dismiss twice.
+    isSheetOpenRef.current = false;
+    void sheetRef.current?.dismiss();
+  }, []);
 
   // 选中番剧时打开 sheet，关闭时清除选中
   useEffect(() => {
@@ -272,17 +257,22 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>(function BangumiDet
         });
       }
     } else {
-      void sheetRef.current?.dismiss();
+      dismissSheet();
     }
-  }, [selectedBangumi]);
+  }, [dismissSheet, selectedBangumi]);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        dismissSheet();
+      };
+    }, [dismissSheet]),
+  );
 
   const handleSheetDismiss = useCallback(() => {
     isSheetOpenRef.current = false;
-    // Closing a sheet for an externally selected point must not clear that point's popup.
-    if (useSelectedBangumi.getState().selectedBangumiId !== null) {
-      setSelectedBangumi(null);
-    }
-  }, [setSelectedBangumi]);
+    closeBangumiDetails();
+  }, [closeBangumiDetails]);
 
   const sections = useMemo(() => {
     if (!selectedBangumi) return [];
@@ -394,13 +384,13 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>(function BangumiDet
           point={item.point}
           bangumi={selectedBangumi!}
           onPress={() => {
-            setSelectedPoint({ bangumiId: selectedBangumi!.id, pointId: item.point.id });
+            selectMapPoint({ bangumiId: selectedBangumi!.id, pointId: item.point.id });
             void sheetRef.current?.resize(0);
           }}
         />
       );
     },
-    [selectedBangumi, setSelectedPoint, toggleSection, expandedKeys, theme],
+    [selectedBangumi, selectMapPoint, toggleSection, expandedKeys, theme],
   );
 
   return (
@@ -544,6 +534,6 @@ const BangumiDetailSheet = forwardRef<BangumiDetailSheetRef>(function BangumiDet
       </SheetContent>
     </TrueSheet>
   );
-});
+}
 
 export default BangumiDetailSheet;

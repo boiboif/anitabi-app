@@ -4,7 +4,7 @@ import MapMarkers from '@/components/map-markers';
 import PointImageMarkers from '@/components/point-image-markers';
 import PopupCard from '@/components/point-popup-card';
 import type { Bangumi } from '@/services/types';
-import { useSelectedBangumi } from '@/store/use-selected-bangumi';
+import { useMapBrowse } from '@/store/use-map-browse';
 import { Camera, LocationPuck, MapState, MapView, MarkerView } from '@rnmapbox/maps';
 import { useFocusEffect } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -30,20 +30,21 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
 ) {
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const [bounds, setBounds] = useState<Bounds | null>(null);
-  const selectedBangumiId = useSelectedBangumi((state) => state.selectedBangumiId);
-  const selectedPoint = useSelectedBangumi((state) => state.selectedPoint);
-  const setSelectedBangumi = useSelectedBangumi((state) => state.setSelectedBangumi);
-  const setSelectedPoint = useSelectedBangumi((state) => state.setSelectedPoint);
+  const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
+  const selectedMapPoint = useMapBrowse((state) => state.selectedMapPoint);
+  const openBangumiDetails = useMapBrowse((state) => state.openBangumiDetails);
+  const selectMapPoint = useMapBrowse((state) => state.selectMapPoint);
+  const clearSelectedMapPoint = useMapBrowse((state) => state.clearSelectedMapPoint);
   const selectedBangumi = useMemo(
-    () => bangumis.find((bangumi) => bangumi.id === selectedBangumiId) ?? null,
-    [bangumis, selectedBangumiId],
+    () => bangumis.find((bangumi) => bangumi.id === openedBangumiDetailsId) ?? null,
+    [bangumis, openedBangumiDetailsId],
   );
   const selectedPointData = useMemo(() => {
-    if (!selectedPoint) return null;
-    const bangumi = bangumis.find((item) => item.id === selectedPoint.bangumiId);
-    const point = bangumi?.points.find((item) => item.id === selectedPoint.pointId);
+    if (!selectedMapPoint) return null;
+    const bangumi = bangumis.find((item) => item.id === selectedMapPoint.bangumiId);
+    const point = bangumi?.points.find((item) => item.id === selectedMapPoint.pointId);
     return bangumi && point ? { bangumi, point } : null;
-  }, [bangumis, selectedPoint]);
+  }, [bangumis, selectedMapPoint]);
 
   const cameraRef = useRef<Camera>(null);
 
@@ -134,7 +135,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
       [60, 60, 60, 60], // padding [top, right, bottom, left]
       500,
     );
-  }, [selectedBangumi]);
+  }, [bangumis, selectedBangumi]);
 
   return (
     <MapView
@@ -145,19 +146,19 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
       compassPosition={{ top: insets.top + 100, right: 8 }}
       scaleBarEnabled={false}
       onCameraChanged={handleCameraChanged}
-      onPress={() => setSelectedPoint(null)}
+      onPress={clearSelectedMapPoint}
     >
       <Camera ref={setCameraRef} centerCoordinate={DEFAULT_COORDINATES} zoomLevel={DEFAULT_ZOOM} animationMode="none" />
       <LocationPuck visible puckBearingEnabled puckBearing="heading" pulsing={{ isEnabled: true, color: '#007AFF' }} />
       <MapMarkers
         bangumis={bangumis}
-        onPointSelect={(point, bangumi) => setSelectedPoint({ bangumiId: bangumi.id, pointId: point.id })}
+        onPointSelect={(point, bangumi) => selectMapPoint({ bangumiId: bangumi.id, pointId: point.id })}
       />
       <BangumiIcons
         bangumis={bangumis}
         zoom={zoom}
         onIconPress={(bangumi) => {
-          setSelectedBangumi(bangumi.id);
+          openBangumiDetails(bangumi.id);
         }}
       />
       {showPointImageMarkers && (
@@ -165,7 +166,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
           bangumis={bangumis}
           zoom={zoom}
           bounds={bounds}
-          onPointSelect={(point, bangumi) => setSelectedPoint({ bangumiId: bangumi.id, pointId: point.id })}
+          onPointSelect={(point, bangumi) => selectMapPoint({ bangumiId: bangumi.id, pointId: point.id })}
         />
       )}
 

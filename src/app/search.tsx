@@ -4,7 +4,7 @@ import { formatDuration } from '@/lib/formatDuration';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapData } from '@/store/use-map-data';
-import { useSelectedBangumi } from '@/store/use-selected-bangumi';
+import { useMapBrowse } from '@/store/use-map-browse';
 import { FlashList, FlashListRef } from '@shopify/flash-list';
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
@@ -216,23 +216,23 @@ const Search = () => {
   const flashListRef = useRef<FlashListRef<SearchListItem>>(null);
   const router = useRouter();
   const data = useMapData((state) => state.data);
-  const setSelectedBangumi = useSelectedBangumi((state) => state.setSelectedBangumi);
-  const selectPointOnMap = useSelectedBangumi((state) => state.selectPointOnMap);
+  const openBangumiDetails = useMapBrowse((state) => state.openBangumiDetails);
+  const focusPointFromList = useMapBrowse((state) => state.focusPointFromList);
 
   const handleBangumiPress = useCallback(
     (bangumi: Bangumi) => {
-      setSelectedBangumi(bangumi.id);
+      openBangumiDetails(bangumi.id);
       router.back();
     },
-    [setSelectedBangumi, router],
+    [openBangumiDetails, router],
   );
 
   const handlePointPress = useCallback(
     (point: Point, bangumi: Bangumi) => {
-      selectPointOnMap({ bangumiId: bangumi.id, pointId: point.id });
+      focusPointFromList({ bangumiId: bangumi.id, pointId: point.id });
       router.back();
     },
-    [router, selectPointOnMap],
+    [focusPointFromList, router],
   );
 
   const searchMode = query.trim().length > 0;

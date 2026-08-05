@@ -5,7 +5,7 @@ import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useFavoritePoints } from '@/store/use-favorite-points';
 import { useMapData } from '@/store/use-map-data';
-import { useSelectedBangumi } from '@/store/use-selected-bangumi';
+import { useMapBrowse } from '@/store/use-map-browse';
 import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
 import { Heart } from '@tamagui/lucide-icons-2';
 import { Image } from 'expo-image';
@@ -123,7 +123,7 @@ export default function FavoriteBangumiScreen() {
   const favoritePoints = useFavoritePoints((state) => state.favoritePoints);
   const data = useMapData((state) => state.data);
   const status = useMapData((state) => state.status);
-  const selectPointOnMap = useSelectedBangumi((state) => state.selectPointOnMap);
+  const focusPointFromList = useMapBrowse((state) => state.focusPointFromList);
   const loading = data === null && (status === 'idle' || status === 'loading');
   const id = Number(bangumiId);
 
@@ -149,10 +149,10 @@ export default function FavoriteBangumiScreen() {
   const openPoint = useCallback(
     (item: ResolvedFavorite) => {
       if (!item.point || !item.bangumi) return;
-      selectPointOnMap({ bangumiId: item.bangumi.id, pointId: item.point.id });
+      focusPointFromList({ bangumiId: item.bangumi.id, pointId: item.point.id });
       router.dismissTo('/');
     },
-    [router, selectPointOnMap],
+    [focusPointFromList, router],
   );
   const bottomInset = safeAreaInsets.bottom + BottomTabInset + 16;
   const contentPlatformStyle = Platform.select({

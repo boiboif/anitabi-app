@@ -3,7 +3,7 @@ import { MAP_ICON_ZOOM_THRESHOLD } from '@/lib/constants';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi } from '@/services/types';
 import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
-import { useSelectedBangumi } from '@/store/use-selected-bangumi';
+import { useMapBrowse } from '@/store/use-map-browse';
 import { X } from '@tamagui/lucide-icons-2';
 import { Image } from 'expo-image';
 import { useEffect, useMemo, useRef } from 'react';
@@ -46,15 +46,15 @@ type Props = {
 export default function MapTopBangumiIcons({ bangumis, zoom, bounds }: Props) {
   const scrollViewRef = useRef<ScrollView>(null);
   const theme = useTheme();
-  const selectedBangumiId = useSelectedBangumi((state) => state.selectedBangumiId);
-  const setSelectedBangumi = useSelectedBangumi((state) => state.setSelectedBangumi);
+  const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
+  const closeBangumiDetails = useMapBrowse((state) => state.closeBangumiDetails);
   const selectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
   const toggleMapBangumi = useMapBangumiFilter((state) => state.toggleBangumi);
   const clearMapBangumiFilter = useMapBangumiFilter((state) => state.clear);
   const hasMapBangumiFilter = selectedMapBangumiIds.length > 0;
   const selectedBangumi = useMemo(
-    () => bangumis.find((bangumi) => bangumi.id === selectedBangumiId) ?? null,
-    [bangumis, selectedBangumiId],
+    () => bangumis.find((bangumi) => bangumi.id === openedBangumiDetailsId) ?? null,
+    [bangumis, openedBangumiDetailsId],
   );
 
   const inViewBangumis = useMemo(() => {
@@ -179,7 +179,7 @@ export default function MapTopBangumiIcons({ bangumis, zoom, bounds }: Props) {
           </Pressable> */}
 
           <Pressable
-            onPress={() => setSelectedBangumi(null)}
+            onPress={closeBangumiDetails}
             style={({ pressed }) => ({
               opacity: pressed ? 0.6 : 1,
               justifyContent: 'center',
