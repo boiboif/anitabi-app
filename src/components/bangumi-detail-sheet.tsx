@@ -4,18 +4,20 @@ import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapBrowse } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
-import { TrueSheet } from '@lodev09/react-native-true-sheet';
-import { FlashList } from '@shopify/flash-list';
+import { type DetentChangeEvent, TrueSheet } from '@lodev09/react-native-true-sheet';
+import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import dayjs from 'dayjs';
 import { Image } from 'expo-image';
-import { useFocusEffect } from 'expo-router';
+import { useIsFocused } from 'expo-router';
 import { memo, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform } from 'react-native';
+import { type NativeScrollEvent, type NativeSyntheticEvent, Platform } from 'react-native';
 import { GestureHandlerRootView, Pressable } from 'react-native-gesture-handler';
 import { getTokens, Text, useTheme, View } from 'tamagui';
 
 const CARD_HEIGHT = 100;
 const SECTION_HEADER_HEIGHT = 32;
+const BANGUMI_DETAIL_SHEET_DETENTS = [0.25, 0.8];
+const DEFAULT_BANGUMI_DETAIL_DETENT_INDEX = BANGUMI_DETAIL_SHEET_DETENTS.length - 1;
 
 const PointCard = memo(
   function PointCard({ point, bangumi, onPress }: { point: Point; bangumi: Bangumi; onPress?: () => void }) {
@@ -220,6 +222,121 @@ function groupPoints(points: Point[], mode: AccordionMode, bangumi: Bangumi): Ac
   return sections;
 }
 
+function useBangumiDetailSheet(bangumiId: number | undefined, onDetailsDismiss: () => void) {
+  const sheetRef = useRef<TrueSheet>(null);
+  const flashListRef = useRef<FlashListRef<FlatItem>>(null);
+  const isSheetOpenRef = useRef(false);
+  const isSheetPresentedRef = useRef(false);
+  const preserveDetailsAfterDismissRef = useRef(false);
+  const activeBangumiIdRef = useRef<number | null>(null);
+  const loadedBangumiIdRef = useRef<number | null>(null);
+  const currentDetentIndexRef = useRef(DEFAULT_BANGUMI_DETAIL_DETENT_INDEX);
+  const currentScrollOffsetRef = useRef(0);
+  const pendingScrollRestoreOffsetRef = useRef<number | null>(null);
+  const isRouteFocused = useIsFocused();
+
+  const resetSavedSheetPosition = useCallback(() => {
+    currentDetentIndexRef.current = DEFAULT_BANGUMI_DETAIL_DETENT_INDEX;
+    currentScrollOffsetRef.current = 0;
+    pendingScrollRestoreOffsetRef.current = null;
+  }, []);
+
+  const dismissSheet = useCallback((preserveDetails = false) => {
+    if (!isSheetOpenRef.current) return;
+
+    isSheetOpenRef.current = false;
+    isSheetPresentedRef.current = false;
+    preserveDetailsAfterDismissRef.current = preserveDetails;
+    pendingScrollRestoreOffsetRef.current = preserveDetails ? currentScrollOffsetRef.current : null;
+    void sheetRef.current?.dismiss();
+  }, []);
+
+  useEffect(() => {
+    if (!isRouteFocused) {
+      // 路由失焦仅关闭原生 sheet；store 中的地图上下文继续保留。
+      dismissSheet(true);
+      return;
+    }
+
+    if (bangumiId === undefined) {
+      dismissSheet();
+      return;
+    }
+
+    if (activeBangumiIdRef.current !== bangumiId) {
+      activeBangumiIdRef.current = bangumiId;
+      resetSavedSheetPosition();
+    }
+
+    if (isSheetOpenRef.current) {
+      void sheetRef.current?.resize(currentDetentIndexRef.current);
+    } else {
+      isSheetOpenRef.current = true;
+      isSheetPresentedRef.current = false;
+      void sheetRef.current?.present(currentDetentIndexRef.current).catch(() => {
+        isSheetOpenRef.current = false;
+      });
+    }
+  }, [bangumiId, dismissSheet, isRouteFocused, resetSavedSheetPosition]);
+
+  const handleSheetDismiss = useCallback(() => {
+    isSheetOpenRef.current = false;
+    isSheetPresentedRef.current = false;
+    if (preserveDetailsAfterDismissRef.current) {
+      preserveDetailsAfterDismissRef.current = false;
+      return;
+    }
+
+    activeBangumiIdRef.current = null;
+    resetSavedSheetPosition();
+    onDetailsDismiss();
+  }, [onDetailsDismiss, resetSavedSheetPosition]);
+
+  const handleDetentChange = useCallback((event: DetentChangeEvent) => {
+    const { index } = event.nativeEvent;
+    if (Number.isInteger(index) && index >= 0 && index < BANGUMI_DETAIL_SHEET_DETENTS.length) {
+      currentDetentIndexRef.current = index;
+    }
+  }, []);
+
+  const handleListScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (!isSheetOpenRef.current) return;
+    currentScrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+  }, []);
+
+  const restoreListScrollPosition = useCallback(() => {
+    const offset = pendingScrollRestoreOffsetRef.current;
+    if (offset === null || !isSheetPresentedRef.current || loadedBangumiIdRef.current !== activeBangumiIdRef.current) {
+      return;
+    }
+
+    flashListRef.current?.scrollToOffset({ offset, animated: true });
+    currentScrollOffsetRef.current = offset;
+    pendingScrollRestoreOffsetRef.current = null;
+  }, []);
+
+  const handleListLoad = useCallback(() => {
+    loadedBangumiIdRef.current = activeBangumiIdRef.current;
+    restoreListScrollPosition();
+  }, [restoreListScrollPosition]);
+
+  const handleSheetPresent = useCallback(() => {
+    isSheetOpenRef.current = true;
+    isSheetPresentedRef.current = true;
+    restoreListScrollPosition();
+  }, [restoreListScrollPosition]);
+
+  return {
+    flashListRef,
+    handleDetentChange,
+    handleListLoad,
+    handleListScroll,
+    handleSheetDismiss,
+    handleSheetPresent,
+    sheetRef,
+  };
+}
+
 function BangumiDetailSheet() {
   const bangumis = useMapData((state) => state.data)?.data.bangumis;
   const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
@@ -230,49 +347,19 @@ function BangumiDetailSheet() {
     [bangumis, openedBangumiDetailsId],
   );
   const theme = useTheme();
-  const sheetRef = useRef<TrueSheet>(null);
+  const {
+    flashListRef,
+    handleDetentChange,
+    handleListLoad,
+    handleListScroll,
+    handleSheetDismiss,
+    handleSheetPresent,
+    sheetRef,
+  } = useBangumiDetailSheet(selectedBangumi?.id, closeBangumiDetails);
 
   const [accordionMode, setAccordionMode] = useState<AccordionMode>('ep');
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const allExpandedRef = useRef(true);
-  const isSheetOpenRef = useRef(false);
-
-  const dismissSheet = useCallback(() => {
-    if (!isSheetOpenRef.current) return;
-
-    // Clear synchronously so state changes triggered by onDidDismiss cannot dismiss twice.
-    isSheetOpenRef.current = false;
-    void sheetRef.current?.dismiss();
-  }, []);
-
-  // 选中番剧时打开 sheet，关闭时清除选中
-  useEffect(() => {
-    if (selectedBangumi) {
-      if (isSheetOpenRef.current) {
-        void sheetRef.current?.resize(1);
-      } else {
-        isSheetOpenRef.current = true;
-        void sheetRef.current?.present(1).catch(() => {
-          isSheetOpenRef.current = false;
-        });
-      }
-    } else {
-      dismissSheet();
-    }
-  }, [dismissSheet, selectedBangumi]);
-
-  useFocusEffect(
-    useCallback(() => {
-      return () => {
-        dismissSheet();
-      };
-    }, [dismissSheet]),
-  );
-
-  const handleSheetDismiss = useCallback(() => {
-    isSheetOpenRef.current = false;
-    closeBangumiDetails();
-  }, [closeBangumiDetails]);
 
   const sections = useMemo(() => {
     if (!selectedBangumi) return [];
@@ -390,32 +477,34 @@ function BangumiDetailSheet() {
         />
       );
     },
-    [selectedBangumi, selectMapPoint, toggleSection, expandedKeys, theme],
+    [selectedBangumi, selectMapPoint, sheetRef, toggleSection, expandedKeys, theme],
   );
 
   return (
     <TrueSheet
       ref={sheetRef}
-      detents={[0.25, 0.8]}
+      detents={BANGUMI_DETAIL_SHEET_DETENTS}
       scrollable
       dimmed={false}
       backgroundColor={theme.color1.val}
       cornerRadius={getTokens().radius['4'].val}
       grabberOptions={{ color: theme.primary.val, adaptive: false, topMargin: 12 }}
-      onDidPresent={() => {
-        isSheetOpenRef.current = true;
-      }}
+      onDidPresent={handleSheetPresent}
       onDidDismiss={handleSheetDismiss}
+      onDetentChange={handleDetentChange}
       style={{ paddingTop: 26 }}
     >
       <SheetContent>
         <FlashList
+          ref={flashListRef}
           key={selectedBangumi?.id}
           data={flatData}
           renderItem={renderFlashItem}
           getItemType={(item) => item.type}
           keyExtractor={(item: FlatItem) => item.id}
           stickyHeaderIndices={stickyHeaderIndices}
+          onLoad={handleListLoad}
+          onScroll={handleListScroll}
           ListHeaderComponent={
             <>
               <View px="$2" mb="$4" display="flex" flexDirection="row" rounded="$4" gap="$2.5">

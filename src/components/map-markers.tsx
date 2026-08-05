@@ -126,7 +126,7 @@ export default function MapMarkers({ bangumis, onPointSelect }: Props) {
         circleOpacity: ['interpolate', ['linear'], ['zoom'], 0, 0.7, 8, 0.85, 14, 0.95],
         circleStrokeWidth: 1,
         circleStrokeColor: '#ffffff',
-        circleRadius: ['interpolate', ['linear'], ['zoom'], 0, 3, 8, 4.5, 14, 6.5, 16, 6, 17, 7, 18, 8],
+        circleRadius: ['interpolate', ['linear'], ['zoom'], 0, 2.5, 8, 4, 14, 5.5, 16, 5, 17, 6, 18, 7],
       };
     }
     // 普通模式
@@ -135,7 +135,7 @@ export default function MapMarkers({ bangumis, onPointSelect }: Props) {
       circleOpacity: ['interpolate', ['linear'], ['zoom'], 0, 0.5, 8, 0.6, 14, 0.8],
       circleStrokeWidth: 1,
       circleStrokeColor: '#ffffff',
-      circleRadius: ['interpolate', ['linear'], ['zoom'], 0, 2, 8, 4, 14, 6, 16, 5.5, 17, 6.5, 18, 7],
+      circleRadius: ['interpolate', ['linear'], ['zoom'], 0, 1.75, 8, 3.5, 14, 5, 16, 4.75, 17, 5.5, 18, 6],
     };
   }, [isFilterActive]);
 

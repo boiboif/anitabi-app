@@ -139,7 +139,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
 
   return (
     <MapView
-      style={[StyleSheet.absoluteFill, { bottom: selectedBangumi ? StyleSheet.hairlineWidth : 0 }]}
+      style={StyleSheet.absoluteFill}
       styleURL={MAP_STYLES[styleIndex].url}
       localizeLabels={{ locale: 'zh' }}
       compassEnabled
