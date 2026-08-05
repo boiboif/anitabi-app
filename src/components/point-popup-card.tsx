@@ -16,6 +16,7 @@ type Props = {
 export default function PopupCard({ point, bangumi }: Props) {
   const theme = useTheme();
   const openBangumiDetails = useMapBrowse((state) => state.openBangumiDetails);
+  const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const pointTitle = point.cn || point.name || '未命名点位';
   const animeTitle = bangumi.cn || bangumi.title || bangumi.en || '未知';
   const epLabel =
@@ -120,6 +121,7 @@ export default function PopupCard({ point, bangumi }: Props) {
           accessibilityRole="button"
           accessibilityLabel={`筛选番剧：${animeTitle}`}
           hitSlop={6}
+          disabled={!!openedBangumiDetailsId}
           onPress={() => openBangumiDetails(bangumi.id)}
           style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
         >
