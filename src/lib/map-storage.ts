@@ -51,3 +51,13 @@ export function setCachedData(data: AssembledData): void {
     console.warn('MMKV setCachedData failed:', e);
   }
 }
+
+export function clearMapCache(): void {
+  if (!storage) return;
+  try {
+    storage.remove(ASSEMBLED_KEY);
+    storage.remove(G_MODIFIED_KEY);
+  } catch (e) {
+    console.warn('MMKV clearMapCache failed:', e);
+  }
+}

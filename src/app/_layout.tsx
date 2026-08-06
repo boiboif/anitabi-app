@@ -66,6 +66,14 @@ export default function RootLayout() {
                   }}
                 />
                 <Stack.Screen
+                  name="clear-cache"
+                  options={{
+                    headerShown: true,
+                    headerTitleAlign: 'center',
+                    title: '清理存储空间',
+                  }}
+                />
+                <Stack.Screen
                   name="comparison-camera"
                   options={{
                     gestureEnabled: false,

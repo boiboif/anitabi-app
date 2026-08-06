@@ -1,6 +1,6 @@
 import { SettingCell } from '@/components/setting-cell';
 import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
-import { Info, Moon } from '@tamagui/lucide-icons-2';
+import { Database, Info, Moon } from '@tamagui/lucide-icons-2';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
@@ -72,6 +72,13 @@ export default function ProfileScreen() {
         </SettingsSection>
 
         <SettingsSection title="其他">
+          <SettingCell
+            icon={Database}
+            title="清理存储空间"
+            description="清理地图数据、图片缓存和收藏"
+            onPress={() => router.push('/clear-cache')}
+            showDivider
+          />
           <SettingCell icon={Info} title="Anitabi" description="动漫巡礼地图" value={Constants.expoConfig?.version} />
         </SettingsSection>
       </View>

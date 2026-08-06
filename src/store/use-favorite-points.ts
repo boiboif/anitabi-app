@@ -1,4 +1,4 @@
-import { getFavoritePoints, setFavoritePoints, type FavoritePoint } from '@/lib/favorite-storage';
+import { clearFavoritePoints, getFavoritePoints, setFavoritePoints, type FavoritePoint } from '@/lib/favorite-storage';
 import type { Bangumi, Point } from '@/services/types';
 import { create } from 'zustand';
 
@@ -32,6 +32,7 @@ type FavoritePointsStore = {
   addFavorite: (point: Point, bangumi: Bangumi) => void;
   removeFavorite: (key: string) => void;
   toggleFavorite: (point: Point, bangumi: Bangumi) => void;
+  clearAllFavorites: () => void;
 };
 
 const initialFavoritePoints = getFavoritePoints();
@@ -64,5 +65,10 @@ export const useFavoritePoints = create<FavoritePointsStore>((set, get) => ({
     } else {
       get().addFavorite(point, bangumi);
     }
+  },
+
+  clearAllFavorites: () => {
+    clearFavoritePoints();
+    set({ favoritePoints: [], favoriteKeys: new Set() });
   },
 }));

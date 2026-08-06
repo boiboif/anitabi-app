@@ -57,3 +57,12 @@ export function setFavoritePoints(points: FavoritePoint[]): void {
     console.warn('MMKV setFavoritePoints failed:', error);
   }
 }
+
+export function clearFavoritePoints(): void {
+  if (!storage) return;
+  try {
+    storage.remove(FAVORITES_KEY);
+  } catch (error) {
+    console.warn('MMKV clearFavoritePoints failed:', error);
+  }
+}

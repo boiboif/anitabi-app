@@ -1,7 +1,7 @@
 import type { IconProps } from '@tamagui/helpers-icon';
 import { ChevronRight } from '@tamagui/lucide-icons-2';
-import type { ComponentType } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import type { ComponentType, ReactNode } from 'react';
+import { Pressable, StyleSheet, type AccessibilityRole, type AccessibilityState } from 'react-native';
 import { Text, View, XStack, YStack } from 'tamagui';
 
 type SettingsIcon = ComponentType<IconProps>;
@@ -11,11 +11,26 @@ type SettingCellProps = {
   title: string;
   description?: string;
   value?: string;
+  rightAccessory?: ReactNode;
   onPress?: () => void;
   showDivider?: boolean;
+  accessibilityRole?: AccessibilityRole;
+  accessibilityState?: AccessibilityState;
+  disabled?: boolean;
 };
 
-export function SettingCell({ icon: Icon, title, description, value, onPress, showDivider = false }: SettingCellProps) {
+export function SettingCell({
+  icon: Icon,
+  title,
+  description,
+  value,
+  rightAccessory,
+  onPress,
+  showDivider = false,
+  accessibilityRole = 'button',
+  accessibilityState,
+  disabled = false,
+}: SettingCellProps) {
   const content = (
     <XStack items="center" gap="$4">
       <View minH={62} items="center" justify="center">
@@ -38,7 +53,7 @@ export function SettingCell({ icon: Icon, title, description, value, onPress, sh
               {value}
             </Text>
           ) : null}
-          {onPress ? <ChevronRight size={20} color="$color10" /> : null}
+          {rightAccessory ?? (onPress ? <ChevronRight size={20} color="$color10" /> : null)}
         </XStack>
         {showDivider ? <View bg="$color6" height={StyleSheet.hairlineWidth} /> : null}
       </YStack>
@@ -51,10 +66,12 @@ export function SettingCell({ icon: Icon, title, description, value, onPress, sh
 
   return (
     <Pressable
-      accessibilityRole="button"
+      accessibilityRole={accessibilityRole}
       accessibilityLabel={title}
+      accessibilityState={accessibilityState}
+      disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => ({ flex: 1, opacity: pressed ? 0.62 : 1 })}
+      style={({ pressed }) => ({ flex: 1, opacity: pressed && !disabled ? 0.62 : 1 })}
     >
       {content}
     </Pressable>
