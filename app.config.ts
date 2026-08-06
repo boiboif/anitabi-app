@@ -4,25 +4,23 @@ import type { ExpoConfig } from 'expo/config';
 dotenvConfig({ path: '.env.local' });
 
 const config: ExpoConfig = {
-  name: 'anitabi-app',
+  name: 'Anitabi',
   slug: 'anitabi-app',
   version: '0.0.1',
   orientation: 'default',
-  icon: './assets/images/icon.png',
+  icon: './assets/images/anitabi-icon.png',
   scheme: 'anitabiapp',
   userInterfaceStyle: 'automatic',
   ios: {
-    icon: './assets/expo.icon',
+    icon: './assets/images/anitabi-icon.png',
     infoPlist: {
       NSCameraUsageDescription: '用于拍摄巡礼点的实景对比照片',
     },
   },
   android: {
     adaptiveIcon: {
-      backgroundColor: '#E6F4FE',
-      foregroundImage: './assets/images/android-icon-foreground.png',
-      backgroundImage: './assets/images/android-icon-background.png',
-      monochromeImage: './assets/images/android-icon-monochrome.png',
+      backgroundColor: '#8DCEF1',
+      foregroundImage: './assets/images/anitabi-icon-adaptive-foreground.png',
     },
     predictiveBackGestureEnabled: false,
     package: 'bbf.anitabiapp',
@@ -30,7 +28,7 @@ const config: ExpoConfig = {
   },
   web: {
     output: 'static',
-    favicon: './assets/images/favicon.png',
+    favicon: './assets/images/anitabi-icon.png',
   },
   plugins: [
     'expo-router',
