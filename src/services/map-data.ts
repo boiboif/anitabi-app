@@ -140,9 +140,7 @@ export async function refreshMapData(onProgress?: (p: FetchProgress) => void): P
   const gRaw = (await getGJSON()) as [RawGBangumi[], number, number];
   const remoteModified = gRaw[2];
 
-  if (cachedData && remoteModified === getGModified()) {
-    return cachedData;
-  }
+  if (cachedData && remoteModified === getGModified()) return cachedData;
 
   return fetchDetails(gRaw[0], remoteModified, onProgress);
 }
@@ -175,8 +173,6 @@ async function fetchDetails(
   onProgress?.({ phase: 'assembling', message: '数据组装中…' });
 
   const assembled = assembleBangumis(gList, detailMap);
-  // console.log('组装后的数据:', assembled);
-
   setGModified(modified);
   setCachedData(assembled);
 

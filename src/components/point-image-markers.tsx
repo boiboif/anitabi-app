@@ -53,7 +53,7 @@ export default function PointImageMarkers({ bangumis, zoom, bounds, onPointSelec
     }
 
     return items;
-  }, [bangumis, zoom, bounds, openedBangumiDetailsId, selectedMapBangumiIds]);
+  }, [zoom, zoomThreshold, bounds, selectedMapBangumiIds, bangumis, openedBangumiDetailsId]);
 
   const { imagesMap, geojson } = useMemo(() => {
     const images: Record<string, { uri: string }> = {};

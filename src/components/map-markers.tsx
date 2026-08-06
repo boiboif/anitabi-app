@@ -1,3 +1,4 @@
+import { MAP_POINT_PRIORITY_ALL_VISIBLE_ZOOM, MAP_POINT_PRIORITY_ZOOM_STOPS } from '@/lib/constants';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
 import { useMapBrowse } from '@/store/use-map-browse';
@@ -29,8 +30,6 @@ function toGeoJSON(bangumis: Bangumi[]): GeoJSON.FeatureCollection {
         },
         properties: {
           id: p.id,
-          // 上游未提供 density 的点视为孤立点，直接通过地图筛选。
-          ...(p.density == null ? {} : { density: p.density }),
           priority: p.priority,
           bangumiId: b.id,
           color: b.color,
@@ -42,30 +41,18 @@ function toGeoJSON(bangumis: Bangumi[]): GeoJSON.FeatureCollection {
   return { type: 'FeatureCollection', features };
 }
 
-// ---------------------------------------------------------------------------
-// Zoom-Density 动态阈值
-//
-// density = 到最近邻点的距离（米）
-// 每个 stop 表示：在 zoom 级别下，只显示 density >= 该阈值的点
-// zoom 越低 → 阈值越高（只显示稀疏点）
-// zoom 越高 → 阈值越低（逐渐放开密集点）
-// zoom >= 16 → 显示所有点
-// ---------------------------------------------------------------------------
-
-const DENSITY_STOPS: [number, number][] = [
-  [0, 100000],
-  [4, 30000],
-  [7, 5000],
-  [10, 500],
-  [12, 50],
-  [14, 5],
-  [16, 0],
-];
+const POINT_PRIORITY_FILTER = [
+  'step',
+  ['zoom'],
+  ['>', ['get', 'priority'], MAP_POINT_PRIORITY_ZOOM_STOPS[0][1]],
+  ...MAP_POINT_PRIORITY_ZOOM_STOPS.slice(1).flatMap(([zoom, priority]) => [zoom, ['>', ['get', 'priority'], priority]]),
+  MAP_POINT_PRIORITY_ALL_VISIBLE_ZOOM,
+  ['has', 'priority'],
+] as unknown as ComponentProps<typeof CircleLayer>['filter'];
 
 export default function MapMarkers({ bangumis, onPointSelect }: Props) {
   const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const selectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
-  const isFilterActive = openedBangumiDetailsId !== null || selectedMapBangumiIds.length > 0;
 
   // 始终用完整数据生成 GeoJSON，筛选通过 filter 表达式实现
   const geoJSON = useMemo(() => toGeoJSON(bangumis), [bangumis]);
@@ -73,27 +60,16 @@ export default function MapMarkers({ bangumis, onPointSelect }: Props) {
   const pointFilter: ComponentProps<typeof CircleLayer>['filter'] = useMemo(() => {
     if (openedBangumiDetailsId !== null) {
       // 筛选模式：只显示选中番剧的点 + 不限制 density
-      return [
-        'all',
-        ['==', ['get', 'bangumiId'], openedBangumiDetailsId],
-      ] satisfies ComponentProps<typeof CircleLayer>['filter'];
+      return ['all', ['==', ['get', 'bangumiId'], openedBangumiDetailsId]] satisfies ComponentProps<
+        typeof CircleLayer
+      >['filter'];
     }
     if (selectedMapBangumiIds.length > 0) {
-      return [
-        'all',
-        ['in', ['get', 'bangumiId'], ['literal', selectedMapBangumiIds]],
-      ] satisfies ComponentProps<typeof CircleLayer>['filter'];
+      return ['all', ['in', ['get', 'bangumiId'], ['literal', selectedMapBangumiIds]]] satisfies ComponentProps<
+        typeof CircleLayer
+      >['filter'];
     }
-    // 普通模式：zoom-density 动态阈值
-    return [
-      'any',
-      ['!', ['has', 'density']],
-      [
-        '>=',
-        ['get', 'density'],
-        ['interpolate', ['linear'], ['zoom'], ...DENSITY_STOPS.flat()],
-      ],
-    ] satisfies ComponentProps<typeof CircleLayer>['filter'];
+    return POINT_PRIORITY_FILTER;
   }, [openedBangumiDetailsId, selectedMapBangumiIds]);
 
   /** 点击圆点标记 → 查找完整点/番数据 → 弹出详情 */
@@ -118,26 +94,16 @@ export default function MapMarkers({ bangumis, onPointSelect }: Props) {
     [bangumis, onPointSelect],
   );
 
-  const circleStyle = useMemo((): ComponentProps<typeof CircleLayer>['style'] => {
-    if (isFilterActive) {
-      // 筛选模式：放大、更不透明
-      return {
-        circleColor: ['get', 'color'],
-        circleOpacity: ['interpolate', ['linear'], ['zoom'], 0, 0.7, 8, 0.85, 14, 0.95],
-        circleStrokeWidth: 1,
-        circleStrokeColor: '#ffffff',
-        circleRadius: ['interpolate', ['linear'], ['zoom'], 0, 2.5, 8, 4, 14, 5.5, 16, 5, 17, 6, 18, 7],
-      };
-    }
-    // 普通模式
-    return {
+  const circleStyle = useMemo(
+    (): ComponentProps<typeof CircleLayer>['style'] => ({
+      circleSortKey: 90_001,
       circleColor: ['get', 'color'],
-      circleOpacity: ['interpolate', ['linear'], ['zoom'], 0, 0.5, 8, 0.6, 14, 0.8],
-      circleStrokeWidth: 1,
+      circleRadius: ['interpolate', ['exponential', 1.75], ['zoom'], 12, 4, 18, 8, 22, 16],
+      circleStrokeWidth: ['interpolate', ['exponential', 1.75], ['zoom'], 12, 1.5, 18, 3, 22, 6],
       circleStrokeColor: '#ffffff',
-      circleRadius: ['interpolate', ['linear'], ['zoom'], 0, 1.75, 8, 3.5, 14, 5, 16, 4.75, 17, 5.5, 18, 6],
-    };
-  }, [isFilterActive]);
+    }),
+    [],
+  );
 
   return (
     <>
