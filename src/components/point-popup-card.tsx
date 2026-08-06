@@ -56,6 +56,7 @@ export default function PopupCard({ point, bangumi }: Props) {
           <View
             style={{
               width: 250,
+              maxWidth: '100%',
               aspectRatio: 16 / 9,
               position: 'relative',
             }}

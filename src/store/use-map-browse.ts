@@ -12,8 +12,8 @@ export type MapPointReference = {
  */
 type MapCameraRequest = MapPointReference & {
   id: number;
-  /** 地图内点选会尊重当前高缩放级别；外部列表点选始终定位。 */
-  source: 'map-point-selection' | 'external-list';
+  /** 地图、列表和番剧详情抽屉的点选来源。 */
+  source: 'map-point-selection' | 'external-list' | 'bangumi-detail-sheet';
 };
 
 type MapBrowseState = {
@@ -28,10 +28,12 @@ type MapBrowseState = {
   openBangumiDetails: (bangumiId: number) => void;
   /** 关闭番剧详情抽屉，不影响当前地图点位弹窗。 */
   closeBangumiDetails: () => void;
-  /** 用户在地图或详情抽屉内选择点位，按当前地图缩放级别决定是否定位。 */
+  /** 用户在地图内选择点位。 */
   selectMapPoint: (point: MapPointReference) => void;
   /** 用户从搜索或收藏列表选择点位，返回地图后强制定位到该点。 */
   focusPointFromList: (point: MapPointReference) => void;
+  /** 用户从番剧详情抽屉选择点位，强制定位到该点。 */
+  focusPointFromBangumiDetails: (point: MapPointReference) => void;
   /** 关闭地图点位弹窗，并取消尚未执行的定位请求。 */
   clearSelectedMapPoint: () => void;
   /** 首页完成相机动作后确认消费请求，防止数据更新时重复定位。 */
@@ -65,6 +67,12 @@ export const useMapBrowse = create<MapBrowseState>((set) => ({
       openedBangumiDetailsId: null,
       selectedMapPoint: point,
       mapCameraRequest: createMapCameraRequest(point, 'external-list'),
+    }),
+
+  focusPointFromBangumiDetails: (point) =>
+    set({
+      selectedMapPoint: point,
+      mapCameraRequest: createMapCameraRequest(point, 'bangumi-detail-sheet'),
     }),
 
   clearSelectedMapPoint: () => set({ selectedMapPoint: null, mapCameraRequest: null }),

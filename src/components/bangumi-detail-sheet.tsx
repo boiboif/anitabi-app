@@ -340,7 +340,7 @@ function useBangumiDetailSheet(bangumiId: number | undefined, onDetailsDismiss: 
 function BangumiDetailSheet() {
   const bangumis = useMapData((state) => state.data)?.data.bangumis;
   const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
-  const selectMapPoint = useMapBrowse((state) => state.selectMapPoint);
+  const focusPointFromBangumiDetails = useMapBrowse((state) => state.focusPointFromBangumiDetails);
   const closeBangumiDetails = useMapBrowse((state) => state.closeBangumiDetails);
   const selectedBangumi = useMemo(
     () => bangumis?.find((bangumi) => bangumi.id === openedBangumiDetailsId),
@@ -471,13 +471,13 @@ function BangumiDetailSheet() {
           point={item.point}
           bangumi={selectedBangumi!}
           onPress={() => {
-            selectMapPoint({ bangumiId: selectedBangumi!.id, pointId: item.point.id });
+            focusPointFromBangumiDetails({ bangumiId: selectedBangumi!.id, pointId: item.point.id });
             void sheetRef.current?.resize(0);
           }}
         />
       );
     },
-    [selectedBangumi, selectMapPoint, sheetRef, toggleSection, expandedKeys, theme],
+    [selectedBangumi, focusPointFromBangumiDetails, sheetRef, toggleSection, expandedKeys, theme],
   );
 
   return (

@@ -29,6 +29,3 @@ export const MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE = 18;
 
 /** 筛选模式下，当 zoom 大于此值时，地图中显示巡礼点图片。 */
 export const FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE = 18;
-
-/** 当前 zoom 大于此值时，选中巡礼点不移动地图 camera */
-export const MAP_CAMERA_FLY_TO_POINT_ZOOM_THRESHOLD = 18;

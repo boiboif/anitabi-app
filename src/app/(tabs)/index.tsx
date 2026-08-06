@@ -6,10 +6,7 @@ import MapContainer from '@/components/map-container';
 import MapTopBangumiIcons from '@/components/map-top-bangumi-icons';
 import PointImageMarkerSwitch from '@/components/point-image-marker-switch';
 import SearchBox from '@/components/search-box';
-import {
-  FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE,
-  MAP_CAMERA_FLY_TO_POINT_ZOOM_THRESHOLD,
-} from '@/lib/constants';
+import { FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE } from '@/lib/constants';
 import { useMapData } from '@/store/use-map-data';
 import { useMapBrowse } from '@/store/use-map-browse';
 import type { Camera, Location } from '@rnmapbox/maps';
@@ -37,14 +34,12 @@ export default function HomeScreen() {
     zoom: 4.6,
     bounds: null,
   });
-  const cameraZoomRef = useRef(cameraState.zoom);
   const [showPointImageMarkers, setShowPointImageMarkers] = useState(true);
   const setCameraRef = useCallback((camera: Camera | null) => {
     cameraRef.current = camera;
     setIsCameraReady(camera !== null);
   }, []);
   const handleCameraChange = useCallback((nextCameraState: CameraState) => {
-    cameraZoomRef.current = nextCameraState.zoom;
     setCameraState(nextCameraState);
   }, []);
 
@@ -80,7 +75,7 @@ export default function HomeScreen() {
 
     if (!isCameraReady || !camera) return;
 
-    if (request.source === 'map-point-selection' && cameraZoomRef.current > MAP_CAMERA_FLY_TO_POINT_ZOOM_THRESHOLD) {
+    if (request.source === 'map-point-selection' && openedBangumiDetailsId === null) {
       completeMapCameraRequest(request.id);
       return;
     }
@@ -100,7 +95,7 @@ export default function HomeScreen() {
       animationDuration: 500,
     });
     completeMapCameraRequest(request.id);
-  }, [completeMapCameraRequest, data, isCameraReady, mapCameraRequest, mapCameraRequestData]);
+  }, [completeMapCameraRequest, data, isCameraReady, mapCameraRequest, mapCameraRequestData, openedBangumiDetailsId]);
 
   const handleLocate = useCallback(async () => {
     try {
