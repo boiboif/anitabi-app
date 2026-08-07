@@ -10,7 +10,7 @@ import dayjs from 'dayjs';
 import { Image } from 'expo-image';
 import { useIsFocused } from 'expo-router';
 import { memo, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { type NativeScrollEvent, type NativeSyntheticEvent, Platform } from 'react-native';
+import { type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, Platform } from 'react-native';
 import { GestureHandlerRootView, Pressable } from 'react-native-gesture-handler';
 import { getTokens, Text, useTheme, View } from 'tamagui';
 
@@ -140,12 +140,99 @@ interface FlatPointItem {
 
 type FlatItem = FlatSectionHeader | FlatPointItem;
 
+interface PendingModeScroll {
+  offset: number;
+  ready: boolean;
+}
+
 function SheetContent({ children }: { children: ReactNode }) {
   if (Platform.OS === 'android') {
     return <GestureHandlerRootView style={{ flexGrow: 1 }}>{children}</GestureHandlerRootView>;
   }
 
   return children;
+}
+
+function AccordionControls({
+  accordionMode,
+  hidden = false,
+  onCollapseAll,
+  onExpandAll,
+  onLayout,
+  onSelectMode,
+}: {
+  accordionMode: AccordionMode;
+  hidden?: boolean;
+  onCollapseAll: () => void;
+  onExpandAll: () => void;
+  onLayout?: (event: LayoutChangeEvent) => void;
+  onSelectMode: (mode: AccordionMode) => void;
+}) {
+  return (
+    <View
+      bg="$color1"
+      opacity={hidden ? 0 : 1}
+      flexDirection="row"
+      items="center"
+      px="$2"
+      pb="$2"
+      gap="$2"
+      onLayout={onLayout}
+    >
+      <View flexDirection="row" gap="$1" flex={1}>
+        <Pressable onPress={() => onSelectMode('ep')}>
+          <View
+            bg={accordionMode === 'ep' ? '$color3' : 'transparent'}
+            p="$2"
+            px="$3.5"
+            rounded={accordionMode === 'ep' ? '$9' : undefined}
+          >
+            <Text
+              fontWeight={accordionMode === 'ep' ? '600' : '400'}
+              color={accordionMode === 'ep' ? '$primary' : '$color11'}
+              fontSize={14}
+            >
+              话数
+            </Text>
+          </View>
+        </Pressable>
+        <Pressable onPress={() => onSelectMode('folder')}>
+          <View
+            bg={accordionMode === 'folder' ? '$color3' : 'transparent'}
+            p="$2"
+            px="$3.5"
+            rounded={accordionMode === 'folder' ? '$9' : undefined}
+          >
+            <Text
+              fontWeight={accordionMode === 'folder' ? '600' : '400'}
+              color={accordionMode === 'folder' ? '$primary' : '$color11'}
+              fontSize={14}
+            >
+              分组
+            </Text>
+          </View>
+        </Pressable>
+      </View>
+      <View flexDirection="row" gap="$2">
+        <Pressable
+          onPress={onCollapseAll}
+          style={({ pressed }: { pressed: boolean }) => ({ opacity: pressed ? 0.6 : 1 })}
+        >
+          <Text fontSize={13} color="$primary">
+            折叠全部
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={onExpandAll}
+          style={({ pressed }: { pressed: boolean }) => ({ opacity: pressed ? 0.6 : 1 })}
+        >
+          <Text fontSize={13} color="$primary">
+            展开全部
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  );
 }
 
 function groupPoints(points: Point[], mode: AccordionMode, bangumi: Bangumi): AccordionSection[] {
@@ -360,7 +447,14 @@ function BangumiDetailSheet() {
 
   const [accordionMode, setAccordionMode] = useState<AccordionMode>('ep');
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
+  const [controlsHeight, setControlsHeight] = useState(0);
+  const [controlsOffset, setControlsOffset] = useState<number | null>(null);
+  const [isControlsSticky, setIsControlsSticky] = useState(false);
+  const [flashListViewportHeight, setFlashListViewportHeight] = useState(0);
   const allExpandedRef = useRef(true);
+  const modeExpansionStateRef = useRef(true);
+  const pendingModeScrollRef = useRef<PendingModeScroll | null>(null);
+  const controlsOffsetRef = useRef(Number.POSITIVE_INFINITY);
 
   const sections = useMemo(() => {
     if (!selectedBangumi) return [];
@@ -376,10 +470,13 @@ function BangumiDetailSheet() {
 
   // mode 切换时保持全部展开/折叠状态不变
   useEffect(() => {
-    if (allExpandedRef.current) {
+    if (modeExpansionStateRef.current) {
       setExpandedKeys(new Set(sections.map((s) => s.key)));
     } else {
       setExpandedKeys(new Set());
+    }
+    if (pendingModeScrollRef.current) {
+      pendingModeScrollRef.current.ready = true;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accordionMode]);
@@ -389,17 +486,37 @@ function BangumiDetailSheet() {
     // A new selection must reset the user-controlled accordion state.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setExpandedKeys(new Set(sections.map((s) => s.key)));
+    setControlsHeight(0);
+    setControlsOffset(null);
+    setIsControlsSticky(false);
+    controlsOffsetRef.current = Number.POSITIVE_INFINITY;
     allExpandedRef.current = true;
+    modeExpansionStateRef.current = true;
+    pendingModeScrollRef.current = null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBangumi]);
 
-  const expandAll = useCallback(() => {
-    setExpandedKeys(new Set(sections.map((s) => s.key)));
-  }, [sections]);
+  const setAllSectionsExpanded = useCallback(
+    (expanded: boolean) => {
+      allExpandedRef.current = expanded;
+      setExpandedKeys(expanded ? new Set(sections.map((section) => section.key)) : new Set());
+    },
+    [sections],
+  );
 
-  const collapseAll = useCallback(() => {
-    setExpandedKeys(new Set());
-  }, []);
+  const handleAccordionModeChange = useCallback(
+    (mode: AccordionMode) => {
+      if (mode === accordionMode) return;
+
+      modeExpansionStateRef.current = allExpandedRef.current;
+      const controlsOffset = controlsOffsetRef.current;
+      if (Number.isFinite(controlsOffset)) {
+        pendingModeScrollRef.current = { offset: controlsOffset, ready: false };
+      }
+      setAccordionMode(mode);
+    },
+    [accordionMode],
+  );
 
   const toggleSection = useCallback((key: string) => {
     setExpandedKeys((prev) => {
@@ -410,37 +527,64 @@ function BangumiDetailSheet() {
     });
   }, []);
 
-  const filteredSections = useMemo(
-    () => sections.map((s) => ({ ...s, data: expandedKeys.has(s.key) ? s.data : [] })),
-    [sections, expandedKeys],
+  const handleControlsLayout = useCallback((event: LayoutChangeEvent) => {
+    const { height, y } = event.nativeEvent.layout;
+    controlsOffsetRef.current = y;
+    setControlsHeight((previousHeight) => (previousHeight === height ? previousHeight : height));
+    setControlsOffset((previousOffset) => (previousOffset === y ? previousOffset : y));
+  }, []);
+
+  const handleFlashListViewportLayout = useCallback((event: LayoutChangeEvent) => {
+    const { height } = event.nativeEvent.layout;
+    setFlashListViewportHeight((previousHeight) => (previousHeight === height ? previousHeight : height));
+  }, []);
+
+  const handleFlashListScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      handleListScroll(event);
+      const scrollOffset = event.nativeEvent.contentOffset.y;
+      const shouldStick = scrollOffset >= controlsOffsetRef.current;
+      setIsControlsSticky((wasSticky) => (wasSticky === shouldStick ? wasSticky : shouldStick));
+    },
+    [handleListScroll],
   );
 
-  // 拍平为含 section header 的扁平数组
-  const flatData: FlatItem[] = useMemo(() => {
-    const countMap = new Map<string, number>();
-    for (const s of sections) {
-      countMap.set(s.key, s.data.length);
-    }
-    const items: FlatItem[] = [];
-    for (const section of filteredSections) {
-      items.push({
-        type: ITEM_TYPE_HEADER,
-        id: `header-${section.key}`,
-        title: section.title,
-        count: countMap.get(section.key) ?? 0,
-      });
-      for (const point of section.data) {
-        items.push({ type: ITEM_TYPE_POINT, id: `point-${point.id}-${point.name}`, point });
-      }
-    }
-    return items;
-  }, [filteredSections, sections]);
+  const handleFlashListLayoutCommit = useCallback(() => {
+    const pendingScroll = pendingModeScrollRef.current;
+    if (!pendingScroll?.ready) return;
 
-  // 计算 sticky header 索引
+    flashListRef.current?.scrollToOffset({ offset: pendingScroll.offset, animated: false });
+    pendingModeScrollRef.current = null;
+  }, [flashListRef]);
+
+  const flatData: FlatItem[] = useMemo(() => {
+    return sections.flatMap((section) => {
+      const items: FlatItem[] = [
+        {
+          type: ITEM_TYPE_HEADER,
+          id: `header-${section.key}`,
+          title: section.title,
+          count: section.data.length,
+        },
+      ];
+      if (expandedKeys.has(section.key)) {
+        items.push(
+          ...section.data.map(
+            (point): FlatPointItem => ({ type: ITEM_TYPE_POINT, id: `point-${point.id}-${point.name}`, point }),
+          ),
+        );
+      }
+      return items;
+    });
+  }, [sections, expandedKeys]);
+
   const stickyHeaderIndices = useMemo(
-    () => flatData.map((item, index) => (item.type === ITEM_TYPE_HEADER ? index : -1)).filter((i) => i >= 0),
+    () => flatData.map((item, index) => (item.type === ITEM_TYPE_HEADER ? index : -1)).filter((index) => index >= 0),
     [flatData],
   );
+
+  const minimumContentHeight =
+    flashListViewportHeight > 0 && controlsOffset !== null ? flashListViewportHeight + controlsOffset : undefined;
 
   const renderFlashItem = useCallback(
     ({ item }: { item: FlatItem }) => {
@@ -496,131 +640,100 @@ function BangumiDetailSheet() {
       style={{ paddingTop: 26 }}
     >
       <SheetContent>
-        <FlashList
-          ref={flashListRef}
-          key={selectedBangumi?.id}
-          data={flatData}
-          renderItem={renderFlashItem}
-          getItemType={(item) => item.type}
-          keyExtractor={(item: FlatItem) => item.id}
-          stickyHeaderIndices={stickyHeaderIndices}
-          onLoad={handleListLoad}
-          onScroll={handleListScroll}
-          ListHeaderComponent={
-            <>
-              <View px="$2" mb="$4" display="flex" flexDirection="row" rounded="$4" gap="$2.5">
-                <Image
-                  source={buildImageUrl(selectedBangumi?.cover ?? '')}
-                  style={{
-                    width: 180,
-                    height: 140,
-                    borderRadius: getTokens().radius['4'].val,
-                    backgroundColor: selectedBangumi?.color || '$color9',
-                  }}
-                  contentFit="cover"
-                />
-                <View flex={1}>
-                  {selectedBangumi?.cn ? (
-                    <Text fontWeight="600" fontSize={16} color="$color12" pr="$8" numberOfLines={2}>
-                      {selectedBangumi?.cn}
-                    </Text>
-                  ) : null}
-                  <Text fontSize={12} color="$color11" mt="$1" mb="$1" numberOfLines={1}>
-                    {selectedBangumi?.title}
-                  </Text>
-                  <View flexDirection="row">
-                    {selectedBangumi?.city && (
-                      <Text fontSize={12} color="$color11">
-                        {selectedBangumi?.city} {'· '}
+        <View flex={1} onLayout={handleFlashListViewportLayout}>
+          <View flex={1}>
+            <FlashList
+              ref={flashListRef}
+              key={selectedBangumi?.id + accordionMode}
+              data={flatData}
+              renderItem={renderFlashItem}
+              getItemType={(item) => item.type}
+              keyExtractor={(item: FlatItem) => item.id}
+              stickyHeaderIndices={stickyHeaderIndices}
+              stickyHeaderConfig={{ offset: controlsHeight }}
+              ListHeaderComponentStyle={{ marginBottom: -controlsHeight }}
+              onCommitLayoutEffect={handleFlashListLayoutCommit}
+              onLoad={handleListLoad}
+              onScroll={handleFlashListScroll}
+              ListHeaderComponent={
+                <>
+                  <View px="$2" mb="$4" display="flex" flexDirection="row" rounded="$4" gap="$2.5">
+                    <Image
+                      source={buildImageUrl(selectedBangumi?.cover ?? '')}
+                      style={{
+                        width: 180,
+                        height: 140,
+                        borderRadius: getTokens().radius['4'].val,
+                        backgroundColor: selectedBangumi?.color || '$color9',
+                      }}
+                      contentFit="cover"
+                    />
+                    <View flex={1}>
+                      {selectedBangumi?.cn ? (
+                        <Text fontWeight="600" fontSize={16} color="$color12" pr="$8" numberOfLines={2}>
+                          {selectedBangumi?.cn}
+                        </Text>
+                      ) : null}
+                      <Text fontSize={12} color="$color11" mt="$1" mb="$1" numberOfLines={1}>
+                        {selectedBangumi?.title}
                       </Text>
-                    )}
-                    <Text fontSize={12} color="$color11">
-                      <Text color="$primary" fontWeight="bold">
-                        {selectedBangumi?.points.length}
-                      </Text>
-                      个巡礼点
-                    </Text>
-                  </View>
-                  <Text fontSize={10} color="$color11" position="absolute" r="$0" b="$0">
-                    最近更新：{dayjs(selectedBangumi?.modified).format('YYYY-MM-DD HH:mm')}
-                  </Text>
-                </View>
-                {selectedBangumi?.cat?.trim() ? (
-                  <View
-                    position="absolute"
-                    t="$2"
-                    r="$2"
-                    px="$2"
-                    py="$1"
-                    rounded="$2"
-                    style={{ backgroundColor: selectedBangumi?.color || '$color9' }}
-                  >
-                    <Text fontSize={10} color="white" fontWeight="500">
-                      {selectedBangumi?.cat}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-
-              {/* Tab 栏 + 折叠/展开全部 */}
-              <View flexDirection="row" items="center" px="$2" mb="$2" gap="$2">
-                <View flexDirection="row" gap="$1" flex={1}>
-                  <Pressable onPress={() => setAccordionMode('ep')}>
-                    <View
-                      bg={accordionMode === 'ep' ? '$color3' : 'transparent'}
-                      p="$2"
-                      px="$3.5"
-                      rounded={accordionMode === 'ep' ? '$9' : undefined}
-                    >
-                      <Text
-                        fontWeight={accordionMode === 'ep' ? '600' : '400'}
-                        color={accordionMode === 'ep' ? '$primary' : '$color11'}
-                        fontSize={14}
-                      >
-                        话数
+                      <View flexDirection="row">
+                        {selectedBangumi?.city && (
+                          <Text fontSize={12} color="$color11">
+                            {selectedBangumi?.city} {'· '}
+                          </Text>
+                        )}
+                        <Text fontSize={12} color="$color11">
+                          <Text color="$primary" fontWeight="bold">
+                            {selectedBangumi?.points.length}
+                          </Text>
+                          个巡礼点
+                        </Text>
+                      </View>
+                      <Text fontSize={10} color="$color11" position="absolute" r="$0" b="$0">
+                        最近更新：{dayjs(selectedBangumi?.modified).format('YYYY-MM-DD HH:mm')}
                       </Text>
                     </View>
-                  </Pressable>
-                  <Pressable onPress={() => setAccordionMode('folder')}>
-                    <View
-                      bg={accordionMode === 'folder' ? '$color3' : 'transparent'}
-                      p="$2"
-                      px="$3.5"
-                      rounded={accordionMode === 'folder' ? '$9' : undefined}
-                    >
-                      <Text
-                        fontWeight={accordionMode === 'folder' ? '600' : '400'}
-                        color={accordionMode === 'folder' ? '$primary' : '$color11'}
-                        fontSize={14}
+                    {selectedBangumi?.cat?.trim() ? (
+                      <View
+                        position="absolute"
+                        t="$2"
+                        r="$2"
+                        px="$2"
+                        py="$1"
+                        rounded="$2"
+                        style={{ backgroundColor: selectedBangumi?.color || '$color9' }}
                       >
-                        分组
-                      </Text>
-                    </View>
-                  </Pressable>
-                </View>
-                <View flexDirection="row" gap="$2">
-                  <Pressable
-                    onPress={collapseAll}
-                    style={({ pressed }: { pressed: boolean }) => ({ opacity: pressed ? 0.6 : 1 })}
-                  >
-                    <Text fontSize={13} color="$primary">
-                      折叠全部
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={expandAll}
-                    style={({ pressed }: { pressed: boolean }) => ({ opacity: pressed ? 0.6 : 1 })}
-                  >
-                    <Text fontSize={13} color="$primary">
-                      展开全部
-                    </Text>
-                  </Pressable>
-                </View>
-              </View>
-            </>
-          }
-          contentContainerStyle={{ paddingBottom: 12 }}
-        />
+                        <Text fontSize={10} color="white" fontWeight="500">
+                          {selectedBangumi?.cat}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+                  <AccordionControls
+                    accordionMode={accordionMode}
+                    hidden={isControlsSticky}
+                    onSelectMode={handleAccordionModeChange}
+                    onCollapseAll={() => setAllSectionsExpanded(false)}
+                    onExpandAll={() => setAllSectionsExpanded(true)}
+                    onLayout={handleControlsLayout}
+                  />
+                </>
+              }
+              contentContainerStyle={{ paddingBottom: 12, minHeight: minimumContentHeight }}
+            />
+          </View>
+          {isControlsSticky ? (
+            <View position="absolute" t={0} l={0} r={0} style={{ zIndex: 3 }}>
+              <AccordionControls
+                accordionMode={accordionMode}
+                onSelectMode={handleAccordionModeChange}
+                onCollapseAll={() => setAllSectionsExpanded(false)}
+                onExpandAll={() => setAllSectionsExpanded(true)}
+              />
+            </View>
+          ) : null}
+        </View>
       </SheetContent>
     </TrueSheet>
   );
