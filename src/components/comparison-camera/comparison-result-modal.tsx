@@ -6,19 +6,27 @@ import {
 import type { ReferenceFit } from '@/components/comparison-camera/comparison-camera-screen';
 import type { Bangumi, Point } from '@/services/types';
 import { Download, Images, RotateCcw, X } from '@tamagui/lucide-icons-2';
+import { File } from 'expo-file-system';
 import { Image } from 'expo-image';
 import * as MediaLibrary from 'expo-media-library';
-import { useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Pressable, StatusBar, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Alert, Modal, Platform, Pressable, StatusBar, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import ViewShot, { type ViewShotRef } from 'react-native-view-shot';
+import { Images as NitroImages, loadImage, type Image as NitroImage } from 'react-native-nitro-image';
+import type { CameraOrientation } from 'react-native-vision-camera';
 import { View, XStack } from 'tamagui';
+
+export type PhotoFileTransform = {
+  orientation: CameraOrientation;
+  mirrored: boolean;
+};
 
 type Props = {
   visible: boolean;
   bangumi: Bangumi;
   point: Point;
   photoUri?: string;
+  photoTransform?: PhotoFileTransform;
   /** @deprecated */
   referenceFit: ReferenceFit;
   referenceUri?: string;
@@ -35,11 +43,91 @@ type ActionButtonProps = {
   onPress: () => void;
 };
 
-type ImageDimensions = {
-  uri: string;
+type ComparisonLayout = {
   width: number;
   height: number;
 };
+
+const EXPORT_WIDTH = 2160;
+const EXPORT_JPEG_QUALITY = 95;
+
+function deleteTemporaryFile(uri: string) {
+  try {
+    const file = new File(uri);
+    if (file.exists) file.delete();
+  } catch {}
+}
+
+async function renderInto(canvas: NitroImage, image: NitroImage, x: number, y: number, width: number, height: number) {
+  // Nitro Image 0.15.1 treats Android's width/height as Rect right/bottom coordinates.
+  const androidWidth = Platform.OS === 'android' ? x + width : width;
+  const androidHeight = Platform.OS === 'android' ? y + height : height;
+  return canvas.renderIntoAsync(image, x, y, androidWidth, androidHeight);
+}
+
+async function loadUriImage(uri: string) {
+  if (!/^https?:\/\//i.test(uri)) return await loadImage({ filePath: uri });
+
+  let cachePath = await Image.getCachePathAsync(uri);
+  if (!cachePath) {
+    await Image.prefetch(uri, 'disk');
+    cachePath = await Image.getCachePathAsync(uri);
+  }
+  if (!cachePath) throw new Error(`Remote image is unavailable in the disk cache: ${uri}`);
+
+  return await loadImage({ filePath: cachePath });
+}
+
+async function addPanel(
+  canvas: NitroImage,
+  uri: string,
+  width: number,
+  height: number,
+  y: number,
+  clipVerticalOverflow: boolean,
+  transform?: PhotoFileTransform,
+) {
+  let source = await loadUriImage(uri);
+  let clippedPanel: NitroImage | undefined;
+
+  try {
+    if (Platform.OS === 'android' && transform) {
+      if (transform.mirrored) {
+        const mirrored = await source.mirrorHorizontallyAsync();
+        source.dispose();
+        source = mirrored;
+      }
+
+      const rotation = { up: 0, down: 180, left: 90, right: 270 }[transform.orientation];
+      if (rotation !== 0) {
+        const rotated = await source.rotateAsync(rotation, false);
+        source.dispose();
+        source = rotated;
+      }
+    }
+
+    const scale = Math.max(width / source.width, height / source.height);
+    const drawWidth = source.width * scale;
+    const drawHeight = source.height * scale;
+    const drawX = (width - drawWidth) / 2;
+    const drawY = (height - drawHeight) / 2;
+
+    if (clipVerticalOverflow && drawHeight > height + 0.5) {
+      const panel = await NitroImages.createBlankImageAsync(width, height, true, { r: 0, g: 0, b: 0 });
+      try {
+        clippedPanel = await renderInto(panel, source, drawX, drawY, drawWidth, drawHeight);
+      } finally {
+        panel.dispose();
+      }
+      return await renderInto(canvas, clippedPanel, 0, y, width, height);
+    }
+
+    return await renderInto(canvas, source, drawX, y + drawY, drawWidth, drawHeight);
+  } finally {
+    clippedPanel?.dispose();
+    source.dispose();
+  }
+}
 
 function ActionButton({ label, icon, primary = false, disabled = false, onPress }: ActionButtonProps) {
   const size = primary ? 56 : 36;
@@ -69,24 +157,28 @@ function ActionButton({ label, icon, primary = false, disabled = false, onPress 
 export default function ComparisonResultModal({
   visible,
   photoUri,
+  photoTransform,
   referenceFit,
   referenceUri,
   onPickReference,
   onRetake,
 }: Props) {
   const insets = useSafeAreaInsets();
-  const viewShotRef = useRef<ViewShotRef>(null);
   const [loadedReferenceUri, setLoadedReferenceUri] = useState<string>();
   const [loadedPhotoUri, setLoadedPhotoUri] = useState<string>();
-  const [photoDimensions, setPhotoDimensions] = useState<ImageDimensions>();
+  const [comparisonLayout, setComparisonLayout] = useState<ComparisonLayout>();
   const [saving, setSaving] = useState(false);
 
   const referenceLoaded = Boolean(referenceUri && loadedReferenceUri === referenceUri);
-  const photoLoaded = Boolean(photoUri && loadedPhotoUri === photoUri && photoDimensions?.uri === photoUri);
-  const readyToSave = referenceLoaded && photoLoaded && !saving;
+  const photoLoaded = Boolean(photoUri && loadedPhotoUri === photoUri);
+  const readyToSave = referenceLoaded && photoLoaded && comparisonLayout && !saving;
 
   const saveComparison = async () => {
-    if (!readyToSave || !viewShotRef.current) return;
+    if (!readyToSave || !referenceUri || !photoUri || !comparisonLayout) return;
+
+    let canvas: NitroImage | undefined;
+    let outputUri: string | undefined;
+
     try {
       setSaving(true);
       const permission = await MediaLibrary.requestPermissionsAsync(true);
@@ -94,12 +186,49 @@ export default function ComparisonResultModal({
         Alert.alert('无法保存图片', '请允许应用向系统相册添加照片。');
         return;
       }
-      const uri = await viewShotRef.current.capture();
-      await MediaLibrary.Asset.create(uri);
+
+      const exportHeight = Math.max(2, Math.round((EXPORT_WIDTH * comparisonLayout.height) / comparisonLayout.width));
+      const panelHeight = Math.floor(exportHeight / 2);
+      const canvasHeight = panelHeight * 2;
+
+      canvas = await NitroImages.createBlankImageAsync(EXPORT_WIDTH, canvasHeight, true, { r: 0, g: 0, b: 0 });
+
+      // Draw the bottom panel first so any vertical cover overflow is replaced by the top panel.
+      const withPhoto = await addPanel(canvas, photoUri, EXPORT_WIDTH, panelHeight, panelHeight, false, photoTransform);
+      canvas.dispose();
+      canvas = withPhoto;
+
+      const withReference = await addPanel(canvas, referenceUri, EXPORT_WIDTH, panelHeight, 0, true);
+      canvas.dispose();
+      canvas = withReference;
+
+      const dividerHeight = Math.max(2, Math.round((2 * EXPORT_WIDTH) / comparisonLayout.width));
+      const divider = await NitroImages.createBlankImageAsync(EXPORT_WIDTH, dividerHeight, false, { r: 1, g: 1, b: 1 });
+      try {
+        const withDivider = await renderInto(
+          canvas,
+          divider,
+          0,
+          panelHeight - Math.floor(dividerHeight / 2),
+          EXPORT_WIDTH,
+          dividerHeight,
+        );
+        canvas.dispose();
+        canvas = withDivider;
+      } finally {
+        divider.dispose();
+      }
+
+      const outputPath = await canvas.saveToTemporaryFileAsync('jpg', EXPORT_JPEG_QUALITY);
+      outputUri = `file://${outputPath}`;
+      await MediaLibrary.Asset.create(outputUri);
       Toast.show('对比图已保存到相册');
-    } catch {
+    } catch (error) {
+      console.error('[comparison-camera] Failed to export comparison image', error);
       Alert.alert('保存失败', '生成或保存对比图时出现问题，请稍后重试。');
     } finally {
+      canvas?.dispose();
+      if (outputUri) deleteTemporaryFile(outputUri);
       setSaving(false);
     }
   };
@@ -131,14 +260,16 @@ export default function ComparisonResultModal({
 
         <View flex={1} minH={0} overflow="hidden" bg="black">
           <View flex={1} minH={0} overflow="hidden" rounded={4} bg="black" boxShadow="0 2px 8px rgba(0,0,0,0.38)">
-            <ViewShot
-              ref={viewShotRef}
-              options={{
-                format: 'jpg',
-                quality: 1,
-                result: 'tmpfile',
+            <View
+              flex={1}
+              bg="black"
+              onLayout={(event) => {
+                const { width, height } = event.nativeEvent.layout;
+                if (width <= 0 || height <= 0) return;
+                setComparisonLayout((current) =>
+                  current?.width === width && current.height === height ? current : { width, height },
+                );
               }}
-              style={{ flex: 1, backgroundColor: '#000000' }}
             >
               <View flex={1} minH={0} overflow="hidden" bg="black">
                 {referenceUri ? (
@@ -146,7 +277,9 @@ export default function ComparisonResultModal({
                     source={{ uri: referenceUri }}
                     cachePolicy="disk"
                     contentFit="cover"
-                    onLoad={() => setLoadedReferenceUri(referenceUri)}
+                    onLoad={() => {
+                      setLoadedReferenceUri(referenceUri);
+                    }}
                     style={StyleSheet.absoluteFill}
                     transition={0}
                   />
@@ -158,16 +291,15 @@ export default function ComparisonResultModal({
                   <Image
                     source={{ uri: photoUri }}
                     contentFit="cover"
-                    onLoad={(event) => {
+                    onLoad={() => {
                       setLoadedPhotoUri(photoUri);
-                      setPhotoDimensions({ uri: photoUri, ...event.source });
                     }}
                     style={StyleSheet.absoluteFill}
                     transition={0}
                   />
                 ) : null}
               </View>
-            </ViewShot>
+            </View>
             {!referenceLoaded || !photoLoaded ? (
               <View
                 pointerEvents="none"

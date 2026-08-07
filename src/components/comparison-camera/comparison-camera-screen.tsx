@@ -2,7 +2,7 @@ import {
   COMPARISON_CAMERA_BOTTOM_REGION_HEIGHT,
   COMPARISON_CAMERA_TOP_REGION_HEIGHT,
 } from '@/components/comparison-camera/comparison-camera-layout';
-import ComparisonResultModal from '@/components/comparison-camera/comparison-result-modal';
+import ComparisonResultModal, { type PhotoFileTransform } from '@/components/comparison-camera/comparison-result-modal';
 import type { Bangumi, Point } from '@/services/types';
 import {
   Blend,
@@ -200,6 +200,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
   const [overlayOpacity, setOverlayOpacity] = useState(0.4);
   const [referenceUri, setReferenceUri] = useState(initialReferenceUri);
   const [photoUri, setPhotoUri] = useState<string>();
+  const [photoTransform, setPhotoTransform] = useState<PhotoFileTransform>();
   const [resultVisible, setResultVisible] = useState(false);
   const [flashMode, setFlashMode] = useState<FlashMode>('off');
   const [cameraReady, setCameraReady] = useState(false);
@@ -290,9 +291,15 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
 
     try {
       setCapturing(true);
-      const photo = await photoOutput.capturePhotoToFile({ flashMode: device.hasFlash ? flashMode : 'off' }, {});
-      setPhotoUri(normalizeFileUri(photo.filePath));
-      setResultVisible(true);
+      const photo = await photoOutput.capturePhoto({ flashMode: device.hasFlash ? flashMode : 'off' }, {});
+      try {
+        const filePath = await photo.saveToTemporaryFileAsync();
+        setPhotoTransform({ orientation: photo.orientation, mirrored: photo.isMirrored });
+        setPhotoUri(normalizeFileUri(filePath));
+        setResultVisible(true);
+      } finally {
+        photo.dispose();
+      }
     } catch (error) {
       console.error(error);
       Alert.alert('拍摄失败', '相机暂时无法完成拍摄，请稍后重试。');
@@ -674,6 +681,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
         bangumi={bangumi}
         point={point}
         photoUri={photoUri}
+        photoTransform={photoTransform}
         referenceFit={referenceFit}
         referenceUri={referenceUri}
         onClose={() => router.back()}
