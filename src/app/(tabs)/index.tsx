@@ -7,8 +7,8 @@ import MapTopBangumiIcons from '@/components/map-top-bangumi-icons';
 import PointImageMarkerSwitch from '@/components/point-image-marker-switch';
 import SearchBox from '@/components/search-box';
 import { FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE } from '@/lib/constants';
-import { useMapData } from '@/store/use-map-data';
 import { useMapBrowse } from '@/store/use-map-browse';
+import { useMapData } from '@/store/use-map-data';
 import type { Camera, Location } from '@rnmapbox/maps';
 import { locationManager } from '@rnmapbox/maps';
 import { requestForegroundPermissionsAsync } from 'expo-location';
@@ -22,6 +22,17 @@ type CameraState = {
   zoom: number;
   bounds: { ne: [number, number]; sw: [number, number] } | null;
 };
+
+function getPointFlyToZoom(density: number | undefined): number {
+  if (density == null || density > 64) return 15;
+  if (density > 32) return 16;
+  if (density > 16) return 17;
+  if (density > 8) return 18;
+  if (density > 4) return 19;
+  if (density > 2) return 20;
+  if (density > 1) return 21;
+  return 22;
+}
 
 export default function HomeScreen() {
   const cameraRef = useRef<Camera>(null);
@@ -75,7 +86,7 @@ export default function HomeScreen() {
 
     if (!isCameraReady || !camera) return;
 
-    if (request.source === 'map-point-selection' && openedBangumiDetailsId === null) {
+    if (request.source === 'map-point-selection') {
       completeMapCameraRequest(request.id);
       return;
     }
@@ -83,16 +94,13 @@ export default function HomeScreen() {
     const { density } = point;
     const [lat, lng] = point.geo;
 
-    // density = 到最近邻点的距离（米）
-    // density 越小 → 附近有其他点 → 放大地图显示更友好
-    // density 为空 → 固定一个相对较小的 zoom
-    const zoomLevel = density == null ? 14 : Math.max(13, Math.min(18, 16 - Math.log10(density / 10)));
+    const zoomLevel = getPointFlyToZoom(density);
 
     camera.setCamera({
       centerCoordinate: [lng, lat],
       zoomLevel,
       animationMode: 'flyTo',
-      animationDuration: 500,
+      animationDuration: 1500,
     });
     completeMapCameraRequest(request.id);
   }, [completeMapCameraRequest, data, isCameraReady, mapCameraRequest, mapCameraRequestData, openedBangumiDetailsId]);

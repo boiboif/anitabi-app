@@ -50,6 +50,7 @@ const PointCard = memo(
             style={{ borderRadius: getTokens().radius['4'].val, overflow: 'hidden' }}
           >
             <Image
+              key={point.image}
               source={point.image ? buildImageUrl(point.image, 'plan=h160') : undefined}
               style={{ width: 150, height: CARD_HEIGHT, backgroundColor: theme.color9.val }}
               contentFit="cover"

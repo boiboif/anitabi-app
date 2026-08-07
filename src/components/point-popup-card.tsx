@@ -42,7 +42,8 @@ export default function PopupCard({ point, bangumi }: Props) {
         {point.image ? (
           <Image
             key={point.image}
-            source={{ uri: buildImageUrl(point.image, 'plan=h360') }}
+            source={{ uri: buildImageUrl(point.image, 'plan=h160') }}
+            placeholder={{ uri: buildImageUrl(point.image, 'plan=h360') }}
             style={{
               width: 250,
               aspectRatio: 16 / 9,

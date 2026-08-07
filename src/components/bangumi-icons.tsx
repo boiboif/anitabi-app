@@ -257,7 +257,7 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
   const handlePress = useCallback(
     (
       e: GeoJSON.FeatureCollection & {
-        features?: Array<GeoJSON.Feature & { properties?: { bangumiId?: number } }>;
+        features?: (GeoJSON.Feature & { properties?: { bangumiId?: number } })[];
       },
     ) => {
       const feature = (e as any).features?.[0];
