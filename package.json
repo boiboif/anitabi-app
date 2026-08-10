@@ -74,6 +74,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "backup:map-data": "node scripts/generate-map-data-backup.mjs",
+    "download:images": "node scripts/download-images.mjs",
     "adb-connect": "adb connect 192.168.31.95:5555",
     "build:apk": "cd android && gradlew.bat assembleRelease -PreactNativeArchitectures=arm64-v8a",
     "eas-build-on-success": "node scripts/eas-post-build.cjs"

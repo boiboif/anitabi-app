@@ -45,3 +45,5 @@ eas-build/
 # generated native folders
 /ios
 /android
+
+downloads/

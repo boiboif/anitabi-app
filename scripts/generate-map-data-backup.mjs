@@ -93,6 +93,10 @@ async function fetchDetailShards() {
       shards.push(shard);
     } catch (error) {
       if (error instanceof HttpError && error.status === 404) return shards;
+      if (error instanceof SyntaxError) {
+        console.warn(`g${index}.json returned non-JSON response; assuming end of shards`);
+        return shards;
+      }
       throw error;
     }
   }
