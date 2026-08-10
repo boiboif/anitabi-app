@@ -52,8 +52,26 @@ function assembleBangumis(gList: RawGBangumi[], detailMap: Map<number, RawGDetai
   let maxModified = 0;
 
   const bangumis: Bangumi[] = gList.map((item) => {
-    const [id, cn, en, title, city, color, cover, fade, cat, lat, lng, zoom, pointMeta, abbr, tags, priority, icon] =
-      item;
+    const [
+      id,
+      cn,
+      en,
+      title,
+      city,
+      color,
+      cover,
+      fade,
+      cat,
+      lat,
+      lng,
+      zoom,
+      pointMeta,
+      abbr,
+      tags,
+      priority,
+      icon,
+      tAbbr,
+    ] = item;
     const detail = detailMap.get(id);
 
     // 从 pointMeta 构建所有点位 geo/priority 索引
@@ -103,6 +121,7 @@ function assembleBangumis(gList: RawGBangumi[], detailMap: Map<number, RawGDetai
       points,
       theme,
       abbr: abbr ? String(abbr) : '',
+      tAbbr: tAbbr ? String(tAbbr) : '',
       tags: Array.isArray(tags) ? tags : [],
       priority: priority ?? 999,
       icon: icon || '',

@@ -5,7 +5,7 @@ import { mkdir, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const DEFAULT_BASE_URL = 'https://www.anitabi.cn';
+const DEFAULT_BASE_URL = 'https://ww.anitabi.cn';
 const REQUIRED_DETAIL_SHARDS = 6;
 const MAX_DETAIL_SHARDS = 100;
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -168,8 +168,26 @@ function assembleBangumis(gList, detailShards) {
       throw new TypeError('g.json contains an invalid bangumi record');
     }
 
-    const [id, cn, en, title, city, color, cover, fade, cat, lat, lng, zoom, pointMeta, abbr, tags, priority, icon] =
-      item;
+    const [
+      id,
+      cn,
+      en,
+      title,
+      city,
+      color,
+      cover,
+      fade,
+      cat,
+      lat,
+      lng,
+      zoom,
+      pointMeta,
+      abbr,
+      tags,
+      priority,
+      icon,
+      tAbbr,
+    ] = item;
     const detail = detailMap.get(id);
     const pointLookup = new Map();
 
@@ -225,6 +243,7 @@ function assembleBangumis(gList, detailShards) {
       points,
       theme: toTheme(detail?.[1]),
       abbr: abbr ? String(abbr) : '',
+      tAbbr: tAbbr ? String(tAbbr) : '',
       tags: Array.isArray(tags) ? tags : [],
       priority: priority ?? 999,
       icon: icon || '',

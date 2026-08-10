@@ -33,7 +33,7 @@ import { fileURLToPath } from 'node:url';
 // 配置
 // ===========================================================================
 
-const DEFAULT_BASE_URL = 'https://www.anitabi.cn';
+const DEFAULT_BASE_URL = 'https://ww.anitabi.cn';
 const IMAGE_CDN = 'https://img-tc.anitabi.cn';
 const BATCH_SIZE = 15;
 const REQUEST_TIMEOUT_MS = 60_000;
@@ -96,6 +96,7 @@ async function loadManifest(categories) {
 
 /** 将 manifest Set 写回磁盘。 */
 async function saveManifest(manifestSet) {
+  await mkdir(outputRoot, { recursive: true });
   await writeFile(manifestPath, JSON.stringify([...manifestSet]), 'utf8');
 }
 
@@ -184,9 +185,7 @@ async function fetchDetailShards() {
     }
   }
 
-  throw new Error(
-    `More than ${MAX_DETAIL_SHARDS} detail shards found; refusing to parse potentially incomplete data`,
-  );
+  throw new Error(`More than ${MAX_DETAIL_SHARDS} detail shards found; refusing to parse potentially incomplete data`);
 }
 
 // ===========================================================================
@@ -510,9 +509,7 @@ async function main() {
   process.on('SIGINT', saveAndExit);
 
   // 确保目录存在
-  await Promise.all(
-    categories.map(({ name }) => mkdir(path.join(outputRoot, name), { recursive: true })),
-  );
+  await Promise.all(categories.map(({ name }) => mkdir(path.join(outputRoot, name), { recursive: true })));
 
   for (const { name, urls } of categories) {
     if (urls.size === 0) continue;

@@ -2,7 +2,7 @@
 // Raw API 返回类型
 // ============================================================
 
-/** g.json 单条番剧原始数据: [id, cn, en, title, city, color, cover, fade, cat, lat, lng, zoom, pointMeta, abbr, tags, priority, icon] */
+/** g.json 单条番剧原始数据: [id, cn, en, title, city, color, cover, fade, cat, lat, lng, zoom, pointMeta, abbr, tags, priority, icon, tAbbr] */
 export type RawGBangumi = [
   id: number,
   cn: string,
@@ -22,6 +22,7 @@ export type RawGBangumi = [
   tags: string[] | 0,
   priority: number | null,
   icon: string,
+  tAbbr: string | 0,
 ];
 
 /** g0-g5.json 单条番剧原始数据: [bangumiId, theme, points[], modified] */
@@ -99,6 +100,7 @@ export type Bangumi = {
   points: Point[];
   theme: Theme;
   abbr?: string;
+  tAbbr?: string;
   tags?: string[];
   priority?: number;
   icon?: string;

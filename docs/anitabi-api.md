@@ -79,6 +79,7 @@
       0, // tags 值除了0还可能是空数组
       null, // priority
       '/images/icon/226956.jpg', // icon
+      '虹ヶ咲', // tAbbr
     ],
   ],
   250,
@@ -139,6 +140,7 @@ type Bangumi = {
     w: number; // 宽度
   };
   abbr?: string; // 缩写
+  tAbbr?: string; // 标题缩写
   tags?: string[]; // 标签
   priority?: number; // 优先级 越大优先级越高
   icon?: string; // 图标地址
