@@ -25,7 +25,7 @@ export type RawGBangumi = [
   tAbbr: string | 0,
 ];
 
-/** g0-g5.json 单条番剧原始数据: [bangumiId, theme, points[], modified] */
+/** g{n}.json 单条番剧原始数据: [bangumiId, theme, points[], modified] */
 export type RawGDetail = [
   bangumiId: number,
   theme: [src: string, ids: string[], modified: number, w: number, h: number],
@@ -33,7 +33,7 @@ export type RawGDetail = [
   modified: number,
 ];
 
-/** g0-g5.json 中单个点位原始数据 */
+/** g{n}.json 中单个点位原始数据 */
 export type RawPoint = [
   id: string,
   name: string,
@@ -121,7 +121,7 @@ export type FetchPhase = 'checking' | 'downloading' | 'assembling' | 'done' | 'e
 
 export type FetchProgress = {
   phase: FetchPhase;
-  /** downloading 时，已下载批次数 (0-6) */
+  /** downloading 时，已下载批次数 */
   batch?: number;
   message?: string;
 };

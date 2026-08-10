@@ -3,7 +3,7 @@ import { anitabiHandler } from './handlers';
 /**
  * d = 每日轮换的查询参数，用于绕过 anitabi.cn 的 CDN 缓存。
  *
- * anitabi.cn 的地图数据 JSON 文件（/d/g0.json ~ /d/g6.json）如果 URL 固定，
+ * anitabi.cn 的地图数据 JSON 文件（/d/g0.json、/d/g1.json……）如果 URL 固定，
  * CDN 会长期缓存旧数据。所以他们在 URL 末尾加了一个按「天」变化的参数 d，
  * 这样每天都是一个新的 URL，CDN 就会回源拿新数据。
  *
@@ -27,12 +27,7 @@ const d = () => {
   return (Math.floor(Date.now() / 1e3 / 60 / 24) + 6).toString(36);
 };
 
-export const getG0JSON = anitabiHandler.get<any[][]>('/d/g0.json' + '?d=' + d());
-export const getG1JSON = anitabiHandler.get<any[][]>('/d/g1.json' + '?d=' + d());
-export const getG2JSON = anitabiHandler.get<any[][]>('/d/g2.json' + '?d=' + d());
-export const getG3JSON = anitabiHandler.get<any[][]>('/d/g3.json' + '?d=' + d());
-export const getG4JSON = anitabiHandler.get<any[][]>('/d/g4.json' + '?d=' + d());
-export const getG5JSON = anitabiHandler.get<any[][]>('/d/g5.json' + '?d=' + d());
+export const getGDetailJSON = (index: number) => anitabiHandler.get<any[][]>(`/d/g${index}.json?d=${d()}`)();
 
 export const getGJSON = anitabiHandler.get<[any[][], number, number]>('/d/g.json' + '?d=' + d());
 

@@ -1,6 +1,6 @@
 import { createHandler } from './createHandler';
 
-export const baseUrl = 'https://www.anitabi.cn';
+export const baseUrl = 'https://ww.anitabi.cn';
 
 export const apiUrl = 'https://www.anitabi.cn/api';
 

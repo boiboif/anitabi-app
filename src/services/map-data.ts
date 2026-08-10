@@ -1,5 +1,5 @@
 import { getCachedData, getGModified, setCachedData, setGModified } from '@/lib/map-storage';
-import { getG0JSON, getG1JSON, getG2JSON, getG3JSON, getG4JSON, getG5JSON, getGJSON } from '@/services/api';
+import { getGDetailJSON, getGJSON } from '@/services/api';
 import type { AssembledData, Bangumi, FetchProgress, Point, RawGBangumi, RawGDetail, Theme } from '@/services/types';
 
 // ---------------------------------------------------------------------------
@@ -45,7 +45,7 @@ const toPoint = (input: unknown): Omit<Point, 'geo' | 'priority'> => {
 };
 
 // ---------------------------------------------------------------------------
-// 组装：将 g.json 信息与 g0-g5 的详情合并
+// 组装：将 g.json 信息与分片详情合并
 // ---------------------------------------------------------------------------
 
 function assembleBangumis(gList: RawGBangumi[], detailMap: Map<number, RawGDetail>): AssembledData {
@@ -139,7 +139,7 @@ function assembleBangumis(gList: RawGBangumi[], detailMap: Map<number, RawGDetai
 // 主入口：获取或刷新数据，通过回调报告进度
 // ---------------------------------------------------------------------------
 
-const G_JSON_URLS = [getG0JSON, getG1JSON, getG2JSON, getG3JSON, getG4JSON, getG5JSON] as const;
+const G_JSON_BATCH_SIZE = 250;
 
 /** 读取持久化缓存，不发起网络请求。 */
 export function getCachedMapData(): AssembledData | null {
@@ -171,10 +171,12 @@ async function fetchDetails(
 ): Promise<AssembledData> {
   onProgress?.({ phase: 'downloading', batch: 0, message: '加载番剧列表…' });
 
+  const batchCount = Math.ceil(gList.length / G_JSON_BATCH_SIZE);
+
   const detailResults = await Promise.allSettled(
-    G_JSON_URLS.map((fn, i) =>
-      fn().then((data) => {
-        onProgress?.({ phase: 'downloading', batch: i + 1, message: `加载数据 ${i + 1}/6…` });
+    Array.from({ length: batchCount }, (_, i) =>
+      getGDetailJSON(i).then((data) => {
+        onProgress?.({ phase: 'downloading', batch: i + 1, message: `加载数据 ${i + 1}/${batchCount}…` });
         return data as RawGDetail[];
       }),
     ),
