@@ -1,5 +1,6 @@
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import '@/global.css';
+import { Sentry, sentryNavigationIntegration } from '@/services/sentry';
 import { useMapData } from '@/store/use-map-data';
 import { useThemePreference } from '@/store/use-theme-preference';
 import tamaguiConfig from '@/tamagui.config';
@@ -7,7 +8,15 @@ import { TrueSheetProvider } from '@lodev09/react-native-true-sheet';
 import Toast from '@modules/toaster';
 import Mapbox from '@rnmapbox/maps';
 import Constants from 'expo-constants';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import {
+  DarkTheme,
+  DefaultTheme,
+  ErrorBoundary as ExpoErrorBoundary,
+  type ErrorBoundaryProps,
+  Stack,
+  ThemeProvider,
+  useNavigationContainerRef,
+} from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
@@ -37,11 +46,24 @@ function resolveTheme(
   return preference === 'system' ? (colorScheme === 'dark' ? 'dark' : 'light') : preference;
 }
 
-export default function RootLayout() {
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  useEffect(() => {
+    Sentry.captureException(error);
+  }, [error]);
+
+  return <ExpoErrorBoundary error={error} retry={retry} />;
+}
+
+function RootLayout() {
   const colorScheme = useColorScheme();
   const preference = useThemePreference((state) => state.preference);
   const theme = resolveTheme(colorScheme, preference);
   const initializeMapData = useMapData((state) => state.initialize);
+  const navigationContainerRef = useNavigationContainerRef();
+
+  useEffect(() => {
+    sentryNavigationIntegration.registerNavigationContainer(navigationContainerRef);
+  }, [navigationContainerRef]);
 
   useEffect(() => {
     void initializeMapData();
@@ -88,3 +110,5 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+export default Sentry.wrap(RootLayout);

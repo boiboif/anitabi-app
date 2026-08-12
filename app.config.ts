@@ -38,6 +38,14 @@ const config: ExpoConfig = {
     'expo-status-bar',
     'expo-web-browser',
     [
+      '@sentry/react-native/expo',
+      {
+        organization: 'boiboif',
+        project: 'react-native',
+        url: 'https://sentry.io/',
+      },
+    ],
+    [
       'expo-image-picker',
       {
         photosPermission: '用于选择动漫巡礼点的参考图片',
