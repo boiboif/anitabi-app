@@ -102,4 +102,4 @@ npx eas-cli@latest update --channel production --message "更新说明" --non-in
 
 应用启动时静默检查并下载 EAS Update，下载完成后提示重启生效。修改原生依赖、权限、Expo config plugin、Android/iOS 原生配置或需要变更 `versionCode` 时，必须走整包发版。
 
-整包更新当前针对 Android APK。Android 首次安装或从旧 EAS APK 升级时，必须使用同一 applicationId 和同一签名 keystore；复用上述旧 EAS keystore 可以保持升级兼容。iOS 不能由应用直接安装 IPA；如果未来需要 iOS 整包更新，应将 `releaseUrl` 指向可分发页面或 TestFlight。
+整包更新当前针对 Android arm64-v8a APK，覆盖绝大多数现代 Android 真机，不支持仅有 32 位 CPU 的旧设备。Android 首次安装或从旧 EAS APK 升级时，必须使用同一 applicationId 和同一签名 keystore；复用上述旧 EAS keystore 可以保持升级兼容。iOS 不能由应用直接安装 IPA；如果未来需要 iOS 整包更新，应将 `releaseUrl` 指向可分发页面或 TestFlight。
