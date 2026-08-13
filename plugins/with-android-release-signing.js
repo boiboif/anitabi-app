@@ -30,7 +30,7 @@ def releaseKeyPassword = System.getenv('ANDROID_KEY_PASSWORD')
       .replace('android {', `${signingVariables}\nandroid {`)
       .replace(/(signingConfigs\s*\{[\s\S]*?debug\s*\{[\s\S]*?\n\s*\})/, `$1\n${releaseSigningConfig}`)
       .replace(
-        /(release\s*\{[\s\S]*?signingConfig\s+)signingConfigs\.debug/,
+        /(buildTypes\s*\{[\s\S]*?\brelease\s*\{[\s\S]*?\bsigningConfig\s+)signingConfigs\.debug/,
         '$1releaseStoreFile ? signingConfigs.release : signingConfigs.debug',
       );
 
