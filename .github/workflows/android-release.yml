@@ -138,13 +138,19 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon --stacktrace -x lintVitalAnalyzeRelease
+          ./gradlew assembleRelease \
+            -PreactNativeArchitectures=arm64-v8a \
+            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" \
+            --max-workers=2 \
+            --no-daemon \
+            --stacktrace \
+            -x lintVitalAnalyzeRelease
 
       - name: Prepare release asset
         shell: bash
         run: |
           if [[ "$RELEASE_TYPE" == "preview" ]]; then
-            tag="v${APP_VERSION}-preview.${GITHUB_RUN_NUMBER}"
+            tag="v${APP_VERSION}-preview.${ANDROID_VERSION_CODE}"
             asset_name="anitabi-app-${tag}-android.apk"
           else
             tag="v${APP_VERSION}"

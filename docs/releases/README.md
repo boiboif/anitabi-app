@@ -52,7 +52,7 @@ production 发版流程如下：
 4. Actions 使用旧 EAS keystore 构建签名 APK，创建 `v<version>` GitHub Release。
 5. Actions 自动生成并提交 `docs/releases/latest.json`。客户端随后可发现该 APK。
 
-`preview` 使用独立的 EAS `preview` channel、GitHub prerelease tag 和 `docs/releases/preview.json`，不会影响 production 用户。
+`preview` 使用独立的 EAS `preview` channel、GitHub prerelease tag 和 `docs/releases/preview.json`，不会影响 production 用户。预览 tag 格式为 `v<version>-preview.<versionCode>`，避免与旧预览 Release 冲突。
 
 `version` 是用户看到的 Android `versionName`；`buildNumber` 是 Android `versionCode`。客户端整包更新优先比较 `buildNumber`，因此同一个 `version` 也可以发布多个构建。
 
