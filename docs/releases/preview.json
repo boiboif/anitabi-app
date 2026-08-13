@@ -1,10 +1,10 @@
 {
-  "version": "0.0.1",
-  "title": "v0.0.1-preview.9",
-  "releaseNotes": "验证 Android APK 使用旧 EAS 签名。",
-  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.0.1-preview.9/anitabi-app-v0.0.1-preview.9-android.apk",
-  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.0.1-preview.9",
+  "version": "0.0.2",
+  "title": "v0.0.2-preview.1",
+  "releaseNotes": "test app ota",
+  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.0.2-preview.1/anitabi-app-v0.0.2-preview.1-android.apk",
+  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.0.2-preview.1",
   "mandatory": false,
-  "buildNumber": 1006,
-  "fileName": "anitabi-app-v0.0.1-preview.9-android.apk"
+  "buildNumber": 1007,
+  "fileName": "anitabi-app-v0.0.2-preview.1-android.apk"
 }
