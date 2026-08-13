@@ -210,14 +210,17 @@ jobs:
         shell: bash
         run: |
           build_tools_dir="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
-          apk_cert_sha256="$($build_tools_dir/apksigner verify --print-certs android/app/build/outputs/apk/release/app-release.apk \
-            | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' \
-            | head -n 1 \
-            | tr -d ':[:space:]' \
+          cert_output="$($build_tools_dir/apksigner verify --print-certs android/app/build/outputs/apk/release/app-release.apk)"
+          apk_cert_sha256="$(printf '%s\n' "$cert_output" \
+            | grep -i -m 1 'SHA-256 digest:' \
+            | sed -E 's/.*SHA-256 digest:[[:space:]]*//' \
+            | tr -cd '[:xdigit:]' \
             | tr '[:lower:]' '[:upper:]')"
           expected_cert_sha256="$(printf '%s' "$ANDROID_SIGNING_CERT_SHA256" | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
           if [[ -z "$apk_cert_sha256" || "$apk_cert_sha256" != "$expected_cert_sha256" ]]; then
             echo 'Built APK is not signed with the expected EAS signing certificate.'
+            echo "Actual certificate SHA-256: ${apk_cert_sha256:-unavailable}"
+            echo "Expected certificate SHA-256: $expected_cert_sha256"
             exit 1
           fi
 
