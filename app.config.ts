@@ -9,7 +9,7 @@ const binaryUpdateManifestName = updateChannel === 'preview' ? 'preview.json' : 
 const config: ExpoConfig = {
   name: 'Anitabi',
   slug: 'anitabi-app',
-  version: '0.0.3',
+  version: '0.0.4',
   runtimeVersion: { policy: 'appVersion' },
   updates: {
     url: `https://u.expo.dev/${process.env.EXPO_PROJECT_ID}`,
