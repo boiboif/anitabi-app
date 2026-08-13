@@ -48,6 +48,7 @@ jobs:
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
       ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      ANDROID_SIGNING_CERT_SHA256: ${{ secrets.ANDROID_SIGNING_CERT_SHA256 }}
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       ANDROID_VERSION_CODE_OFFSET: ${{ vars.ANDROID_VERSION_CODE_OFFSET }}
       GH_TOKEN: ${{ github.token }}
@@ -171,6 +172,25 @@ jobs:
           test -s "$signing_dir/anitabi-upload.keystore"
           echo "ANDROID_KEYSTORE_PATH=$signing_dir/anitabi-upload.keystore" >> "$GITHUB_ENV"
 
+          if [[ -z "$ANDROID_SIGNING_CERT_SHA256" ]]; then
+            echo 'ANDROID_SIGNING_CERT_SHA256 is not configured.'
+            exit 1
+          fi
+
+          restored_cert_sha256="$(keytool -list -v \
+            -keystore "$signing_dir/anitabi-upload.keystore" \
+            -storepass:env ANDROID_KEYSTORE_PASSWORD \
+            -alias "$ANDROID_KEY_ALIAS" \
+            | sed -n 's/.*SHA256: //p' \
+            | head -n 1 \
+            | tr -d ':[:space:]' \
+            | tr '[:lower:]' '[:upper:]')"
+          expected_cert_sha256="$(printf '%s' "$ANDROID_SIGNING_CERT_SHA256" | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
+          if [[ -z "$restored_cert_sha256" || "$restored_cert_sha256" != "$expected_cert_sha256" ]]; then
+            echo 'Restored keystore certificate does not match the expected EAS signing certificate.'
+            exit 1
+          fi
+
       - name: Generate Android project
         run: npx expo prebuild --clean --platform android --no-install
 
@@ -185,6 +205,21 @@ jobs:
             --no-daemon \
             --stacktrace \
             -x lintVitalAnalyzeRelease
+
+      - name: Verify APK signing certificate
+        shell: bash
+        run: |
+          build_tools_dir="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          apk_cert_sha256="$($build_tools_dir/apksigner verify --print-certs android/app/build/outputs/apk/release/app-release.apk \
+            | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' \
+            | head -n 1 \
+            | tr -d ':[:space:]' \
+            | tr '[:lower:]' '[:upper:]')"
+          expected_cert_sha256="$(printf '%s' "$ANDROID_SIGNING_CERT_SHA256" | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')"
+          if [[ -z "$apk_cert_sha256" || "$apk_cert_sha256" != "$expected_cert_sha256" ]]; then
+            echo 'Built APK is not signed with the expected EAS signing certificate.'
+            exit 1
+          fi
 
       - name: Prepare release asset
         shell: bash
