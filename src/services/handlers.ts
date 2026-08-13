@@ -1,12 +1,10 @@
 import { createHandler } from './createHandler';
 
-// export const baseUrl = 'https://ww.anitabi.cn';
-export const baseUrl = 'http://192.168.144.7:8080';
+export const baseUrl = 'https://ww.anitabi.cn';
 
 export const apiUrl = 'https://www.anitabi.cn/api';
 
-// export const imageUrl = 'https://img-tc.anitabi.cn';
-export const imageUrl = 'http://192.168.144.7:8080/assets';
+export const imageUrl = 'https://img-tc.anitabi.cn';
 
 export const anitabiHandler = createHandler({
   baseUrl,
