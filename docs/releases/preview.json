@@ -1,10 +1,10 @@
 {
-  "version": "0.0.3",
-  "title": "v0.0.3-preview.1",
-  "releaseNotes": "1.修复已知问题。 2.优化用户体验。",
-  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.0.3-preview.1/anitabi-app-v0.0.3-preview.1-android.apk",
-  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.0.3-preview.1",
+  "version": "0.0.4",
+  "title": "v0.0.4-preview.1",
+  "releaseNotes": "1.修复已知问题\n2.优化用户体验",
+  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.0.4-preview.1/anitabi-app-v0.0.4-preview.1-android.apk",
+  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.0.4-preview.1",
   "mandatory": false,
-  "buildNumber": 1008,
-  "fileName": "anitabi-app-v0.0.3-preview.1-android.apk"
+  "buildNumber": 1009,
+  "fileName": "anitabi-app-v0.0.4-preview.1-android.apk"
 }
