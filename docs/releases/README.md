@@ -99,8 +99,12 @@ yarn release:manifest --from-github --min-supported-build-number 1001
 热更新只适用于 JavaScript、资源和配置中不涉及原生代码的改动。进入 `Actions` → `EAS Hot Update` → `Run workflow`，选择目标 channel 并填写更新说明。原生版本以当前 `app.config.ts` 的 `version` 和已安装 APK 为准。工作流会执行：
 
 ```bash
-npx eas-cli@latest update --channel production --message "更新说明" --non-interactive
+npx eas-cli@21.8.0 update --channel production --environment production --platform android --message "更新说明" --non-interactive
 ```
+
+工作流只能从 `main` 分支运行，并会在发布前检查 `app.config.ts` 的 `version` 是否与目标 channel 最新整包清单中的 `version` 相同。由于 `runtimeVersion` 使用 `appVersion` 策略，版本不一致时热更新无法被已安装 APK 接收，工作流会直接报错。应先发布对应版本整包，再发布该版本的热更新。
+
+`preview` 和 `production` 分别使用独立的 EAS channel、EAS environment 和整包更新清单。工作流会自动创建首次使用的 EAS channel；Preview 热更新固定注入 `docs/releases/preview.json`，Production 热更新使用 `docs/releases/latest.json`，不会互相串线。当前只发布 Android Update。
 
 应用启动时静默检查并下载 EAS Update，下载完成后提示重启生效。修改原生依赖、权限、Expo config plugin、Android/iOS 原生配置或需要变更 `versionCode` 时，必须走整包发版。
 

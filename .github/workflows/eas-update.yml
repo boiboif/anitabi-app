@@ -19,6 +19,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: eas-hot-update-${{ inputs.channel }}
+  cancel-in-progress: false
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -34,6 +38,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Require main branch
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF_NAME" != "main" ]]; then
+            echo 'EAS updates must be dispatched from the main branch.'
+            exit 1
+          fi
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -45,7 +57,67 @@ jobs:
           corepack enable
           yarn install --frozen-lockfile
 
+      - name: Configure update channel
+        shell: bash
+        run: |
+          if [[ -z "$EXPO_TOKEN" ]]; then
+            echo 'EXPO_TOKEN is not configured.'
+            exit 1
+          fi
+          if [[ -z "$EXPO_PROJECT_ID" ]]; then
+            echo 'EXPO_PROJECT_ID is not configured.'
+            exit 1
+          fi
+
+          if [[ "$EXPO_UPDATE_CHANNEL" == "preview" ]]; then
+            manifest_path='docs/releases/preview.json'
+            manifest_url="https://raw.githubusercontent.com/$GITHUB_REPOSITORY/main/$manifest_path"
+          else
+            manifest_path='docs/releases/latest.json'
+            manifest_url="${EXPO_PUBLIC_BINARY_UPDATE_MANIFEST_URL:-https://raw.githubusercontent.com/$GITHUB_REPOSITORY/main/$manifest_path}"
+          fi
+
+          if [[ ! -f "$manifest_path" ]]; then
+            echo "No released APK manifest exists for channel $EXPO_UPDATE_CHANNEL: $manifest_path"
+            echo 'Publish the matching full APK before publishing a hot update.'
+            exit 1
+          fi
+
+          app_version="$(npx expo config --type public --json | node -e 'let input=""; process.stdin.on("data", chunk => input += chunk); process.stdin.on("end", () => process.stdout.write(JSON.parse(input).version));')"
+          released_version="$(node -e 'const fs = require("fs"); const manifest = JSON.parse(fs.readFileSync(process.argv[1], "utf8")); process.stdout.write(String(manifest.version ?? ""));' "$manifest_path")"
+          if [[ "$app_version" != "$released_version" ]]; then
+            echo "Hot update runtime version $app_version does not match the latest $EXPO_UPDATE_CHANNEL APK version $released_version."
+            echo 'Publish the matching full APK or restore app.config.ts version before publishing a hot update.'
+            exit 1
+          fi
+
+          echo "EXPO_PUBLIC_BINARY_UPDATE_MANIFEST_URL=$manifest_url" >> "$GITHUB_ENV"
+          echo "EAS_ENVIRONMENT=$EXPO_UPDATE_CHANNEL" >> "$GITHUB_ENV"
+          echo "Publishing Android runtime=$app_version to channel=$EXPO_UPDATE_CHANNEL"
+
+      - name: Validate Expo update config
+        shell: bash
+        run: |
+          npx expo config --type public --json | node -e '
+            let input = "";
+            process.stdin.on("data", chunk => input += chunk);
+            process.stdin.on("end", () => {
+              const config = JSON.parse(input);
+              const expectedChannel = process.env.EXPO_UPDATE_CHANNEL;
+              const actualChannel = config.updates?.requestHeaders?.["expo-channel-name"];
+              const manifestUrl = config.extra?.binaryUpdateManifestUrl;
+              if (!config.updates?.url) throw new Error("Expo updates.url is missing");
+              if (actualChannel !== expectedChannel) throw new Error(`Expected update channel ${expectedChannel}, got ${actualChannel}`);
+              if (expectedChannel === "preview" && !manifestUrl?.endsWith("/docs/releases/preview.json")) {
+                throw new Error(`Preview build uses an invalid binary manifest: ${manifestUrl}`);
+              }
+              if (expectedChannel === "production" && manifestUrl?.endsWith("/docs/releases/preview.json")) {
+                throw new Error(`Production build uses the preview binary manifest: ${manifestUrl}`);
+              }
+            });
+          '
+
       - name: Publish EAS Update
-        run: npx eas-cli@latest update --channel "$EXPO_UPDATE_CHANNEL" --message "$INPUT_MESSAGE" --non-interactive
+        run: npx eas-cli@21.8.0 update --channel "$EXPO_UPDATE_CHANNEL" --environment "$EAS_ENVIRONMENT" --platform android --message "$INPUT_MESSAGE" --non-interactive
         env:
           INPUT_MESSAGE: ${{ inputs.message }}
