@@ -29,7 +29,6 @@ jobs:
     env:
       EXPO_PROJECT_ID: ${{ vars.EXPO_PROJECT_ID }}
       EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN: ${{ vars.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN }}
-      EXPO_PUBLIC_BINARY_UPDATE_MANIFEST_URL: ${{ vars.EXPO_PUBLIC_BINARY_UPDATE_MANIFEST_URL }}
       EXPO_UPDATE_CHANNEL: ${{ inputs.channel }}
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -71,10 +70,8 @@ jobs:
 
           if [[ "$EXPO_UPDATE_CHANNEL" == "preview" ]]; then
             manifest_path='docs/releases/preview.json'
-            manifest_url="https://raw.githubusercontent.com/$GITHUB_REPOSITORY/main/$manifest_path"
           else
             manifest_path='docs/releases/latest.json'
-            manifest_url="${EXPO_PUBLIC_BINARY_UPDATE_MANIFEST_URL:-https://raw.githubusercontent.com/$GITHUB_REPOSITORY/main/$manifest_path}"
           fi
 
           if [[ ! -f "$manifest_path" ]]; then
@@ -91,7 +88,6 @@ jobs:
             exit 1
           fi
 
-          echo "EXPO_PUBLIC_BINARY_UPDATE_MANIFEST_URL=$manifest_url" >> "$GITHUB_ENV"
           echo "EAS_ENVIRONMENT=$EXPO_UPDATE_CHANNEL" >> "$GITHUB_ENV"
           echo "Publishing Android runtime=$app_version to channel=$EXPO_UPDATE_CHANNEL"
 

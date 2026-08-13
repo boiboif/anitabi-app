@@ -10,7 +10,6 @@
 
 - `EXPO_PROJECT_ID`：Expo 项目的 project ID。
 - `EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN`：Mapbox token。
-- `EXPO_PUBLIC_BINARY_UPDATE_MANIFEST_URL`：production 清单地址。通常为 `https://raw.githubusercontent.com/<owner>/<repo>/main/docs/releases/latest.json`。
 - `ANDROID_VERSION_CODE_OFFSET`：首次启用自动构建号时使用的基线，必须不小于迁移前已发布 APK 的最大 `versionCode`。不配置时默认为 `1000`；已有更新清单后不再需要手动调整。
 
 ### GitHub Secrets
@@ -47,7 +46,7 @@ versionCode = max(ANDROID_VERSION_CODE_OFFSET, latest.buildNumber, preview.build
 production 发版流程如下：
 
 1. 确保代码已合并到 `main`，并从 `main` 分支运行 `Android Release`。
-2. 选择 `production`，填写 `release_notes`。版本号不在 Actions 页面填写，以 `app.config.ts` 的 `version` 为准。
+2. 选择 `production`，填写 `release_notes`。Actions 输入框是单行控件，需要换行时输入字面量 `\n`，例如 `修复地图加载问题\n优化图片缓存\n调整更新提示`；工作流会将其转换成 GitHub Release 和应用内更新说明中的真实换行。版本号不在 Actions 页面填写，以 `app.config.ts` 的 `version` 为准。
 3. 需要强制更新时勾选 `mandatory`；也可以填写 `min_supported_version` 或 `min_supported_build_number`。
 4. Actions 使用旧 EAS keystore 构建签名 APK，创建 `v<version>` GitHub Release。
 5. Actions 自动生成并提交 `docs/releases/latest.json`。客户端随后可发现该 APK。
@@ -92,7 +91,7 @@ yarn release:manifest --from-github --min-supported-build-number 1001
 2. 提交该文件到 `main` 分支。
 3. 如果旧版本低于 `minSupportedVersion`，应用会按强制更新处理。
 
-应用启动后会读取 `EXPO_PUBLIC_BINARY_UPDATE_MANIFEST_URL` 指定的 production 清单；未配置时读取本仓库 `main` 分支的 `docs/releases/latest.json`。预览构建需要在构建时将该变量指向 `preview.json`，否则预览包会检查 production 清单。
+应用启动后会根据构建时写入的更新频道读取对应清单：production 使用本仓库 `main` 分支的 `docs/releases/latest.json`，preview 使用 `docs/releases/preview.json`。清单地址由 `app.config.ts` 根据 `EXPO_UPDATE_CHANNEL` 自动生成，不需要额外配置 GitHub Variable。
 
 ## 热更新
 

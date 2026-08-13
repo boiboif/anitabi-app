@@ -12,7 +12,7 @@ on:
           - production
           - preview
       release_notes:
-        description: 'GitHub Release notes and in-app update notes'
+        description: 'GitHub Release and in-app notes; use \n for line breaks'
         required: true
         type: string
       mandatory:
@@ -42,7 +42,6 @@ jobs:
     env:
       EXPO_PROJECT_ID: ${{ vars.EXPO_PROJECT_ID }}
       EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN: ${{ vars.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN }}
-      EXPO_PUBLIC_BINARY_UPDATE_MANIFEST_URL: ${{ vars.EXPO_PUBLIC_BINARY_UPDATE_MANIFEST_URL }}
       EXPO_UPDATE_CHANNEL: production
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -134,12 +133,10 @@ jobs:
             tag="${preview_prefix}${preview_number}"
             manifest_path='docs/releases/preview.json'
             update_channel='preview'
-            manifest_url="https://raw.githubusercontent.com/$GITHUB_REPOSITORY/main/$manifest_path"
           else
             tag="v${APP_VERSION}"
             manifest_path='docs/releases/latest.json'
             update_channel='production'
-            manifest_url="$EXPO_PUBLIC_BINARY_UPDATE_MANIFEST_URL"
           fi
 
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
@@ -149,7 +146,6 @@ jobs:
 
           asset_name="anitabi-app-${tag}-android.apk"
           echo "EXPO_UPDATE_CHANNEL=$update_channel" >> "$GITHUB_ENV"
-          echo "EXPO_PUBLIC_BINARY_UPDATE_MANIFEST_URL=$manifest_url" >> "$GITHUB_ENV"
           echo "MANIFEST_PATH=$manifest_path" >> "$GITHUB_ENV"
           echo "ASSET_NAME=$asset_name" >> "$GITHUB_ENV"
           echo "TAG=$tag" >> "$GITHUB_ENV"
@@ -234,7 +230,7 @@ jobs:
           RELEASE_NOTES: ${{ inputs.release_notes }}
         shell: bash
         run: |
-          printf '%s\n' "$RELEASE_NOTES" > release-notes.md
+          node -e 'const fs = require("fs"); fs.writeFileSync("release-notes.md", `${process.env.RELEASE_NOTES.replace(/\\n/g, "\n")}\n`);'
           release_args=(gh release create "$TAG" "$ASSET_NAME" --repo "$GITHUB_REPOSITORY" --title "$TAG" --notes-file release-notes.md)
           if [[ "$RELEASE_TYPE" == "preview" ]]; then release_args+=(--prerelease); fi
           "${release_args[@]}"

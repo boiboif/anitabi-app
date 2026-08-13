@@ -1,5 +1,6 @@
 import type { AppUpdateManager } from '@/hooks/use-app-updates';
 import { isMandatoryUpdate } from '@/services/app-update';
+import Constants from 'expo-constants';
 import { Modal, ScrollView } from 'react-native';
 import { Button, Progress, Text, View, XStack, YStack } from 'tamagui';
 
@@ -16,10 +17,11 @@ export function AppUpdateOverlay({ manager }: Props) {
   if (!visible) return null;
 
   const isBinary = Boolean(visibleBinaryUpdate);
-  const title = isBinary ? visibleBinaryUpdate?.title ?? '发现新版本' : '热更新已准备完成';
+  const title = isBinary ? '检测到更新' : '更新已准备完成';
   const description = isBinary
-    ? visibleBinaryUpdate?.releaseNotes ?? '下载最新安装包，获取完整功能和修复。'
+    ? (visibleBinaryUpdate?.releaseNotes ?? '下载最新安装包，获取完整功能和修复。')
     : '更新内容已在后台下载完成，重启应用后立即生效。';
+  const currentVersion = Constants.expoConfig?.version ?? '未知';
   const progress = binaryProgress?.percent ?? 0;
 
   return (
@@ -36,23 +38,39 @@ export function AppUpdateOverlay({ manager }: Props) {
               {title}
             </Text>
             {isBinary ? (
-              <Text fontSize={12} color="$color10">
-                v{visibleBinaryUpdate?.version} · {binaryMandatory ? '必须更新' : '可选更新'}
-              </Text>
+              <YStack gap="$1">
+                <Text fontSize={13} color="$color11">
+                  新版本：v{visibleBinaryUpdate?.version}
+                </Text>
+                <Text fontSize={13} color="$color11">
+                  当前版本：v{currentVersion}
+                </Text>
+              </YStack>
             ) : null}
           </YStack>
 
-          <ScrollView style={{ maxHeight: 180 }}>
-            <Text fontSize={13} lineHeight={20} color="$color11">
-              {description}
-            </Text>
-          </ScrollView>
+          <YStack gap="$2">
+            {isBinary ? (
+              <Text fontSize={13} fontWeight="600" color="$color12">
+                更新信息
+              </Text>
+            ) : null}
+            <ScrollView style={{ maxHeight: 180 }}>
+              <Text fontSize={13} lineHeight={20} color="$color11">
+                {description}
+              </Text>
+            </ScrollView>
+          </YStack>
 
           {isDownloadingBinary ? (
             <YStack gap="$2">
               <XStack justify="space-between">
-                <Text fontSize={12} color="$color11">正在下载安装包</Text>
-                <Text fontSize={12} color="$color12">{progress}%</Text>
+                <Text fontSize={12} color="$color11">
+                  正在下载安装包
+                </Text>
+                <Text fontSize={12} color="$color12">
+                  {progress}%
+                </Text>
               </XStack>
               <Progress value={progress} background="$color4" size="$3">
                 <Progress.Indicator background="$primary" />

@@ -3,6 +3,9 @@ import { config as dotenvConfig } from 'dotenv';
 import type { ExpoConfig } from 'expo/config';
 dotenvConfig({ path: '.env.local' });
 
+const updateChannel = process.env.EXPO_UPDATE_CHANNEL || 'production';
+const binaryUpdateManifestName = updateChannel === 'preview' ? 'preview.json' : 'latest.json';
+
 const config: ExpoConfig = {
   name: 'Anitabi',
   slug: 'anitabi-app',
@@ -11,7 +14,7 @@ const config: ExpoConfig = {
   updates: {
     url: `https://u.expo.dev/${process.env.EXPO_PROJECT_ID}`,
     requestHeaders: {
-      'expo-channel-name': process.env.EXPO_UPDATE_CHANNEL || 'production',
+      'expo-channel-name': updateChannel,
     },
     checkAutomatically: 'NEVER',
     fallbackToCacheTimeout: 0,
@@ -111,9 +114,7 @@ const config: ExpoConfig = {
   },
   extra: {
     mapboxAccessToken: process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN,
-    binaryUpdateManifestUrl:
-      process.env.EXPO_PUBLIC_BINARY_UPDATE_MANIFEST_URL ||
-      'https://raw.githubusercontent.com/boiboif/anitabi-app/main/docs/releases/latest.json',
+    binaryUpdateManifestUrl: `https://raw.githubusercontent.com/boiboif/anitabi-app/main/docs/releases/${binaryUpdateManifestName}`,
     eas: {
       projectId: process.env.EXPO_PROJECT_ID,
     },
