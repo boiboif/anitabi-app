@@ -1,5 +1,6 @@
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { AppUpdateOverlay } from '@/components/app-update-overlay';
+import { AppUpdateManagerContext } from '@/hooks/use-app-update-manager';
 import { useAppUpdates } from '@/hooks/use-app-updates';
 import '@/global.css';
 import { Sentry, sentryNavigationIntegration } from '@/services/sentry';
@@ -78,35 +79,37 @@ function RootLayout() {
         <TamaguiProvider config={tamaguiConfig} defaultTheme={theme}>
           <ThemeProvider value={theme === 'dark' ? DarkTheme : DefaultTheme}>
             <TrueSheetProvider>
-              <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
-              <AnimatedSplashOverlay />
-              <AppUpdateOverlay manager={appUpdates} />
-              <Stack screenOptions={{ headerShown: false, animation: 'ios_from_right', orientation: 'portrait' }}>
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen
-                  name="dark-mode"
-                  options={{
-                    headerShown: true,
-                    headerTitleAlign: 'center',
-                    title: '深色模式',
-                  }}
-                />
-                <Stack.Screen
-                  name="clear-cache"
-                  options={{
-                    headerShown: true,
-                    headerTitleAlign: 'center',
-                    title: '清理存储空间',
-                  }}
-                />
-                <Stack.Screen
-                  name="comparison-camera"
-                  options={{
-                    gestureEnabled: false,
-                  }}
-                />
-              </Stack>
-              <Toaster enableStacking position="center" duration={1000} />
+              <AppUpdateManagerContext.Provider value={appUpdates}>
+                <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+                <AnimatedSplashOverlay />
+                <AppUpdateOverlay manager={appUpdates} />
+                <Stack screenOptions={{ headerShown: false, animation: 'ios_from_right', orientation: 'portrait' }}>
+                  <Stack.Screen name="(tabs)" />
+                  <Stack.Screen
+                    name="dark-mode"
+                    options={{
+                      headerShown: true,
+                      headerTitleAlign: 'center',
+                      title: '深色模式',
+                    }}
+                  />
+                  <Stack.Screen
+                    name="clear-cache"
+                    options={{
+                      headerShown: true,
+                      headerTitleAlign: 'center',
+                      title: '清理存储空间',
+                    }}
+                  />
+                  <Stack.Screen
+                    name="comparison-camera"
+                    options={{
+                      gestureEnabled: false,
+                    }}
+                  />
+                </Stack>
+                <Toaster enableStacking position="center" duration={1000} />
+              </AppUpdateManagerContext.Provider>
             </TrueSheetProvider>
           </ThemeProvider>
         </TamaguiProvider>

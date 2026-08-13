@@ -1,10 +1,11 @@
 import { SettingCell } from '@/components/setting-cell';
+import { useAppUpdateManager } from '@/hooks/use-app-update-manager';
 import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
 import { Database, Info, Moon } from '@tamagui/lucide-icons-2';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
-import { Platform, ScrollView } from 'react-native';
+import { Alert, Platform, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, View, useTheme } from 'tamagui';
 
@@ -29,6 +30,7 @@ function SettingsSection({ title, children }: SettingsSectionProps) {
 export default function ProfileScreen() {
   const safeAreaInsets = useSafeAreaInsets();
   const theme = useTheme();
+  const appUpdates = useAppUpdateManager();
   const insets = {
     ...safeAreaInsets,
     bottom: safeAreaInsets.bottom + BottomTabInset + 16,
@@ -50,6 +52,20 @@ export default function ProfileScreen() {
       paddingBottom: insets.bottom,
     },
   });
+
+  const openAppUpdate = async () => {
+    if (appUpdates.binaryUpdate) {
+      appUpdates.showBinaryUpdate();
+      return;
+    }
+
+    try {
+      const update = await appUpdates.checkNow();
+      if (!update) Alert.alert('已是最新版本', '当前已安装最新版本。');
+    } catch {
+      Alert.alert('检查更新失败', '暂时无法获取最新版本信息，请稍后重试。');
+    }
+  };
 
   return (
     <ScrollView
@@ -79,7 +95,15 @@ export default function ProfileScreen() {
             onPress={() => router.push('/clear-cache')}
             showDivider
           />
-          <SettingCell icon={Info} title="Anitabi" description="动漫巡礼地图" value={Constants.expoConfig?.version} />
+          <SettingCell
+            icon={Info}
+            title="Anitabi"
+            description={appUpdates.binaryUpdate ? `发现新版本 v${appUpdates.binaryUpdate.version}` : '点击检查更新'}
+            value={appUpdates.isChecking ? '检查中...' : appUpdates.binaryUpdate ? '可更新' : `v${Constants.expoConfig?.version}`}
+            disabled={appUpdates.isChecking}
+            accessibilityState={{ disabled: appUpdates.isChecking }}
+            onPress={() => void openAppUpdate()}
+          />
         </SettingsSection>
       </View>
     </ScrollView>

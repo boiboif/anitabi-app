@@ -5,9 +5,9 @@ import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
 import { Check, Database, Heart, Image as ImageIcon } from '@tamagui/lucide-icons-2';
 import { Image } from 'expo-image';
 import { useState } from 'react';
-import { Alert, Platform, ScrollView } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button, Text, View, YStack, useTheme } from 'tamagui';
+import { Text, View, YStack, useTheme } from 'tamagui';
 
 type CacheItemId = 'map' | 'image' | 'favorites';
 
@@ -37,6 +37,7 @@ export default function ClearCacheScreen() {
   const theme = useTheme();
   const [selectedItems, setSelectedItems] = useState<Set<CacheItemId>>(new Set());
   const [isClearing, setIsClearing] = useState(false);
+  const clearDisabled = selectedItems.size === 0 || isClearing;
 
   const contentPlatformStyle = Platform.select({
     android: {
@@ -155,17 +156,25 @@ export default function ClearCacheScreen() {
 
       <View px="$5" pt="$3" pb={safeAreaInsets.bottom + 12} bg="$background" borderTopWidth={1} borderColor="$color6">
         <View width="100%" maxW={MaxContentWidth} mx="auto">
-          <Button
-            size="$4"
-            bg="$primary"
-            color="white"
-            fontWeight="700"
-            disabled={selectedItems.size === 0 || isClearing}
-            opacity={selectedItems.size === 0 || isClearing ? 0.45 : 1}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: clearDisabled }}
+            disabled={clearDisabled}
             onPress={confirmClear}
+            style={({ pressed }) => ({
+              width: '100%',
+              minHeight: 48,
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: 8,
+              backgroundColor: theme.primary?.val,
+              opacity: clearDisabled ? 0.45 : pressed ? 0.8 : 1,
+            })}
           >
-            {isClearing ? '清理中...' : `清理选中项目${selectedItems.size ? ` (${selectedItems.size})` : ''}`}
-          </Button>
+            <Text pointerEvents="none" color="white" fontWeight="700">
+              {isClearing ? '清理中...' : `清理选中项目${selectedItems.size ? ` (${selectedItems.size})` : ''}`}
+            </Text>
+          </Pressable>
         </View>
       </View>
     </View>

@@ -1,6 +1,6 @@
 import type { AppUpdateManager } from '@/hooks/use-app-updates';
 import { isMandatoryUpdate } from '@/services/app-update';
-import { Modal, Pressable, ScrollView } from 'react-native';
+import { Modal, ScrollView } from 'react-native';
 import { Button, Progress, Text, View, XStack, YStack } from 'tamagui';
 
 type Props = {
@@ -8,16 +8,17 @@ type Props = {
 };
 
 export function AppUpdateOverlay({ manager }: Props) {
-  const { binaryUpdate, hotUpdateReady, isDownloadingBinary, binaryProgress } = manager;
-  const binaryMandatory = binaryUpdate ? isMandatoryUpdate(binaryUpdate) : false;
-  const visible = Boolean(binaryUpdate || hotUpdateReady);
+  const { binaryUpdate, isBinaryUpdateVisible, hotUpdateReady, isDownloadingBinary, binaryProgress } = manager;
+  const visibleBinaryUpdate = isBinaryUpdateVisible ? binaryUpdate : null;
+  const binaryMandatory = visibleBinaryUpdate ? isMandatoryUpdate(visibleBinaryUpdate) : false;
+  const visible = Boolean(visibleBinaryUpdate || hotUpdateReady);
 
   if (!visible) return null;
 
-  const isBinary = Boolean(binaryUpdate);
-  const title = isBinary ? binaryUpdate?.title ?? '发现新版本' : '热更新已准备完成';
+  const isBinary = Boolean(visibleBinaryUpdate);
+  const title = isBinary ? visibleBinaryUpdate?.title ?? '发现新版本' : '热更新已准备完成';
   const description = isBinary
-    ? binaryUpdate?.releaseNotes ?? '下载最新安装包，获取完整功能和修复。'
+    ? visibleBinaryUpdate?.releaseNotes ?? '下载最新安装包，获取完整功能和修复。'
     : '更新内容已在后台下载完成，重启应用后立即生效。';
   const progress = binaryProgress?.percent ?? 0;
 
@@ -36,7 +37,7 @@ export function AppUpdateOverlay({ manager }: Props) {
             </Text>
             {isBinary ? (
               <Text fontSize={12} color="$color10">
-                v{binaryUpdate?.version} · {binaryMandatory ? '必须更新' : '可选更新'}
+                v{visibleBinaryUpdate?.version} · {binaryMandatory ? '必须更新' : '可选更新'}
               </Text>
             ) : null}
           </YStack>
@@ -61,12 +62,13 @@ export function AppUpdateOverlay({ manager }: Props) {
 
           <XStack gap="$3" justify="flex-end">
             {!binaryMandatory ? (
-              <Pressable
+              <Button
+                chromeless
                 onPress={isBinary ? manager.dismissBinaryUpdate : manager.dismissHotUpdate}
                 accessibilityRole="button"
               >
-                <Button chromeless>稍后</Button>
-              </Pressable>
+                稍后
+              </Button>
             ) : null}
             <Button
               disabled={isDownloadingBinary}

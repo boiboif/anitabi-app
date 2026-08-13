@@ -9,19 +9,22 @@ import * as Updates from 'expo-updates';
 
 export type AppUpdateManager = {
   binaryUpdate: BinaryUpdate | null;
+  isBinaryUpdateVisible: boolean;
   hotUpdateReady: boolean;
   isChecking: boolean;
   isDownloadingBinary: boolean;
   binaryProgress: BinaryDownloadProgress | null;
-  checkNow: () => Promise<void>;
+  checkNow: () => Promise<BinaryUpdate | null>;
   installBinaryUpdate: () => Promise<void>;
   reloadForHotUpdate: () => Promise<void>;
+  showBinaryUpdate: () => void;
   dismissBinaryUpdate: () => void;
   dismissHotUpdate: () => void;
 };
 
 export function useAppUpdates(): AppUpdateManager {
   const [binaryUpdate, setBinaryUpdate] = useState<BinaryUpdate | null>(null);
+  const [isBinaryUpdateVisible, setIsBinaryUpdateVisible] = useState(false);
   const [hotUpdateReady, setHotUpdateReady] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [isDownloadingBinary, setIsDownloadingBinary] = useState(false);
@@ -29,7 +32,7 @@ export function useAppUpdates(): AppUpdateManager {
   const isCheckingRef = useRef(false);
 
   const checkNow = useCallback(async () => {
-    if (__DEV__ || isCheckingRef.current) return;
+    if (__DEV__ || isCheckingRef.current) return null;
     isCheckingRef.current = true;
     setIsChecking(true);
 
@@ -41,12 +44,15 @@ export function useAppUpdates(): AppUpdateManager {
 
       if (binaryResult.status === 'fulfilled' && binaryResult.value) {
         setBinaryUpdate(binaryResult.value);
+        setIsBinaryUpdateVisible(true);
       }
 
       if (hotResult.status === 'fulfilled' && hotResult.value.isAvailable) {
         const fetched = await Updates.fetchUpdateAsync();
         if (fetched.isNew) setHotUpdateReady(true);
       }
+      if (binaryResult.status === 'rejected') throw binaryResult.reason;
+      return binaryResult.value;
     } finally {
       isCheckingRef.current = false;
       setIsChecking(false);
@@ -77,6 +83,7 @@ export function useAppUpdates(): AppUpdateManager {
 
   return {
     binaryUpdate,
+    isBinaryUpdateVisible,
     hotUpdateReady,
     isChecking,
     isDownloadingBinary,
@@ -84,7 +91,10 @@ export function useAppUpdates(): AppUpdateManager {
     checkNow,
     installBinaryUpdate,
     reloadForHotUpdate,
-    dismissBinaryUpdate: () => setBinaryUpdate(null),
+    showBinaryUpdate: () => {
+      if (binaryUpdate) setIsBinaryUpdateVisible(true);
+    },
+    dismissBinaryUpdate: () => setIsBinaryUpdateVisible(false),
     dismissHotUpdate: () => setHotUpdateReady(false),
   };
 }
