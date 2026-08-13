@@ -11,7 +11,7 @@
 - `EXPO_PROJECT_ID`：Expo 项目的 project ID。
 - `EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN`：Mapbox token。
 - `EXPO_PUBLIC_BINARY_UPDATE_MANIFEST_URL`：production 清单地址。通常为 `https://raw.githubusercontent.com/<owner>/<repo>/main/docs/releases/latest.json`。
-- `ANDROID_VERSION_CODE_OFFSET`：非负整数，必须大于现有已发布 APK 的最大 `versionCode`。不配置时默认为 `1000`。
+- `ANDROID_VERSION_CODE_OFFSET`：首次启用自动构建号时使用的基线，必须不小于迁移前已发布 APK 的最大 `versionCode`。不配置时默认为 `1000`；已有更新清单后不再需要手动调整。
 
 ### GitHub Secrets
 
@@ -32,13 +32,13 @@
 
 随后从本地凭据文件中分别设置 `ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS` 和 `ANDROID_KEY_PASSWORD`。三个字段分别对应 keystore 密码、alias 和 key 密码，不要默认假设它们相同。执行 `gh secret set` 前需先通过 `gh auth login` 登录有仓库写权限的 GitHub 账号。
 
-`ANDROID_VERSION_CODE_OFFSET` 的选择很重要。工作流使用以下规则生成真正写入 APK 的 Android `versionCode`：
+`ANDROID_VERSION_CODE_OFFSET` 的选择很重要。工作流读取 production 和 preview 更新清单中的最大 `buildNumber`，并使用以下规则生成真正写入 APK 的 Android `versionCode`：
 
 ```text
-versionCode = ANDROID_VERSION_CODE_OFFSET + GitHub Actions GITHUB_RUN_NUMBER
+versionCode = max(ANDROID_VERSION_CODE_OFFSET, latest.buildNumber, preview.buildNumber) + 1
 ```
 
-因此同一个 `versionName` 也可以发布多个构建，客户端会优先比较 `buildNumber`，而不是只比较 `version`。首次迁移时，应将 offset 设为高于旧 EAS APK 的最大 versionCode；配置完成后不要随意降低它。
+因此 production 和 preview 共用一个严格递增的 Android 构建号序列，同一个 `versionName` 也可以发布多个构建。客户端会优先比较 `buildNumber`，而不是只比较 `version`。首次迁移时，应将 offset 设为不小于旧 EAS APK 的最大 versionCode；之后每次成功发布都会自动 `+1`。
 
 ## 整包发版
 
@@ -52,7 +52,9 @@ production 发版流程如下：
 4. Actions 使用旧 EAS keystore 构建签名 APK，创建 `v<version>` GitHub Release。
 5. Actions 自动生成并提交 `docs/releases/latest.json`。客户端随后可发现该 APK。
 
-`preview` 使用独立的 EAS `preview` channel、GitHub prerelease tag 和 `docs/releases/preview.json`，不会影响 production 用户。预览 tag 格式为 `v<version>-preview.<versionCode>`，避免与旧预览 Release 冲突。
+`preview` 使用独立的 EAS `preview` channel、GitHub prerelease tag 和 `docs/releases/preview.json`，不会影响 production 用户。工作流会查询当前版本已有的 `v<version>-preview.N` Release，取最大 `N` 后自动 `+1`。当前已有 `preview.1` 到 `preview.8` 时，下一次会生成 `preview.9`。preview 序号仅用于 Release 名称，与 Android `versionCode` 相互独立。
+
+production 始终使用精确 tag `v<version>`，例如 `v0.0.1`。如果同名 GitHub Release 或 Git tag 已存在，工作流会在 Android 构建前直接报错；正式发版前必须先修改 `app.config.ts` 的 `version`。
 
 `version` 是用户看到的 Android `versionName`；`buildNumber` 是 Android `versionCode`。客户端整包更新优先比较 `buildNumber`，因此同一个 `version` 也可以发布多个构建。
 

@@ -90,29 +90,69 @@ jobs:
           echo "APP_VERSION=$app_version" >> "$GITHUB_ENV"
           echo "Using app version=$app_version"
 
-      - name: Calculate Android versionCode
+      - name: Calculate next Android versionCode
         shell: bash
         run: |
-          offset="${ANDROID_VERSION_CODE_OFFSET:-1000}"
-          if ! [[ "$offset" =~ ^[0-9]+$ ]]; then
+          highest_build_number="${ANDROID_VERSION_CODE_OFFSET:-1000}"
+          if ! [[ "$highest_build_number" =~ ^[0-9]+$ ]]; then
             echo "ANDROID_VERSION_CODE_OFFSET must be a non-negative integer"
             exit 1
           fi
-          version_code=$((offset + GITHUB_RUN_NUMBER))
+
+          for manifest_path in docs/releases/latest.json docs/releases/preview.json; do
+            if [[ ! -f "$manifest_path" ]]; then continue; fi
+            manifest_build_number="$(node -e 'const fs = require("fs"); const manifest = JSON.parse(fs.readFileSync(process.argv[1], "utf8")); process.stdout.write(String(manifest.buildNumber ?? 0));' "$manifest_path")"
+            if ! [[ "$manifest_build_number" =~ ^[0-9]+$ ]]; then
+              echo "$manifest_path contains an invalid buildNumber"
+              exit 1
+            fi
+            if (( manifest_build_number > highest_build_number )); then
+              highest_build_number="$manifest_build_number"
+            fi
+          done
+
+          version_code=$((highest_build_number + 1))
           echo "ANDROID_VERSION_CODE=$version_code" >> "$GITHUB_ENV"
           echo "Using Android versionCode=$version_code"
 
-      - name: Configure release channel
+      - name: Configure release
         shell: bash
         run: |
           if [[ "$RELEASE_TYPE" == "preview" ]]; then
-            echo 'EXPO_UPDATE_CHANNEL=preview' >> "$GITHUB_ENV"
-            echo 'MANIFEST_PATH=docs/releases/preview.json' >> "$GITHUB_ENV"
-            echo "EXPO_PUBLIC_BINARY_UPDATE_MANIFEST_URL=https://raw.githubusercontent.com/$GITHUB_REPOSITORY/main/docs/releases/preview.json" >> "$GITHUB_ENV"
+            preview_prefix="v${APP_VERSION}-preview."
+            preview_number=0
+            while IFS= read -r existing_tag; do
+              if [[ "$existing_tag" != "$preview_prefix"* ]]; then continue; fi
+              suffix="${existing_tag#"$preview_prefix"}"
+              if [[ "$suffix" =~ ^[0-9]+$ ]] && (( suffix > preview_number )); then
+                preview_number="$suffix"
+              fi
+            done < <(gh release list --repo "$GITHUB_REPOSITORY" --limit 1000 --json tagName --jq '.[].tagName')
+
+            preview_number=$((preview_number + 1))
+            tag="${preview_prefix}${preview_number}"
+            manifest_path='docs/releases/preview.json'
+            update_channel='preview'
+            manifest_url="https://raw.githubusercontent.com/$GITHUB_REPOSITORY/main/$manifest_path"
           else
-            echo 'EXPO_UPDATE_CHANNEL=production' >> "$GITHUB_ENV"
-            echo 'MANIFEST_PATH=docs/releases/latest.json' >> "$GITHUB_ENV"
+            tag="v${APP_VERSION}"
+            manifest_path='docs/releases/latest.json'
+            update_channel='production'
+            manifest_url="$EXPO_PUBLIC_BINARY_UPDATE_MANIFEST_URL"
           fi
+
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+            echo "GitHub Release or tag already exists: $tag"
+            exit 1
+          fi
+
+          asset_name="anitabi-app-${tag}-android.apk"
+          echo "EXPO_UPDATE_CHANNEL=$update_channel" >> "$GITHUB_ENV"
+          echo "EXPO_PUBLIC_BINARY_UPDATE_MANIFEST_URL=$manifest_url" >> "$GITHUB_ENV"
+          echo "MANIFEST_PATH=$manifest_path" >> "$GITHUB_ENV"
+          echo "ASSET_NAME=$asset_name" >> "$GITHUB_ENV"
+          echo "TAG=$tag" >> "$GITHUB_ENV"
+          echo "Using GitHub Release tag=$tag"
 
       - name: Restore Android signing key
         shell: bash
@@ -149,16 +189,7 @@ jobs:
       - name: Prepare release asset
         shell: bash
         run: |
-          if [[ "$RELEASE_TYPE" == "preview" ]]; then
-            tag="v${APP_VERSION}-preview.${ANDROID_VERSION_CODE}"
-            asset_name="anitabi-app-${tag}-android.apk"
-          else
-            tag="v${APP_VERSION}"
-            asset_name="anitabi-app-${tag}-android.apk"
-          fi
-          cp android/app/build/outputs/apk/release/app-release.apk "$asset_name"
-          echo "ASSET_NAME=$asset_name" >> "$GITHUB_ENV"
-          echo "TAG=$tag" >> "$GITHUB_ENV"
+          cp android/app/build/outputs/apk/release/app-release.apk "$ASSET_NAME"
 
       - name: Create GitHub Release
         env:
