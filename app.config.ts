@@ -6,7 +6,7 @@ dotenvConfig({ path: '.env.local' });
 const config: ExpoConfig = {
   name: 'Anitabi',
   slug: 'anitabi-app',
-  version: '0.0.2',
+  version: '0.0.3',
   runtimeVersion: { policy: 'appVersion' },
   updates: {
     url: `https://u.expo.dev/${process.env.EXPO_PROJECT_ID}`,
