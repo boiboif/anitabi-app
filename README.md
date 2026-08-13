@@ -4,6 +4,8 @@
 
 一个基于 Expo 的圣地巡礼移动端地图应用，展示动漫取景地在世界地图上的点位。数据源来自 [anitabi.cn](https://www.anitabi.cn)。
 
+> 文档入口： [免责声明](#免责声明) · [数据来源与致谢](#数据来源与致谢) · [隐私政策](#隐私政策) · [贡献指引](CONTRIBUTING.md)
+
 ### 为什么做这个
 
 前段时间去旅行时用了 anitabi 网页端，体验不太理想。索性自己写一个趁手的 App，下次去旅行时圣地巡礼能更方便，也能帮助到别人。
@@ -42,123 +44,36 @@
 - [ ] 多语言国际化
 - [ ] AI赋能路线规划
 
-## 技术栈
+## 免责声明
 
-| 类别 | 技术                                         |
-| ---- | -------------------------------------------- |
-| 框架 | Expo SDK 57 / React Native 0.86 / React 19.2 |
-| 路由 | expo-router（文件路由）                      |
-| 地图 | @rnmapbox/maps                               |
-| UI   | Tamagui（styled-components 设计系统）        |
-| 状态 | Zustand + React Context                      |
-| 网络 | Axios + 请求处理器工厂                       |
-| 存储 | react-native-mmkv 4（配置、地图缓存和收藏）  |
-| 动画 | react-native-reanimated                      |
-| 图标 | @tamagui/lucide-icons-2                      |
-| 构建 | EAS Build（dev / preview / production）      |
+本项目按 GNU 通用公共许可证第 3 版（GPL-3.0）授权。许可证仅适用于本仓库中由本项目作者或贡献者创作并有权授权的代码；项目所使用的第三方依赖、地图服务、图片、番剧信息、地理数据及其他内容，仍分别受其各自的许可证、服务条款或权利声明约束。
 
-## 快速开始
+本项目按“现状”（AS IS）提供，不对其适用性、可用性、可靠性、准确性、完整性或不间断运行作出任何明示或暗示的保证。在适用法律允许的最大范围内，作者和贡献者不对因使用、无法使用或依赖本项目产生的任何直接、间接、偶然、特殊、惩罚性或后果性损害承担责任。上述限制不适用于适用法律明确禁止排除或限制的责任。
 
-### 前置要求
+使用者应自行评估并承担使用本项目的风险，遵守所在地法律法规、相关平台服务条款以及第三方知识产权、隐私权和其他合法权益。不得使用本项目实施违法活动、绕过访问控制、未经授权抓取或滥用服务，或侵犯任何第三方权利。项目缓存和下载内容仅供个人临时使用；使用者应在没有合法授权时及时清理，并不得擅自传播、再利用或用于商业目的。
 
-- Node.js >= 18
-- Expo CLI：`npx expo --version`
-- iOS 开发：Xcode（macOS）
-- Android 开发：Android Studio + 模拟器，或真机 ADB 无线调试
-- 一个 [Mapbox 账号](https://account.mapbox.com/) 并获取 Access Token
+本项目与 [anitabi.cn](https://www.anitabi.cn) 不存在任何明示或默示的官方关联、赞助或背书关系。
 
-### 安装
+## 数据来源与致谢
 
-```bash
-git clone <repo-url>
-cd anitabi-app
-yarn install
-```
+感谢 [anitabi.cn](https://www.anitabi.cn) 及其贡献者维护动漫圣地巡礼相关数据和服务。本项目的地图点位、番剧信息及部分相关资源来源于 anitabi.cn 或其公开接口，仅用于个人学习、研究和非官方客户端开发探索。
 
-### 环境变量
+相关数据和资源的著作权、商标权及其他权利归其各自权利人所有。本项目不主张拥有这些第三方内容的权利；如你是相关权利人并认为项目中的使用超出授权范围，请通过仓库 Issue 或其他公开联系方式联系维护者，我们会及时核查和处理。
 
-在项目根目录创建 `.env.local`：
+## 隐私政策
 
-```env
-EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN=你的_mapbox_token
-EXPO_PROJECT_ID=你的_expo_project_id
-```
+本项目不建立用户账号，不主动收集、出售或用于广告目的的用户个人信息。收藏、设置、地图缓存以及拍摄或生成的对比图默认保存在设备本地，项目不会将这些内容上传到自有服务器。
 
-### 运行
+为提供地图、数据和图片加载功能，应用会连接 [anitabi.cn](https://www.anitabi.cn) 和地图服务提供商；这些第三方服务可能按照各自的隐私政策处理网络请求元数据。应用还集成了 Sentry 用于崩溃和性能诊断，可能接收错误堆栈、设备/应用版本、导航性能等技术诊断信息；项目配置已关闭默认 PII 发送，但这不等于第三方服务绝对不会处理网络或设备技术信息。
 
-```bash
-# 开发服务器（Expo Go / 开发构建）
-yarn start
+定位、相机、照片和媒体库权限仅在对应功能需要时使用：定位用于在地图上显示当前位置，相机和照片权限用于生成巡礼对比图，媒体库权限用于保存生成的图片。相关内容默认仅在设备本地处理。你可以在系统设置中随时撤回权限，但部分功能可能因此无法使用。
 
-# 直连 Android 开发构建（真机或模拟器）
-yarn android
-
-# 直连 iOS 模拟器
-yarn ios
-
-# Web 版（RN Web）
-yarn web
-```
-
-## 项目结构
-
-```
-anitabi-app/
-├── app.config.ts           # Expo 配置（scheme、插件、地图 token）
-├── assets/                 # 图标、启动屏图片资源
-├── docs/
-│   └── anitabi-api.md      # anitabi.cn API 数据格式文档
-└── src/
-    ├── tamagui.config.ts   # Tamagui 主题（primary: #FB7299）
-    ├── app/                # Expo Router 文件路由
-    │   ├── _layout.tsx     # 根布局（Tamagui、主题、Splash）
-    │   ├── (tabs)/         # 标签页组
-    │   │   ├── _layout.tsx # 标签布局
-    │   │   ├── index.tsx   # 主页地图
-    │   │   ├── favorites.tsx # 收藏列表
-    │   │   └── profile.tsx # 我的页面
-    │   ├── favorites/      # 按作品查看收藏的巡礼点
-    │   └── dark-mode.tsx   # 深色模式设置
-    ├── components/         # UI 组件
-    │   ├── map-container   # Mapbox 地图容器
-    │   ├── map-markers     # 点位标记（zoom 密度过滤）
-    │   ├── bangumi-icons   # 番剧图标雪碧图
-    │   ├── search-box      # 搜索框
-    │   └── ...
-    ├── lib/                # 工具库
-    │   ├── storage.ts      # MMKV 配置持久化
-    │   ├── map-storage.ts  # 地图数据缓存
-    │   └── favorite-storage.ts # 收藏数据持久化
-    ├── services/           # 数据层
-    │   ├── request.ts      # Axios 实例
-    │   ├── createHandler   # API 处理器工厂
-    │   ├── handlers.ts     # 处理器实例
-    │   ├── api.ts          # 端点定义
-    │   ├── map-data.ts     # 数据拉取 + 组装
-    │   └── types.ts        # 类型定义
-    └── store/
-        ├── use-selected-bangumi.ts  # 地图番剧筛选 store
-        └── use-favorite-points.ts   # 收藏点位 store
-```
-
-## 数据流
-
-1. **启动** → 检查 MMKV 缓存版本号（`g-modified` 时间戳）
-2. **缓存可用** → 直接加载本地数据，显示地图
-3. **缓存过期/缺失** → 全量拉取 → 合并番剧元数据与详情 → 写入 MMKV
-4. 加载过程中通过 `FetchProgress` 回调驱动 UI 进度指示
-
-## 脚本
-
-| 命令               | 说明                 |
-| ------------------ | -------------------- |
-| `yarn start`       | 启动 Expo 开发服务器 |
-| `yarn android`     | Android 开发构建     |
-| `yarn ios`         | iOS 模拟器构建       |
-| `yarn web`         | Web 版               |
-| `yarn lint`        | ESLint 检查          |
-| `yarn adb-connect` | ADB 无线调试连接     |
+更多说明见 [docs/PRIVACY.md](docs/PRIVACY.md)。
 
 ## 许可
 
-MIT
+本项目原创代码采用 [GNU 通用公共许可证第 3 版（GPL-3.0）](LICENSE) 授权。分发或修改本项目时，请遵守 GPL-3.0 的源代码提供、版权声明、许可证文本和修改说明等要求。第三方依赖和第三方内容不因本项目采用 GPL-3.0 而自动改变其原有许可证或权利归属。
+
+## 贡献
+
+欢迎提交 Issue、改进代码、完善文档或提出产品建议。提交贡献前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)，尤其是其中关于数据来源、版权和隐私的要求。
