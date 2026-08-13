@@ -1,0 +1,12 @@
+{
+  "version": "0.0.2",
+  "buildNumber": 1002,
+  "title": "Anitabi 新版本",
+  "releaseNotes": "请填写本次整包更新的内容。",
+  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.0.2/anitabi-app-v0.0.2-android.apk",
+  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.0.2",
+  "mandatory": false,
+  "minSupportedVersion": "0.0.1",
+  "minSupportedBuildNumber": 1001,
+  "fileName": "anitabi-app-v0.0.2-android.apk"
+}

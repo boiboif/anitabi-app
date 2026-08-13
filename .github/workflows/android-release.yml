@@ -1,0 +1,188 @@
+name: Android Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release channel'
+        required: true
+        default: production
+        type: choice
+        options:
+          - production
+          - preview
+      release_notes:
+        description: 'GitHub Release notes and in-app update notes'
+        required: true
+        type: string
+      mandatory:
+        description: 'Force users to install this APK'
+        required: true
+        default: false
+        type: boolean
+      min_supported_version:
+        description: 'Optional minimum supported versionName'
+        required: false
+        type: string
+      min_supported_build_number:
+        description: 'Optional minimum supported Android versionCode'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-release
+  cancel-in-progress: false
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    env:
+      EXPO_PROJECT_ID: ${{ vars.EXPO_PROJECT_ID }}
+      EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN: ${{ vars.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN }}
+      EXPO_PUBLIC_BINARY_UPDATE_MANIFEST_URL: ${{ vars.EXPO_PUBLIC_BINARY_UPDATE_MANIFEST_URL }}
+      EXPO_UPDATE_CHANNEL: production
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      ANDROID_VERSION_CODE_OFFSET: ${{ vars.ANDROID_VERSION_CODE_OFFSET }}
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TYPE: ${{ inputs.release_type }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Require main branch
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF_NAME" != "main" ]]; then
+            echo 'Android releases must be dispatched from the main branch.'
+            exit 1
+          fi
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Install dependencies
+        run: |
+          corepack enable
+          yarn install --frozen-lockfile
+
+      - name: Read app version
+        shell: bash
+        run: |
+          app_version="$(npx expo config --type public --json | node -e 'let input=""; process.stdin.on("data", (chunk) => { input += chunk; }); process.stdin.on("end", () => { process.stdout.write(JSON.parse(input).version); });')"
+          if [[ ! "$app_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "app.config.ts must define a semantic version, got: $app_version"
+            exit 1
+          fi
+          echo "APP_VERSION=$app_version" >> "$GITHUB_ENV"
+          echo "Using app version=$app_version"
+
+      - name: Calculate Android versionCode
+        shell: bash
+        run: |
+          offset="${ANDROID_VERSION_CODE_OFFSET:-1000}"
+          if ! [[ "$offset" =~ ^[0-9]+$ ]]; then
+            echo "ANDROID_VERSION_CODE_OFFSET must be a non-negative integer"
+            exit 1
+          fi
+          version_code=$((offset + GITHUB_RUN_NUMBER))
+          echo "ANDROID_VERSION_CODE=$version_code" >> "$GITHUB_ENV"
+          echo "Using Android versionCode=$version_code"
+
+      - name: Configure release channel
+        shell: bash
+        run: |
+          if [[ "$RELEASE_TYPE" == "preview" ]]; then
+            echo 'EXPO_UPDATE_CHANNEL=preview' >> "$GITHUB_ENV"
+            echo 'MANIFEST_PATH=docs/releases/preview.json' >> "$GITHUB_ENV"
+            echo "EXPO_PUBLIC_BINARY_UPDATE_MANIFEST_URL=https://raw.githubusercontent.com/$GITHUB_REPOSITORY/main/docs/releases/preview.json" >> "$GITHUB_ENV"
+          else
+            echo 'EXPO_UPDATE_CHANNEL=production' >> "$GITHUB_ENV"
+            echo 'MANIFEST_PATH=docs/releases/latest.json' >> "$GITHUB_ENV"
+          fi
+
+      - name: Restore Android signing key
+        shell: bash
+        run: |
+          if [[ -z "$ANDROID_KEYSTORE_BASE64" ]]; then
+            echo 'ANDROID_KEYSTORE_BASE64 is not configured.'
+            exit 1
+          fi
+          if [[ -z "$ANDROID_KEYSTORE_PASSWORD" || -z "$ANDROID_KEY_ALIAS" || -z "$ANDROID_KEY_PASSWORD" ]]; then
+            echo 'Android signing secrets are incomplete.'
+            exit 1
+          fi
+          signing_dir="$RUNNER_TEMP/anitabi-signing"
+          mkdir -p "$signing_dir"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$signing_dir/anitabi-upload.keystore"
+          test -s "$signing_dir/anitabi-upload.keystore"
+          echo "ANDROID_KEYSTORE_PATH=$signing_dir/anitabi-upload.keystore" >> "$GITHUB_ENV"
+
+      - name: Generate Android project
+        run: npx expo prebuild --clean --platform android --no-install
+
+      - name: Build signed APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Prepare release asset
+        shell: bash
+        run: |
+          if [[ "$RELEASE_TYPE" == "preview" ]]; then
+            tag="v${APP_VERSION}-preview.${GITHUB_RUN_NUMBER}"
+            asset_name="anitabi-app-${tag}-android.apk"
+          else
+            tag="v${APP_VERSION}"
+            asset_name="anitabi-app-${tag}-android.apk"
+          fi
+          cp android/app/build/outputs/apk/release/app-release.apk "$asset_name"
+          echo "ASSET_NAME=$asset_name" >> "$GITHUB_ENV"
+          echo "TAG=$tag" >> "$GITHUB_ENV"
+
+      - name: Create GitHub Release
+        env:
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+        shell: bash
+        run: |
+          printf '%s\n' "$RELEASE_NOTES" > release-notes.md
+          release_args=(gh release create "$TAG" "$ASSET_NAME" --repo "$GITHUB_REPOSITORY" --title "$TAG" --notes-file release-notes.md)
+          if [[ "$RELEASE_TYPE" == "preview" ]]; then release_args+=(--prerelease); fi
+          "${release_args[@]}"
+
+      - name: Generate latest update manifest
+        env:
+          MANDATORY: ${{ inputs.mandatory }}
+          MIN_SUPPORTED_VERSION: ${{ inputs.min_supported_version }}
+          MIN_SUPPORTED_BUILD_NUMBER: ${{ inputs.min_supported_build_number }}
+        shell: bash
+        run: |
+          manifest_args=(yarn release:manifest --version "$APP_VERSION" --tag "$TAG" --build-number "$ANDROID_VERSION_CODE" --from-github --asset-name "$ASSET_NAME" --output "$MANIFEST_PATH")
+          if [[ "$MANDATORY" == "true" ]]; then manifest_args+=(--mandatory); fi
+          if [[ -n "$MIN_SUPPORTED_VERSION" ]]; then manifest_args+=(--min-supported-version "$MIN_SUPPORTED_VERSION"); fi
+          if [[ -n "$MIN_SUPPORTED_BUILD_NUMBER" ]]; then manifest_args+=(--min-supported-build-number "$MIN_SUPPORTED_BUILD_NUMBER"); fi
+          "${manifest_args[@]}"
+
+      - name: Commit update manifest
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$MANIFEST_PATH"
+          if git diff --cached --quiet; then
+            echo 'latest.json is unchanged'
+          else
+            git commit -m "chore: update release manifest for $TAG"
+            git push origin HEAD:main
+          fi

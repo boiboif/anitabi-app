@@ -7,6 +7,15 @@ const config: ExpoConfig = {
   name: 'Anitabi',
   slug: 'anitabi-app',
   version: '0.0.1',
+  runtimeVersion: { policy: 'appVersion' },
+  updates: {
+    url: `https://u.expo.dev/${process.env.EXPO_PROJECT_ID}`,
+    requestHeaders: {
+      'expo-channel-name': process.env.EXPO_UPDATE_CHANNEL || 'production',
+    },
+    checkAutomatically: 'NEVER',
+    fallbackToCacheTimeout: 0,
+  },
   orientation: 'default',
   icon: './assets/images/anitabi-icon.png',
   scheme: 'anitabiapp',
@@ -15,6 +24,9 @@ const config: ExpoConfig = {
     icon: './assets/images/anitabi-icon.png',
     infoPlist: {
       NSCameraUsageDescription: '用于拍摄巡礼点的实景对比照片',
+      NSAppTransportSecurity: {
+        NSAllowsArbitraryLoads: true,
+      },
     },
   },
   android: {
@@ -24,7 +36,8 @@ const config: ExpoConfig = {
     },
     predictiveBackGestureEnabled: false,
     package: 'bbf.anitabiapp',
-    permissions: ['android.permission.CAMERA'],
+    versionCode: Number(process.env.ANDROID_VERSION_CODE ?? 1),
+    permissions: ['android.permission.CAMERA', 'android.permission.REQUEST_INSTALL_PACKAGES'],
   },
   web: {
     output: 'static',
@@ -34,7 +47,7 @@ const config: ExpoConfig = {
     'expo-router',
     'expo-font',
     'expo-image',
-    'expo-build-properties',
+    ['expo-build-properties', { android: { usesCleartextTraffic: true } }],
     'expo-status-bar',
     'expo-web-browser',
     [
@@ -72,6 +85,7 @@ const config: ExpoConfig = {
       },
     ],
     ['@rnmapbox/maps'],
+    './plugins/with-android-release-signing',
     [
       'expo-location',
       {
@@ -97,6 +111,9 @@ const config: ExpoConfig = {
   },
   extra: {
     mapboxAccessToken: process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN,
+    binaryUpdateManifestUrl:
+      process.env.EXPO_PUBLIC_BINARY_UPDATE_MANIFEST_URL ||
+      'https://raw.githubusercontent.com/boiboif/anitabi-app/main/docs/releases/latest.json',
     eas: {
       projectId: process.env.EXPO_PROJECT_ID,
     },

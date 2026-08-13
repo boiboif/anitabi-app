@@ -3,21 +3,5 @@
     "version": ">= 16.0.0",
     "requireCommit": false,
     "appVersionSource": "remote"
-  },
-  "build": {
-    "development": {
-      "developmentClient": true,
-      "distribution": "internal"
-    },
-    "preview": {
-      "distribution": "internal",
-      "android": {
-        "buildType": "apk"
-      },
-      "autoIncrement": true
-    },
-    "production": {
-      "autoIncrement": true
-    }
   }
 }

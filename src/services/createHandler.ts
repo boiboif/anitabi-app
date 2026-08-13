@@ -4,7 +4,7 @@ import service from './request';
 
 interface CreateHandlerParams {
   /** 请求基准地址 */
-  baseUrl: string;
+  baseUrl: string | (() => string);
   /** 请求头工厂，可按 URL 动态设置 */
   headers?: (url: string) => Record<string, string>;
   /**
@@ -23,7 +23,7 @@ export const createHandler = (params: CreateHandlerParams) => {
     <Res>(url: string, method: Method, config?: AxiosRequestConfig) =>
     async (data?: any, innerConfig?: AxiosRequestConfig): Promise<Res> => {
       const merged: AxiosRequestConfig = {
-        baseURL: baseUrl,
+        baseURL: typeof baseUrl === 'function' ? baseUrl() : baseUrl,
         url,
         method,
         ...config,

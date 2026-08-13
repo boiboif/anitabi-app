@@ -1,0 +1,51 @@
+name: EAS Hot Update
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'EAS Update channel'
+        required: true
+        default: production
+        type: choice
+        options:
+          - production
+          - preview
+      message:
+        description: 'Update message'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      EXPO_PROJECT_ID: ${{ vars.EXPO_PROJECT_ID }}
+      EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN: ${{ vars.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN }}
+      EXPO_PUBLIC_BINARY_UPDATE_MANIFEST_URL: ${{ vars.EXPO_PUBLIC_BINARY_UPDATE_MANIFEST_URL }}
+      EXPO_UPDATE_CHANNEL: ${{ inputs.channel }}
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Install dependencies
+        run: |
+          corepack enable
+          yarn install --frozen-lockfile
+
+      - name: Publish EAS Update
+        run: npx eas-cli@latest update --channel "$EXPO_UPDATE_CHANNEL" --message "$INPUT_MESSAGE" --non-interactive
+        env:
+          INPUT_MESSAGE: ${{ inputs.message }}

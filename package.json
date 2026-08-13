@@ -2,6 +2,7 @@
   "name": "anitabi-app",
   "main": "expo-router/entry",
   "version": "1.0.0",
+  "license": "GPL-3.0-only",
   "dependencies": {
     "@expo/ui": "~57.0.4",
     "@lodev09/react-native-true-sheet": "^3.11.9",
@@ -16,6 +17,7 @@
     "dayjs": "^1.11.21",
     "expo": "~57.0.4",
     "expo-blur": "~57.0.0",
+    "expo-application": "~57.0.2",
     "expo-build-properties": "~57.0.3",
     "expo-constants": "~57.0.3",
     "expo-dev-client": "~57.0.5",
@@ -26,6 +28,7 @@
     "expo-image": "~57.0.1",
     "expo-image-manipulator": "~57.0.6",
     "expo-image-picker": "~57.0.6",
+    "expo-intent-launcher": "~57.0.1",
     "expo-linking": "~57.0.2",
     "expo-location": "~57.0.2",
     "expo-media-library": "~57.0.3",
@@ -78,7 +81,7 @@
     "download:images": "node scripts/download-images.mjs",
     "adb-connect": "adb connect 192.168.31.95:5555",
     "build:apk": "cd android && gradlew.bat assembleRelease -PreactNativeArchitectures=arm64-v8a",
-    "eas-build-on-success": "node scripts/eas-post-build.cjs"
+    "release:manifest": "node scripts/generate-release-manifest.cjs"
   },
   "private": true
 }

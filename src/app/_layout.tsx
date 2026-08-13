@@ -1,4 +1,6 @@
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
+import { AppUpdateOverlay } from '@/components/app-update-overlay';
+import { useAppUpdates } from '@/hooks/use-app-updates';
 import '@/global.css';
 import { Sentry, sentryNavigationIntegration } from '@/services/sentry';
 import { useMapData } from '@/store/use-map-data';
@@ -60,6 +62,7 @@ function RootLayout() {
   const theme = resolveTheme(colorScheme, preference);
   const initializeMapData = useMapData((state) => state.initialize);
   const navigationContainerRef = useNavigationContainerRef();
+  const appUpdates = useAppUpdates();
 
   useEffect(() => {
     sentryNavigationIntegration.registerNavigationContainer(navigationContainerRef);
@@ -77,6 +80,7 @@ function RootLayout() {
             <TrueSheetProvider>
               <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
               <AnimatedSplashOverlay />
+              <AppUpdateOverlay manager={appUpdates} />
               <Stack screenOptions={{ headerShown: false, animation: 'ios_from_right', orientation: 'portrait' }}>
                 <Stack.Screen name="(tabs)" />
                 <Stack.Screen

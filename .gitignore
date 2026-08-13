@@ -18,6 +18,7 @@ modules/*/**/build/
 *.p12
 *.key
 *.mobileprovision
+keystore/
 
 # Metro
 .metro-health-check*
