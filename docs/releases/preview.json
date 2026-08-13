@@ -1,10 +1,10 @@
 {
   "version": "0.0.1",
-  "title": "v0.0.1-preview.1005",
-  "releaseNotes": "GitHub Actions arm64 签名构建测试（4GB Gradle heap）",
-  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.0.1-preview.1005/anitabi-app-v0.0.1-preview.1005-android.apk",
-  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.0.1-preview.1005",
+  "title": "v0.0.1-preview.9",
+  "releaseNotes": "验证 Android APK 使用旧 EAS 签名。",
+  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.0.1-preview.9/anitabi-app-v0.0.1-preview.9-android.apk",
+  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.0.1-preview.9",
   "mandatory": false,
-  "buildNumber": 1005,
-  "fileName": "anitabi-app-v0.0.1-preview.1005-android.apk"
+  "buildNumber": 1006,
+  "fileName": "anitabi-app-v0.0.1-preview.9-android.apk"
 }
