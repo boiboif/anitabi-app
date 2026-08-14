@@ -1,12 +1,13 @@
 import ComparisonCameraButton from '@/components/comparison-camera-button';
 import FavoritePointButton from '@/components/favorite-point-button';
+import GoogleMapsNavigationButton from '@/components/google-maps-navigation-button';
 import { formatDuration } from '@/lib/formatDuration';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapBrowse } from '@/store/use-map-browse';
 import { Image } from 'expo-image';
 import { Linking, Pressable } from 'react-native';
-import { getTokens, Text, useTheme, View } from 'tamagui';
+import { getTokens, Text, useTheme, View, XStack } from 'tamagui';
 
 type Props = {
   point: Point;
@@ -142,9 +143,10 @@ export default function PopupCard({ point, bangumi }: Props) {
             @{point.origin}
           </Text>
         ) : null}
-        <View pt="$2">
+        <XStack pt="$2" gap="$2" items="center">
           <ComparisonCameraButton point={point} bangumi={bangumi} compact />
-        </View>
+          <GoogleMapsNavigationButton point={point} />
+        </XStack>
       </View>
     </View>
   );
