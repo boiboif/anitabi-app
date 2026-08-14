@@ -3,7 +3,7 @@ import { config as dotenvConfig } from 'dotenv';
 import type { ExpoConfig } from 'expo/config';
 dotenvConfig({ path: '.env.local' });
 
-const appVersion = '0.0.4';
+const appVersion = '0.1.0';
 const nativeAppVersion = process.env.APP_NATIVE_VERSION || appVersion;
 const updateChannel = process.env.EXPO_UPDATE_CHANNEL || 'development';
 const appUpdatesEnabled = updateChannel === 'preview' || updateChannel === 'production';
