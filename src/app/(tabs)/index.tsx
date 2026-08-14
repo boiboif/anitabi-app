@@ -190,7 +190,7 @@ export default function HomeScreen() {
 
       {!selectedBangumi && (
         <>
-          <YStack r="$2" p="$1.5" position="absolute" b="26%" z={20} gap="$2">
+          <YStack r="$2" p="$1.5" position="absolute" b="26%" z={20} gap="$3">
             <RandomPointButton onPress={handleRandomPoint} />
             <LocateButton onPress={handleLocate} />
           </YStack>

@@ -177,6 +177,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
           coordinate={[selectedPointData.point.geo[1], selectedPointData.point.geo[0]]}
           anchor={{ x: 0.5, y: 1 }}
           allowOverlap
+          allowOverlapWithPuck
         >
           <PopupCard point={selectedPointData.point} bangumi={selectedPointData.bangumi} />
         </MarkerView>
