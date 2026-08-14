@@ -28,6 +28,7 @@ const config: ExpoConfig = {
   scheme: 'anitabiapp',
   userInterfaceStyle: 'automatic',
   ios: {
+    bundleIdentifier: 'bbf.anitabiapp',
     icon: './assets/images/anitabi-icon.png',
     infoPlist: {
       NSCameraUsageDescription: '用于拍摄巡礼点的实景对比照片',
