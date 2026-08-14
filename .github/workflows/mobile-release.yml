@@ -4,29 +4,30 @@ on:
   workflow_dispatch:
     inputs:
       release_type:
-        description: 'Release type'
+        description: 'Release channel'
+        required: true
+        default: production
         type: choice
         options:
-          - preview
           - production
-        default: preview
+          - preview
       release_notes:
-        description: 'Release notes'
+        description: 'GitHub Release and in-app notes; use \n for line breaks'
+        required: true
         type: string
-        required: false
-        default: ''
       mandatory:
-        description: 'Force update'
-        type: boolean
+        description: 'Force users to install this APK'
+        required: true
         default: false
+        type: boolean
       min_supported_version:
-        description: 'Minimum supported app version'
+        description: 'Optional minimum supported versionName'
+        required: false
         type: string
-        default: '0.0.1'
       min_supported_build_number:
-        description: 'Minimum supported build number'
+        description: 'Optional minimum supported Android versionCode'
+        required: false
         type: string
-        default: '1'
 
 permissions:
   contents: write
