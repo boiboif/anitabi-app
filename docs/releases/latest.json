@@ -1,0 +1,11 @@
+{
+  "version": "0.1.0",
+  "displayVersion": "0.1.0",
+  "title": "v0.1.0",
+  "releaseNotes": "巡礼点详情卡片增加跳转谷歌地图导航功能",
+  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.1.0/anitabi-app-v0.1.0-android.apk",
+  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.1.0",
+  "mandatory": false,
+  "buildNumber": 1012,
+  "fileName": "anitabi-app-v0.1.0-android.apk"
+}
