@@ -5,6 +5,7 @@ import LocateButton from '@/components/locate-button';
 import MapContainer from '@/components/map-container';
 import MapTopBangumiIcons from '@/components/map-top-bangumi-icons';
 import PointImageMarkerSwitch from '@/components/point-image-marker-switch';
+import RandomPointButton from '@/components/random-point-button';
 import SearchBox from '@/components/search-box';
 import { FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE } from '@/lib/constants';
 import { useMapBrowse } from '@/store/use-map-browse';
@@ -16,7 +17,7 @@ import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { View } from 'tamagui';
+import { View, YStack } from 'tamagui';
 
 type CameraState = {
   zoom: number;
@@ -62,7 +63,17 @@ export default function HomeScreen() {
   const bangumis = useMemo(() => data?.data.bangumis ?? [], [data]);
   const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const mapCameraRequest = useMapBrowse((state) => state.mapCameraRequest);
+  const focusPointFromMapControl = useMapBrowse((state) => state.focusPointFromMapControl);
   const completeMapCameraRequest = useMapBrowse((state) => state.completeMapCameraRequest);
+  const randomPointCandidates = useMemo(
+    () =>
+      bangumis.flatMap((bangumi) =>
+        bangumi.points
+          .filter((point) => point.geo[0] !== 0 || point.geo[1] !== 0)
+          .map((point) => ({ bangumiId: bangumi.id, pointId: point.id })),
+      ),
+    [bangumis],
+  );
   const selectedBangumi = useMemo(
     () => bangumis?.find((bangumi) => bangumi.id === openedBangumiDetailsId) ?? null,
     [bangumis, openedBangumiDetailsId],
@@ -139,6 +150,16 @@ export default function HomeScreen() {
     }
   }, []);
 
+  const handleRandomPoint = useCallback(() => {
+    if (randomPointCandidates.length === 0) {
+      Alert.alert('暂无巡礼点', '地图数据加载完成后再试。');
+      return;
+    }
+
+    const randomIndex = Math.floor(Math.random() * randomPointCandidates.length);
+    focusPointFromMapControl(randomPointCandidates[randomIndex]);
+  }, [focusPointFromMapControl, randomPointCandidates]);
+
   const [styleIndex, setStyleIndex] = useState(0);
 
   return (
@@ -169,9 +190,10 @@ export default function HomeScreen() {
 
       {!selectedBangumi && (
         <>
-          <View r="$2" p="$1.5" position="absolute" b="26%" z={20}>
+          <YStack r="$2" p="$1.5" position="absolute" b="26%" z={20} gap="$2">
+            <RandomPointButton onPress={handleRandomPoint} />
             <LocateButton onPress={handleLocate} />
-          </View>
+          </YStack>
           <View r="$2" p="$1.5" position="absolute" t={200} z={20}>
             <LayerSwitch styleIndex={styleIndex} onChange={setStyleIndex} />
           </View>

@@ -144,7 +144,8 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
       localizeLabels={{ locale: 'zh' }}
       compassEnabled
       compassPosition={{ top: insets.top + 100, right: 8 }}
-      scaleBarEnabled={false}
+      scaleBarEnabled={true}
+      scaleBarPosition={{ right: 0, bottom: 8 }}
       onCameraChanged={handleCameraChanged}
       onPress={clearSelectedMapPoint}
     >

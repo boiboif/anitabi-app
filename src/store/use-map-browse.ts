@@ -13,7 +13,7 @@ export type MapPointReference = {
 type MapCameraRequest = MapPointReference & {
   id: number;
   /** 地图、列表和番剧详情抽屉的点选来源。 */
-  source: 'map-point-selection' | 'external-list' | 'bangumi-detail-sheet';
+  source: 'map-point-selection' | 'map-control' | 'external-list' | 'bangumi-detail-sheet';
 };
 
 type MapBrowseState = {
@@ -30,6 +30,8 @@ type MapBrowseState = {
   closeBangumiDetails: () => void;
   /** 用户在地图内选择点位。 */
   selectMapPoint: (point: MapPointReference) => void;
+  /** 用户通过地图控件选择点位，强制定位到该点。 */
+  focusPointFromMapControl: (point: MapPointReference) => void;
   /** 用户从搜索或收藏列表选择点位，返回地图后强制定位到该点。 */
   focusPointFromList: (point: MapPointReference) => void;
   /** 用户从番剧详情抽屉选择点位，强制定位到该点。 */
@@ -60,6 +62,13 @@ export const useMapBrowse = create<MapBrowseState>((set) => ({
     set({
       selectedMapPoint: point,
       mapCameraRequest: createMapCameraRequest(point, 'map-point-selection'),
+    }),
+
+  focusPointFromMapControl: (point) =>
+    set({
+      openedBangumiDetailsId: null,
+      selectedMapPoint: point,
+      mapCameraRequest: createMapCameraRequest(point, 'map-control'),
     }),
 
   focusPointFromList: (point) =>

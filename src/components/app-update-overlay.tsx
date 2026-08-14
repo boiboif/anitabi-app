@@ -72,8 +72,8 @@ export function AppUpdateOverlay({ manager }: Props) {
                   {progress}%
                 </Text>
               </XStack>
-              <Progress value={progress} background="$color4" size="$3">
-                <Progress.Indicator background="$primary" />
+              <Progress value={progress} bg="$color4" size="$3">
+                <Progress.Indicator bg="$primary" />
               </Progress>
             </YStack>
           ) : null}

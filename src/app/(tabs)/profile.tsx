@@ -99,10 +99,17 @@ export default function ProfileScreen() {
             icon={Info}
             title="Anitabi"
             description={appUpdates.binaryUpdate ? `发现新版本 v${appUpdates.binaryUpdate.version}` : '点击检查更新'}
-            value={appUpdates.isChecking ? '检查中...' : appUpdates.binaryUpdate ? '可更新' : `v${Constants.expoConfig?.version}`}
+            value={
+              appUpdates.isChecking
+                ? '检查中...'
+                : appUpdates.binaryUpdate
+                  ? '可更新'
+                  : `v${Constants.expoConfig?.version}`
+            }
             disabled={appUpdates.isChecking}
             accessibilityState={{ disabled: appUpdates.isChecking }}
             onPress={() => void openAppUpdate()}
+            rightAccessory={false}
           />
         </SettingsSection>
       </View>
