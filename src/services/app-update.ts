@@ -8,6 +8,7 @@ import { Platform } from 'react-native';
 
 export type BinaryUpdate = {
   version: string;
+  displayVersion?: string;
   buildNumber?: number;
   title?: string;
   releaseNotes?: string;
@@ -58,12 +59,29 @@ export function areAppUpdatesEnabled(): boolean {
   return Constants.expoConfig?.extra?.appUpdatesEnabled === true;
 }
 
+export function getCurrentAppDisplayVersion(): string {
+  const configuredVersion = Constants.expoConfig?.version;
+  if (configuredVersion?.includes('-')) return configuredVersion;
+  if (!__DEV__ && Application.nativeApplicationVersion) return Application.nativeApplicationVersion;
+  return configuredVersion ?? Application.nativeApplicationVersion ?? '未知';
+}
+
+export function getBinaryUpdateDisplayVersion(update: BinaryUpdate): string {
+  if (update.displayVersion?.trim()) return update.displayVersion.trim().replace(/^v/i, '');
+  const title = update.title?.trim();
+  if (title && /^v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(title)) {
+    return title.replace(/^v/i, '');
+  }
+  return update.version;
+}
+
 function isBinaryUpdate(value: unknown): value is BinaryUpdate {
   if (!value || typeof value !== 'object') return false;
   const candidate = value as Partial<BinaryUpdate>;
   return (
     typeof candidate.version === 'string' &&
     typeof candidate.apkUrl === 'string' &&
+    (candidate.displayVersion === undefined || typeof candidate.displayVersion === 'string') &&
     (candidate.buildNumber === undefined || typeof candidate.buildNumber === 'number')
   );
 }
@@ -97,6 +115,28 @@ export function isMandatoryUpdate(
   );
 }
 
+function getBinaryUpdateFile(update: BinaryUpdate): File {
+  const baseName = (update.fileName?.replace(/\.apk$/i, '') ?? 'anitabi').replace(/[^a-zA-Z0-9._-]/g, '-');
+  const buildIdentifier =
+    typeof update.buildNumber === 'number' ? `${update.version}-${update.buildNumber}` : update.version;
+  return new File(Paths.cache, `${baseName}-${buildIdentifier}.ready.apk`);
+}
+
+export function isBinaryUpdateDownloaded(update: BinaryUpdate): boolean {
+  if (Platform.OS !== 'android') return false;
+  const file = getBinaryUpdateFile(update);
+  return file.exists && (file.size ?? 0) > 0;
+}
+
+async function openBinaryUpdateFile(file: File): Promise<void> {
+  const contentUri = await FileSystemLegacy.getContentUriAsync(file.uri);
+  await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+    data: contentUri,
+    type: 'application/vnd.android.package-archive',
+    flags: 1 | 2,
+  });
+}
+
 export async function checkBinaryUpdate(): Promise<BinaryUpdate | null> {
   if (Platform.OS !== 'android' || !areAppUpdatesEnabled()) return null;
 
@@ -120,11 +160,18 @@ export async function downloadAndInstallBinaryUpdate(
     return;
   }
 
-  const fileName = update.fileName ?? `anitabi-${update.version}.apk`;
-  const destination = new File(Paths.cache, fileName);
-  if (destination.exists) destination.delete();
+  const destination = getBinaryUpdateFile(update);
+  if (isBinaryUpdateDownloaded(update)) {
+    const totalBytes = destination.size ?? 0;
+    onProgress?.({ bytesWritten: totalBytes, totalBytes, percent: 100 });
+    await openBinaryUpdateFile(destination);
+    return;
+  }
 
-  const task = File.createDownloadTask(update.apkUrl, destination, {
+  const temporaryFile = new File(Paths.cache, `${destination.name}.download`);
+  if (temporaryFile.exists) temporaryFile.delete();
+
+  const task = File.createDownloadTask(update.apkUrl, temporaryFile, {
     onProgress: ({ bytesWritten, totalBytes }) => {
       onProgress?.({
         bytesWritten,
@@ -137,12 +184,11 @@ export async function downloadAndInstallBinaryUpdate(
   try {
     const downloadedFile = await task.downloadAsync();
     if (!downloadedFile) throw new Error('APK download did not produce a file');
-    const contentUri = await FileSystemLegacy.getContentUriAsync(downloadedFile.uri);
-    await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
-      data: contentUri,
-      type: 'application/vnd.android.package-archive',
-      flags: 1 | 2,
-    });
+    if (!downloadedFile.exists || (downloadedFile.size ?? 0) <= 0) {
+      throw new Error('Downloaded APK is empty');
+    }
+    await downloadedFile.move(destination, { overwrite: true });
+    await openBinaryUpdateFile(destination);
   } finally {
     task.release();
   }

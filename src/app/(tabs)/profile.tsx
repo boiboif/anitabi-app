@@ -1,8 +1,11 @@
 import { SettingCell } from '@/components/setting-cell';
 import { useAppUpdateManager } from '@/hooks/use-app-update-manager';
+import {
+  getBinaryUpdateDisplayVersion,
+  getCurrentAppDisplayVersion,
+} from '@/services/app-update';
 import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
 import { Database, Info, Moon } from '@tamagui/lucide-icons-2';
-import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Alert, Platform, ScrollView } from 'react-native';
@@ -98,13 +101,17 @@ export default function ProfileScreen() {
           <SettingCell
             icon={Info}
             title="Anitabi"
-            description={appUpdates.binaryUpdate ? `发现新版本 v${appUpdates.binaryUpdate.version}` : '点击检查更新'}
+            description={
+              appUpdates.binaryUpdate
+                ? `发现新版本 v${getBinaryUpdateDisplayVersion(appUpdates.binaryUpdate)}`
+                : '点击检查更新'
+            }
             value={
               appUpdates.isChecking
                 ? '检查中...'
                 : appUpdates.binaryUpdate
                   ? '可更新'
-                  : `v${Constants.expoConfig?.version}`
+                  : `v${getCurrentAppDisplayVersion()}`
             }
             disabled={appUpdates.isChecking}
             accessibilityState={{ disabled: appUpdates.isChecking }}

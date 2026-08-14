@@ -37,25 +37,25 @@
 versionCode = max(ANDROID_VERSION_CODE_OFFSET, latest.buildNumber, preview.buildNumber) + 1
 ```
 
-因此 production 和 preview 共用一个严格递增的 Android 构建号序列，同一个 `versionName` 也可以发布多个构建。客户端会优先比较 `buildNumber`，而不是只比较 `version`。首次迁移时，应将 offset 设为不小于旧 EAS APK 的最大 versionCode；之后每次成功发布都会自动 `+1`。
+因此 production 和 preview 共用一个严格递增的 Android 构建号序列，同一个基础版本也可以发布多个构建。客户端会优先比较 `buildNumber`，而不是只比较 `version`。首次迁移时，应将 offset 设为不小于旧 EAS APK 的最大 versionCode；之后每次成功发布都会自动 `+1`。
 
 ## 整包发版
 
-整包发布由 GitHub Actions 完成。先在 `app.config.ts` 修改 `version`，提交到 `main`，再进入 GitHub 的 `Actions` → `Android Release` → `Run workflow`，选择 `production` 或 `preview`，填写更新说明。工作流会自动读取 `app.config.ts` 中的版本号，计算 Android `versionCode`、构建签名 APK、创建 GitHub Release，并生成对应的 `latest.json` 或 `preview.json`。
+整包发布由 GitHub Actions 完成。先在 `app.config.ts` 修改 `appVersion`，提交到 `main`，再进入 GitHub 的 `Actions` → `Android Release` → `Run workflow`，选择 `production` 或 `preview`，填写更新说明。工作流会自动读取该基础版本号，计算 Android `versionCode`、构建签名 APK、创建 GitHub Release，并生成对应的 `latest.json` 或 `preview.json`。
 
 production 发版流程如下：
 
 1. 确保代码已合并到 `main`，并从 `main` 分支运行 `Android Release`。
-2. 选择 `production`，填写 `release_notes`。Actions 输入框是单行控件，需要换行时输入字面量 `\n`，例如 `修复地图加载问题\n优化图片缓存\n调整更新提示`；工作流会将其转换成 GitHub Release 和应用内更新说明中的真实换行。版本号不在 Actions 页面填写，以 `app.config.ts` 的 `version` 为准。
+2. 选择 `production`，填写 `release_notes`。Actions 输入框是单行控件，需要换行时输入字面量 `\n`，例如 `修复地图加载问题\n优化图片缓存\n调整更新提示`；工作流会将其转换成 GitHub Release 和应用内更新说明中的真实换行。版本号不在 Actions 页面填写，以 `app.config.ts` 的 `appVersion` 为准。
 3. 需要强制更新时勾选 `mandatory`；也可以填写 `min_supported_version` 或 `min_supported_build_number`。
 4. Actions 使用旧 EAS keystore 构建签名 APK，创建 `v<version>` GitHub Release。
 5. Actions 自动生成并提交 `docs/releases/latest.json`。客户端随后可发现该 APK。
 
-`preview` 使用独立的 EAS `preview` channel、GitHub prerelease tag 和 `docs/releases/preview.json`，不会影响 production 用户。工作流会查询当前版本已有的 `v<version>-preview.N` Release，取最大 `N` 后自动 `+1`。当前已有 `preview.1` 到 `preview.8` 时，下一次会生成 `preview.9`。preview 序号仅用于 Release 名称，与 Android `versionCode` 相互独立。
+`preview` 使用独立的 EAS `preview` channel、GitHub prerelease tag 和 `docs/releases/preview.json`，不会影响 production 用户。工作流会查询当前版本已有的 `v<version>-preview.N` Release，取最大 `N` 后自动 `+1`。当前已有 `preview.1` 到 `preview.8` 时，下一次会生成 `preview.9`。该完整标签会写入 APK 的 Android `versionName` 和清单的 `displayVersion`，因此应用内可以显示 `0.0.4-preview.1` 到 `0.0.4-preview.2` 的准确升级关系；Android `versionCode` 仍独立递增。
 
-production 始终使用精确 tag `v<version>`，例如 `v0.0.1`。如果同名 GitHub Release 或 Git tag 已存在，工作流会在 Android 构建前直接报错；正式发版前必须先修改 `app.config.ts` 的 `version`。
+production 始终使用精确 tag `v<version>`，例如 `v0.0.1`。如果同名 GitHub Release 或 Git tag 已存在，工作流会在 Android 构建前直接报错；正式发版前必须先修改 `app.config.ts` 的 `appVersion`。
 
-`version` 是用户看到的 Android `versionName`；`buildNumber` 是 Android `versionCode`。客户端整包更新优先比较 `buildNumber`，因此同一个 `version` 也可以发布多个构建。
+清单中的 `version` 是基础版本，用于运行时兼容和版本比较；`displayVersion` 是用户看到的完整发布版本。工作流构建 production 时 Android `versionName` 为基础版本，构建 preview 时为 `<version>-preview.N`。`buildNumber` 对应 Android `versionCode`，客户端整包更新优先比较它，因此同一个基础版本可以发布多个构建。
 
 手动生成清单的命令仍然可用。GitHub Release 创建完成后运行：
 
@@ -103,9 +103,9 @@ yarn release:manifest --from-github --min-supported-build-number 1001
 npx eas-cli@21.8.0 update --channel production --environment production --platform android --message "更新说明" --non-interactive
 ```
 
-工作流只能从 `main` 分支运行，并会在发布前检查 `app.config.ts` 的 `version` 是否与目标 channel 最新整包清单中的 `version` 相同。由于 `runtimeVersion` 使用 `appVersion` 策略，版本不一致时热更新无法被已安装 APK 接收，工作流会直接报错。应先发布对应版本整包，再发布该版本的热更新。
+工作流只能从 `main` 分支运行，并会在发布前检查 `app.config.ts` 的基础版本是否与目标 channel 最新整包清单中的 `version` 相同。`runtimeVersion` 固定使用基础版本，不包含 `preview.N` 展示后缀；版本不一致时热更新无法被已安装 APK 接收，工作流会直接报错。应先发布对应版本整包，再发布该版本的热更新。
 
-`preview` 和 `production` 分别使用独立的 EAS channel、EAS environment 和整包更新清单。工作流会自动创建首次使用的 EAS channel；Preview 热更新固定注入 `docs/releases/preview.json`，Production 热更新使用 `docs/releases/latest.json`，不会互相串线。当前只发布 Android Update。
+`preview` 和 `production` 分别使用独立的 EAS channel、EAS environment 和整包更新清单。工作流会自动创建首次使用的 EAS channel；Preview 热更新固定注入 `docs/releases/preview.json`，Production 热更新使用 `docs/releases/latest.json`，并将清单中的 `displayVersion` 保留到更新配置中，不会互相串线。当前只发布 Android Update。
 
 应用启动时静默检查并下载 EAS Update，下载完成后提示重启生效。修改原生依赖、权限、Expo config plugin、Android/iOS 原生配置或需要变更 `versionCode` 时，必须走整包发版。
 

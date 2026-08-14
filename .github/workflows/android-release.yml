@@ -145,11 +145,13 @@ jobs:
           fi
 
           asset_name="anitabi-app-${tag}-android.apk"
+          native_app_version="${tag#v}"
           echo "EXPO_UPDATE_CHANNEL=$update_channel" >> "$GITHUB_ENV"
+          echo "APP_NATIVE_VERSION=$native_app_version" >> "$GITHUB_ENV"
           echo "MANIFEST_PATH=$manifest_path" >> "$GITHUB_ENV"
           echo "ASSET_NAME=$asset_name" >> "$GITHUB_ENV"
           echo "TAG=$tag" >> "$GITHUB_ENV"
-          echo "Using GitHub Release tag=$tag"
+          echo "Using GitHub Release tag=$tag, Android versionName=$native_app_version"
 
       - name: Restore Android signing key
         shell: bash

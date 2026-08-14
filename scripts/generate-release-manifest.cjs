@@ -79,7 +79,7 @@ function toCamelCase(value) {
 function readAppVersion() {
   const configPath = path.join(projectRoot, 'app.config.ts');
   const configContent = fs.readFileSync(configPath, 'utf8');
-  const match = configContent.match(/version:\s*'([^']+)'/);
+  const match = configContent.match(/const appVersion\s*=\s*'([^']+)'/);
   if (!match) throw new Error('Could not read version from app.config.ts');
   return match[1];
 }
@@ -199,6 +199,7 @@ function buildManifest(options) {
 
   const manifest = {
     version,
+    displayVersion: tag.replace(/^v/, ''),
     title: options.title ?? releaseData.title,
     releaseNotes: releaseData.releaseNotes,
     apkUrl: releaseData.apkUrl,

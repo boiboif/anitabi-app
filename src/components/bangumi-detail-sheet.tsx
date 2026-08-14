@@ -143,6 +143,7 @@ type FlatItem = FlatSectionHeader | FlatPointItem;
 interface PendingModeScroll {
   offset: number;
   ready: boolean;
+  sticky: boolean;
 }
 
 function SheetContent({ children }: { children: ReactNode }) {
@@ -452,6 +453,8 @@ function BangumiDetailSheet() {
   const [isControlsSticky, setIsControlsSticky] = useState(false);
   const [flashListViewportHeight, setFlashListViewportHeight] = useState(0);
   const allExpandedRef = useRef(true);
+  const currentModeScrollOffsetRef = useRef(0);
+  const isControlsStickyRef = useRef(false);
   const modeExpansionStateRef = useRef(true);
   const pendingModeScrollRef = useRef<PendingModeScroll | null>(null);
   const controlsOffsetRef = useRef(Number.POSITIVE_INFINITY);
@@ -489,6 +492,8 @@ function BangumiDetailSheet() {
     setControlsHeight(0);
     setControlsOffset(null);
     setIsControlsSticky(false);
+    currentModeScrollOffsetRef.current = 0;
+    isControlsStickyRef.current = false;
     controlsOffsetRef.current = Number.POSITIVE_INFINITY;
     allExpandedRef.current = true;
     modeExpansionStateRef.current = true;
@@ -511,7 +516,13 @@ function BangumiDetailSheet() {
       modeExpansionStateRef.current = allExpandedRef.current;
       const controlsOffset = controlsOffsetRef.current;
       if (Number.isFinite(controlsOffset)) {
-        pendingModeScrollRef.current = { offset: controlsOffset, ready: false };
+        const sticky = isControlsStickyRef.current;
+        const maximumNonStickyOffset = Math.max(0, controlsOffset - 1);
+        pendingModeScrollRef.current = {
+          offset: sticky ? controlsOffset : Math.min(currentModeScrollOffsetRef.current, maximumNonStickyOffset),
+          ready: false,
+          sticky,
+        };
       }
       setAccordionMode(mode);
     },
@@ -544,6 +555,8 @@ function BangumiDetailSheet() {
       handleListScroll(event);
       const scrollOffset = event.nativeEvent.contentOffset.y;
       const shouldStick = scrollOffset >= controlsOffsetRef.current;
+      currentModeScrollOffsetRef.current = scrollOffset;
+      isControlsStickyRef.current = shouldStick;
       setIsControlsSticky((wasSticky) => (wasSticky === shouldStick ? wasSticky : shouldStick));
     },
     [handleListScroll],
@@ -553,6 +566,9 @@ function BangumiDetailSheet() {
     const pendingScroll = pendingModeScrollRef.current;
     if (!pendingScroll?.ready) return;
 
+    currentModeScrollOffsetRef.current = pendingScroll.offset;
+    isControlsStickyRef.current = pendingScroll.sticky;
+    setIsControlsSticky(pendingScroll.sticky);
     flashListRef.current?.scrollToOffset({ offset: pendingScroll.offset, animated: false });
     pendingModeScrollRef.current = null;
   }, [flashListRef]);

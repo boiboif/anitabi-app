@@ -3,6 +3,8 @@ import { config as dotenvConfig } from 'dotenv';
 import type { ExpoConfig } from 'expo/config';
 dotenvConfig({ path: '.env.local' });
 
+const appVersion = '0.0.4';
+const nativeAppVersion = process.env.APP_NATIVE_VERSION || appVersion;
 const updateChannel = process.env.EXPO_UPDATE_CHANNEL || 'development';
 const appUpdatesEnabled = updateChannel === 'preview' || updateChannel === 'production';
 const binaryUpdateManifestName = updateChannel === 'preview' ? 'preview.json' : 'latest.json';
@@ -10,8 +12,8 @@ const binaryUpdateManifestName = updateChannel === 'preview' ? 'preview.json' : 
 const config: ExpoConfig = {
   name: 'Anitabi',
   slug: 'anitabi-app',
-  version: '0.0.4',
-  runtimeVersion: { policy: 'appVersion' },
+  version: nativeAppVersion,
+  runtimeVersion: appVersion,
   updates: {
     enabled: appUpdatesEnabled,
     url: `https://u.expo.dev/${process.env.EXPO_PROJECT_ID}`,

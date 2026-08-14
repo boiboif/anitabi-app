@@ -1,6 +1,9 @@
 import type { AppUpdateManager } from '@/hooks/use-app-updates';
-import { isMandatoryUpdate } from '@/services/app-update';
-import Constants from 'expo-constants';
+import {
+  getBinaryUpdateDisplayVersion,
+  getCurrentAppDisplayVersion,
+  isMandatoryUpdate,
+} from '@/services/app-update';
 import { Modal, ScrollView } from 'react-native';
 import { Button, Progress, Text, View, XStack, YStack } from 'tamagui';
 
@@ -9,7 +12,14 @@ type Props = {
 };
 
 export function AppUpdateOverlay({ manager }: Props) {
-  const { binaryUpdate, isBinaryUpdateVisible, hotUpdateReady, isDownloadingBinary, binaryProgress } = manager;
+  const {
+    binaryUpdate,
+    isBinaryUpdateVisible,
+    hotUpdateReady,
+    isDownloadingBinary,
+    isBinaryDownloaded,
+    binaryProgress,
+  } = manager;
   const visibleBinaryUpdate = isBinaryUpdateVisible ? binaryUpdate : null;
   const binaryMandatory = visibleBinaryUpdate ? isMandatoryUpdate(visibleBinaryUpdate) : false;
   const visible = Boolean(visibleBinaryUpdate || hotUpdateReady);
@@ -21,7 +31,8 @@ export function AppUpdateOverlay({ manager }: Props) {
   const description = isBinary
     ? (visibleBinaryUpdate?.releaseNotes ?? '下载最新安装包，获取完整功能和修复。')
     : '更新内容已在后台下载完成，重启应用后立即生效。';
-  const currentVersion = Constants.expoConfig?.version ?? '未知';
+  const currentVersion = getCurrentAppDisplayVersion();
+  const newVersion = visibleBinaryUpdate ? getBinaryUpdateDisplayVersion(visibleBinaryUpdate) : null;
   const progress = binaryProgress?.percent ?? 0;
 
   return (
@@ -40,7 +51,7 @@ export function AppUpdateOverlay({ manager }: Props) {
             {isBinary ? (
               <YStack gap="$1">
                 <Text fontSize={13} color="$color11">
-                  新版本：v{visibleBinaryUpdate?.version}
+                  新版本：v{newVersion}
                 </Text>
                 <Text fontSize={13} color="$color11">
                   当前版本：v{currentVersion}
@@ -62,7 +73,7 @@ export function AppUpdateOverlay({ manager }: Props) {
             </ScrollView>
           </YStack>
 
-          {isDownloadingBinary ? (
+          {isDownloadingBinary && !isBinaryDownloaded ? (
             <YStack gap="$2">
               <XStack justify="space-between">
                 <Text fontSize={12} color="$color11">
@@ -92,7 +103,15 @@ export function AppUpdateOverlay({ manager }: Props) {
               disabled={isDownloadingBinary}
               onPress={isBinary ? () => void manager.installBinaryUpdate() : () => void manager.reloadForHotUpdate()}
             >
-              {isDownloadingBinary ? '下载中…' : isBinary ? '立即更新' : '重启更新'}
+              {isDownloadingBinary
+                ? isBinaryDownloaded
+                  ? '正在打开…'
+                  : '下载中…'
+                : isBinary
+                  ? isBinaryDownloaded
+                    ? '立即安装'
+                    : '立即更新'
+                  : '重启更新'}
             </Button>
           </XStack>
         </YStack>

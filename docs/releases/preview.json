@@ -1,5 +1,6 @@
 {
   "version": "0.0.4",
+  "displayVersion": "0.0.4-preview.2",
   "title": "v0.0.4-preview.2",
   "releaseNotes": "1.首页增加跳转随机巡礼点功能",
   "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.0.4-preview.2/anitabi-app-v0.0.4-preview.2-android.apk",

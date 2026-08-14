@@ -82,6 +82,7 @@ jobs:
 
           app_version="$(npx expo config --type public --json | node -e 'let input=""; process.stdin.on("data", chunk => input += chunk); process.stdin.on("end", () => process.stdout.write(JSON.parse(input).version));')"
           released_version="$(node -e 'const fs = require("fs"); const manifest = JSON.parse(fs.readFileSync(process.argv[1], "utf8")); process.stdout.write(String(manifest.version ?? ""));' "$manifest_path")"
+          released_display_version="$(node -e 'const fs = require("fs"); const manifest = JSON.parse(fs.readFileSync(process.argv[1], "utf8")); process.stdout.write(String(manifest.displayVersion ?? manifest.version ?? ""));' "$manifest_path")"
           if [[ "$app_version" != "$released_version" ]]; then
             echo "Hot update runtime version $app_version does not match the latest $EXPO_UPDATE_CHANNEL APK version $released_version."
             echo 'Publish the matching full APK or restore app.config.ts version before publishing a hot update.'
@@ -89,7 +90,8 @@ jobs:
           fi
 
           echo "EAS_ENVIRONMENT=$EXPO_UPDATE_CHANNEL" >> "$GITHUB_ENV"
-          echo "Publishing Android runtime=$app_version to channel=$EXPO_UPDATE_CHANNEL"
+          echo "APP_NATIVE_VERSION=$released_display_version" >> "$GITHUB_ENV"
+          echo "Publishing Android runtime=$app_version, displayVersion=$released_display_version to channel=$EXPO_UPDATE_CHANNEL"
 
       - name: Validate Expo update config
         shell: bash
