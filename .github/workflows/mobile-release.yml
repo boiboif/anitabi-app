@@ -58,16 +58,35 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TYPE: ${{ inputs.release_type }}
           RUN_NUMBER: ${{ github.run_number }}
+          ANDROID_VERSION_CODE_OFFSET: ${{ vars.ANDROID_VERSION_CODE_OFFSET }}
         run: |
           APP_VERSION=$(grep -oE "appVersion[[:space:]]*=[[:space:]]*'[^']+'" app.config.ts | head -n1 | sed -E "s/.*'([^']+)'.*/\1/")
           if [ -z "$APP_VERSION" ]; then
-            APP_VERSION=$(node -p "require('./package.json').version")
+            APP_VERSION=$(node -p "require(\"./package.json\").version")
           fi
 
-          BUILD_NUMBER="$RUN_NUMBER"
+          BUILD_NUMBER="${ANDROID_VERSION_CODE_OFFSET:-1000}"
+          if ! [[ "$BUILD_NUMBER" =~ ^[0-9]+$ ]]; then
+            echo "ANDROID_VERSION_CODE_OFFSET must be a non-negative integer"
+            exit 1
+          fi
+
+          for manifest_path in docs/releases/latest.json docs/releases/preview.json; do
+            if [[ ! -f "$manifest_path" ]]; then continue; fi
+            manifest_build_number="$(node -e "const fs = require(\"fs\"); const manifest = JSON.parse(fs.readFileSync(process.argv[1], \"utf8\")); process.stdout.write(String(manifest.buildNumber ?? 0));" "$manifest_path")"
+            if ! [[ "$manifest_build_number" =~ ^[0-9]+$ ]]; then
+              echo "$manifest_path contains an invalid buildNumber"
+              exit 1
+            fi
+            if (( manifest_build_number > BUILD_NUMBER )); then
+              BUILD_NUMBER="$manifest_build_number"
+            fi
+          done
+          BUILD_NUMBER=$((BUILD_NUMBER + 1))
+
           PREVIEW_NUMBER=1
           if [ "$RELEASE_TYPE" = "preview" ]; then
-            PREVIEW_NUMBER=$(( $(gh release list --limit 100 | grep -c "v${APP_VERSION}-preview\." || true) + 1 ))
+            PREVIEW_NUMBER=$(( $(gh release list --repo "$GITHUB_REPOSITORY" --limit 1000 --json tagName --jq ".[].tagName" | grep -c "v${APP_VERSION}-preview\." || true) + 1 ))
           fi
 
           if [ "$RELEASE_TYPE" = "production" ]; then
@@ -77,9 +96,20 @@ jobs:
           fi
 
           NATIVE_VERSION="${TAG#v}"
-          UPDATE_CHANNEL="${RELEASE_TYPE}"
-          ANDROID_ASSET_NAME="anitabi-${NATIVE_VERSION}.apk"
-          IOS_ASSET_NAME="anitabi-${NATIVE_VERSION}-unsigned.ipa"
+          UPDATE_CHANNEL="$RELEASE_TYPE"
+          ANDROID_ASSET_NAME="anitabi-app-${TAG}-android.apk"
+          IOS_ASSET_NAME="anitabi-app-${TAG}-unsigned.ipa"
+
+          if [ "$RELEASE_TYPE" = "preview" ]; then
+            MANIFEST_PATH="docs/releases/preview.json"
+          else
+            MANIFEST_PATH="docs/releases/latest.json"
+          fi
+
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "GitHub Release or tag already exists: $TAG"
+            exit 1
+          fi
 
           {
             echo "app_version=${APP_VERSION}"
@@ -90,7 +120,7 @@ jobs:
             echo "update_channel=${UPDATE_CHANNEL}"
             echo "android_asset_name=${ANDROID_ASSET_NAME}"
             echo "ios_asset_name=${IOS_ASSET_NAME}"
-            echo "manifest_path=release-manifest.json"
+            echo "manifest_path=${MANIFEST_PATH}"
           } >> "$GITHUB_OUTPUT"
 
           echo "App version: ${APP_VERSION}"
@@ -106,6 +136,8 @@ jobs:
       APP_NATIVE_VERSION: ${{ needs.prepare.outputs.native_version }}
       ANDROID_VERSION_CODE: ${{ needs.prepare.outputs.build_number }}
       EXPO_UPDATE_CHANNEL: ${{ needs.prepare.outputs.update_channel }}
+      EXPO_PROJECT_ID: ${{ vars.EXPO_PROJECT_ID }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN: ${{ secrets.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || vars.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN }}
       ANDROID_ASSET_NAME: ${{ needs.prepare.outputs.android_asset_name }}
       CI: '1'
@@ -138,38 +170,78 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_SIGNING_CERT_SHA256: ${{ secrets.ANDROID_SIGNING_CERT_SHA256 }}
         run: |
-          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
-            echo "::error::ANDROID_KEYSTORE_BASE64 secret is required"
+          if [[ -z "$ANDROID_KEYSTORE_BASE64" ]]; then
+            echo "ANDROID_KEYSTORE_BASE64 is not configured."
             exit 1
           fi
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
-          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+          if [[ -z "$ANDROID_KEYSTORE_PASSWORD" || -z "$ANDROID_KEY_ALIAS" || -z "$ANDROID_KEY_PASSWORD" ]]; then
+            echo "Android signing secrets are incomplete."
+            exit 1
+          fi
+          signing_dir="$RUNNER_TEMP/anitabi-signing"
+          mkdir -p "$signing_dir"
+          printf "%s" "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$signing_dir/anitabi-upload.keystore"
+          test -s "$signing_dir/anitabi-upload.keystore"
+          echo "ANDROID_KEYSTORE_PATH=$signing_dir/anitabi-upload.keystore" >> "$GITHUB_ENV"
+
+          if [[ -z "$ANDROID_SIGNING_CERT_SHA256" ]]; then
+            echo "ANDROID_SIGNING_CERT_SHA256 is not configured."
+            exit 1
+          fi
+
+          restored_cert_sha256="$(keytool -list -v \
+            -keystore "$signing_dir/anitabi-upload.keystore" \
+            -storepass:env ANDROID_KEYSTORE_PASSWORD \
+            -alias "$ANDROID_KEY_ALIAS" \
+            | sed -n "s/.*SHA256: //p" \
+            | head -n 1 \
+            | tr -d ":[:space:]" \
+            | tr "[:lower:]" "[:upper:]")"
+          expected_cert_sha256="$(printf "%s" "$ANDROID_SIGNING_CERT_SHA256" | tr -d ":[:space:]" | tr "[:lower:]" "[:upper:]")"
+          if [[ -z "$restored_cert_sha256" || "$restored_cert_sha256" != "$expected_cert_sha256" ]]; then
+            echo "Restored keystore certificate does not match the expected EAS signing certificate."
+            exit 1
+          fi
 
       - name: Prebuild Android
         run: npx expo prebuild --clean --platform android --no-install
 
       - name: Build release APK
         working-directory: android
-        run: ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a
-
-      - name: Verify APK signature
         run: |
-          APK=$(find android/app/build/outputs/apk/release -name '*.apk' | head -n 1)
-          APKSIGNER=$(find "${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}/build-tools" -name apksigner -type f | sort -r | head -n 1)
-          if [ -z "$APKSIGNER" ]; then
-            APKSIGNER=$(command -v apksigner || true)
-          fi
-          if [ -n "$APKSIGNER" ]; then
-            "$APKSIGNER" verify --print-certs "$APK"
-          else
-            jarsigner -verify -verbose -certs "$APK" | grep -q "jar verified"
+          chmod +x gradlew
+          ./gradlew assembleRelease \
+            -PreactNativeArchitectures=arm64-v8a \
+            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" \
+            --max-workers=2 \
+            --no-daemon \
+            --stacktrace \
+            -x lintVitalAnalyzeRelease
+
+      - name: Verify APK signing certificate
+        shell: bash
+        run: |
+          build_tools_dir="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          cert_output="$($build_tools_dir/apksigner verify --print-certs android/app/build/outputs/apk/release/app-release.apk)"
+          apk_cert_sha256="$(printf "%s\n" "$cert_output" \
+            | grep -i -m 1 "SHA-256 digest:" \
+            | sed -E "s/.*SHA-256 digest:[[:space:]]*//" \
+            | tr -cd "[:xdigit:]" \
+            | tr "[:lower:]" "[:upper:]")"
+          expected_cert_sha256="$(printf "%s" "$ANDROID_SIGNING_CERT_SHA256" | tr -d ":[:space:]" | tr "[:lower:]" "[:upper:]")"
+          if [[ -z "$apk_cert_sha256" || "$apk_cert_sha256" != "$expected_cert_sha256" ]]; then
+            echo "Built APK is not signed with the expected EAS signing certificate."
+            echo "Actual certificate SHA-256: ${apk_cert_sha256:-unavailable}"
+            echo "Expected certificate SHA-256: $expected_cert_sha256"
+            exit 1
           fi
 
       - name: Copy APK asset
+        shell: bash
         run: |
-          APK=$(find android/app/build/outputs/apk/release -name '*.apk' | head -n 1)
-          cp "$APK" "$GITHUB_WORKSPACE/$ANDROID_ASSET_NAME"
+          cp android/app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/$ANDROID_ASSET_NAME"
           ls -lh "$GITHUB_WORKSPACE/$ANDROID_ASSET_NAME"
 
       - name: Upload Android artifact
@@ -187,6 +259,8 @@ jobs:
       APP_NATIVE_VERSION: ${{ needs.prepare.outputs.native_version }}
       IOS_BUILD_NUMBER: ${{ needs.prepare.outputs.build_number }}
       EXPO_UPDATE_CHANNEL: ${{ needs.prepare.outputs.update_channel }}
+      EXPO_PROJECT_ID: ${{ vars.EXPO_PROJECT_ID }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN: ${{ secrets.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || vars.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN }}
       IOS_ASSET_NAME: ${{ needs.prepare.outputs.ios_asset_name }}
       CI: '1'
@@ -298,6 +372,14 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       TAG: ${{ needs.prepare.outputs.tag }}
       RELEASE_TYPE: ${{ inputs.release_type }}
+      APP_VERSION: ${{ needs.prepare.outputs.app_version }}
+      BUILD_NUMBER: ${{ needs.prepare.outputs.build_number }}
+      MANIFEST_PATH: ${{ needs.prepare.outputs.manifest_path }}
+      ANDROID_ASSET_NAME: ${{ needs.prepare.outputs.android_asset_name }}
+      RELEASE_NOTES: ${{ inputs.release_notes }}
+      MANDATORY: ${{ inputs.mandatory }}
+      MIN_SUPPORTED_VERSION: ${{ inputs.min_supported_version }}
+      MIN_SUPPORTED_BUILD_NUMBER: ${{ inputs.min_supported_build_number }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -314,15 +396,34 @@ jobs:
 
       - name: Create or update release
         run: |
-          RELEASE_NOTES="${{ inputs.release_notes }}"
+          node -e 'const fs = require("fs"); fs.writeFileSync("release-notes.md", `${process.env.RELEASE_NOTES.replace(/\\n/g, "\n")}\n`);'
           PRERELEASE_FLAG=""
           if [ "$RELEASE_TYPE" = "preview" ]; then
             PRERELEASE_FLAG="--prerelease"
           fi
-          printf '%s' "$RELEASE_NOTES" > "$RUNNER_TEMP/release-notes.md"
 
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/* --clobber
           else
-            gh release create "$TAG" dist/* --title "$TAG" --notes-file "$RUNNER_TEMP/release-notes.md" $PRERELEASE_FLAG
+            gh release create "$TAG" dist/* --title "$TAG" --notes-file release-notes.md $PRERELEASE_FLAG
+          fi
+
+      - name: Generate update manifest
+        run: |
+          manifest_args=(node scripts/generate-release-manifest.cjs --version "$APP_VERSION" --tag "$TAG" --build-number "$BUILD_NUMBER" --from-github --asset-name "$ANDROID_ASSET_NAME" --output "$MANIFEST_PATH")
+          if [[ "$MANDATORY" == "true" ]]; then manifest_args+=(--mandatory); fi
+          if [[ -n "$MIN_SUPPORTED_VERSION" ]]; then manifest_args+=(--min-supported-version "$MIN_SUPPORTED_VERSION"); fi
+          if [[ -n "$MIN_SUPPORTED_BUILD_NUMBER" ]]; then manifest_args+=(--min-supported-build-number "$MIN_SUPPORTED_BUILD_NUMBER"); fi
+          "${manifest_args[@]}"
+
+      - name: Commit update manifest
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$MANIFEST_PATH"
+          if git diff --cached --quiet; then
+            echo "manifest is unchanged"
+          else
+            git commit -m "chore: update release manifest for $TAG"
+            git push origin HEAD:main
           fi
