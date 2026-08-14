@@ -1,10 +1,10 @@
 {
   "version": "0.0.4",
-  "title": "v0.0.4-preview.1",
-  "releaseNotes": "1.修复已知问题\n2.优化用户体验",
-  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.0.4-preview.1/anitabi-app-v0.0.4-preview.1-android.apk",
-  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.0.4-preview.1",
+  "title": "v0.0.4-preview.2",
+  "releaseNotes": "1.首页增加跳转随机巡礼点功能",
+  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.0.4-preview.2/anitabi-app-v0.0.4-preview.2-android.apk",
+  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.0.4-preview.2",
   "mandatory": false,
-  "buildNumber": 1009,
-  "fileName": "anitabi-app-v0.0.4-preview.1-android.apk"
+  "buildNumber": 1010,
+  "fileName": "anitabi-app-v0.0.4-preview.2-android.apk"
 }
