@@ -1,0 +1,327 @@
+name: Mobile Release (APK + IPA)
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type'
+        type: choice
+        options:
+          - preview
+          - production
+        default: preview
+      release_notes:
+        description: 'Release notes'
+        type: string
+        required: false
+        default: ''
+      mandatory:
+        description: 'Force update'
+        type: boolean
+        default: false
+      min_supported_version:
+        description: 'Minimum supported app version'
+        type: string
+        default: '0.0.1'
+      min_supported_build_number:
+        description: 'Minimum supported build number'
+        type: string
+        default: '1'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  prepare:
+    name: Prepare versions
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    outputs:
+      app_version: ${{ steps.config.outputs.app_version }}
+      build_number: ${{ steps.config.outputs.build_number }}
+      preview_number: ${{ steps.config.outputs.preview_number }}
+      tag: ${{ steps.config.outputs.tag }}
+      native_version: ${{ steps.config.outputs.native_version }}
+      update_channel: ${{ steps.config.outputs.update_channel }}
+      android_asset_name: ${{ steps.config.outputs.android_asset_name }}
+      ios_asset_name: ${{ steps.config.outputs.ios_asset_name }}
+      manifest_path: ${{ steps.config.outputs.manifest_path }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure versions
+        id: config
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TYPE: ${{ inputs.release_type }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          APP_VERSION=$(grep -oE "appVersion[[:space:]]*=[[:space:]]*'[^']+'" app.config.ts | head -n1 | sed -E "s/.*'([^']+)'.*/\1/")
+          if [ -z "$APP_VERSION" ]; then
+            APP_VERSION=$(node -p "require('./package.json').version")
+          fi
+
+          BUILD_NUMBER="$RUN_NUMBER"
+          PREVIEW_NUMBER=1
+          if [ "$RELEASE_TYPE" = "preview" ]; then
+            PREVIEW_NUMBER=$(( $(gh release list --limit 100 | grep -c "v${APP_VERSION}-preview\." || true) + 1 ))
+          fi
+
+          if [ "$RELEASE_TYPE" = "production" ]; then
+            TAG="v${APP_VERSION}"
+          else
+            TAG="v${APP_VERSION}-preview.${PREVIEW_NUMBER}"
+          fi
+
+          NATIVE_VERSION="${TAG#v}"
+          UPDATE_CHANNEL="${RELEASE_TYPE}"
+          ANDROID_ASSET_NAME="anitabi-${NATIVE_VERSION}.apk"
+          IOS_ASSET_NAME="anitabi-${NATIVE_VERSION}-unsigned.ipa"
+
+          {
+            echo "app_version=${APP_VERSION}"
+            echo "build_number=${BUILD_NUMBER}"
+            echo "preview_number=${PREVIEW_NUMBER}"
+            echo "tag=${TAG}"
+            echo "native_version=${NATIVE_VERSION}"
+            echo "update_channel=${UPDATE_CHANNEL}"
+            echo "android_asset_name=${ANDROID_ASSET_NAME}"
+            echo "ios_asset_name=${IOS_ASSET_NAME}"
+            echo "manifest_path=release-manifest.json"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "App version: ${APP_VERSION}"
+          echo "Tag: ${TAG}"
+          echo "Native version: ${NATIVE_VERSION}"
+          echo "Channel: ${UPDATE_CHANNEL}"
+
+  android:
+    name: Build Android APK
+    needs: prepare
+    runs-on: ubuntu-latest
+    env:
+      APP_NATIVE_VERSION: ${{ needs.prepare.outputs.native_version }}
+      ANDROID_VERSION_CODE: ${{ needs.prepare.outputs.build_number }}
+      EXPO_UPDATE_CHANNEL: ${{ needs.prepare.outputs.update_channel }}
+      EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN: ${{ secrets.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || vars.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN }}
+      ANDROID_ASSET_NAME: ${{ needs.prepare.outputs.android_asset_name }}
+      CI: '1'
+      EXPO_NO_DOCTOR: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Install dependencies
+        run: corepack enable && yarn install --frozen-lockfile
+
+      - name: Restore Android signing keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 secret is required"
+            exit 1
+          fi
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+
+      - name: Prebuild Android
+        run: npx expo prebuild --clean --platform android --no-install
+
+      - name: Build release APK
+        working-directory: android
+        run: ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a
+
+      - name: Verify APK signature
+        run: |
+          APK=$(find android/app/build/outputs/apk/release -name '*.apk' | head -n 1)
+          APKSIGNER=$(find "${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}/build-tools" -name apksigner -type f | sort -r | head -n 1)
+          if [ -z "$APKSIGNER" ]; then
+            APKSIGNER=$(command -v apksigner || true)
+          fi
+          if [ -n "$APKSIGNER" ]; then
+            "$APKSIGNER" verify --print-certs "$APK"
+          else
+            jarsigner -verify -verbose -certs "$APK" | grep -q "jar verified"
+          fi
+
+      - name: Copy APK asset
+        run: |
+          APK=$(find android/app/build/outputs/apk/release -name '*.apk' | head -n 1)
+          cp "$APK" "$GITHUB_WORKSPACE/$ANDROID_ASSET_NAME"
+          ls -lh "$GITHUB_WORKSPACE/$ANDROID_ASSET_NAME"
+
+      - name: Upload Android artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: ${{ needs.prepare.outputs.android_asset_name }}
+          if-no-files-found: error
+
+  ios:
+    name: Build iOS IPA (unsigned)
+    needs: prepare
+    runs-on: macos-latest
+    env:
+      APP_NATIVE_VERSION: ${{ needs.prepare.outputs.native_version }}
+      IOS_BUILD_NUMBER: ${{ needs.prepare.outputs.build_number }}
+      EXPO_UPDATE_CHANNEL: ${{ needs.prepare.outputs.update_channel }}
+      EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN: ${{ secrets.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || vars.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN }}
+      IOS_ASSET_NAME: ${{ needs.prepare.outputs.ios_asset_name }}
+      CI: '1'
+      EXPO_NO_DOCTOR: '1'
+      RCT_NEW_ARCH_ENABLED: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Install dependencies
+        run: corepack enable && yarn install --frozen-lockfile
+
+      - name: Configure Mapbox downloads
+        env:
+          MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
+        run: |
+          if [ -z "$MAPBOX_DOWNLOADS_TOKEN" ]; then
+            echo "::error::MAPBOX_DOWNLOADS_TOKEN secret is required for @rnmapbox/maps iOS pod download"
+            exit 1
+          fi
+          echo "machine api.mapbox.com login mapbox password ${MAPBOX_DOWNLOADS_TOKEN}" > ~/.netrc
+          chmod 600 ~/.netrc
+          echo "RNMAPBOX_MAPS_DOWNLOAD_TOKEN=${MAPBOX_DOWNLOADS_TOKEN}" >> "$GITHUB_ENV"
+          echo "RNMapboxMapsDownloadToken=${MAPBOX_DOWNLOADS_TOKEN}" >> "$GITHUB_ENV"
+
+      - name: Prebuild iOS
+        run: npx expo prebuild --clean --platform ios --no-install
+
+      - name: Set iOS bundle version
+        run: |
+          IOS_PLIST=$(find ios -maxdepth 3 -name Info.plist -not -path '*/Pods/*' -print -quit)
+          plutil -replace CFBundleVersion -string "$IOS_BUILD_NUMBER" "$IOS_PLIST"
+          plutil -replace CFBundleShortVersionString -string "$APP_NATIVE_VERSION" "$IOS_PLIST"
+
+      - name: Install CocoaPods dependencies
+        working-directory: ios
+        run: pod install
+
+      - name: Build unsigned iOS app
+        working-directory: ios
+        run: |
+          IOS_PROJECT=$(find . -maxdepth 1 -name '*.xcodeproj' -print -quit)
+          IOS_SCHEME=$(basename "$IOS_PROJECT" .xcodeproj)
+          IOS_WORKSPACE=$(find . -maxdepth 1 -name '*.xcworkspace' -print -quit)
+          DERIVED_DATA="$RUNNER_TEMP/DerivedData"
+
+          if [ -n "$IOS_WORKSPACE" ]; then
+            xcodebuild \
+              -workspace "$IOS_WORKSPACE" \
+              -scheme "$IOS_SCHEME" \
+              -configuration Release \
+              -sdk iphoneos \
+              -derivedDataPath "$DERIVED_DATA" \
+              CODE_SIGNING_ALLOWED=NO \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGN_IDENTITY="" \
+              build
+          else
+            xcodebuild \
+              -project "$IOS_PROJECT" \
+              -scheme "$IOS_SCHEME" \
+              -configuration Release \
+              -sdk iphoneos \
+              -derivedDataPath "$DERIVED_DATA" \
+              CODE_SIGNING_ALLOWED=NO \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGN_IDENTITY="" \
+              build
+          fi
+
+      - name: Create unsigned IPA
+        run: |
+          DERIVED_DATA="$RUNNER_TEMP/DerivedData"
+          APP_PATH=$(find "$DERIVED_DATA/Build/Products/Release-iphoneos" -maxdepth 1 -name '*.app' -type d -print -quit)
+          if [ -z "$APP_PATH" ]; then
+            echo "::error::Could not find built .app bundle"
+            find "$DERIVED_DATA" -name '*.app' -type d -print
+            exit 1
+          fi
+
+          mkdir -p "$RUNNER_TEMP/Payload"
+          cp -R "$APP_PATH" "$RUNNER_TEMP/Payload/"
+          IPA_PATH="$GITHUB_WORKSPACE/$IOS_ASSET_NAME"
+          (
+            cd "$RUNNER_TEMP"
+            zip -qr "$IPA_PATH" Payload
+          )
+          ls -lh "$IPA_PATH"
+
+      - name: Upload iOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa
+          path: ${{ needs.prepare.outputs.ios_asset_name }}
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub Release
+    needs: [prepare, android, ios]
+    runs-on: ubuntu-latest
+    if: ${{ always() && needs.prepare.result == 'success' && needs.android.result == 'success' && needs.ios.result == 'success' }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ needs.prepare.outputs.tag }}
+      RELEASE_TYPE: ${{ inputs.release_type }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '{android-apk,ios-ipa}'
+          merge-multiple: true
+          path: dist
+
+      - name: List artifacts
+        run: ls -lhR dist
+
+      - name: Create or update release
+        run: |
+          RELEASE_NOTES="${{ inputs.release_notes }}"
+          PRERELEASE_FLAG=""
+          if [ "$RELEASE_TYPE" = "preview" ]; then
+            PRERELEASE_FLAG="--prerelease"
+          fi
+          printf '%s' "$RELEASE_NOTES" > "$RUNNER_TEMP/release-notes.md"
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+          else
+            gh release create "$TAG" dist/* --title "$TAG" --notes-file "$RUNNER_TEMP/release-notes.md" $PRERELEASE_FLAG
+          fi
