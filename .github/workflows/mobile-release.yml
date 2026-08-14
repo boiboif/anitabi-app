@@ -207,7 +207,7 @@ jobs:
 
       - name: Configure Mapbox downloads
         env:
-          MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
+          MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN || vars.MAPBOX_DOWNLOADS_TOKEN }}
         run: |
           if [ -z "$MAPBOX_DOWNLOADS_TOKEN" ]; then
             echo "::error::MAPBOX_DOWNLOADS_TOKEN secret is required for @rnmapbox/maps iOS pod download"
