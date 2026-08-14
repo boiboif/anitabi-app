@@ -3,7 +3,8 @@ import { config as dotenvConfig } from 'dotenv';
 import type { ExpoConfig } from 'expo/config';
 dotenvConfig({ path: '.env.local' });
 
-const updateChannel = process.env.EXPO_UPDATE_CHANNEL || 'production';
+const updateChannel = process.env.EXPO_UPDATE_CHANNEL || 'development';
+const appUpdatesEnabled = updateChannel === 'preview' || updateChannel === 'production';
 const binaryUpdateManifestName = updateChannel === 'preview' ? 'preview.json' : 'latest.json';
 
 const config: ExpoConfig = {
@@ -12,6 +13,7 @@ const config: ExpoConfig = {
   version: '0.0.4',
   runtimeVersion: { policy: 'appVersion' },
   updates: {
+    enabled: appUpdatesEnabled,
     url: `https://u.expo.dev/${process.env.EXPO_PROJECT_ID}`,
     requestHeaders: {
       'expo-channel-name': updateChannel,
@@ -114,7 +116,11 @@ const config: ExpoConfig = {
   },
   extra: {
     mapboxAccessToken: process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN,
-    binaryUpdateManifestUrl: `https://raw.githubusercontent.com/boiboif/anitabi-app/main/docs/releases/${binaryUpdateManifestName}`,
+    updateChannel,
+    appUpdatesEnabled,
+    binaryUpdateManifestUrl: appUpdatesEnabled
+      ? `https://raw.githubusercontent.com/boiboif/anitabi-app/main/docs/releases/${binaryUpdateManifestName}`
+      : undefined,
     eas: {
       projectId: process.env.EXPO_PROJECT_ID,
     },

@@ -93,6 +93,8 @@ yarn release:manifest --from-github --min-supported-build-number 1001
 
 应用启动后会根据构建时写入的更新频道读取对应清单：production 使用本仓库 `main` 分支的 `docs/releases/latest.json`，preview 使用 `docs/releases/preview.json`。清单地址由 `app.config.ts` 根据 `EXPO_UPDATE_CHANNEL` 自动生成，不需要额外配置 GitHub Variable。
 
+未设置 `EXPO_UPDATE_CHANNEL` 时，应用使用 `development` 频道并同时禁用 EAS 热更新和整包更新检查。本地 debug 与本地 release 构建因此都不会收到 preview 或 production 更新。GitHub Actions 会在构建或发布更新时显式设置 `preview` 或 `production`，对应发布包的更新能力不受影响。
+
 ## 热更新
 
 热更新只适用于 JavaScript、资源和配置中不涉及原生代码的改动。进入 `Actions` → `EAS Hot Update` → `Run workflow`，选择目标 channel 并填写更新说明。原生版本以当前 `app.config.ts` 的 `version` 和已安装 APK 为准。工作流会执行：

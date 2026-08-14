@@ -54,6 +54,10 @@ function getManifestUrl(): string {
   return Constants.expoConfig?.extra?.binaryUpdateManifestUrl ?? DEFAULT_MANIFEST_URL;
 }
 
+export function areAppUpdatesEnabled(): boolean {
+  return Constants.expoConfig?.extra?.appUpdatesEnabled === true;
+}
+
 function isBinaryUpdate(value: unknown): value is BinaryUpdate {
   if (!value || typeof value !== 'object') return false;
   const candidate = value as Partial<BinaryUpdate>;
@@ -73,8 +77,9 @@ export function isNewerBinaryUpdate(
   currentVersion = getCurrentVersion(),
   currentBuildNumber = getCurrentBuildNumber(),
 ): boolean {
-  if (typeof update.buildNumber === 'number') return update.buildNumber > currentBuildNumber;
-  return isNewerVersion(update.version, currentVersion);
+  const versionComparison = compareVersions(update.version, currentVersion);
+  if (versionComparison !== 0) return versionComparison > 0;
+  return typeof update.buildNumber === 'number' && update.buildNumber > currentBuildNumber;
 }
 
 export function isMandatoryUpdate(
@@ -93,7 +98,7 @@ export function isMandatoryUpdate(
 }
 
 export async function checkBinaryUpdate(): Promise<BinaryUpdate | null> {
-  if (Platform.OS !== 'android') return null;
+  if (Platform.OS !== 'android' || !areAppUpdatesEnabled()) return null;
 
   const manifestUrl = `${getManifestUrl()}${getManifestUrl().includes('?') ? '&' : '?'}t=${Date.now()}`;
   const response = await fetch(manifestUrl, {

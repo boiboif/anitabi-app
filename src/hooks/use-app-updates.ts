@@ -1,4 +1,5 @@
 import {
+  areAppUpdatesEnabled,
   checkBinaryUpdate,
   downloadAndInstallBinaryUpdate,
   type BinaryDownloadProgress,
@@ -32,7 +33,7 @@ export function useAppUpdates(): AppUpdateManager {
   const isCheckingRef = useRef(false);
 
   const checkNow = useCallback(async () => {
-    if (__DEV__ || isCheckingRef.current) return null;
+    if (__DEV__ || !areAppUpdatesEnabled() || isCheckingRef.current) return null;
     isCheckingRef.current = true;
     setIsChecking(true);
 
