@@ -12,8 +12,9 @@ on:
           - production
           - preview
       release_notes:
-        description: 'GitHub Release and in-app notes; use \n for line breaks'
-        required: true
+        description: 'GitHub Release and in-app notes; use \n for line breaks. Ignored for tag triggers, which use the tag annotation.'
+        required: false
+        default: ''
         type: string
       mandatory:
         description: 'Force users to install this APK'
@@ -51,7 +52,6 @@ jobs:
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       ANDROID_VERSION_CODE_OFFSET: ${{ vars.ANDROID_VERSION_CODE_OFFSET }}
       GH_TOKEN: ${{ github.token }}
-      RELEASE_TYPE: ${{ inputs.release_type }}
 
     steps:
       - name: Checkout
@@ -60,10 +60,42 @@ jobs:
       - name: Require main branch
         shell: bash
         run: |
-          if [[ "$GITHUB_REF_NAME" != "main" ]]; then
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            git fetch origin main --quiet
+            if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+              echo 'Release tags must point at a commit reachable from main.'
+              exit 1
+            fi
+          elif [[ "$GITHUB_REF_NAME" != "main" ]]; then
             echo 'Android releases must be dispatched from the main branch.'
             exit 1
           fi
+
+      - name: Resolve release context
+        shell: bash
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            tag="$GITHUB_REF_NAME"
+            if ! [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-preview)?$ ]]; then
+              echo "Unsupported release tag: $tag"
+              echo 'Use vX.Y.Z for production or vX.Y.Z-preview for preview releases.'
+              exit 1
+            fi
+            if [[ "$tag" == *-preview ]]; then
+              release_type=preview
+            else
+              release_type=production
+            fi
+            git for-each-ref "refs/tags/$tag" --format='%(contents)' | sed -e 's/[[:space:]]*$//' > release-notes.md
+            if [[ ! -s release-notes.md ]]; then
+              echo 'Annotated tag message is empty; use: git tag -a <tag> -m "release notes"'
+              exit 1
+            fi
+            echo "TAG_TRIGGER=$tag" >> "$GITHUB_ENV"
+          else
+            release_type='${{ inputs.release_type }}'
+          fi
+          echo "RELEASE_TYPE=$release_type" >> "$GITHUB_ENV"
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -118,6 +150,14 @@ jobs:
       - name: Configure release
         shell: bash
         run: |
+          if [[ -n "${TAG_TRIGGER:-}" ]]; then
+            tag_base="${TAG_TRIGGER#v}"
+            tag_base="${tag_base%-preview}"
+            if [[ "$tag_base" != "$APP_VERSION" ]]; then
+              echo "Tag $TAG_TRIGGER does not match app.config.ts version $APP_VERSION."
+              exit 1
+            fi
+          fi
           if [[ "$RELEASE_TYPE" == "preview" ]]; then
             preview_prefix="v${APP_VERSION}-preview."
             preview_number=0
@@ -139,8 +179,12 @@ jobs:
             update_channel='production'
           fi
 
-          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
-            echo "GitHub Release or tag already exists: $tag"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "GitHub Release already exists: $tag"
+            exit 1
+          fi
+          if [[ -z "${TAG_TRIGGER:-}" ]] && git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+            echo "Git tag already exists without a release: $tag"
             exit 1
           fi
 
@@ -232,7 +276,9 @@ jobs:
           RELEASE_NOTES: ${{ inputs.release_notes }}
         shell: bash
         run: |
-          node -e 'const fs = require("fs"); fs.writeFileSync("release-notes.md", `${process.env.RELEASE_NOTES.replace(/\\n/g, "\n")}\n`);'
+          if [[ -n "${RELEASE_NOTES:-}" ]]; then
+            node -e 'const fs = require("fs"); fs.writeFileSync("release-notes.md", `${process.env.RELEASE_NOTES.replace(/\\n/g, "\n")}\n`);'
+          fi
           release_args=(gh release create "$TAG" "$ASSET_NAME" --repo "$GITHUB_REPOSITORY" --title "$TAG" --notes-file release-notes.md)
           if [[ "$RELEASE_TYPE" == "preview" ]]; then release_args+=(--prerelease); fi
           "${release_args[@]}"

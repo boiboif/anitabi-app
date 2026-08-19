@@ -1,6 +1,9 @@
 name: Mobile Release (APK + IPA)
 
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       release_type:
@@ -33,11 +36,15 @@ permissions:
   contents: write
   actions: read
 
+concurrency:
+  group: mobile-release
+  cancel-in-progress: false
+
 jobs:
   prepare:
     name: Prepare versions
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' || github.ref == 'refs/heads/main'
     outputs:
       app_version: ${{ steps.config.outputs.app_version }}
       build_number: ${{ steps.config.outputs.build_number }}
@@ -60,9 +67,30 @@ jobs:
           RUN_NUMBER: ${{ github.run_number }}
           ANDROID_VERSION_CODE_OFFSET: ${{ vars.ANDROID_VERSION_CODE_OFFSET }}
         run: |
+          if [ -z "$RELEASE_TYPE" ]; then
+            case "$GITHUB_REF_NAME" in
+              *-preview) RELEASE_TYPE=preview ;;
+              *) RELEASE_TYPE=production ;;
+            esac
+            TAG_TRIGGER=1
+          fi
+
           APP_VERSION=$(grep -oE "appVersion[[:space:]]*=[[:space:]]*'[^']+'" app.config.ts | head -n1 | sed -E "s/.*'([^']+)'.*/\1/")
           if [ -z "$APP_VERSION" ]; then
             APP_VERSION=$(node -p "require(\"./package.json\").version")
+          fi
+
+          if [ -n "${TAG_TRIGGER:-}" ]; then
+            case "$GITHUB_REF_NAME" in
+              v*.*.*|v*.*.*-preview) : ;;
+              *) echo "Unsupported release tag: $GITHUB_REF_NAME"; echo 'Use vX.Y.Z or vX.Y.Z-preview.'; exit 1 ;;
+            esac
+            TAG_BASE="${GITHUB_REF_NAME#v}"
+            TAG_BASE="${TAG_BASE%-preview}"
+            if [ "$TAG_BASE" != "$APP_VERSION" ]; then
+              echo "Tag $GITHUB_REF_NAME does not match app.config.ts version $APP_VERSION."
+              exit 1
+            fi
           fi
 
           BUILD_NUMBER="${ANDROID_VERSION_CODE_OFFSET:-1000}"
@@ -106,8 +134,12 @@ jobs:
             MANIFEST_PATH="docs/releases/latest.json"
           fi
 
-          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
-            echo "GitHub Release or tag already exists: $TAG"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "GitHub Release already exists: $TAG"
+            exit 1
+          fi
+          if [ -z "${TAG_TRIGGER:-}" ] && git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "Git tag already exists without a release: $TAG"
             exit 1
           fi
 
@@ -376,7 +408,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       TAG: ${{ needs.prepare.outputs.tag }}
-      RELEASE_TYPE: ${{ inputs.release_type }}
+      RELEASE_TYPE: ${{ needs.prepare.outputs.update_channel }}
       APP_VERSION: ${{ needs.prepare.outputs.app_version }}
       BUILD_NUMBER: ${{ needs.prepare.outputs.build_number }}
       MANIFEST_PATH: ${{ needs.prepare.outputs.manifest_path }}
@@ -399,9 +431,28 @@ jobs:
       - name: List artifacts
         run: ls -lhR dist
 
+      - name: Generate APK checksum
+        run: |
+          apk_file="dist/$ANDROID_ASSET_NAME"
+          if [[ ! -f "$apk_file" ]]; then
+            echo "APK asset missing: $apk_file"
+            exit 1
+          fi
+          sha256sum "$apk_file" > "$apk_file.sha256"
+          cat "$apk_file.sha256"
+
       - name: Create or update release
         run: |
-          node -e 'const fs = require("fs"); fs.writeFileSync("release-notes.md", `${process.env.RELEASE_NOTES.replace(/\\n/g, "\n")}\n`);'
+          if [[ -n "${RELEASE_NOTES:-}" ]]; then
+            node -e 'const fs = require("fs"); fs.writeFileSync("release-notes.md", `${process.env.RELEASE_NOTES.replace(/\\n/g, "\n")}\n`);'
+          else
+            git fetch --tags --quiet
+            git for-each-ref "refs/tags/$TAG" --format='%(contents)' | sed -e 's/[[:space:]]*$//' > release-notes.md
+            if [[ ! -s release-notes.md ]]; then
+              echo 'Annotated tag message is empty; use: git tag -a <tag> -m "release notes"'
+              exit 1
+            fi
+          fi
           PRERELEASE_FLAG=""
           if [ "$RELEASE_TYPE" = "preview" ]; then
             PRERELEASE_FLAG="--prerelease"

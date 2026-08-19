@@ -43,6 +43,26 @@ versionCode = max(ANDROID_VERSION_CODE_OFFSET, latest.buildNumber, preview.build
 
 整包发布由 GitHub Actions 完成。先在 `app.config.ts` 修改 `appVersion`，提交到 `main`，再进入 GitHub 的 `Actions` → `Android Release` → `Run workflow`，选择 `production` 或 `preview`，填写更新说明。工作流会自动读取该基础版本号，计算 Android `versionCode`、构建签名 APK、创建 GitHub Release，并生成对应的 `latest.json` 或 `preview.json`。
 
+也可以直接推送 tag 触发发版（`Mobile Release` 工作流，Android APK 与 iOS IPA 一起构建发布），无需打开 GitHub 网页：
+
+```bash
+git tag -a v0.0.5 -m "修复地图加载问题
+
+优化图片缓存"
+git push origin v0.0.5
+```
+
+tag 的格式必须是 `v<version>`（production）或 `v<version>-preview`（preview），且必须与 `app.config.ts` 的 `appVersion` 一致。更新说明取自 annotated tag 的消息（`git tag -a`），支持多行，同一份内容会同时用于 GitHub Release 页面和应用内更新弹窗，建议直接面向最终用户书写：
+
+```bash
+git tag -a v0.1.1 -m "新增：巡礼点支持一键导航到谷歌地图
+
+修复：
+- 地图偶发加载失败"
+```
+
+Release 会同时上传 APK 的 `.sha256` 校验文件，可用于验证下载完整性。preview 推送 `v<version>-preview` 后，工作流仍会自动计算 `preview.N` 后缀并创建对应的 Release。`mandatory`、`min_supported_version` 等仅在手动 dispatch 时可设置；tag 触发的发版默认非强制，需要强制更新时使用手动 dispatch。iOS 产物为未签名 IPA（`*-unsigned.ipa`），不能直接安装到设备，仅供侧载签名或存档。`Android Release` 工作流保留为仅手动触发的 Android-only 快速兜底；tag 触发统一走 `Mobile Release`，避免同一版本被两个入口重复构建。
+
 production 发版流程如下：
 
 1. 确保代码已合并到 `main`，并从 `main` 分支运行 `Android Release`。

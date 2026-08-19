@@ -1,9 +1,5 @@
 import type { AppUpdateManager } from '@/hooks/use-app-updates';
-import {
-  getBinaryUpdateDisplayVersion,
-  getCurrentAppDisplayVersion,
-  isMandatoryUpdate,
-} from '@/services/app-update';
+import { getBinaryUpdateDisplayVersion, getCurrentAppDisplayVersion, isMandatoryUpdate } from '@/services/app-update';
 import { Modal, ScrollView } from 'react-native';
 import { Button, Progress, Text, View, XStack, YStack } from 'tamagui';
 
