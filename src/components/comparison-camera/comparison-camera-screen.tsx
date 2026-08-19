@@ -193,7 +193,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
     targetResolution: CommonResolutions.HIGHEST_4_3,
     containerFormat: 'jpeg',
     quality: 1,
-    qualityPrioritization: 'quality',
+    qualityPrioritization: 'speed',
   });
   const [assistMode, setAssistMode] = useState<CameraAssistMode>('split');
   const [referenceFit, setReferenceFit] = useState<ReferenceFit>('cover');
@@ -291,15 +291,13 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
 
     try {
       setCapturing(true);
-      const photo = await photoOutput.capturePhoto({ flashMode: device.hasFlash ? flashMode : 'off' }, {});
-      try {
-        const filePath = await photo.saveToTemporaryFileAsync();
-        setPhotoTransform({ orientation: photo.orientation, mirrored: photo.isMirrored });
-        setPhotoUri(normalizeFileUri(filePath));
-        setResultVisible(true);
-      } finally {
-        photo.dispose();
-      }
+      const photo = await photoOutput.capturePhotoToFile(
+        { flashMode: device.hasFlash ? flashMode : 'off' },
+        {},
+      );
+      setPhotoTransform(undefined);
+      setPhotoUri(normalizeFileUri(photo.filePath));
+      setResultVisible(true);
     } catch (error) {
       console.error(error);
       Alert.alert('拍摄失败', '相机暂时无法完成拍摄，请稍后重试。');
