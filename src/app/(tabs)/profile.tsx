@@ -1,9 +1,6 @@
 import { SettingCell } from '@/components/setting-cell';
 import { useAppUpdateManager } from '@/hooks/use-app-update-manager';
-import {
-  getBinaryUpdateDisplayVersion,
-  getCurrentAppDisplayVersion,
-} from '@/services/app-update';
+import { getBinaryUpdateDisplayVersion, getCurrentAppDisplayVersion } from '@/services/app-update';
 import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
 import { Database, Info, Moon } from '@tamagui/lucide-icons-2';
 import { router } from 'expo-router';
@@ -86,7 +83,7 @@ export default function ProfileScreen() {
             icon={Moon}
             title="深色模式"
             description="设置应用显示外观"
-            onPress={() => router.push('/dark-mode')}
+            onPress={() => router.navigate('/dark-mode')}
           />
         </SettingsSection>
 
@@ -95,7 +92,7 @@ export default function ProfileScreen() {
             icon={Database}
             title="清理存储空间"
             description="清理地图数据、图片缓存和收藏"
-            onPress={() => router.push('/clear-cache')}
+            onPress={() => router.navigate('/clear-cache')}
             showDivider
           />
           <SettingCell

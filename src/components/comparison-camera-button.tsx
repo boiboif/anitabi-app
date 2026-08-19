@@ -17,7 +17,7 @@ export default function ComparisonCameraButton({ bangumi, point, compact = false
 
   const openCamera = (event: GestureResponderEvent) => {
     event.stopPropagation();
-    router.push({
+    router.navigate({
       pathname: '/comparison-camera',
       params: { bangumiId: String(bangumi.id), pointId: point.id },
     } as Href);

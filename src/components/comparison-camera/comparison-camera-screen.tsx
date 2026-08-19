@@ -2,7 +2,7 @@ import {
   COMPARISON_CAMERA_BOTTOM_REGION_HEIGHT,
   COMPARISON_CAMERA_TOP_REGION_HEIGHT,
 } from '@/components/comparison-camera/comparison-camera-layout';
-import ComparisonResultModal, { type PhotoFileTransform } from '@/components/comparison-camera/comparison-result-modal';
+import ComparisonResultModal from '@/components/comparison-camera/comparison-result-modal';
 import type { Bangumi, Point } from '@/services/types';
 import {
   Blend,
@@ -16,6 +16,7 @@ import {
   Zap,
   ZapOff,
 } from '@tamagui/lucide-icons-2';
+import { File } from 'expo-file-system';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useIsFocused, useRouter } from 'expo-router';
@@ -35,6 +36,7 @@ import {
   type CameraRef,
   CommonResolutions,
   type FlashMode,
+  type PhotoFile,
   useCameraDevice,
   useCameraPermission,
   useOrientation,
@@ -173,8 +175,11 @@ function GridOverlay() {
   );
 }
 
-function normalizeFileUri(filePath: string): string {
-  return filePath.startsWith('file://') ? filePath : `file://${filePath}`;
+function deleteTemporaryPhoto(filePath: string) {
+  try {
+    const file = new File(filePath);
+    if (file.exists) file.delete();
+  } catch {}
 }
 
 export default function ComparisonCameraScreen({ bangumi, point, initialReferenceUri, fullReferenceUri }: Props) {
@@ -186,29 +191,32 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
   const orientationRotationValue = useSharedValue(0);
   const { hasPermission, requestPermission } = useCameraPermission();
   const permissionRequested = useRef(false);
+
   const cameraRef = useRef<CameraRef>(null);
   const [cameraPosition, setCameraPosition] = useState<'back' | 'front'>('back');
   const device = useCameraDevice(cameraPosition);
+  const [zoom, setZoom] = useState(1);
+
   const photoOutput = usePhotoOutput({
     targetResolution: CommonResolutions.HIGHEST_4_3,
     containerFormat: 'jpeg',
     quality: 1,
-    qualityPrioritization: 'quality',
+    qualityPrioritization: 'balanced',
   });
   const [assistMode, setAssistMode] = useState<CameraAssistMode>('split');
   const [referenceFit, setReferenceFit] = useState<ReferenceFit>('cover');
   const [overlayOpacity, setOverlayOpacity] = useState(0.4);
   const [referenceUri, setReferenceUri] = useState(initialReferenceUri);
-  const [photoUri, setPhotoUri] = useState<string>();
-  const [photoTransform, setPhotoTransform] = useState<PhotoFileTransform>();
+  const [photoFile, setPhotoFile] = useState<PhotoFile>();
   const [resultVisible, setResultVisible] = useState(false);
   const [flashMode, setFlashMode] = useState<FlashMode>('off');
   const [cameraReady, setCameraReady] = useState(false);
   const [capturing, setCapturing] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
-  const [zoom, setZoom] = useState(1);
   const [referenceViewport, setReferenceViewport] = useState<ReferenceViewport>();
   const [overlayViewport, setOverlayViewport] = useState<ReferenceViewport>();
+  // Keep the session alive behind the result modal so returning does not reset the hardware zoom to 1x.
+  const cameraIsActive = isFocused && !pickerVisible;
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -243,7 +251,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
     };
   }, [fullReferenceUri, initialReferenceUri]);
 
-  const initialZoom = useCallback(() => {
+  const defaultZoom = useCallback(() => {
     if (!device) return 1;
 
     return Math.min(device.maxZoom, Math.max(device.minZoom, 1));
@@ -266,6 +274,24 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
     void requestPermission();
   }, [hasPermission, requestPermission]);
 
+  useEffect(() => {
+    if (!cameraIsActive) return;
+
+    const timer = setInterval(() => {
+      const nativeZoom = cameraRef.current?.controller?.zoom;
+      if (nativeZoom == null || !Number.isFinite(nativeZoom)) return;
+      setZoom((current) => (Math.abs(current - nativeZoom) < 0.005 ? current : nativeZoom));
+    }, 50);
+
+    return () => clearInterval(timer);
+  }, [cameraIsActive]);
+
+  useEffect(() => {
+    if (!photoFile) return;
+
+    return () => deleteTemporaryPhoto(photoFile.filePath);
+  }, [photoFile]);
+
   const pickReference = useCallback(async () => {
     try {
       setPickerVisible(true);
@@ -287,24 +313,22 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
       await pickReference();
       return;
     }
-    if (!device || !cameraReady || capturing) return;
+    if (!device || !cameraReady || capturing) {
+      return;
+    }
 
     try {
       setCapturing(true);
-      const photo = await photoOutput.capturePhoto({ flashMode: device.hasFlash ? flashMode : 'off' }, {});
-      try {
-        const filePath = await photo.saveToTemporaryFileAsync();
-        setPhotoTransform({ orientation: photo.orientation, mirrored: photo.isMirrored });
-        setPhotoUri(normalizeFileUri(filePath));
-        setResultVisible(true);
-      } finally {
-        photo.dispose();
-      }
+      const capturedPhoto = await photoOutput.capturePhotoToFile(
+        { flashMode: device.hasFlash ? flashMode : 'off' },
+        {},
+      );
+      setPhotoFile(capturedPhoto);
+      setResultVisible(true);
     } catch (error) {
       console.error(error);
       Alert.alert('拍摄失败', '相机暂时无法完成拍摄，请稍后重试。');
     } finally {
-      console.log('finally');
       setCapturing(false);
     }
   };
@@ -316,6 +340,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
 
   const switchCamera = () => {
     setCameraReady(false);
+    setZoom(1);
     setCameraPosition((current) => (current === 'back' ? 'front' : 'back'));
     setFlashMode('off');
   };
@@ -326,6 +351,14 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
 
     setZoom(nextZoom);
     void controller.setZoom(nextZoom).catch(() => setZoom(controller.zoom));
+  };
+
+  const toggleAssistMode = () => {
+    const nextZoom = defaultZoom();
+    setZoom(nextZoom);
+    const controller = cameraRef.current?.controller;
+    if (controller) void controller.setZoom(nextZoom).catch(() => setZoom(controller.zoom));
+    setAssistMode((current) => (current === 'split' ? 'overlay' : 'split'));
   };
 
   const referenceFitLabel = referenceFit === 'cover' ? '参考图裁切显示' : '参考图完整显示';
@@ -349,11 +382,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
   );
   const assistModeLabel = assistMode === 'split' ? '切换为叠图模式' : '切换为分图模式';
   const assistModeControl = (
-    <IconButton
-      showBackground
-      accessibilityLabel={assistModeLabel}
-      onPress={() => setAssistMode((current) => (current === 'split' ? 'overlay' : 'split'))}
-    >
+    <IconButton showBackground accessibilityLabel={assistModeLabel} onPress={toggleAssistMode}>
       {assistMode === 'split' ? (
         <OrientationRotation rotation={orientationRotationValue}>
           <Layers2 size={19} color="white" />
@@ -365,22 +394,34 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
       )}
     </IconButton>
   );
+  const selectedQuickZoomIndex = quickZoomValues.reduce(
+    (selectedIndex, quickZoom, index) => (zoom >= quickZoom ? index : selectedIndex),
+    0,
+  );
   const quickZoomControl =
     quickZoomValues.length > 1 ? (
       <XStack position="absolute" b={8} l={0} r={0} items="center" justify="center" gap={6}>
-        {quickZoomValues.map((value) => {
-          const selected = Math.abs(zoom - value) < 0.01;
-          const label = `${Number(value.toFixed(1))}x`;
+        {quickZoomValues.map((value, index) => {
+          const selected = index === selectedQuickZoomIndex;
+          const targetLabel = `${Number(value.toFixed(1))}x`;
+          const labelValue = selected
+            ? Math.abs(zoom - value) < 0.005
+              ? String(Number(value.toFixed(1)))
+              : zoom.toFixed(1)
+            : String(Number(value.toFixed(1)));
+          const label = `${labelValue}x`;
 
           return (
             <OrientationRotation key={value} rotation={orientationRotationValue}>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`切换至 ${label} 变焦`}
+                accessibilityLabel={
+                  selected ? `当前 ${label} 变焦，切换至 ${targetLabel}` : `切换至 ${targetLabel} 变焦`
+                }
                 accessibilityState={{ selected }}
-                disabled={!cameraReady}
+                disabled={!cameraReady || capturing}
                 onPress={() => selectQuickZoom(value)}
-                style={({ pressed }) => ({ opacity: !cameraReady ? 0.38 : pressed ? 0.68 : 1 })}
+                style={({ pressed }) => ({ opacity: pressed ? 0.68 : 1 })}
               >
                 <View
                   width={32}
@@ -401,18 +442,17 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
       </XStack>
     ) : null;
 
-  const cameraIsActive = isFocused && !resultVisible && !pickerVisible;
   const cameraView = device ? (
     <Camera
       ref={cameraRef}
       device={device}
       enableNativeTapToFocusGesture
-      enableNativeZoomGesture
+      enableNativeZoomGesture={!capturing}
       isActive={cameraIsActive}
-      getInitialZoom={initialZoom}
       mirrorMode="auto"
       onPreviewStarted={() => {
-        setZoom(initialZoom());
+        const nativeZoom = cameraRef.current?.controller?.zoom;
+        if (nativeZoom != null && Number.isFinite(nativeZoom)) setZoom(nativeZoom);
         setCameraReady(true);
       }}
       onPreviewStopped={() => setCameraReady(false)}
@@ -606,7 +646,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
           disabled={!device || !cameraReady || capturing}
           onPress={takePhoto}
           style={({ pressed }) => ({
-            opacity: !device || !cameraReady || capturing ? 0.38 : 1,
+            opacity: !device || capturing ? 0.38 : 1,
             transform: [{ scale: pressed ? 0.94 : 1 }],
           })}
         >
@@ -680,13 +720,15 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
         visible={resultVisible}
         bangumi={bangumi}
         point={point}
-        photoUri={photoUri}
-        photoTransform={photoTransform}
+        photoFile={photoFile}
         referenceFit={referenceFit}
         referenceUri={referenceUri}
         onClose={() => router.back()}
         onPickReference={pickReference}
-        onRetake={() => setResultVisible(false)}
+        onRetake={() => {
+          setResultVisible(false);
+          setPhotoFile(undefined);
+        }}
       />
     </View>
   );

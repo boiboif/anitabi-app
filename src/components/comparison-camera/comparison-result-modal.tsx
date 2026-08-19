@@ -8,25 +8,20 @@ import type { Bangumi, Point } from '@/services/types';
 import { Download, Images, RotateCcw, X } from '@tamagui/lucide-icons-2';
 import { File } from 'expo-file-system';
 import { Image } from 'expo-image';
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as MediaLibrary from 'expo-media-library';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Platform, Pressable, StatusBar, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Images as NitroImages, loadImage, type Image as NitroImage } from 'react-native-nitro-image';
-import type { CameraOrientation } from 'react-native-vision-camera';
+import type { PhotoFile } from 'react-native-vision-camera';
 import { View, XStack } from 'tamagui';
-
-export type PhotoFileTransform = {
-  orientation: CameraOrientation;
-  mirrored: boolean;
-};
 
 type Props = {
   visible: boolean;
   bangumi: Bangumi;
   point: Point;
-  photoUri?: string;
-  photoTransform?: PhotoFileTransform;
+  photoFile?: PhotoFile;
   /** @deprecated */
   referenceFit: ReferenceFit;
   referenceUri?: string;
@@ -78,6 +73,27 @@ async function loadUriImage(uri: string) {
   return await loadImage({ filePath: cachePath });
 }
 
+function normalizeFileUri(filePath: string): string {
+  return filePath.startsWith('file://') ? filePath : `file://${filePath}`;
+}
+
+async function normalizeCapturedPhotoForPixelAccess(uri: string) {
+  if (process.env.EXPO_OS !== 'android') return uri;
+
+  const context = ImageManipulator.manipulate(uri);
+  try {
+    const image = await context.renderAsync();
+    try {
+      const result = await image.saveAsync({ compress: 1, format: SaveFormat.JPEG });
+      return result.uri;
+    } finally {
+      image.release();
+    }
+  } finally {
+    context.release();
+  }
+}
+
 async function addPanel(
   canvas: NitroImage,
   uri: string,
@@ -85,26 +101,15 @@ async function addPanel(
   height: number,
   y: number,
   clipVerticalOverflow: boolean,
-  transform?: PhotoFileTransform,
+  normalizeExifOrientation = false,
 ) {
-  let source = await loadUriImage(uri);
+  let normalizedUri: string | undefined;
+  let source: NitroImage | undefined;
   let clippedPanel: NitroImage | undefined;
 
   try {
-    if (Platform.OS === 'android' && transform) {
-      if (transform.mirrored) {
-        const mirrored = await source.mirrorHorizontallyAsync();
-        source.dispose();
-        source = mirrored;
-      }
-
-      const rotation = { up: 0, down: 180, left: 90, right: 270 }[transform.orientation];
-      if (rotation !== 0) {
-        const rotated = await source.rotateAsync(rotation, false);
-        source.dispose();
-        source = rotated;
-      }
-    }
+    if (normalizeExifOrientation) normalizedUri = await normalizeCapturedPhotoForPixelAccess(uri);
+    source = await loadUriImage(normalizedUri ?? uri);
 
     const scale = Math.max(width / source.width, height / source.height);
     const drawWidth = source.width * scale;
@@ -125,7 +130,8 @@ async function addPanel(
     return await renderInto(canvas, source, drawX, y + drawY, drawWidth, drawHeight);
   } finally {
     clippedPanel?.dispose();
-    source.dispose();
+    source?.dispose();
+    if (normalizedUri && normalizedUri !== uri) deleteTemporaryFile(normalizedUri);
   }
 }
 
@@ -156,14 +162,14 @@ function ActionButton({ label, icon, primary = false, disabled = false, onPress 
 
 export default function ComparisonResultModal({
   visible,
-  photoUri,
-  photoTransform,
+  photoFile,
   referenceFit,
   referenceUri,
   onPickReference,
   onRetake,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const photoUri = photoFile ? normalizeFileUri(photoFile.filePath) : undefined;
   const [loadedReferenceUri, setLoadedReferenceUri] = useState<string>();
   const [loadedPhotoUri, setLoadedPhotoUri] = useState<string>();
   const [comparisonLayout, setComparisonLayout] = useState<ComparisonLayout>();
@@ -194,7 +200,7 @@ export default function ComparisonResultModal({
       canvas = await NitroImages.createBlankImageAsync(EXPORT_WIDTH, canvasHeight, true, { r: 0, g: 0, b: 0 });
 
       // Draw the bottom panel first so any vertical cover overflow is replaced by the top panel.
-      const withPhoto = await addPanel(canvas, photoUri, EXPORT_WIDTH, panelHeight, panelHeight, false, photoTransform);
+      const withPhoto = await addPanel(canvas, photoUri, EXPORT_WIDTH, panelHeight, panelHeight, false, true);
       canvas.dispose();
       canvas = withPhoto;
 
