@@ -2,7 +2,7 @@ import { SettingCell } from '@/components/setting-cell';
 import { useAppUpdateManager } from '@/hooks/use-app-update-manager';
 import { getBinaryUpdateDisplayVersion, getCurrentAppDisplayVersion } from '@/services/app-update';
 import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
-import { Database, Info, Moon } from '@tamagui/lucide-icons-2';
+import { CalendarDays, Database, Info, Moon } from '@tamagui/lucide-icons-2';
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Alert, Platform, ScrollView } from 'react-native';
@@ -17,7 +17,7 @@ type SettingsSectionProps = {
 function SettingsSection({ title, children }: SettingsSectionProps) {
   return (
     <View gap="$2.5">
-      <Text fontSize={13} lineHeight={18} fontWeight="600" color="$color11" px="$1">
+      <Text fontSize="$footnote" lineHeight={18} fontWeight="600" color="$color11" px="$1">
         {title}
       </Text>
       <View bg="$color2" rounded="$2" overflow="hidden" style={{ borderCurve: 'continuous' }}>
@@ -74,9 +74,18 @@ export default function ProfileScreen() {
       contentContainerStyle={{ flexDirection: 'row', justifyContent: 'center', ...contentPlatformStyle }}
     >
       <View bg="$background" width="100%" maxW={MaxContentWidth} flex={1} px="$5" gap="$5">
-        <Text fontSize={22} lineHeight={30} fontWeight="700" color="$color12" px="$1" mb="$1">
+        <Text fontSize="$heading" lineHeight={30} fontWeight="700" color="$color12" px="$1" mb="$1">
           我的
         </Text>
+
+        <SettingsSection title="巡礼">
+          <SettingCell
+            icon={CalendarDays}
+            title="巡礼计划"
+            description="安排点位顺序，记录巡礼进度"
+            onPress={() => router.navigate('/plans')}
+          />
+        </SettingsSection>
 
         <SettingsSection title="应用与外观">
           <SettingCell

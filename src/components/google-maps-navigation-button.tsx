@@ -6,6 +6,7 @@ import { useTheme, View } from 'tamagui';
 
 type Props = {
   point: Point;
+  compact?: boolean;
 };
 
 function buildGoogleMapsUrl([latitude, longitude]: [number, number], fallback = false): string {
@@ -25,7 +26,7 @@ function buildGoogleMapsUrl([latitude, longitude]: [number, number], fallback = 
   return `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
 }
 
-export default function GoogleMapsNavigationButton({ point }: Props) {
+export default function GoogleMapsNavigationButton({ point, compact = false }: Props) {
   const theme = useTheme();
 
   const openGoogleMaps = async (event: GestureResponderEvent) => {
@@ -48,8 +49,15 @@ export default function GoogleMapsNavigationButton({ point }: Props) {
       onPress={openGoogleMaps}
       style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
     >
-      <View width={36} height={36} rounded="$9" bg="$color2" items="center" justify="center">
-        <Navigation size={18} color={theme.primary.val} />
+      <View
+        width={compact ? 30 : 36}
+        height={compact ? 30 : 36}
+        rounded="$9"
+        bg="$color2"
+        items="center"
+        justify="center"
+      >
+        <Navigation size={compact ? 15 : 18} color={theme.primary.val} />
       </View>
     </Pressable>
   );

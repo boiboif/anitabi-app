@@ -1,15 +1,16 @@
 import { SettingCell } from '@/components/setting-cell';
 import { clearMapCache } from '@/lib/map-storage';
 import { useFavoritePoints } from '@/store/use-favorite-points';
+import { usePlans } from '@/store/use-plans';
 import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
-import { Check, Database, Heart, Image as ImageIcon } from '@tamagui/lucide-icons-2';
+import { CalendarDays, Check, Database, Heart, Image as ImageIcon } from '@tamagui/lucide-icons-2';
 import { Image } from 'expo-image';
 import { useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, View, YStack, useTheme } from 'tamagui';
 
-type CacheItemId = 'map' | 'image' | 'favorites';
+type CacheItemId = 'map' | 'image' | 'favorites' | 'plans';
 
 const cacheItems = [
   {
@@ -29,6 +30,12 @@ const cacheItems = [
     title: '收藏',
     description: '已收藏的巡礼点位',
     icon: Heart,
+  },
+  {
+    id: 'plans' as const,
+    title: '巡礼计划',
+    description: '已创建的巡礼计划和打卡进度',
+    icon: CalendarDays,
   },
 ];
 
@@ -79,6 +86,9 @@ export default function ClearCacheScreen() {
           if (id === 'favorites') {
             useFavoritePoints.getState().clearAllFavorites();
           }
+          if (id === 'plans') {
+            usePlans.getState().clearAllPlans();
+          }
         }),
       );
       setSelectedItems(new Set());
@@ -110,10 +120,10 @@ export default function ClearCacheScreen() {
       >
         <YStack width="100%" maxW={MaxContentWidth} flex={1} px="$5" gap="$4">
           <YStack gap="$1" px="$1">
-            <Text fontSize={15} lineHeight={22} fontWeight="600" color="$color12">
+            <Text fontSize="$body" lineHeight={22} fontWeight="600" color="$color12">
               选择要清理的内容
             </Text>
-            <Text fontSize={12} lineHeight={18} color="$color11">
+            <Text fontSize="$footnote" lineHeight={18} color="$color11">
               清理地图数据后，下次使用时会重新下载最新数据。
             </Text>
           </YStack>
@@ -154,7 +164,14 @@ export default function ClearCacheScreen() {
         </YStack>
       </ScrollView>
 
-      <View px="$5" pt="$3" pb={safeAreaInsets.bottom + 12} bg="$background" borderTopWidth={1} borderColor="$color6">
+      <View
+        px="$5"
+        pt="$3"
+        pb={safeAreaInsets.bottom + 12}
+        bg="$background"
+        borderTopWidth={StyleSheet.hairlineWidth}
+        borderColor="$color4"
+      >
         <View width="100%" maxW={MaxContentWidth} mx="auto">
           <Pressable
             accessibilityRole="button"
