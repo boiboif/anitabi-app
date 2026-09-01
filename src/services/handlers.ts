@@ -1,10 +1,12 @@
 import { createHandler } from './createHandler';
 
-export const baseUrl = 'https://ww.anitabi.cn';
+export const baseUrl = 'https://www.anitabi.cn';
+// export const baseUrl = 'https://w.junreimap.com';
 
 export const apiUrl = 'https://www.anitabi.cn/api';
 
 export const imageUrl = 'https://img-tc.anitabi.cn';
+// export const imageUrl = 'https://image-anitabi.magiconch.com';
 
 export const anitabiHandler = createHandler({
   baseUrl,
