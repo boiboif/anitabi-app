@@ -127,6 +127,12 @@
       "skillPath": "plugins/expo/skills/expo-web-to-native/SKILL.md",
       "computedHash": "a14267b77b454d840c1913d0c9693d85ca92d412f2d920711fca16489410f704"
     },
+    "reanimated-dnd": {
+      "source": "entropyconquers/react-native-reanimated-dnd",
+      "sourceType": "github",
+      "skillPath": "skills/reanimated-dnd/SKILL.md",
+      "computedHash": "cfb28f512488fcedd6e87054119954d2922252f43f9470ea22f64661fa839be1"
+    },
     "truesheet-usage": {
       "source": "lodev09/react-native-true-sheet",
       "sourceType": "github",
