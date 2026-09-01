@@ -10,8 +10,14 @@ import dayjs from 'dayjs';
 import { Image } from 'expo-image';
 import { useIsFocused } from 'expo-router';
 import { memo, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, Platform } from 'react-native';
-import { GestureHandlerRootView, Pressable } from 'react-native-gesture-handler';
+import {
+  type LayoutChangeEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  Platform,
+  Pressable,
+} from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { getTokens, Text, useTheme, View } from 'tamagui';
 
 const CARD_HEIGHT = 100;
@@ -65,7 +71,7 @@ const PointCard = memo(
                 py="$0.5"
                 style={{ borderTopRightRadius: getTokens().radius['2'].val }}
               >
-                <Text fontSize={11} fontWeight="700" color="white">
+                <Text fontSize="$caption" fontWeight="700" color="white">
                   {epLabel}
                 </Text>
               </View>
@@ -80,7 +86,7 @@ const PointCard = memo(
                 py="$0.5"
                 style={{ borderTopLeftRadius: getTokens().radius['2'].val }}
               >
-                <Text fontSize={11} color="white">
+                <Text fontSize="$caption" color="white">
                   {timeLabel}
                 </Text>
               </View>
@@ -88,20 +94,27 @@ const PointCard = memo(
           </View>
           <View flex={1} p="$2" style={{ justifyContent: 'space-between' }}>
             <View>
-              <Text fontWeight="600" fontSize={14} color="$color12" numberOfLines={1} pr="$8">
+              <Text fontWeight="600" fontSize="$body" color="$color12" numberOfLines={1} pr="$8">
                 {pointTitle}
               </Text>
-              <Text fontSize={11} color="$primary" mt="$1" numberOfLines={1}>
+              <Text fontSize="$caption" color="$primary" mt="$1" numberOfLines={1}>
                 {bangumi.cn || bangumi.title || bangumi.en || '未知'}
               </Text>
               {point.mark ? (
-                <Text fontSize={11} lineHeight={11} color="$color11" mt="$0.5" numberOfLines={3}>
+                <Text fontSize="$caption" lineHeight={11} color="$color11" mt="$0.5" numberOfLines={3}>
                   {point.mark}
                 </Text>
               ) : null}
             </View>
             {point.folder && (
-              <Text position="absolute" r="$2" b="$1.5" fontSize={11} color="$color10" style={{ textAlign: 'right' }}>
+              <Text
+                position="absolute"
+                r="$2"
+                b="$1.5"
+                fontSize="$caption"
+                color="$color10"
+                style={{ textAlign: 'right' }}
+              >
                 {point.folder}
               </Text>
             )}
@@ -141,6 +154,7 @@ interface FlatPointItem {
 type FlatItem = FlatSectionHeader | FlatPointItem;
 
 interface PendingModeScroll {
+  committed: boolean;
   offset: number;
   ready: boolean;
   sticky: boolean;
@@ -191,7 +205,7 @@ function AccordionControls({
             <Text
               fontWeight={accordionMode === 'ep' ? '600' : '400'}
               color={accordionMode === 'ep' ? '$primary' : '$color11'}
-              fontSize={14}
+              fontSize="$body"
             >
               话数
             </Text>
@@ -207,7 +221,7 @@ function AccordionControls({
             <Text
               fontWeight={accordionMode === 'folder' ? '600' : '400'}
               color={accordionMode === 'folder' ? '$primary' : '$color11'}
-              fontSize={14}
+              fontSize="$body"
             >
               分组
             </Text>
@@ -219,7 +233,7 @@ function AccordionControls({
           onPress={onCollapseAll}
           style={({ pressed }: { pressed: boolean }) => ({ opacity: pressed ? 0.6 : 1 })}
         >
-          <Text fontSize={13} color="$primary">
+          <Text fontSize="$footnote" color="$primary">
             折叠全部
           </Text>
         </Pressable>
@@ -227,7 +241,7 @@ function AccordionControls({
           onPress={onExpandAll}
           style={({ pressed }: { pressed: boolean }) => ({ opacity: pressed ? 0.6 : 1 })}
         >
-          <Text fontSize={13} color="$primary">
+          <Text fontSize="$footnote" color="$primary">
             展开全部
           </Text>
         </Pressable>
@@ -519,6 +533,7 @@ function BangumiDetailSheet() {
         const sticky = isControlsStickyRef.current;
         const maximumNonStickyOffset = Math.max(0, controlsOffset - 1);
         pendingModeScrollRef.current = {
+          committed: false,
           offset: sticky ? controlsOffset : Math.min(currentModeScrollOffsetRef.current, maximumNonStickyOffset),
           ready: false,
           sticky,
@@ -552,9 +567,20 @@ function BangumiDetailSheet() {
 
   const handleFlashListScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      handleListScroll(event);
       const scrollOffset = event.nativeEvent.contentOffset.y;
-      const shouldStick = scrollOffset >= controlsOffsetRef.current;
+      const pendingScroll = pendingModeScrollRef.current;
+      let restoredSticky = false;
+      if (pendingScroll) {
+        // A keyed FlashList can report its initial offset after scrollToOffset has been called.
+        // Keep the previous sticky state until the restored offset is observed natively.
+        const hasReachedRestoredOffset = scrollOffset + 1 >= pendingScroll.offset;
+        if (!pendingScroll.committed || (pendingScroll.sticky && !hasReachedRestoredOffset)) return;
+        restoredSticky = pendingScroll.sticky;
+        pendingModeScrollRef.current = null;
+      }
+
+      handleListScroll(event);
+      const shouldStick = restoredSticky || scrollOffset >= controlsOffsetRef.current;
       currentModeScrollOffsetRef.current = scrollOffset;
       isControlsStickyRef.current = shouldStick;
       setIsControlsSticky((wasSticky) => (wasSticky === shouldStick ? wasSticky : shouldStick));
@@ -564,13 +590,14 @@ function BangumiDetailSheet() {
 
   const handleFlashListLayoutCommit = useCallback(() => {
     const pendingScroll = pendingModeScrollRef.current;
-    if (!pendingScroll?.ready) return;
+    if (!pendingScroll?.ready || pendingScroll.committed) return;
 
+    pendingScroll.committed = true;
     currentModeScrollOffsetRef.current = pendingScroll.offset;
     isControlsStickyRef.current = pendingScroll.sticky;
     setIsControlsSticky(pendingScroll.sticky);
     flashListRef.current?.scrollToOffset({ offset: pendingScroll.offset, animated: false });
-    pendingModeScrollRef.current = null;
+    if (!pendingScroll.sticky) pendingModeScrollRef.current = null;
   }, [flashListRef]);
 
   const flatData: FlatItem[] = useMemo(() => {
@@ -614,13 +641,13 @@ function BangumiDetailSheet() {
           >
             <View position="absolute" t={-1} l={0} r={0} height={2} bg="$color1" />
             <View flexDirection="row" style={{ alignItems: 'center' }} px="$2" py="$2">
-              <Text fontWeight="600" fontSize={14} color="$color12" flex={1}>
+              <Text fontWeight="600" fontSize="$body" color="$color12" flex={1}>
                 {item.title}
               </Text>
-              <Text fontSize={11} color="$color10" mr="$1">
+              <Text fontSize="$caption" color="$color10" mr="$1">
                 {item.count}
               </Text>
-              <Text fontSize={12} color="$color10">
+              <Text fontSize="$footnote" color="$color10">
                 {expandedKeys.has(sectionKey) ? '▲' : '▼'}
               </Text>
             </View>
@@ -686,27 +713,27 @@ function BangumiDetailSheet() {
                     />
                     <View flex={1}>
                       {selectedBangumi?.cn ? (
-                        <Text fontWeight="600" fontSize={16} color="$color12" pr="$8" numberOfLines={2}>
+                        <Text fontWeight="600" fontSize="$subtitle" color="$color12" pr="$8" numberOfLines={2}>
                           {selectedBangumi?.cn}
                         </Text>
                       ) : null}
-                      <Text fontSize={12} color="$color11" mt="$1" mb="$1" numberOfLines={1}>
+                      <Text fontSize="$footnote" color="$color11" mt="$1" mb="$1" numberOfLines={1}>
                         {selectedBangumi?.title}
                       </Text>
                       <View flexDirection="row">
                         {selectedBangumi?.city && (
-                          <Text fontSize={12} color="$color11">
+                          <Text fontSize="$footnote" color="$color11">
                             {selectedBangumi?.city} {'· '}
                           </Text>
                         )}
-                        <Text fontSize={12} color="$color11">
+                        <Text fontSize="$footnote" color="$color11">
                           <Text color="$primary" fontWeight="bold">
                             {selectedBangumi?.points.length}
                           </Text>
                           个巡礼点
                         </Text>
                       </View>
-                      <Text fontSize={10} color="$color11" position="absolute" r="$0" b="$0">
+                      <Text fontSize="$caption" color="$color11" position="absolute" r="$0" b="$0">
                         最近更新：{dayjs(selectedBangumi?.modified).format('YYYY-MM-DD HH:mm')}
                       </Text>
                     </View>
@@ -720,7 +747,7 @@ function BangumiDetailSheet() {
                         rounded="$2"
                         style={{ backgroundColor: selectedBangumi?.color || '$color9' }}
                       >
-                        <Text fontSize={10} color="white" fontWeight="500">
+                        <Text fontSize="$caption" color="white" fontWeight="500">
                           {selectedBangumi?.cat}
                         </Text>
                       </View>

@@ -9,7 +9,7 @@ const StyledInput = styled(Input, {
   rounded: 28,
   paddingInlineStart: 40,
   height: 44,
-  fontSize: 16,
+  fontSize: '$subtitle',
   borderColor: '$color4',
   borderWidth: StyleSheet.hairlineWidth,
   focusStyle: {

@@ -45,7 +45,7 @@ export default function DarkModeScreen() {
             rounded="$2"
             style={{ justifyContent: 'space-between', alignItems: 'center' }}
           >
-            <Text color="$color" fontSize={16} lineHeight={24} fontWeight="500">
+            <Text color="$color" fontSize="$body" lineHeight={24} fontWeight="500">
               跟随系统
             </Text>
             <ThemeSwitch checked={followSystem} onCheckedChange={handleFollowSystemChange} />
@@ -59,7 +59,7 @@ export default function DarkModeScreen() {
               rounded="$2"
               style={{ justifyContent: 'space-between', alignItems: 'center' }}
             >
-              <Text color="$color" fontSize={16} lineHeight={24} fontWeight="500">
+              <Text color="$color" fontSize="$body" lineHeight={24} fontWeight="500">
                 深色模式
               </Text>
               <ThemeSwitch checked={isDark} onCheckedChange={toggleDarkMode} />

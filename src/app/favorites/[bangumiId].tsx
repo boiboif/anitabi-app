@@ -66,16 +66,16 @@ function FavoriteCard({ item, onPress }: { item: ResolvedFavorite; onPress: () =
           />
           <YStack flex={1} p="$2" pr="$9" justify="space-between">
             <View>
-              <Text fontSize={14} fontWeight="600" color="$color12" numberOfLines={1}>
+              <Text fontSize="$body" fontWeight="600" color="$color12" numberOfLines={1}>
                 {getPointName(item)}
               </Text>
               {item.point?.mark || item.favorite.snapshot.pointMark ? (
-                <Text fontSize={11} color="$color11" mt="$1" numberOfLines={2}>
+                <Text fontSize="$caption" color="$color11" mt="$1" numberOfLines={2}>
                   {item.point?.mark || item.favorite.snapshot.pointMark}
                 </Text>
               ) : null}
             </View>
-            <Text fontSize={10} color="$color10">
+            <Text fontSize="$caption" color="$color10">
               {available ? `收藏于 ${formatFavoriteTime(item.favorite.addedAt)}` : '点位已不可用'}
             </Text>
           </YStack>

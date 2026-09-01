@@ -4,8 +4,8 @@ import { type FavoritePoint } from '@/lib/favorite-storage';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useFavoritePoints } from '@/store/use-favorite-points';
-import { useMapData } from '@/store/use-map-data';
 import { useMapBrowse } from '@/store/use-map-browse';
+import { useMapData } from '@/store/use-map-data';
 import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
 import { Heart } from '@tamagui/lucide-icons-2';
 import { Image } from 'expo-image';
@@ -89,19 +89,19 @@ function FavoriteCard({ item, onPress }: { item: ResolvedFavorite; onPress: () =
           />
           <YStack flex={1} p="$2" pr="$9" justify="space-between">
             <View>
-              <Text fontSize={14} fontWeight="600" color="$color12" numberOfLines={1}>
+              <Text fontSize="$body" fontWeight="600" color="$color12" numberOfLines={1}>
                 {getPointName(item)}
               </Text>
-              <Text fontSize={12} color="$primary" mt="$1" numberOfLines={1}>
+              <Text fontSize="$footnote" color="$primary" mt="$1" numberOfLines={1}>
                 {getBangumiName(item)}
               </Text>
               {item.point?.mark || item.favorite.snapshot.pointMark ? (
-                <Text fontSize={11} color="$color11" mt="$1" numberOfLines={2}>
+                <Text fontSize="$caption" color="$color11" mt="$1" numberOfLines={2}>
                   {item.point?.mark || item.favorite.snapshot.pointMark}
                 </Text>
               ) : null}
             </View>
-            <Text fontSize={10} color="$color10">
+            <Text fontSize="$caption" color="$color10">
               {available ? `收藏于 ${formatFavoriteTime(item.favorite.addedAt)}` : '点位已不可用'}
             </Text>
           </YStack>
@@ -154,10 +154,10 @@ function BangumiGridCard({ group, onPress }: { group: BangumiGroup; onPress: () 
             contentFit="cover"
           />
           <View px="$1.5" pt="$1.5" pb="$1.5">
-            <Text height={30} fontSize={11} fontWeight="600" color="$color12" numberOfLines={2} lineHeight={15}>
+            <Text height={30} fontSize="$caption" fontWeight="600" color="$color12" numberOfLines={2} lineHeight={15}>
               {group.name}
             </Text>
-            <Text fontSize={10} color="$color11" mt="$0.5">
+            <Text fontSize="$caption" color="$color11" mt="$0.5">
               {group.items.length} 个点位
             </Text>
           </View>
@@ -287,7 +287,7 @@ export default function FavoritesScreen() {
                   items="center"
                 >
                   <Text
-                    fontSize={14}
+                    fontSize="$body"
                     fontWeight={view === key ? '600' : '400'}
                     color={view === key ? '$primary' : '$color11'}
                   >
@@ -328,7 +328,7 @@ export default function FavoritesScreen() {
           <View px="$3">
             {historyGroups.map(([date, items]) => (
               <View key={date} mb="$3">
-                <Text fontSize={14} lineHeight={20} fontWeight="700" color="$color11" mb="$2" px="$1">
+                <Text fontSize="$body" lineHeight={20} fontWeight="700" color="$color11" mb="$2" px="$1">
                   {date}
                 </Text>
                 {items.map((item) => (
@@ -341,7 +341,7 @@ export default function FavoritesScreen() {
 
         {loadFailed ? (
           <View items="center" px="$6" pb="$4">
-            <Text fontSize={11} color="$color10">
+            <Text fontSize="$caption" color="$color10">
               地图数据加载失败，正在显示已保存的收藏信息
             </Text>
           </View>

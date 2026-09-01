@@ -39,23 +39,23 @@ export function SettingCell({
       <YStack flex={1}>
         <XStack minH={62} items="center" gap="$3">
           <YStack flex={1} gap="$0.5" justify="center">
-            <Text fontSize={14} lineHeight={20} fontWeight="600" color="$color12">
+            <Text fontSize="$body" lineHeight={20} fontWeight="600" color="$color12">
               {title}
             </Text>
             {description ? (
-              <Text fontSize={11} lineHeight={16} color="$color11">
+              <Text fontSize="$caption" lineHeight={16} color="$color11">
                 {description}
               </Text>
             ) : null}
           </YStack>
           {value ? (
-            <Text fontSize={11} color="$color10">
+            <Text fontSize="$caption" color="$color10">
               {value}
             </Text>
           ) : null}
           {rightAccessory ?? (onPress ? <ChevronRight size={20} color="$color10" /> : null)}
         </XStack>
-        {showDivider ? <View bg="$color6" height={StyleSheet.hairlineWidth} /> : null}
+        {showDivider ? <View bg="$color4" height={StyleSheet.hairlineWidth} /> : null}
       </YStack>
     </XStack>
   );

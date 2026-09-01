@@ -2,8 +2,8 @@ import { Heart, Map, User } from '@tamagui/lucide-icons-2';
 import { BlurView } from 'expo-blur';
 import { usePathname } from 'expo-router';
 import { TabList, Tabs, TabSlot, TabTrigger } from 'expo-router/ui';
-import { Platform, Pressable, Text } from 'react-native';
-import { getTokens, useTheme, useThemeName, View } from 'tamagui';
+import { Platform, Pressable } from 'react-native';
+import { getTokens, Text, useTheme, useThemeName, View } from 'tamagui';
 
 const TAB_CONFIG = [
   { name: 'index', label: '地图', icon: Map },
@@ -34,7 +34,10 @@ function TabItem({ name, label, icon: Icon }: (typeof TAB_CONFIG)[number]) {
       >
         <Icon size={24} color={color} />
         <View style={{ overflow: 'hidden', borderRadius: 4 }}>
-          <Text style={{ fontSize: 10, color, fontWeight: isFocused ? '600' : '400', textDecorationLine: 'none' }}>
+          <Text
+            fontSize="$caption"
+            style={{ color, fontWeight: isFocused ? '600' : '400', textDecorationLine: 'none' }}
+          >
             {label}
           </Text>
         </View>

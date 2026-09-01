@@ -71,7 +71,7 @@ export default function PopupCard({ point, bangumi }: Props) {
               transition={0}
             />
             <View position="absolute" l={0} r={0} t={0} b={0} bg="rgba(0,0,0,0.7)" justify="center" items="center">
-              <Text fontSize={12} color="white">
+              <Text fontSize="$footnote" color="white">
                 暂无截图
               </Text>
             </View>
@@ -87,7 +87,7 @@ export default function PopupCard({ point, bangumi }: Props) {
             py="$0.5"
             style={{ borderTopRightRadius: innerRadius }}
           >
-            <Text fontSize={10} fontWeight="700" color="white">
+            <Text fontSize="$caption" fontWeight="700" color="white">
               {epLabel}
             </Text>
           </View>
@@ -102,7 +102,7 @@ export default function PopupCard({ point, bangumi }: Props) {
             py="$0.5"
             style={{ borderTopLeftRadius: innerRadius }}
           >
-            <Text fontSize={10} color="white">
+            <Text fontSize="$caption" color="white">
               {timeLabel}
             </Text>
           </View>
@@ -112,11 +112,11 @@ export default function PopupCard({ point, bangumi }: Props) {
 
       {/* 文字内容 */}
       <View px="$2" py="$1.5">
-        <Text fontWeight="600" fontSize={13} color="$color12" numberOfLines={1} mt="$1">
+        <Text fontWeight="600" fontSize="$footnote" color="$color12" numberOfLines={1} mt="$1">
           {pointTitle}
         </Text>
         {point.mark ? (
-          <Text fontSize={10} color="$color11" numberOfLines={3} mt="$0.5" mb="$1.5">
+          <Text fontSize="$caption" color="$color11" numberOfLines={3} mt="$0.5" mb="$1.5">
             {point.mark}
           </Text>
         ) : null}
@@ -128,14 +128,14 @@ export default function PopupCard({ point, bangumi }: Props) {
           onPress={() => openBangumiDetails(bangumi.id)}
           style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
         >
-          <Text fontSize={13} color="$primary" numberOfLines={2}>
+          <Text fontSize="$footnote" color="$primary" numberOfLines={2}>
             {animeTitle}
           </Text>
         </Pressable>
         {point.origin ? (
           <Text
             onPress={() => point.originLink && Linking.openURL(point.originLink)}
-            fontSize={10}
+            fontSize="$caption"
             color={point.originLink ? '$blue9' : '$color11'}
             style={{ textAlign: 'right', textDecorationLine: 'underline' }}
             mt="$1.5"

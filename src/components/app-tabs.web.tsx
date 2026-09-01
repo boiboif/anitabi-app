@@ -36,7 +36,7 @@ export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps
       <View
         bg={isFocused ? '$color4' : '$color2'}
         style={styles.tabButtonView}>
-        <Text fontSize={14} lineHeight={20} fontWeight="500" color={isFocused ? '$color' : '$color11'}>
+        <Text fontSize="$body" lineHeight={20} fontWeight="500" color={isFocused ? '$color' : '$color11'}>
           {children}
         </Text>
       </View>
@@ -51,7 +51,7 @@ export function CustomTabList({ style, ...props }: TabListProps) {
     // TabListProps 允许 onBlur=null，与 Tamagui View 的 DOM 事件类型不完全兼容
     <View {...(props as object)} style={[styles.tabListContainer, style]}>
       <View bg="$color2" style={styles.innerContainer}>
-        <Text fontSize={14} lineHeight={20} fontWeight="700" style={styles.brandText}>
+        <Text fontSize="$body" lineHeight={20} fontWeight="700" style={styles.brandText}>
           Expo Starter
         </Text>
 
@@ -59,7 +59,7 @@ export function CustomTabList({ style, ...props }: TabListProps) {
 
         <ExternalLink href="https://docs.expo.dev" asChild>
           <Pressable style={styles.externalPressable}>
-            <Text lineHeight={30} fontSize={14}>Docs</Text>
+            <Text lineHeight={30} fontSize="$body">Docs</Text>
             <SymbolView
               tintColor={theme.color?.val}
               name={{ ios: 'arrow.up.right.square', web: 'link' }}

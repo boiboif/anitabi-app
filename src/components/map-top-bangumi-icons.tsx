@@ -135,7 +135,7 @@ export default function MapTopBangumiIcons({ bangumis, zoom, bounds }: Props) {
               />
             </View>
 
-            <Text maxW={80} color="$color11" fontSize={12} fontWeight="500" numberOfLines={1} style={{ flexShrink: 1 }}>
+            <Text maxW={80} color="$color11" fontSize="$footnote" fontWeight="500" numberOfLines={1} style={{ flexShrink: 1 }}>
               {b.cn}
             </Text>
 
@@ -152,7 +152,7 @@ export default function MapTopBangumiIcons({ bangumis, zoom, bounds }: Props) {
                 borderRadius: 999,
               }}
             >
-              <Text fontSize={12} fontWeight="600" numberOfLines={1} style={{ color: borderColor }}>
+              <Text fontSize="$footnote" fontWeight="600" numberOfLines={1} style={{ color: borderColor }}>
                 {visibleCount}
               </Text>
             </View>
@@ -248,7 +248,7 @@ export default function MapTopBangumiIcons({ bangumis, zoom, bounds }: Props) {
                 <Text
                   maxW={80}
                   color="$color11"
-                  fontSize={12}
+                  fontSize="$footnote"
                   fontWeight="500"
                   numberOfLines={1}
                   style={{ flexShrink: 1 }}
@@ -269,7 +269,7 @@ export default function MapTopBangumiIcons({ bangumis, zoom, bounds }: Props) {
                     borderRadius: 999,
                   }}
                 >
-                  <Text fontSize={12} fontWeight="600" numberOfLines={1} style={{ color: borderColor }}>
+                  <Text fontSize="$footnote" fontWeight="600" numberOfLines={1} style={{ color: borderColor }}>
                     {visibleCount}
                   </Text>
                 </View>
@@ -289,7 +289,7 @@ export default function MapTopBangumiIcons({ bangumis, zoom, bounds }: Props) {
           })}
         >
           <View bg="$color2" px="$3" py="$1.5" rounded="$10" boxShadow="0 2px 4px rgba(0,0,0,0.05)">
-            <Text color="$color11" fontSize={12} fontWeight="500">
+            <Text color="$color11" fontSize="$footnote" fontWeight="500">
               清除筛选
             </Text>
           </View>

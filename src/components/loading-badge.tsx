@@ -47,7 +47,7 @@ export default function LoadingBadge({ progress, insets }: Props) {
             boxShadow: '0 0 10px 0 rgba(0, 0, 0, 0.1)',
           }}
         >
-          <Text fontSize={10} color="$red10" fontWeight="600">
+          <Text fontSize="$caption" color="$red10" fontWeight="600">
             {progress.message}
           </Text>
         </YStack>
@@ -80,7 +80,7 @@ export default function LoadingBadge({ progress, insets }: Props) {
           boxShadow: '0 0 10px 0 rgba(0, 0, 0, 0.1)',
         }}
       >
-        <Text fontSize={10} color="$color" fontWeight="400">
+        <Text fontSize="$caption" color="$color" fontWeight="400">
           {progress.message}
         </Text>
         <Progress value={getProgressValue(progress)} background="$pink3" size="$3" style={{ borderRadius: 4 }}>

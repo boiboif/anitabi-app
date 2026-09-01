@@ -11,8 +11,7 @@ import duration from 'dayjs/plugin/duration';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Keyboard } from 'react-native';
-import { Pressable } from 'react-native-gesture-handler';
+import { Keyboard, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getTokens, Text, useTheme, View } from 'tamagui';
 
@@ -61,27 +60,27 @@ function BangumiCard({ bangumi, onPress }: { bangumi: Bangumi; onPress: () => vo
         />
         <View flex={1}>
           {bangumi.cn ? (
-            <Text fontWeight="600" fontSize={16} color="$color12" pr="$8" numberOfLines={2}>
+            <Text fontWeight="600" fontSize="$subtitle" color="$color12" pr="$8" numberOfLines={2}>
               {bangumi.cn}
             </Text>
           ) : null}
-          <Text fontSize={12} color="$color11" mt="$1" mb="$1" numberOfLines={1}>
+          <Text fontSize="$footnote" color="$color11" mt="$1" mb="$1" numberOfLines={1}>
             {bangumi.title}
           </Text>
           <View flexDirection="row">
             {bangumi.city && (
-              <Text fontSize={12} color="$color11">
+              <Text fontSize="$footnote" color="$color11">
                 {bangumi.city} {'· '}
               </Text>
             )}
-            <Text fontSize={12} color="$color11">
+            <Text fontSize="$footnote" color="$color11">
               <Text color="$primary" fontWeight="bold">
                 {bangumi.points.length}
               </Text>
               个巡礼点
             </Text>
           </View>
-          <Text fontSize={10} color="$color11" position="absolute" r="$0" b="$0">
+          <Text fontSize="$caption" color="$color11" position="absolute" r="$0" b="$0">
             最近更新：{dayjs(bangumi.modified).format('YYYY-MM-DD HH:mm')}
           </Text>
         </View>
@@ -95,7 +94,7 @@ function BangumiCard({ bangumi, onPress }: { bangumi: Bangumi; onPress: () => vo
             rounded="$2"
             style={{ backgroundColor: bangumi.color || theme.color9.val }}
           >
-            <Text fontSize={10} color="white" fontWeight="500">
+            <Text fontSize="$caption" color="white" fontWeight="500">
               {bangumi.cat}
             </Text>
           </View>
@@ -152,7 +151,7 @@ function PointCard({ point, bangumi, onPress }: { point: Point; bangumi: Bangumi
               py="$0.5"
               style={{ borderTopRightRadius: getTokens().radius['2'].val }}
             >
-              <Text fontSize={11} fontWeight="700" color="white">
+              <Text fontSize="$caption" fontWeight="700" color="white">
                 {epLabel}
               </Text>
             </View>
@@ -168,7 +167,7 @@ function PointCard({ point, bangumi, onPress }: { point: Point; bangumi: Bangumi
               py="$0.5"
               style={{ borderTopLeftRadius: getTokens().radius['2'].val }}
             >
-              <Text fontSize={11} color="white">
+              <Text fontSize="$caption" color="white">
                 {timeLabel}
               </Text>
             </View>
@@ -179,14 +178,14 @@ function PointCard({ point, bangumi, onPress }: { point: Point; bangumi: Bangumi
         <View flex={1} style={{ justifyContent: 'space-between' }}>
           {/* 上部 */}
           <View>
-            <Text fontWeight="600" fontSize={14} color="$color12" numberOfLines={1}>
+            <Text fontWeight="600" fontSize="$body" color="$color12" numberOfLines={1}>
               {pointTitle}
             </Text>
-            <Text fontSize={12} color="$primary" mt="$1" numberOfLines={1}>
+            <Text fontSize="$footnote" color="$primary" mt="$1" numberOfLines={1}>
               {animeTitle}
             </Text>
             {point.mark ? (
-              <Text fontSize={11} color="$color11" mt="$0.5" numberOfLines={3}>
+              <Text fontSize="$caption" color="$color11" mt="$0.5" numberOfLines={3}>
                 {point.mark}
               </Text>
             ) : null}
@@ -194,7 +193,7 @@ function PointCard({ point, bangumi, onPress }: { point: Point; bangumi: Bangumi
 
           {/* 下部：folder 右下 */}
           {point.folder && (
-            <Text fontSize={11} color="$color10" style={{ textAlign: 'right' }} mt="$1">
+            <Text fontSize="$caption" color="$color10" style={{ textAlign: 'right' }} mt="$1">
               {point.folder}
             </Text>
           )}
@@ -389,7 +388,7 @@ const Search = () => {
                   <Text
                     fontWeight={tab === t.key ? '600' : '400'}
                     color={tab === t.key ? '$primary' : '$color11'}
-                    fontSize={14}
+                    fontSize="$body"
                   >
                     {t.label}
                   </Text>
@@ -402,7 +401,7 @@ const Search = () => {
         {/* 列表 */}
         {searchMode && listItems.length === 0 ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <Text fontSize={14} color="$color11">
+            <Text fontSize="$body" color="$color11">
               未找到相关地标
             </Text>
           </View>

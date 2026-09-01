@@ -8,10 +8,10 @@ export default function ComparisonCameraWebRoute() {
 
   return (
     <View flex={1} bg="$background" items="center" justify="center" gap="$3" p="$4">
-      <Text color="$color12" fontSize={18} fontWeight="700">
+      <Text color="$color12" fontSize="$title" fontWeight="700">
         对比图相机仅支持手机端
       </Text>
-      <Text color="$color11" fontSize={13} text="center">
+      <Text color="$color11" fontSize="$footnote" text="center">
         请在 iOS 或 Android 应用中使用拍摄功能。
       </Text>
       <Pressable

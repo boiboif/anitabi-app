@@ -23,7 +23,7 @@ export function Collapsible({ children, title }: PropsWithChildren & { title: st
           />
         </View>
 
-        <Text fontSize={14} lineHeight={20} fontWeight="500">{title}</Text>
+        <Text fontSize="$body" lineHeight={20} fontWeight="500">{title}</Text>
       </Pressable>
       {isOpen && (
         <Animated.View entering={FadeIn.duration(200)}>

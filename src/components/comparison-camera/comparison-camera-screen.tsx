@@ -431,7 +431,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
                   justify="center"
                   bg={selected ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.15)'}
                 >
-                  <Text color={selected ? '$primary' : 'white'} fontSize={11} fontWeight="700">
+                  <Text color={selected ? '$primary' : 'white'} fontSize="$caption" fontWeight="700">
                     {label}
                   </Text>
                 </View>
@@ -471,10 +471,10 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
     return (
       <YStack flex={1} bg="black" items="center" justify="center" p={24}>
         <StatusBar hidden />
-        <Text color="white" fontSize={20} fontWeight="700">
+        <Text color="white" fontSize="$heading" fontWeight="700">
           需要相机权限
         </Text>
-        <Text mt={10} color="#a1a1a6" fontSize={14} text="center">
+        <Text mt={10} color="#a1a1a6" fontSize="$body" text="center">
           允许访问相机后才能拍摄巡礼对比图。
         </Text>
         <Pressable
@@ -486,13 +486,13 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
           style={({ pressed }) => ({ marginTop: 24, opacity: pressed ? 0.68 : 1 })}
         >
           <View minW={160} height={46} rounded={6} items="center" justify="center" bg="white">
-            <Text color="#111111" fontSize={14} fontWeight="700">
+            <Text color="#111111" fontSize="$body" fontWeight="700">
               授权相机
             </Text>
           </View>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={() => router.back()} style={{ marginTop: 12, padding: 12 }}>
-          <Text color="#a1a1a6" fontSize={14}>
+          <Text color="#a1a1a6" fontSize="$body">
             返回
           </Text>
         </Pressable>
@@ -706,7 +706,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
             </OrientationRotation>
           )}
           {flashMode !== 'off' ? (
-            <Text position="absolute" r={3} b={2} color="white" fontSize={8} fontWeight="800">
+            <Text position="absolute" r={3} b={2} color="white" fontSize="$caption" fontWeight="800">
               {flashMode === 'auto' ? 'A' : 'ON'}
             </Text>
           ) : null}

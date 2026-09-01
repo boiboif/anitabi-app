@@ -12,7 +12,7 @@ type HintRowProps = {
 export function HintRow({ title = 'Try editing', hint = 'app/index.tsx' }: HintRowProps) {
   return (
     <View style={styles.stepRow}>
-      <Text fontSize={14} lineHeight={20} fontWeight="500">{title}</Text>
+      <Text fontSize="$body" lineHeight={20} fontWeight="500">{title}</Text>
       <View bg="$color4" style={styles.codeSnippet}>
         <Text color="$color11">{hint}</Text>
       </View>

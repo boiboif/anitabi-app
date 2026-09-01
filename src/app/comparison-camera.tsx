@@ -16,10 +16,10 @@ export default function ComparisonCameraRoute() {
     return (
       <View flex={1} bg="black" items="center" justify="center" gap="$3" p="$4">
         <StatusBar hidden />
-        <Text color="white" fontSize={16} fontWeight="700">
+        <Text color="white" fontSize="$subtitle" fontWeight="700">
           无法加载巡礼点
         </Text>
-        <Text color="$gray10" fontSize={13} text="center">
+        <Text color="$gray10" fontSize="$footnote" text="center">
           点位数据可能仍在加载，或该点位已经不可用。
         </Text>
         <Pressable
