@@ -8,6 +8,9 @@ import { ComponentProps, useCallback, useMemo } from 'react';
 type Props = {
   bangumis: Bangumi[];
   onPointSelect?: (point: Point, bangumi: Bangumi) => void;
+  selectedBangumiIds?: number[];
+  openedBangumiDetailsId?: number | null;
+  showAllPoints?: boolean;
 };
 
 // ---------------------------------------------------------------------------
@@ -50,27 +53,37 @@ const POINT_PRIORITY_FILTER = [
   ['has', 'priority'],
 ] as unknown as ComponentProps<typeof CircleLayer>['filter'];
 
-export default function MapMarkers({ bangumis, onPointSelect }: Props) {
-  const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
-  const selectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
+export default function MapMarkers({
+  bangumis,
+  onPointSelect,
+  selectedBangumiIds,
+  openedBangumiDetailsId,
+  showAllPoints = false,
+}: Props) {
+  const storedOpenedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
+  const storedSelectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
+  const activeOpenedBangumiDetailsId =
+    openedBangumiDetailsId === undefined ? storedOpenedBangumiDetailsId : openedBangumiDetailsId;
+  const activeSelectedBangumiIds = selectedBangumiIds ?? storedSelectedMapBangumiIds;
 
   // 始终用完整数据生成 GeoJSON，筛选通过 filter 表达式实现
   const geoJSON = useMemo(() => toGeoJSON(bangumis), [bangumis]);
 
   const pointFilter: ComponentProps<typeof CircleLayer>['filter'] = useMemo(() => {
-    if (openedBangumiDetailsId !== null) {
+    if (activeOpenedBangumiDetailsId !== null) {
       // 筛选模式：只显示选中番剧的点 + 不限制 density
-      return ['all', ['==', ['get', 'bangumiId'], openedBangumiDetailsId]] satisfies ComponentProps<
+      return ['all', ['==', ['get', 'bangumiId'], activeOpenedBangumiDetailsId]] satisfies ComponentProps<
         typeof CircleLayer
       >['filter'];
     }
-    if (selectedMapBangumiIds.length > 0) {
-      return ['all', ['in', ['get', 'bangumiId'], ['literal', selectedMapBangumiIds]]] satisfies ComponentProps<
+    if (activeSelectedBangumiIds.length > 0) {
+      return ['all', ['in', ['get', 'bangumiId'], ['literal', activeSelectedBangumiIds]]] satisfies ComponentProps<
         typeof CircleLayer
       >['filter'];
     }
+    if (showAllPoints) return undefined;
     return POINT_PRIORITY_FILTER;
-  }, [openedBangumiDetailsId, selectedMapBangumiIds]);
+  }, [activeOpenedBangumiDetailsId, activeSelectedBangumiIds, showAllPoints]);
 
   /** 点击圆点标记 → 查找完整点/番数据 → 弹出详情 */
   const handlePress = useCallback(

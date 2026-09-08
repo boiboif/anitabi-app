@@ -84,7 +84,7 @@ export const ActionSheet = forwardRef<ActionSheetRef, ActionSheetProps>(function
       cornerRadius={sheetProps.cornerRadius ?? 18}
       backgroundColor={sheetProps.backgroundColor ?? theme.color2.val}
       grabberOptions={
-        sheetProps.grabberOptions ?? { color: theme.color8.val, adaptive: false, topMargin: 8, width: 42, height: 5 }
+        sheetProps.grabberOptions ?? { color: theme.primary.val, adaptive: false, topMargin: 8, width: 42, height: 5 }
       }
     >
       <YStack px="$3" pt="$5" pb="$4" gap="$2.5">

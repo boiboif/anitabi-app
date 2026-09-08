@@ -12,6 +12,9 @@ type Props = {
   zoom: number;
   bounds: Bounds | null;
   onPointSelect?: (point: Point, bangumi: Bangumi) => void;
+  selectedBangumiIds?: number[];
+  openedBangumiDetailsId?: number | null;
+  ignoreZoomThreshold?: boolean;
 };
 
 /** 判断点位是否在可视区域内 */
@@ -22,28 +25,39 @@ function isInBounds(geo: [number, number], bounds: Bounds): boolean {
   return lat >= swLat && lat <= neLat && lng >= swLng && lng <= neLng;
 }
 
-export default function PointImageMarkers({ bangumis, zoom, bounds, onPointSelect }: Props) {
-  const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
-  const selectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
-  const isFilterActive = openedBangumiDetailsId !== null || selectedMapBangumiIds.length > 0;
+export default function PointImageMarkers({
+  bangumis,
+  zoom,
+  bounds,
+  onPointSelect,
+  selectedBangumiIds,
+  openedBangumiDetailsId,
+  ignoreZoomThreshold = false,
+}: Props) {
+  const storedOpenedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
+  const storedSelectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
+  const activeOpenedBangumiDetailsId =
+    openedBangumiDetailsId === undefined ? storedOpenedBangumiDetailsId : openedBangumiDetailsId;
+  const activeSelectedBangumiIds = selectedBangumiIds ?? storedSelectedMapBangumiIds;
+  const isFilterActive = activeOpenedBangumiDetailsId !== null || activeSelectedBangumiIds.length > 0;
 
   const zoomThreshold = useMemo(() => {
     return isFilterActive ? FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE : MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE;
   }, [isFilterActive]);
 
   const visible = useMemo(() => {
-    if (zoom < zoomThreshold || !bounds) return [];
+    if (!ignoreZoomThreshold && (zoom < zoomThreshold || !bounds)) return [];
 
     const items: { point: Point; bangumi: Bangumi; imageUrl: string }[] = [];
-    const selectedIds = new Set(selectedMapBangumiIds);
+    const selectedIds = new Set(activeSelectedBangumiIds);
 
     for (const b of bangumis) {
-      if (openedBangumiDetailsId !== null && b.id !== openedBangumiDetailsId) continue;
-      if (openedBangumiDetailsId === null && selectedIds.size > 0 && !selectedIds.has(b.id)) continue;
+      if (activeOpenedBangumiDetailsId !== null && b.id !== activeOpenedBangumiDetailsId) continue;
+      if (activeOpenedBangumiDetailsId === null && selectedIds.size > 0 && !selectedIds.has(b.id)) continue;
       for (const p of b.points) {
         if (!p.image) continue;
         if (p.geo[0] === 0 && p.geo[1] === 0) continue;
-        if (!isInBounds(p.geo, bounds)) continue;
+        if (bounds && !isInBounds(p.geo, bounds)) continue;
         items.push({
           point: p,
           bangumi: b,
@@ -53,7 +67,15 @@ export default function PointImageMarkers({ bangumis, zoom, bounds, onPointSelec
     }
 
     return items;
-  }, [zoom, zoomThreshold, bounds, selectedMapBangumiIds, bangumis, openedBangumiDetailsId]);
+  }, [
+    activeOpenedBangumiDetailsId,
+    activeSelectedBangumiIds,
+    bangumis,
+    bounds,
+    ignoreZoomThreshold,
+    zoom,
+    zoomThreshold,
+  ]);
 
   const { imagesMap, geojson } = useMemo(() => {
     const images: Record<string, { uri: string }> = {};
@@ -104,7 +126,7 @@ export default function PointImageMarkers({ bangumis, zoom, bounds, onPointSelec
     [bangumis, onPointSelect],
   );
 
-  if (zoom < zoomThreshold || !bounds || visible.length === 0) return null;
+  if ((!ignoreZoomThreshold && (zoom < zoomThreshold || !bounds)) || visible.length === 0) return null;
 
   return (
     <>

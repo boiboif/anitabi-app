@@ -24,7 +24,7 @@ export default function PlansScreen() {
               size="$3"
               icon={<Plus size={22} strokeWidth={2} />}
               aria-label="新建计划"
-              onPress={() => router.push('/plans/create' as never)}
+              onPress={() => router.navigate('/plans/create' as never)}
             />
           ),
         }}
@@ -45,7 +45,7 @@ export default function PlansScreen() {
             return (
               <Pressable
                 key={plan.id}
-                onPress={() => router.push({ pathname: '/plans/[planId]', params: { planId: plan.id } } as never)}
+                onPress={() => router.navigate({ pathname: '/plans/[planId]', params: { planId: plan.id } } as never)}
               >
                 <XStack py="$3" items="center" gap="$3">
                   <YStack flex={1} minW={0} gap="$1">

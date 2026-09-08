@@ -1,19 +1,16 @@
-import ComparisonCameraButton from '@/components/comparison-camera-button';
-import FavoritePointButton from '@/components/favorite-point-button';
+import PointListCard from '@/components/point-list-card';
+import RemoveFavoriteButton from '@/components/remove-favorite-button';
 import { type FavoritePoint } from '@/lib/favorite-storage';
-import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useFavoritePoints } from '@/store/use-favorite-points';
-import { useMapData } from '@/store/use-map-data';
 import { useMapBrowse } from '@/store/use-map-browse';
+import { useMapData } from '@/store/use-map-data';
 import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
-import { Heart } from '@tamagui/lucide-icons-2';
-import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo } from 'react';
-import { Platform, Pressable, ScrollView } from 'react-native';
+import { Platform, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Text, View, XStack, YStack, getTokens, useTheme } from 'tamagui';
+import { Text, View, useTheme } from 'tamagui';
 
 type ResolvedFavorite = {
   favorite: FavoritePoint;
@@ -45,73 +42,28 @@ function formatFavoriteTime(timestamp: number): string {
 }
 
 function FavoriteCard({ item, onPress }: { item: ResolvedFavorite; onPress: () => void }) {
-  const theme = useTheme();
   const removeFavorite = useFavoritePoints((state) => state.removeFavorite);
-  const imagePath = getImagePath(item);
   const available = Boolean(item.point && item.bangumi);
 
   return (
-    <View bg="$color2" rounded="$4" mb="$2" overflow="hidden" position="relative" boxShadow="0 1px 4px $shadowColor">
-      <Pressable disabled={!available} onPress={onPress}>
-        <XStack height={100}>
-          <Image
-            source={imagePath ? { uri: buildImageUrl(imagePath, 'plan=h160') } : undefined}
-            style={{
-              width: 150,
-              height: 100,
-              backgroundColor: item.bangumi?.color || item.favorite.snapshot.bangumiColor || theme.color9.val,
-              borderRadius: getTokens().radius['4'].val,
-            }}
-            contentFit="cover"
-          />
-          <YStack flex={1} p="$2" pr="$9" justify="space-between">
-            <View>
-              <Text fontSize="$body" fontWeight="600" color="$color12" numberOfLines={1}>
-                {getPointName(item)}
-              </Text>
-              {item.point?.mark || item.favorite.snapshot.pointMark ? (
-                <Text fontSize="$caption" color="$color11" mt="$1" numberOfLines={2}>
-                  {item.point?.mark || item.favorite.snapshot.pointMark}
-                </Text>
-              ) : null}
-            </View>
-            <Text fontSize="$caption" color="$color10">
-              {available ? `收藏于 ${formatFavoriteTime(item.favorite.addedAt)}` : '点位已不可用'}
-            </Text>
-          </YStack>
-        </XStack>
-      </Pressable>
-      {item.point && item.bangumi ? (
-        <>
-          <FavoritePointButton point={item.point} bangumi={item.bangumi} overlay />
-          <View position="absolute" b="$2" r="$2">
-            <ComparisonCameraButton point={item.point} bangumi={item.bangumi} compact />
-          </View>
-        </>
-      ) : (
-        <View position="absolute" t="$2" r="$2">
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="取消收藏巡礼点"
-            hitSlop={8}
-            onPress={() => removeFavorite(item.favorite.key)}
-            style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
-          >
-            <View
-              width={36}
-              height={36}
-              rounded="$9"
-              bg="$color2"
-              items="center"
-              justify="center"
-              boxShadow="0 1px 3px $shadowColor"
-            >
-              <Heart size={18} color={theme.primary.val} fill={theme.primary.val} />
-            </View>
-          </Pressable>
-        </View>
-      )}
-    </View>
+    <PointListCard
+      point={item.point}
+      bangumi={item.bangumi}
+      title={getPointName(item)}
+      showSubtitle={false}
+      description={item.point?.mark || item.favorite.snapshot.pointMark}
+      meta={available ? `收藏于 ${formatFavoriteTime(item.favorite.addedAt)}` : '点位已不可用'}
+      image={getImagePath(item)}
+      imageColor={item.bangumi?.color || item.favorite.snapshot.bangumiColor}
+      disabled={!available}
+      onPress={onPress}
+      showFavorite={available}
+      showAddToPlan={available}
+      showCamera={available}
+      topRightAction={
+        available ? undefined : <RemoveFavoriteButton onPress={() => removeFavorite(item.favorite.key)} />
+      }
+    />
   );
 }
 

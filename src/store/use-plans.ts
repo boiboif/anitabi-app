@@ -31,6 +31,7 @@ type PlansStore = {
   updatePlan: (id: string, patch: Pick<ItineraryPlan, 'title' | 'description'>) => void;
   deletePlan: (id: string) => void;
   addPoint: (planId: string, point: Point, bangumi: Bangumi) => void;
+  updatePointPlans: (point: Point, bangumi: Bangumi, selectedPlanIds: string[]) => void;
   removePoint: (planId: string, itemKey: string) => void;
   togglePoint: (planId: string, itemKey: string) => void;
   movePoint: (planId: string, itemKey: string, direction: 'up' | 'down') => void;
@@ -66,7 +67,11 @@ export const usePlans = create<PlansStore>((set, get) => ({
       set,
     );
   },
-  deletePlan: (id) => save(get().plans.filter((plan) => plan.id !== id), set),
+  deletePlan: (id) =>
+    save(
+      get().plans.filter((plan) => plan.id !== id),
+      set,
+    ),
   addPoint: (planId, point, bangumi) => {
     const item = makeItem(point, bangumi);
     save(
@@ -78,10 +83,31 @@ export const usePlans = create<PlansStore>((set, get) => ({
       set,
     );
   },
+  updatePointPlans: (point, bangumi, selectedPlanIds) => {
+    const selectedIds = new Set(selectedPlanIds);
+    const itemKey = pointKey(bangumi.id, point.id);
+    const item = makeItem(point, bangumi);
+    const currentPlans = get().plans;
+    let changed = false;
+    const nextPlans = currentPlans.map((plan) => {
+      const hasPoint = plan.items.some((existing) => existing.key === itemKey);
+      if (selectedIds.has(plan.id)) {
+        if (hasPoint) return plan;
+        changed = true;
+        return { ...plan, items: [...plan.items, item], updatedAt: Date.now() };
+      }
+      if (!hasPoint) return plan;
+      changed = true;
+      return { ...plan, items: plan.items.filter((existing) => existing.key !== itemKey), updatedAt: Date.now() };
+    });
+    if (changed) save(nextPlans, set);
+  },
   removePoint: (planId, itemKey) => {
     save(
       get().plans.map((plan) =>
-        plan.id === planId ? { ...plan, items: plan.items.filter((item) => item.key !== itemKey), updatedAt: Date.now() } : plan,
+        plan.id === planId
+          ? { ...plan, items: plan.items.filter((item) => item.key !== itemKey), updatedAt: Date.now() }
+          : plan,
       ),
       set,
     );
@@ -121,7 +147,9 @@ export const usePlans = create<PlansStore>((set, get) => ({
         plan.id === planId
           ? {
               ...plan,
-              items: [...plan.items].sort((a, b) => (order.get(a.key) ?? Number.MAX_SAFE_INTEGER) - (order.get(b.key) ?? Number.MAX_SAFE_INTEGER)),
+              items: [...plan.items].sort(
+                (a, b) => (order.get(a.key) ?? Number.MAX_SAFE_INTEGER) - (order.get(b.key) ?? Number.MAX_SAFE_INTEGER),
+              ),
               updatedAt: Date.now(),
             }
           : plan,

@@ -4,7 +4,7 @@ import MapMarkers from '@/components/map-markers';
 import PointImageMarkers from '@/components/point-image-markers';
 import PopupCard from '@/components/point-popup-card';
 import type { Bangumi } from '@/services/types';
-import { useMapBrowse } from '@/store/use-map-browse';
+import { type MapPointReference, useMapBrowse } from '@/store/use-map-browse';
 import { Camera, LocationPuck, MapState, MapView, MarkerView } from '@rnmapbox/maps';
 import { useFocusEffect } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -19,32 +19,53 @@ type Props = {
   styleIndex: number;
   showPointImageMarkers: boolean;
   onCameraChange?: (state: { zoom: number; bounds: { ne: [number, number]; sw: [number, number] } | null }) => void;
+  onMapReady?: () => void;
+  mode?: 'browse' | 'plan';
+  selectedPoint?: MapPointReference | null;
+  selectedBangumiIds?: number[];
+  onPointSelect?: (point: MapPointReference) => void;
+  onMapPress?: () => void;
 };
 
 const DEFAULT_COORDINATES: [number, number] = [137, 35.2];
 const DEFAULT_ZOOM = 4.6;
 
 const MapContainer = forwardRef<Camera, Props>(function MapContainer(
-  { insets, bangumis, styleIndex, showPointImageMarkers, onCameraChange },
+  {
+    insets,
+    bangumis,
+    styleIndex,
+    showPointImageMarkers,
+    onCameraChange,
+    onMapReady,
+    mode = 'browse',
+    selectedPoint,
+    selectedBangumiIds,
+    onPointSelect,
+    onMapPress,
+  },
   ref,
 ) {
+  const isPlanMode = mode === 'plan';
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const [bounds, setBounds] = useState<Bounds | null>(null);
-  const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
-  const selectedMapPoint = useMapBrowse((state) => state.selectedMapPoint);
+  const storedOpenedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
+  const storedSelectedMapPoint = useMapBrowse((state) => state.selectedMapPoint);
   const openBangumiDetails = useMapBrowse((state) => state.openBangumiDetails);
   const selectMapPoint = useMapBrowse((state) => state.selectMapPoint);
   const clearSelectedMapPoint = useMapBrowse((state) => state.clearSelectedMapPoint);
+  const openedBangumiDetailsId = isPlanMode ? null : storedOpenedBangumiDetailsId;
+  const activeSelectedPoint = isPlanMode ? (selectedPoint ?? null) : storedSelectedMapPoint;
   const selectedBangumi = useMemo(
     () => bangumis.find((bangumi) => bangumi.id === openedBangumiDetailsId) ?? null,
     [bangumis, openedBangumiDetailsId],
   );
   const selectedPointData = useMemo(() => {
-    if (!selectedMapPoint) return null;
-    const bangumi = bangumis.find((item) => item.id === selectedMapPoint.bangumiId);
-    const point = bangumi?.points.find((item) => item.id === selectedMapPoint.pointId);
+    if (!activeSelectedPoint) return null;
+    const bangumi = bangumis.find((item) => item.id === activeSelectedPoint.bangumiId);
+    const point = bangumi?.points.find((item) => item.id === activeSelectedPoint.pointId);
     return bangumi && point ? { bangumi, point } : null;
-  }, [bangumis, selectedMapPoint]);
+  }, [activeSelectedPoint, bangumis]);
 
   const cameraRef = useRef<Camera>(null);
 
@@ -88,6 +109,15 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
       onCameraChange?.({ zoom: z, bounds: b });
     },
     [onCameraChange],
+  );
+
+  const handlePointSelect = useCallback(
+    (point: Bangumi['points'][number], bangumi: Bangumi) => {
+      const reference = { bangumiId: bangumi.id, pointId: point.id };
+      if (isPlanMode) onPointSelect?.(reference);
+      else selectMapPoint(reference);
+    },
+    [isPlanMode, onPointSelect, selectMapPoint],
   );
 
   // 筛选模式：自动将地图缩放到选中番剧的所有巡礼点范围
@@ -147,27 +177,36 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
       scaleBarEnabled={true}
       scaleBarPosition={{ right: 0, bottom: 8 }}
       onCameraChanged={handleCameraChanged}
-      onPress={clearSelectedMapPoint}
+      onDidFinishLoadingMap={onMapReady}
+      onPress={isPlanMode ? onMapPress : clearSelectedMapPoint}
     >
       <Camera ref={setCameraRef} centerCoordinate={DEFAULT_COORDINATES} zoomLevel={DEFAULT_ZOOM} animationMode="none" />
       <LocationPuck visible puckBearingEnabled puckBearing="heading" pulsing={{ isEnabled: true, color: '#007AFF' }} />
       <MapMarkers
         bangumis={bangumis}
-        onPointSelect={(point, bangumi) => selectMapPoint({ bangumiId: bangumi.id, pointId: point.id })}
+        selectedBangumiIds={isPlanMode ? (selectedBangumiIds ?? []) : undefined}
+        openedBangumiDetailsId={isPlanMode ? null : undefined}
+        showAllPoints={isPlanMode}
+        onPointSelect={handlePointSelect}
       />
-      <BangumiIcons
-        bangumis={bangumis}
-        zoom={zoom}
-        onIconPress={(bangumi) => {
-          openBangumiDetails(bangumi.id);
-        }}
-      />
+      {!isPlanMode && (
+        <BangumiIcons
+          bangumis={bangumis}
+          zoom={zoom}
+          onIconPress={(bangumi) => {
+            openBangumiDetails(bangumi.id);
+          }}
+        />
+      )}
       {showPointImageMarkers && (
         <PointImageMarkers
           bangumis={bangumis}
           zoom={zoom}
           bounds={bounds}
-          onPointSelect={(point, bangumi) => selectMapPoint({ bangumiId: bangumi.id, pointId: point.id })}
+          selectedBangumiIds={isPlanMode ? (selectedBangumiIds ?? []) : undefined}
+          openedBangumiDetailsId={isPlanMode ? null : undefined}
+          ignoreZoomThreshold={isPlanMode}
+          onPointSelect={handlePointSelect}
         />
       )}
 
@@ -179,7 +218,11 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
           allowOverlap
           allowOverlapWithPuck
         >
-          <PopupCard point={selectedPointData.point} bangumi={selectedPointData.bangumi} />
+          <PopupCard
+            point={selectedPointData.point}
+            bangumi={selectedPointData.bangumi}
+            bangumiTitlePressEnabled={!isPlanMode}
+          />
         </MarkerView>
       )}
     </MapView>

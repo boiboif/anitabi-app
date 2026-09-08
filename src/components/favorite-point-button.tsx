@@ -1,17 +1,18 @@
+import type { Bangumi, Point } from '@/services/types';
 import { getFavoritePointKey, useFavoritePoints } from '@/store/use-favorite-points';
 import { Heart } from '@tamagui/lucide-icons-2';
 import { Pressable } from 'react-native';
 import { useTheme, View } from 'tamagui';
-import type { Bangumi, Point } from '@/services/types';
 
 type Props = {
   point: Point;
   bangumi: Bangumi;
   size?: number;
+  buttonSize?: number;
   overlay?: boolean;
 };
 
-export default function FavoritePointButton({ point, bangumi, size = 18, overlay = false }: Props) {
+export default function FavoritePointButton({ point, bangumi, size = 18, buttonSize = 36, overlay = false }: Props) {
   const theme = useTheme();
   const key = getFavoritePointKey(bangumi.id, point.id);
   const isFavorite = useFavoritePoints((state) => state.favoriteKeys.has(key));
@@ -23,17 +24,13 @@ export default function FavoritePointButton({ point, bangumi, size = 18, overlay
       accessibilityRole="button"
       accessibilityLabel={isFavorite ? '取消收藏巡礼点' : '收藏巡礼点'}
       hitSlop={8}
-      onPress={() => toggleFavorite(point, bangumi)}
+      onPress={(event) => {
+        event.stopPropagation();
+        toggleFavorite(point, bangumi);
+      }}
       style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
     >
-      <View
-        width={36}
-        height={36}
-        rounded="$9"
-        bg="$color2"
-        items="center"
-        justify="center"
-      >
+      <View width={buttonSize} height={buttonSize} rounded="$9" bg="$color2" items="center" justify="center">
         <Heart size={size} color={iconColor} fill={isFavorite ? iconColor : 'transparent'} />
       </View>
     </Pressable>

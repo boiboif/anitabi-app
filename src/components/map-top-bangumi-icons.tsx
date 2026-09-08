@@ -41,24 +41,41 @@ type Props = {
   bangumis: Bangumi[];
   zoom: number;
   bounds: { ne: [number, number]; sw: [number, number] } | null;
+  filter?: {
+    selectedBangumiIds: number[];
+    onToggleBangumi: (bangumiId: number, visibleBangumiIds: number[]) => void;
+    onClear: () => void;
+  };
+  alwaysVisible?: boolean;
+  showOpenedBangumiDetails?: boolean;
 };
 
-export default function MapTopBangumiIcons({ bangumis, zoom, bounds }: Props) {
+export default function MapTopBangumiIcons({
+  bangumis,
+  zoom,
+  bounds,
+  filter,
+  alwaysVisible = false,
+  showOpenedBangumiDetails = true,
+}: Props) {
   const scrollViewRef = useRef<ScrollView>(null);
   const theme = useTheme();
   const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const closeBangumiDetails = useMapBrowse((state) => state.closeBangumiDetails);
-  const selectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
+  const storedSelectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
   const toggleMapBangumi = useMapBangumiFilter((state) => state.toggleBangumi);
   const clearMapBangumiFilter = useMapBangumiFilter((state) => state.clear);
+  const selectedMapBangumiIds = filter?.selectedBangumiIds ?? storedSelectedMapBangumiIds;
   const hasMapBangumiFilter = selectedMapBangumiIds.length > 0;
   const selectedBangumi = useMemo(
-    () => bangumis.find((bangumi) => bangumi.id === openedBangumiDetailsId) ?? null,
-    [bangumis, openedBangumiDetailsId],
+    () =>
+      showOpenedBangumiDetails ? (bangumis.find((bangumi) => bangumi.id === openedBangumiDetailsId) ?? null) : null,
+    [bangumis, openedBangumiDetailsId, showOpenedBangumiDetails],
   );
 
   const inViewBangumis = useMemo(() => {
-    if (zoom < MAP_ICON_ZOOM_THRESHOLD || !bounds) return [];
+    if (!bounds) return alwaysVisible ? bangumis : [];
+    if (!alwaysVisible && zoom < MAP_ICON_ZOOM_THRESHOLD) return [];
 
     const inView = bangumis.filter((b) => {
       return b.points?.some((p) => isWithinBounds(p.geo[0], p.geo[1], bounds)) ?? false;
@@ -71,7 +88,7 @@ export default function MapTopBangumiIcons({ bangumis, zoom, bounds }: Props) {
       }))
       .sort((a, b) => b.visibleCount - a.visibleCount)
       .map((entry) => entry.bangumi);
-  }, [bangumis, zoom, bounds]);
+  }, [alwaysVisible, bangumis, bounds, zoom]);
 
   const displayedBangumis = useMemo(() => {
     const selectedIds = new Set(selectedMapBangumiIds);
@@ -135,7 +152,14 @@ export default function MapTopBangumiIcons({ bangumis, zoom, bounds }: Props) {
               />
             </View>
 
-            <Text maxW={80} color="$color11" fontSize="$footnote" fontWeight="500" numberOfLines={1} style={{ flexShrink: 1 }}>
+            <Text
+              maxW={80}
+              color="$color11"
+              fontSize="$footnote"
+              fontWeight="500"
+              numberOfLines={1}
+              style={{ flexShrink: 1 }}
+            >
               {b.cn}
             </Text>
 
@@ -221,7 +245,7 @@ export default function MapTopBangumiIcons({ bangumis, zoom, bounds }: Props) {
             <Pressable
               key={b.id}
               onPress={() =>
-                toggleMapBangumi(
+                (filter?.onToggleBangumi ?? toggleMapBangumi)(
                   b.id,
                   inViewBangumis.map((bangumi) => bangumi.id),
                 )
@@ -280,7 +304,7 @@ export default function MapTopBangumiIcons({ bangumis, zoom, bounds }: Props) {
       </ScrollView>
       {hasMapBangumiFilter && (
         <Pressable
-          onPress={clearMapBangumiFilter}
+          onPress={filter?.onClear ?? clearMapBangumiFilter}
           style={({ pressed }) => ({
             alignSelf: 'flex-start',
             marginTop: 8,

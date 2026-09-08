@@ -1,5 +1,4 @@
-import FavoritePointButton from '@/components/favorite-point-button';
-import { formatDuration } from '@/lib/formatDuration';
+import PointListCard from '@/components/point-list-card';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapBrowse } from '@/store/use-map-browse';
@@ -20,107 +19,24 @@ import {
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { getTokens, Text, useTheme, View } from 'tamagui';
 
-const CARD_HEIGHT = 100;
 const SECTION_HEADER_HEIGHT = 32;
 const BANGUMI_DETAIL_SHEET_DETENTS = [0.25, 0.8];
 const DEFAULT_BANGUMI_DETAIL_DETENT_INDEX = BANGUMI_DETAIL_SHEET_DETENTS.length - 1;
 
 const PointCard = memo(
   function PointCard({ point, bangumi, onPress }: { point: Point; bangumi: Bangumi; onPress?: () => void }) {
-    const theme = useTheme();
-    const pointTitle = point.cn || point.name || '未命名点位';
-    const epLabel =
-      typeof point.ep === 'number' && point.ep > 0
-        ? `EP${point.ep}`
-        : typeof point.ep === 'string' && point.ep
-          ? point.ep
-          : undefined;
-    const timeLabel = typeof point.s === 'number' && point.s >= 0 ? formatDuration(point.s) : undefined;
-
     return (
-      <View
-        bg="$color2"
-        mb="$2"
-        mx="$2"
-        display="flex"
-        flexDirection="row"
-        rounded="$4"
-        height={CARD_HEIGHT}
-        overflow="hidden"
-        boxShadow="0 1px 4px $shadowColor"
-      >
-        <Pressable onPress={onPress} style={{ flex: 1, flexDirection: 'row' }}>
-          <View
-            width={150}
-            height={CARD_HEIGHT}
-            style={{ borderRadius: getTokens().radius['4'].val, overflow: 'hidden' }}
-          >
-            <Image
-              key={point.image}
-              source={point.image ? buildImageUrl(point.image, 'plan=h160') : undefined}
-              style={{ width: 150, height: CARD_HEIGHT, backgroundColor: theme.color9.val }}
-              contentFit="cover"
-            />
-            {epLabel && (
-              <View
-                position="absolute"
-                l={0}
-                b={0}
-                bg="rgba(0,0,0,0.55)"
-                px="$1.5"
-                py="$0.5"
-                style={{ borderTopRightRadius: getTokens().radius['2'].val }}
-              >
-                <Text fontSize="$caption" fontWeight="700" color="white">
-                  {epLabel}
-                </Text>
-              </View>
-            )}
-            {timeLabel && (
-              <View
-                position="absolute"
-                r={0}
-                b={0}
-                bg="rgba(0,0,0,0.55)"
-                px="$1.5"
-                py="$0.5"
-                style={{ borderTopLeftRadius: getTokens().radius['2'].val }}
-              >
-                <Text fontSize="$caption" color="white">
-                  {timeLabel}
-                </Text>
-              </View>
-            )}
-          </View>
-          <View flex={1} p="$2" style={{ justifyContent: 'space-between' }}>
-            <View>
-              <Text fontWeight="600" fontSize="$body" color="$color12" numberOfLines={1} pr="$8">
-                {pointTitle}
-              </Text>
-              <Text fontSize="$caption" color="$primary" mt="$1" numberOfLines={1}>
-                {bangumi.cn || bangumi.title || bangumi.en || '未知'}
-              </Text>
-              {point.mark ? (
-                <Text fontSize="$caption" lineHeight={11} color="$color11" mt="$0.5" numberOfLines={3}>
-                  {point.mark}
-                </Text>
-              ) : null}
-            </View>
-            {point.folder && (
-              <Text
-                position="absolute"
-                r="$2"
-                b="$1.5"
-                fontSize="$caption"
-                color="$color10"
-                style={{ textAlign: 'right' }}
-              >
-                {point.folder}
-              </Text>
-            )}
-          </View>
-        </Pressable>
-        <FavoritePointButton point={point} bangumi={bangumi} overlay />
+      <View mx="$2">
+        <PointListCard
+          point={point}
+          bangumi={bangumi}
+          description={point.mark}
+          meta={point.folder}
+          onPress={onPress}
+          showMediaLabels
+          showFavorite
+          showAddToPlan
+        />
       </View>
     );
   },

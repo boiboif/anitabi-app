@@ -1,10 +1,9 @@
-import FavoritePointButton from '@/components/favorite-point-button';
+import PointListCard from '@/components/point-list-card';
 import SearchBox from '@/components/search-box';
-import { formatDuration } from '@/lib/formatDuration';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
-import { useMapData } from '@/store/use-map-data';
 import { useMapBrowse } from '@/store/use-map-browse';
+import { useMapData } from '@/store/use-map-data';
 import { FlashList, FlashListRef } from '@shopify/flash-list';
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
@@ -108,99 +107,17 @@ function BangumiCard({ bangumi, onPress }: { bangumi: Bangumi; onPress: () => vo
 // 巡礼点卡片（搜索结果用）
 // ---------------------------------------------------------------------------
 function PointCard({ point, bangumi, onPress }: { point: Point; bangumi: Bangumi; onPress: () => void }) {
-  const theme = useTheme();
-  const pointTitle = point.cn || point.name || '未命名点位';
-  const animeTitle = bangumi.cn || bangumi.title || bangumi.en || '未知';
-  const epLabel =
-    typeof point.ep === 'number' && point.ep > 0
-      ? `EP${point.ep}`
-      : typeof point.ep === 'string' && point.ep
-        ? point.ep
-        : undefined;
-  const timeLabel = typeof point.s === 'number' && point.s >= 0 ? formatDuration(point.s) : undefined;
-
   return (
-    <View
-      bg="$color2"
-      p="$1.5"
-      mb="$2"
-      display="flex"
-      flexDirection="row"
-      rounded="$4"
-      shadowColor="$shadowColor"
-      boxShadow="0 1px 4px $shadowColor"
-      gap="$2.5"
-    >
-      <Pressable onPress={onPress} style={{ flex: 1, flexDirection: 'row', gap: 10 }}>
-        {/* 左侧：图片 + EP / 时间覆盖层 */}
-        <View width={150} height={100} style={{ borderRadius: getTokens().radius['4'].val, overflow: 'hidden' }}>
-          <Image
-            key={point.image ? buildImageUrl(point.image) : 'none'}
-            source={point.image ? buildImageUrl(point.image, 'plan=h160') : undefined}
-            style={{ width: 150, height: 100, backgroundColor: theme.color9.val }}
-            contentFit="cover"
-          />
-          {/* EP — 左下 */}
-          {epLabel && (
-            <View
-              position="absolute"
-              l={0}
-              b={0}
-              bg="rgba(0,0,0,0.55)"
-              px="$1.5"
-              py="$0.5"
-              style={{ borderTopRightRadius: getTokens().radius['2'].val }}
-            >
-              <Text fontSize="$caption" fontWeight="700" color="white">
-                {epLabel}
-              </Text>
-            </View>
-          )}
-          {/* 时分 — 右下 */}
-          {timeLabel && (
-            <View
-              position="absolute"
-              r={0}
-              b={0}
-              bg="rgba(0,0,0,0.55)"
-              px="$1.5"
-              py="$0.5"
-              style={{ borderTopLeftRadius: getTokens().radius['2'].val }}
-            >
-              <Text fontSize="$caption" color="white">
-                {timeLabel}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* 右侧：文字内容 */}
-        <View flex={1} style={{ justifyContent: 'space-between' }}>
-          {/* 上部 */}
-          <View>
-            <Text fontWeight="600" fontSize="$body" color="$color12" numberOfLines={1}>
-              {pointTitle}
-            </Text>
-            <Text fontSize="$footnote" color="$primary" mt="$1" numberOfLines={1}>
-              {animeTitle}
-            </Text>
-            {point.mark ? (
-              <Text fontSize="$caption" color="$color11" mt="$0.5" numberOfLines={3}>
-                {point.mark}
-              </Text>
-            ) : null}
-          </View>
-
-          {/* 下部：folder 右下 */}
-          {point.folder && (
-            <Text fontSize="$caption" color="$color10" style={{ textAlign: 'right' }} mt="$1">
-              {point.folder}
-            </Text>
-          )}
-        </View>
-      </Pressable>
-      <FavoritePointButton point={point} bangumi={bangumi} overlay />
-    </View>
+    <PointListCard
+      point={point}
+      bangumi={bangumi}
+      description={point.mark}
+      meta={point.folder}
+      onPress={onPress}
+      showMediaLabels
+      showFavorite
+      showAddToPlan
+    />
   );
 }
 

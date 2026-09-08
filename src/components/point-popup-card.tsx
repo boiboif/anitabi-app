@@ -1,20 +1,20 @@
-import ComparisonCameraButton from '@/components/comparison-camera-button';
 import FavoritePointButton from '@/components/favorite-point-button';
-import GoogleMapsNavigationButton from '@/components/google-maps-navigation-button';
+import PointCardActions from '@/components/point-card-actions';
 import { formatDuration } from '@/lib/formatDuration';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapBrowse } from '@/store/use-map-browse';
 import { Image } from 'expo-image';
 import { Linking, Pressable } from 'react-native';
-import { getTokens, Text, useTheme, View, XStack } from 'tamagui';
+import { getTokens, Text, useTheme, View } from 'tamagui';
 
 type Props = {
   point: Point;
   bangumi: Bangumi;
+  bangumiTitlePressEnabled?: boolean;
 };
 
-export default function PopupCard({ point, bangumi }: Props) {
+export default function PopupCard({ point, bangumi, bangumiTitlePressEnabled = true }: Props) {
   const theme = useTheme();
   const openBangumiDetails = useMapBrowse((state) => state.openBangumiDetails);
   const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
@@ -120,18 +120,24 @@ export default function PopupCard({ point, bangumi }: Props) {
             {point.mark}
           </Text>
         ) : null}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`筛选番剧：${animeTitle}`}
-          hitSlop={6}
-          disabled={!!openedBangumiDetailsId}
-          onPress={() => openBangumiDetails(bangumi.id)}
-          style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
-        >
+        {bangumiTitlePressEnabled ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`筛选番剧：${animeTitle}`}
+            hitSlop={6}
+            disabled={!!openedBangumiDetailsId}
+            onPress={() => openBangumiDetails(bangumi.id)}
+            style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
+          >
+            <Text fontSize="$footnote" color="$primary" numberOfLines={2}>
+              {animeTitle}
+            </Text>
+          </Pressable>
+        ) : (
           <Text fontSize="$footnote" color="$primary" numberOfLines={2}>
             {animeTitle}
           </Text>
-        </Pressable>
+        )}
         {point.origin ? (
           <Text
             onPress={() => point.originLink && Linking.openURL(point.originLink)}
@@ -143,10 +149,9 @@ export default function PopupCard({ point, bangumi }: Props) {
             @{point.origin}
           </Text>
         ) : null}
-        <XStack pt="$2" gap="$2" items="center">
-          <ComparisonCameraButton point={point} bangumi={bangumi} compact />
-          <GoogleMapsNavigationButton point={point} />
-        </XStack>
+        <View pt="$2">
+          <PointCardActions point={point} bangumi={bangumi} showCamera showNavigation />
+        </View>
       </View>
     </View>
   );
