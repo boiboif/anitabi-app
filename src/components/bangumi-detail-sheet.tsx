@@ -7,8 +7,8 @@ import { type DetentChangeEvent, TrueSheet } from '@lodev09/react-native-true-sh
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import dayjs from 'dayjs';
 import { Image } from 'expo-image';
-import { useIsFocused } from 'expo-router';
-import { memo, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useIsFocused, useNavigation } from 'expo-router';
+import { memo, type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   type LayoutChangeEvent,
   type NativeScrollEvent,
@@ -71,8 +71,8 @@ type FlatItem = FlatSectionHeader | FlatPointItem;
 
 interface PendingModeScroll {
   committed: boolean;
+  mode: AccordionMode;
   offset: number;
-  ready: boolean;
   sticky: boolean;
 }
 
@@ -244,84 +244,76 @@ function groupPoints(points: Point[], mode: AccordionMode, bangumi: Bangumi): Ac
 function useBangumiDetailSheet(bangumiId: number | undefined, onDetailsDismiss: () => void) {
   const sheetRef = useRef<TrueSheet>(null);
   const flashListRef = useRef<FlashListRef<FlatItem>>(null);
-  const isSheetOpenRef = useRef(false);
   const isSheetPresentedRef = useRef(false);
-  const preserveDetailsAfterDismissRef = useRef(false);
   const activeBangumiIdRef = useRef<number | null>(null);
   const loadedBangumiIdRef = useRef<number | null>(null);
-  const currentDetentIndexRef = useRef(DEFAULT_BANGUMI_DETAIL_DETENT_INDEX);
+  const [savedDetent, setSavedDetent] = useState({ bangumiId, index: DEFAULT_BANGUMI_DETAIL_DETENT_INDEX });
   const currentScrollOffsetRef = useRef(0);
   const pendingScrollRestoreOffsetRef = useRef<number | null>(null);
   const isRouteFocused = useIsFocused();
+  const navigation = useNavigation();
+  const session = useMemo(() => ({ bangumiId, isRouteFocused }), [bangumiId, isRouteFocused]);
+  const activeSessionRef = useRef<typeof session | null>(null);
+  const initialDetentIndex =
+    savedDetent.bangumiId === bangumiId ? savedDetent.index : DEFAULT_BANGUMI_DETAIL_DETENT_INDEX;
 
   const resetSavedSheetPosition = useCallback(() => {
-    currentDetentIndexRef.current = DEFAULT_BANGUMI_DETAIL_DETENT_INDEX;
     currentScrollOffsetRef.current = 0;
     pendingScrollRestoreOffsetRef.current = null;
   }, []);
 
-  const dismissSheet = useCallback((preserveDetails = false) => {
-    if (!isSheetOpenRef.current) return;
-
-    isSheetOpenRef.current = false;
+  useLayoutEffect(() => {
+    activeSessionRef.current = session;
     isSheetPresentedRef.current = false;
-    preserveDetailsAfterDismissRef.current = preserveDetails;
-    pendingScrollRestoreOffsetRef.current = preserveDetails ? currentScrollOffsetRef.current : null;
-    void sheetRef.current?.dismiss();
-  }, []);
-
-  useEffect(() => {
-    if (!isRouteFocused) {
-      // 路由失焦仅关闭原生 sheet；store 中的地图上下文继续保留。
-      dismissSheet(true);
-      return;
-    }
-
-    if (bangumiId === undefined) {
-      dismissSheet();
-      return;
-    }
-
-    if (activeBangumiIdRef.current !== bangumiId) {
-      activeBangumiIdRef.current = bangumiId;
+    loadedBangumiIdRef.current = null;
+    if (activeBangumiIdRef.current !== (bangumiId ?? null)) {
+      activeBangumiIdRef.current = bangumiId ?? null;
       resetSavedSheetPosition();
+    } else {
+      pendingScrollRestoreOffsetRef.current = currentScrollOffsetRef.current;
     }
 
-    if (isSheetOpenRef.current) {
-      void sheetRef.current?.resize(currentDetentIndexRef.current);
-    } else {
-      isSheetOpenRef.current = true;
+    return () => {
+      activeSessionRef.current = null;
       isSheetPresentedRef.current = false;
-      void sheetRef.current?.present(currentDetentIndexRef.current).catch(() => {
-        isSheetOpenRef.current = false;
-      });
-    }
-  }, [bangumiId, dismissSheet, isRouteFocused, resetSavedSheetPosition]);
+    };
+  }, [bangumiId, resetSavedSheetPosition, session]);
+
+  // Native dismiss/load events from an unmounted sheet must not affect its replacement.
+  const isCurrentSession = useCallback(
+    () => activeSessionRef.current === session && isRouteFocused && navigation.isFocused(),
+    [isRouteFocused, navigation, session],
+  );
 
   const handleSheetDismiss = useCallback(() => {
-    isSheetOpenRef.current = false;
+    if (!isCurrentSession()) return;
     isSheetPresentedRef.current = false;
-    if (preserveDetailsAfterDismissRef.current) {
-      preserveDetailsAfterDismissRef.current = false;
-      return;
-    }
-
+    setSavedDetent({ bangumiId: undefined, index: DEFAULT_BANGUMI_DETAIL_DETENT_INDEX });
     activeBangumiIdRef.current = null;
     resetSavedSheetPosition();
     onDetailsDismiss();
-  }, [onDetailsDismiss, resetSavedSheetPosition]);
+  }, [isCurrentSession, onDetailsDismiss, resetSavedSheetPosition]);
 
-  const handleDetentChange = useCallback((event: DetentChangeEvent) => {
-    const { index } = event.nativeEvent;
-    if (Number.isInteger(index) && index >= 0 && index < BANGUMI_DETAIL_SHEET_DETENTS.length) {
-      currentDetentIndexRef.current = index;
-    }
-  }, []);
+  const handleDetentChange = useCallback(
+    (event: DetentChangeEvent) => {
+      if (!isCurrentSession()) return;
+      const { index } = event.nativeEvent;
+      if (Number.isInteger(index) && index >= 0 && index < BANGUMI_DETAIL_SHEET_DETENTS.length) {
+        setSavedDetent((previous) =>
+          previous.bangumiId === bangumiId && previous.index === index ? previous : { bangumiId, index },
+        );
+      }
+    },
+    [bangumiId, isCurrentSession],
+  );
 
-  const handleListScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    if (!isSheetOpenRef.current) return;
-    currentScrollOffsetRef.current = event.nativeEvent.contentOffset.y;
-  }, []);
+  const handleListScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      if (!isCurrentSession() || !isSheetPresentedRef.current) return;
+      currentScrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+    },
+    [isCurrentSession],
+  );
 
   const restoreListScrollPosition = useCallback(() => {
     const offset = pendingScrollRestoreOffsetRef.current;
@@ -335,15 +327,16 @@ function useBangumiDetailSheet(bangumiId: number | undefined, onDetailsDismiss: 
   }, []);
 
   const handleListLoad = useCallback(() => {
+    if (!isCurrentSession()) return;
     loadedBangumiIdRef.current = activeBangumiIdRef.current;
     restoreListScrollPosition();
-  }, [restoreListScrollPosition]);
+  }, [isCurrentSession, restoreListScrollPosition]);
 
   const handleSheetPresent = useCallback(() => {
-    isSheetOpenRef.current = true;
+    if (!isCurrentSession()) return;
     isSheetPresentedRef.current = true;
     restoreListScrollPosition();
-  }, [restoreListScrollPosition]);
+  }, [isCurrentSession, restoreListScrollPosition]);
 
   return {
     flashListRef,
@@ -352,6 +345,8 @@ function useBangumiDetailSheet(bangumiId: number | undefined, onDetailsDismiss: 
     handleListScroll,
     handleSheetDismiss,
     handleSheetPresent,
+    initialDetentIndex,
+    shouldRenderSheet: isRouteFocused && bangumiId !== undefined,
     sheetRef,
   };
 }
@@ -373,6 +368,8 @@ function BangumiDetailSheet() {
     handleListScroll,
     handleSheetDismiss,
     handleSheetPresent,
+    initialDetentIndex,
+    shouldRenderSheet,
     sheetRef,
   } = useBangumiDetailSheet(selectedBangumi?.id, closeBangumiDetails);
 
@@ -385,7 +382,6 @@ function BangumiDetailSheet() {
   const allExpandedRef = useRef(true);
   const currentModeScrollOffsetRef = useRef(0);
   const isControlsStickyRef = useRef(false);
-  const modeExpansionStateRef = useRef(true);
   const pendingModeScrollRef = useRef<PendingModeScroll | null>(null);
   const controlsOffsetRef = useRef(Number.POSITIVE_INFINITY);
 
@@ -401,19 +397,6 @@ function BangumiDetailSheet() {
     allExpandedRef.current = allExpanded;
   }, [allExpanded]);
 
-  // mode 切换时保持全部展开/折叠状态不变
-  useEffect(() => {
-    if (modeExpansionStateRef.current) {
-      setExpandedKeys(new Set(sections.map((s) => s.key)));
-    } else {
-      setExpandedKeys(new Set());
-    }
-    if (pendingModeScrollRef.current) {
-      pendingModeScrollRef.current.ready = true;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accordionMode]);
-
   // 番剧切换时重置为全部展开
   useEffect(() => {
     // A new selection must reset the user-controlled accordion state.
@@ -426,7 +409,6 @@ function BangumiDetailSheet() {
     isControlsStickyRef.current = false;
     controlsOffsetRef.current = Number.POSITIVE_INFINITY;
     allExpandedRef.current = true;
-    modeExpansionStateRef.current = true;
     pendingModeScrollRef.current = null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBangumi]);
@@ -441,23 +423,25 @@ function BangumiDetailSheet() {
 
   const handleAccordionModeChange = useCallback(
     (mode: AccordionMode) => {
-      if (mode === accordionMode) return;
+      if (mode === accordionMode || !selectedBangumi) return;
 
-      modeExpansionStateRef.current = allExpandedRef.current;
       const controlsOffset = controlsOffsetRef.current;
       if (Number.isFinite(controlsOffset)) {
         const sticky = isControlsStickyRef.current;
         const maximumNonStickyOffset = Math.max(0, controlsOffset - 1);
         pendingModeScrollRef.current = {
           committed: false,
+          mode,
           offset: sticky ? controlsOffset : Math.min(currentModeScrollOffsetRef.current, maximumNonStickyOffset),
-          ready: false,
           sticky,
         };
       }
+      // Commit the new grouping and its expansion state together, without an intermediate collapsed list.
+      const nextSections = groupPoints(selectedBangumi.points, mode, selectedBangumi);
+      setExpandedKeys(allExpandedRef.current ? new Set(nextSections.map((section) => section.key)) : new Set());
       setAccordionMode(mode);
     },
-    [accordionMode],
+    [accordionMode, selectedBangumi],
   );
 
   const toggleSection = useCallback((key: string) => {
@@ -487,8 +471,7 @@ function BangumiDetailSheet() {
       const pendingScroll = pendingModeScrollRef.current;
       let restoredSticky = false;
       if (pendingScroll) {
-        // A keyed FlashList can report its initial offset after scrollToOffset has been called.
-        // Keep the previous sticky state until the restored offset is observed natively.
+        // Ignore scroll events from the previous grouping until the new layout restores its offset.
         const hasReachedRestoredOffset = scrollOffset + 1 >= pendingScroll.offset;
         if (!pendingScroll.committed || (pendingScroll.sticky && !hasReachedRestoredOffset)) return;
         restoredSticky = pendingScroll.sticky;
@@ -506,15 +489,16 @@ function BangumiDetailSheet() {
 
   const handleFlashListLayoutCommit = useCallback(() => {
     const pendingScroll = pendingModeScrollRef.current;
-    if (!pendingScroll?.ready || pendingScroll.committed) return;
+    if (!pendingScroll || pendingScroll.mode !== accordionMode || pendingScroll.committed) return;
 
+    const isAlreadyAtOffset = Math.abs(currentModeScrollOffsetRef.current - pendingScroll.offset) < 1;
     pendingScroll.committed = true;
     currentModeScrollOffsetRef.current = pendingScroll.offset;
     isControlsStickyRef.current = pendingScroll.sticky;
     setIsControlsSticky(pendingScroll.sticky);
     flashListRef.current?.scrollToOffset({ offset: pendingScroll.offset, animated: false });
-    if (!pendingScroll.sticky) pendingModeScrollRef.current = null;
-  }, [flashListRef]);
+    if (!pendingScroll.sticky || isAlreadyAtOffset) pendingModeScrollRef.current = null;
+  }, [accordionMode, flashListRef]);
 
   const flatData: FlatItem[] = useMemo(() => {
     return sections.flatMap((section) => {
@@ -584,9 +568,15 @@ function BangumiDetailSheet() {
     [selectedBangumi, focusPointFromBangumiDetails, sheetRef, toggleSection, expandedKeys, theme],
   );
 
+  // Mount-to-present avoids TrueSheet's uncancellable lazy present() promise on route blur.
+  if (!shouldRenderSheet) return null;
+
   return (
     <TrueSheet
+      key={selectedBangumi?.id}
       ref={sheetRef}
+      initialDetentIndex={initialDetentIndex}
+      initialDetentAnimated
       detents={BANGUMI_DETAIL_SHEET_DETENTS}
       scrollable
       dimmed={false}
@@ -603,8 +593,8 @@ function BangumiDetailSheet() {
           <View flex={1}>
             <FlashList
               ref={flashListRef}
-              key={selectedBangumi?.id + accordionMode}
               data={flatData}
+              maintainVisibleContentPosition={{ disabled: true }}
               renderItem={renderFlashItem}
               getItemType={(item) => item.type}
               keyExtractor={(item: FlatItem) => item.id}

@@ -37,7 +37,7 @@ function BangumiCard({ bangumi, onPress }: { bangumi: Bangumi; onPress: () => vo
     <Pressable onPress={onPress}>
       <View
         bg="$color2"
-        p="$3"
+        p="$2"
         mb="$2"
         display="flex"
         flexDirection="row"

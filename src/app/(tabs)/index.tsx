@@ -8,6 +8,7 @@ import PointImageMarkerSwitch from '@/components/point-image-marker-switch';
 import RandomPointButton from '@/components/random-point-button';
 import SearchBox from '@/components/search-box';
 import { FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE } from '@/lib/constants';
+import { getPointFlyToZoom } from '@/lib/map-camera';
 import { useMapBrowse } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
 import type { Camera, Location } from '@rnmapbox/maps';
@@ -23,17 +24,6 @@ type CameraState = {
   zoom: number;
   bounds: { ne: [number, number]; sw: [number, number] } | null;
 };
-
-function getPointFlyToZoom(density: number | undefined): number {
-  if (density == null || density > 64) return 15;
-  if (density > 32) return 16;
-  if (density > 16) return 17;
-  if (density > 8) return 18;
-  if (density > 4) return 19;
-  if (density > 2) return 20;
-  if (density > 1) return 21;
-  return 22;
-}
 
 export default function HomeScreen() {
   const cameraRef = useRef<Camera>(null);

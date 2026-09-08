@@ -6,7 +6,8 @@ import PopupCard from '@/components/point-popup-card';
 import type { Bangumi } from '@/services/types';
 import { type MapPointReference, useMapBrowse } from '@/store/use-map-browse';
 import { Camera, LocationPuck, MapState, MapView, MarkerView } from '@rnmapbox/maps';
-import { useFocusEffect } from 'expo-router';
+import { useDebounceFn } from 'ahooks';
+import { useFocusEffect, useNavigation } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import type { EdgeInsets } from 'react-native-safe-area-context';
@@ -18,6 +19,7 @@ type Props = {
   bangumis: Bangumi[];
   styleIndex: number;
   showPointImageMarkers: boolean;
+  /** Reports the viewport after camera events stop for 200ms. */
   onCameraChange?: (state: { zoom: number; bounds: { ne: [number, number]; sw: [number, number] } | null }) => void;
   onMapReady?: () => void;
   mode?: 'browse' | 'plan';
@@ -29,6 +31,7 @@ type Props = {
 
 const DEFAULT_COORDINATES: [number, number] = [137, 35.2];
 const DEFAULT_ZOOM = 4.6;
+const CAMERA_CHANGE_DEBOUNCE_MS = 250;
 
 const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   {
@@ -49,6 +52,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   const isPlanMode = mode === 'plan';
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const [bounds, setBounds] = useState<Bounds | null>(null);
+  const navigation = useNavigation();
   const storedOpenedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const storedSelectedMapPoint = useMapBrowse((state) => state.selectedMapPoint);
   const openBangumiDetails = useMapBrowse((state) => state.openBangumiDetails);
@@ -81,34 +85,54 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     [ref],
   );
 
-  // 地图初始化时 onCameraChanged 可能连续触发多次携带不稳定 zoom 值，
-  // 跳过前 N 次事件过滤掉这些中间态，避免误设 zoom 状态。
-  const cameraEventSkipCount = useRef(5);
+  const updateCameraState = useCallback((state: MapState) => {
+    const z = state.properties.zoom;
+    const b = state.properties.bounds
+      ? { ne: state.properties.bounds.ne as [number, number], sw: state.properties.bounds.sw as [number, number] }
+      : null;
+    setZoom(z);
+    if (b) {
+      setBounds((previous) =>
+        previous?.ne[0] === b.ne[0] &&
+        previous.ne[1] === b.ne[1] &&
+        previous.sw[0] === b.sw[0] &&
+        previous.sw[1] === b.sw[1]
+          ? previous
+          : b,
+      );
+    }
+    return { zoom: z, bounds: b };
+  }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      return () => {
-        cameraEventSkipCount.current = 5;
-      };
-    }, []),
+  const lastReportedCameraStateRef = useRef<ReturnType<typeof updateCameraState> | null>(null);
+  const { run: reportCameraChange, cancel: cancelCameraChange } = useDebounceFn(
+    (next: ReturnType<typeof updateCameraState>) => {
+      if (!navigation.isFocused()) return;
+      const previous = lastReportedCameraStateRef.current;
+      if (
+        previous?.zoom === next.zoom &&
+        previous.bounds?.ne[0] === next.bounds?.ne[0] &&
+        previous.bounds?.ne[1] === next.bounds?.ne[1] &&
+        previous.bounds?.sw[0] === next.bounds?.sw[0] &&
+        previous.bounds?.sw[1] === next.bounds?.sw[1]
+      ) {
+        return;
+      }
+      lastReportedCameraStateRef.current = next;
+      onCameraChange?.(next);
+    },
+    { wait: CAMERA_CHANGE_DEBOUNCE_MS },
   );
+
+  useFocusEffect(useCallback(() => cancelCameraChange, [cancelCameraChange]));
 
   const handleCameraChanged = useCallback(
     (state: MapState) => {
-      if (cameraEventSkipCount.current > 0) {
-        cameraEventSkipCount.current--;
-        return;
-      }
-      if (state.properties.center.includes(0)) return;
-      const z = state.properties.zoom;
-      const b = state.properties.bounds
-        ? { ne: state.properties.bounds.ne as [number, number], sw: state.properties.bounds.sw as [number, number] }
-        : null;
-      setZoom(z);
-      if (b) setBounds(b);
-      onCameraChange?.({ zoom: z, bounds: b });
+      if (!navigation.isFocused() || state.properties.center.every((coordinate) => coordinate === 0)) return;
+      // MapIdle also waits for tile rendering; camera debounce works while tiles are still loading.
+      reportCameraChange(updateCameraState(state));
     },
-    [onCameraChange],
+    [navigation, reportCameraChange, updateCameraState],
   );
 
   const handlePointSelect = useCallback(

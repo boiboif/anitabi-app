@@ -241,6 +241,8 @@ export default function MapTopBangumiIcons({
           const borderColor = b.color || theme.color12.val;
           const isSelected = selectedMapBangumiIds.includes(b.id);
 
+          if (visibleCount === 0) return null;
+
           return (
             <Pressable
               key={b.id}

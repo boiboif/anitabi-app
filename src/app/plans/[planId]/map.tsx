@@ -5,6 +5,7 @@ import MapContainer from '@/components/map-container';
 import MapTopBangumiIcons from '@/components/map-top-bangumi-icons';
 import PointImageMarkerSwitch from '@/components/point-image-marker-switch';
 import { StrictButton as Button } from '@/components/strict-button';
+import { getPointFlyToZoom } from '@/lib/map-camera';
 import type { Bangumi, Point } from '@/services/types';
 import { type MapPointReference } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
@@ -26,17 +27,6 @@ type CameraState = {
 
 const POINT_CAMERA_TOP_PADDING = 110;
 const POINT_CAMERA_BOTTOM_PADDING = 24;
-
-function getPointFlyToZoom(density: number | undefined): number {
-  if (density == null || density > 64) return 15;
-  if (density > 32) return 16;
-  if (density > 16) return 17;
-  if (density > 8) return 18;
-  if (density > 4) return 19;
-  if (density > 2) return 20;
-  if (density > 1) return 21;
-  return 22;
-}
 
 function findPoint(bangumis: Bangumi[], reference: MapPointReference | null): Point | null {
   if (!reference) return null;
@@ -127,7 +117,12 @@ export default function PlanMapScreen() {
     if (points.length === 0) return;
     if (points.length === 1) {
       const [lat, lng] = points[0].geo;
-      camera.setCamera({ centerCoordinate: [lng, lat], zoomLevel: 15, animationMode: 'flyTo', animationDuration: 500 });
+      camera.setCamera({
+        centerCoordinate: [lng, lat],
+        zoomLevel: getPointFlyToZoom(points[0].density),
+        animationMode: 'flyTo',
+        animationDuration: 500,
+      });
     } else {
       const latitudes = points.map((point) => point.geo[0]);
       const longitudes = points.map((point) => point.geo[1]);
