@@ -1,11 +1,11 @@
 {
-  "version": "0.2.0",
-  "displayVersion": "0.2.0",
-  "title": "v0.2.0",
-  "releaseNotes": "新增巡礼计划创建、编辑、删除、完成标记与拖拽排序功能。\n新增巡礼计划专属地图，支持计划内番剧筛选与巡礼点快速切换。\n支持从搜索、收藏、番剧详情和地图将巡礼点加入计划。\n统一巡礼点列表卡片与操作布局，并使用 FlashList 优化长列表性能。",
-  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.2.0/anitabi-app-v0.2.0-android.apk",
-  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.2.0",
+  "version": "0.2.1",
+  "displayVersion": "0.2.1",
+  "title": "v0.2.1",
+  "releaseNotes": "地图浏览更流畅，移动地图后番剧信息更新更稳定。\n修复快速切换页面时番剧详情弹窗闪现的问题。\n修复切换番剧详情分组时封面闪动的问题。\n优化巡礼计划中的点位定位，自动调整到更合适的地图视野。",
+  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.2.1/anitabi-app-v0.2.1-android.apk",
+  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.2.1",
   "mandatory": false,
-  "buildNumber": 1014,
-  "fileName": "anitabi-app-v0.2.0-android.apk"
+  "buildNumber": 1015,
+  "fileName": "anitabi-app-v0.2.1-android.apk"
 }
