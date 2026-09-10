@@ -131,7 +131,7 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
         <YStack px="$4" pt="$3" pb="$2" gap="$3">
           <XStack items="center" justify="space-between">
             <Text fontSize="$title" fontWeight="700" color="$color12">
-              选择巡礼计划
+              加入巡礼计划
             </Text>
             <Pressable onPress={openCreate} hitSlop={8} style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}>
               <XStack items="center" gap="$1">
@@ -183,15 +183,15 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
               <X size={20} color="$color11" />
             </Pressable>
           </XStack>
-          <Input value={newPlanTitle} onChangeText={setNewPlanTitle} placeholder="请输入计划名称" maxLength={60} />
-          <Button
-            bg="$primary"
-            color="white"
-            size="$4"
-            disabled={!newPlanTitle.trim()}
-            opacity={newPlanTitle.trim() ? 1 : 0.5}
-            onPress={create}
-          >
+          <Input
+            bg="$background"
+            placeholderTextColor="$color6"
+            value={newPlanTitle}
+            onChangeText={setNewPlanTitle}
+            placeholder="请输入计划名称"
+            maxLength={60}
+          />
+          <Button bg="$primary" color="white" size="$4" opacity={newPlanTitle.trim() ? 1 : 0.5} onPress={create}>
             创建并加入
           </Button>
         </YStack>
