@@ -182,6 +182,10 @@ function deleteTemporaryPhoto(filePath: string) {
   } catch {}
 }
 
+function normalizeFileUri(filePath: string) {
+  return filePath.startsWith('file://') ? filePath : `file://${filePath}`;
+}
+
 export default function ComparisonCameraScreen({ bangumi, point, initialReferenceUri, fullReferenceUri }: Props) {
   const router = useRouter();
   const isFocused = useIsFocused();
@@ -208,6 +212,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
   const [overlayOpacity, setOverlayOpacity] = useState(0.4);
   const [referenceUri, setReferenceUri] = useState(initialReferenceUri);
   const [photoFile, setPhotoFile] = useState<PhotoFile>();
+  const [resultPhotoUri, setResultPhotoUri] = useState<string>();
   const [resultVisible, setResultVisible] = useState(false);
   const [flashMode, setFlashMode] = useState<FlashMode>('off');
   const [cameraReady, setCameraReady] = useState(false);
@@ -308,6 +313,22 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
     }
   }, []);
 
+  const pickResultPhoto = useCallback(async () => {
+    try {
+      setPickerVisible(true);
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 1,
+      });
+      if (!result.canceled && result.assets[0]) setResultPhotoUri(result.assets[0].uri);
+    } catch {
+      Alert.alert('无法选择实拍图', '请检查照片访问权限后重试。');
+    } finally {
+      setPickerVisible(false);
+    }
+  }, []);
+
   const takePhoto = async () => {
     if (!referenceUri) {
       await pickReference();
@@ -324,6 +345,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
         {},
       );
       setPhotoFile(capturedPhoto);
+      setResultPhotoUri(normalizeFileUri(capturedPhoto.filePath));
       setResultVisible(true);
     } catch (error) {
       console.error(error);
@@ -720,14 +742,16 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
         visible={resultVisible}
         bangumi={bangumi}
         point={point}
-        photoFile={photoFile}
+        photoUri={resultPhotoUri}
         referenceFit={referenceFit}
         referenceUri={referenceUri}
         onClose={() => router.back()}
+        onPickPhoto={pickResultPhoto}
         onPickReference={pickReference}
         onRetake={() => {
           setResultVisible(false);
           setPhotoFile(undefined);
+          setResultPhotoUri(undefined);
         }}
       />
     </View>

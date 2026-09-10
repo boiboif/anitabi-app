@@ -14,18 +14,18 @@ import { useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Platform, Pressable, StatusBar, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Images as NitroImages, loadImage, type Image as NitroImage } from 'react-native-nitro-image';
-import type { PhotoFile } from 'react-native-vision-camera';
 import { View, XStack } from 'tamagui';
 
 type Props = {
   visible: boolean;
   bangumi: Bangumi;
   point: Point;
-  photoFile?: PhotoFile;
+  photoUri?: string;
   /** @deprecated */
   referenceFit: ReferenceFit;
   referenceUri?: string;
   onClose: () => void;
+  onPickPhoto: () => Promise<void>;
   onPickReference: () => Promise<void>;
   onRetake: () => void;
 };
@@ -71,10 +71,6 @@ async function loadUriImage(uri: string) {
   if (!cachePath) throw new Error(`Remote image is unavailable in the disk cache: ${uri}`);
 
   return await loadImage({ filePath: cachePath });
-}
-
-function normalizeFileUri(filePath: string): string {
-  return filePath.startsWith('file://') ? filePath : `file://${filePath}`;
 }
 
 async function normalizeCapturedPhotoForPixelAccess(uri: string) {
@@ -162,14 +158,14 @@ function ActionButton({ label, icon, primary = false, disabled = false, onPress 
 
 export default function ComparisonResultModal({
   visible,
-  photoFile,
+  photoUri,
   referenceFit,
   referenceUri,
+  onPickPhoto,
   onPickReference,
   onRetake,
 }: Props) {
   const insets = useSafeAreaInsets();
-  const photoUri = photoFile ? normalizeFileUri(photoFile.filePath) : undefined;
   const [loadedReferenceUri, setLoadedReferenceUri] = useState<string>();
   const [loadedPhotoUri, setLoadedPhotoUri] = useState<string>();
   const [comparisonLayout, setComparisonLayout] = useState<ComparisonLayout>();
@@ -292,19 +288,26 @@ export default function ComparisonResultModal({
                 ) : null}
               </View>
               <View pointerEvents="none" position="absolute" z={2} t="50%" l={0} r={0} height={2} mt={-1} bg="white" />
-              <View flex={1} minH={0} overflow="hidden" bg="black">
-                {photoUri ? (
-                  <Image
-                    source={{ uri: photoUri }}
-                    contentFit="cover"
-                    onLoad={() => {
-                      setLoadedPhotoUri(photoUri);
-                    }}
-                    style={StyleSheet.absoluteFill}
-                    transition={0}
-                  />
-                ) : null}
-              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="从相册更换实拍图"
+                onPress={onPickPhoto}
+                style={({ pressed }) => ({ flex: 1, minHeight: 0, opacity: pressed ? 0.82 : 1 })}
+              >
+                <View flex={1} minH={0} overflow="hidden" bg="black">
+                  {photoUri ? (
+                    <Image
+                      source={{ uri: photoUri }}
+                      contentFit="cover"
+                      onLoad={() => {
+                        setLoadedPhotoUri(photoUri);
+                      }}
+                      style={StyleSheet.absoluteFill}
+                      transition={0}
+                    />
+                  ) : null}
+                </View>
+              </Pressable>
             </View>
             {!referenceLoaded || !photoLoaded ? (
               <View
