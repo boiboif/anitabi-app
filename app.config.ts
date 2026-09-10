@@ -1,6 +1,6 @@
 import type { ExpoConfig } from 'expo/config';
 
-const appVersion = '0.2.1';
+const appVersion = '0.2.2';
 const nativeAppVersion = process.env.APP_NATIVE_VERSION || appVersion;
 const updateChannel = process.env.EXPO_UPDATE_CHANNEL || 'development';
 const appUpdatesEnabled = updateChannel === 'preview' || updateChannel === 'production';
