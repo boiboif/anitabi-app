@@ -1,11 +1,11 @@
 {
-  "version": "0.2.2",
-  "displayVersion": "0.2.2",
-  "title": "v0.2.2",
-  "releaseNotes": "修复首页地图首次打开时可能只显示一个番剧图标的问题，现在无需移动地图即可正常显示。\n\n升级应用底层组件，提升运行稳定性与设备兼容性。",
-  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.2.2/anitabi-app-v0.2.2-android.apk",
-  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.2.2",
+  "version": "0.2.3",
+  "displayVersion": "0.2.3",
+  "title": "v0.2.3",
+  "releaseNotes": "新增「关于」页面，可查看开源许可证、常用外部链接并检查应用更新。\n清除缓存现在可直接在「我的」页面完成。\n对比拍摄结果支持从相册更换实拍图，制作对比图更方便。",
+  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.2.3/anitabi-app-v0.2.3-android.apk",
+  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.2.3",
   "mandatory": false,
-  "buildNumber": 1016,
-  "fileName": "anitabi-app-v0.2.2-android.apk"
+  "buildNumber": 1017,
+  "fileName": "anitabi-app-v0.2.3-android.apk"
 }
