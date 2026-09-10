@@ -1,11 +1,11 @@
 {
-  "version": "0.2.1",
-  "displayVersion": "0.2.1",
-  "title": "v0.2.1",
-  "releaseNotes": "地图浏览更流畅，移动地图后番剧信息更新更稳定。\n修复快速切换页面时番剧详情弹窗闪现的问题。\n修复切换番剧详情分组时封面闪动的问题。\n优化巡礼计划中的点位定位，自动调整到更合适的地图视野。",
-  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.2.1/anitabi-app-v0.2.1-android.apk",
-  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.2.1",
+  "version": "0.2.2",
+  "displayVersion": "0.2.2",
+  "title": "v0.2.2",
+  "releaseNotes": "修复首页地图首次打开时可能只显示一个番剧图标的问题，现在无需移动地图即可正常显示。\n\n升级应用底层组件，提升运行稳定性与设备兼容性。",
+  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.2.2/anitabi-app-v0.2.2-android.apk",
+  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.2.2",
   "mandatory": false,
-  "buildNumber": 1015,
-  "fileName": "anitabi-app-v0.2.1-android.apk"
+  "buildNumber": 1016,
+  "fileName": "anitabi-app-v0.2.2-android.apk"
 }
