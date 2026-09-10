@@ -446,7 +446,9 @@ jobs:
           if [[ -n "${RELEASE_NOTES:-}" ]]; then
             node -e 'const fs = require("fs"); fs.writeFileSync("release-notes.md", `${process.env.RELEASE_NOTES.replace(/\\n/g, "\n")}\n`);'
           else
-            git fetch --tags --quiet
+            # actions/checkout creates a shallow lightweight tag for tag-triggered
+            # runs. Force-fetch the real annotated tag before reading its message.
+            git fetch origin --force --quiet "refs/tags/$TAG:refs/tags/$TAG"
             git for-each-ref "refs/tags/$TAG" --format='%(contents)' | sed -e 's/[[:space:]]*$//' > release-notes.md
             if [[ ! -s release-notes.md ]]; then
               echo 'Annotated tag message is empty; use: git tag -a <tag> -m "release notes"'
