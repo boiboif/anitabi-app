@@ -52,6 +52,8 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   const isPlanMode = mode === 'plan';
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const [bounds, setBounds] = useState<Bounds | null>(null);
+  const [loadedStyleIndex, setLoadedStyleIndex] = useState<number | null>(null);
+  const loadedStyleIndexRef = useRef<number | null>(null);
   const navigation = useNavigation();
   const storedOpenedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const storedSelectedMapPoint = useMapBrowse((state) => state.selectedMapPoint);
@@ -126,13 +128,27 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
 
   useFocusEffect(useCallback(() => cancelCameraChange, [cancelCameraChange]));
 
+  const handleMapReady = useCallback(() => {
+    loadedStyleIndexRef.current = styleIndex;
+    setLoadedStyleIndex(styleIndex);
+    onMapReady?.();
+  }, [onMapReady, styleIndex]);
+
   const handleCameraChanged = useCallback(
     (state: MapState) => {
-      if (!navigation.isFocused() || state.properties.center.every((coordinate) => coordinate === 0)) return;
+      // Mapbox 会在样式初始化期间上报 zoom=0 等中间态。此时写入 zoom
+      // 会让番剧 icon 的重叠筛选只剩最高优先级的一项，直到下一次移动地图。
+      if (
+        loadedStyleIndexRef.current !== styleIndex ||
+        !navigation.isFocused() ||
+        state.properties.center.every((coordinate) => coordinate === 0)
+      ) {
+        return;
+      }
       // MapIdle also waits for tile rendering; camera debounce works while tiles are still loading.
       reportCameraChange(updateCameraState(state));
     },
-    [navigation, reportCameraChange, updateCameraState],
+    [navigation, reportCameraChange, styleIndex, updateCameraState],
   );
 
   const handlePointSelect = useCallback(
@@ -201,7 +217,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
       scaleBarEnabled={true}
       scaleBarPosition={{ right: 0, bottom: 8 }}
       onCameraChanged={handleCameraChanged}
-      onDidFinishLoadingMap={onMapReady}
+      onDidFinishLoadingMap={handleMapReady}
       onPress={isPlanMode ? onMapPress : clearSelectedMapPoint}
     >
       <Camera ref={setCameraRef} centerCoordinate={DEFAULT_COORDINATES} zoomLevel={DEFAULT_ZOOM} animationMode="none" />
@@ -213,7 +229,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
         showAllPoints={isPlanMode}
         onPointSelect={handlePointSelect}
       />
-      {!isPlanMode && (
+      {!isPlanMode && loadedStyleIndex === styleIndex && (
         <BangumiIcons
           bangumis={bangumis}
           zoom={zoom}
