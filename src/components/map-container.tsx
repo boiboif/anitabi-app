@@ -19,7 +19,7 @@ type Props = {
   bangumis: Bangumi[];
   styleIndex: number;
   showPointImageMarkers: boolean;
-  /** Reports the viewport after camera events stop for 200ms. */
+  /** Reports the viewport after camera events stop for 250ms. */
   onCameraChange?: (state: { zoom: number; bounds: { ne: [number, number]; sw: [number, number] } | null }) => void;
   onMapReady?: () => void;
   mode?: 'browse' | 'plan';
@@ -74,6 +74,8 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   }, [activeSelectedPoint, bangumis]);
 
   const cameraRef = useRef<Camera>(null);
+  const hasFocusedMapRef = useRef(false);
+  const ignoreNextFocusCameraEventRef = useRef(false);
 
   // 合并本地 cameraRef 与外部转发 ref
   const setCameraRef = useCallback(
@@ -126,7 +128,19 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     { wait: CAMERA_CHANGE_DEBOUNCE_MS },
   );
 
-  useFocusEffect(useCallback(() => cancelCameraChange, [cancelCameraChange]));
+  useFocusEffect(
+    useCallback(() => {
+      cancelCameraChange();
+      if (!isPlanMode) {
+        if (hasFocusedMapRef.current) ignoreNextFocusCameraEventRef.current = true;
+        else hasFocusedMapRef.current = true;
+      }
+
+      return () => {
+        cancelCameraChange();
+      };
+    }, [cancelCameraChange, isPlanMode]),
+  );
 
   const handleMapReady = useCallback(() => {
     loadedStyleIndexRef.current = styleIndex;
@@ -136,6 +150,15 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
 
   const handleCameraChanged = useCallback(
     (state: MapState) => {
+      // TabSlot restores the native map from display:none when this route regains
+      // focus. Mapbox then emits one non-gesture event with the previous zoom but
+      // bounds measured from the collapsed viewport. Keeping that event would make
+      // viewport-driven overlays incorrect until the user moves the map.
+      if (ignoreNextFocusCameraEventRef.current) {
+        ignoreNextFocusCameraEventRef.current = false;
+        if (!state.gestures.isGestureActive) return;
+      }
+
       // Mapbox 会在样式初始化期间上报 zoom=0 等中间态。此时写入 zoom
       // 会让番剧 icon 的重叠筛选只剩最高优先级的一项，直到下一次移动地图。
       if (
