@@ -17,14 +17,18 @@
 ## 截图
 
 <p align="center">
-  <img src="http://i0.hdslb.com/bfs/new_dyn/4b5466094bc33e7f5a508f59d641660e1519338.jpg" width="172" alt="世界地图 - 深色模式" />
-  <img src="http://i0.hdslb.com/bfs/new_dyn/bea415687b46c0f1890e8af61fff6d741519338.jpg" width="172" alt="地图主界面 - 深色模式" />
-  <img src="http://i0.hdslb.com/bfs/new_dyn/98d34218bac01aa98cbbffae1f4d22eb1519338.jpg" width="172" alt="番剧筛选 - 顶部番剧图标" />
-  <img src="http://i0.hdslb.com/bfs/new_dyn/9c32a93c7dff85b7fad167c84caa60db1519338.jpg" width="172" alt="巡礼点搜索" />
-  <img src="http://i0.hdslb.com/bfs/new_dyn/f63ff7505c25abd916bd00c8791aa92a1519338.jpg" width="172" alt="番剧详情" />
-  <img src="http://i0.hdslb.com/bfs/new_dyn/a70b92105c4d4faef874781460bf9b2b1519338.jpg" width="172" alt="番剧详情" /> 
-  <img src="http://i0.hdslb.com/bfs/new_dyn/4b5da38b7f362cb9a3a594b5b15dea361519338.jpg" width="172" alt="巡礼点图片展示" />
-  <img src="http://i0.hdslb.com/bfs/new_dyn/7476fa6e58e657dd0087f6176586539a1519338.jpg" width="172" alt="我的页面" />
+  <img src="https://i0.hdslb.com/bfs/new_dyn/27f14bcd8532a28aa94b2c7e4befdfbf1519338.jpg" width="172" alt="首页地图1" />
+  <img src="https://i0.hdslb.com/bfs/new_dyn/bfde030847ba8abcd609ab61afebae671519338.jpg" width="172" alt="首页地图2" />
+  <img src="https://i0.hdslb.com/bfs/new_dyn/27d02376ce308b975fd2f9dee7514c251519338.jpg" width="172" alt="首页地图3" />
+  <img src="https://i0.hdslb.com/bfs/new_dyn/48470d9965423be5c3e99076708d203f1519338.jpg" width="172" alt="首页番剧详情" />
+  <img src="https://i0.hdslb.com/bfs/new_dyn/41922586277a7302e9828af7c7a27c8d1519338.jpg" width="172" alt="搜索1" />
+  <img src="https://i0.hdslb.com/bfs/new_dyn/6fd051ad87aa34fe31b294af191b47411519338.jpg" width="172" alt="搜索2" /> 
+  <img src="https://i0.hdslb.com/bfs/new_dyn/78fb71aa4c555227d2731e4166c3d9d51519338.jpg" width="172" alt="收藏1" />
+  <img src="https://i0.hdslb.com/bfs/new_dyn/364a53e928ebf646cccd2684962e482e1519338.jpg" width="172" alt="收藏2" />
+  <img src="https://i0.hdslb.com/bfs/new_dyn/09f173b924073edfc887e0897df334551519338.jpg" width="172" alt="我的" />
+  <img src="https://i0.hdslb.com/bfs/new_dyn/18667029fbee44fae9417304705860af1519338.jpg" width="172" alt="巡礼计划" />
+  <img src="https://i0.hdslb.com/bfs/new_dyn/2ded6575449c3c2cbd246598f68b90c51519338.jpg" width="172" alt="巡礼计划1" />
+  <img src="https://i0.hdslb.com/bfs/new_dyn/77b0b9e7636e86d058771cc0bbdbd29e1519338.jpg" width="172" alt="巡礼点拍照1" />
 </p>
 
 ## 计划功能
