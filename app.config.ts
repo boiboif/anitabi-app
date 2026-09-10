@@ -1,6 +1,8 @@
 import type { ExpoConfig } from 'expo/config';
+import appPackage from './package.json';
 
 const appVersion = '0.2.2';
+const openSourceLicensePrimaryPackages = Object.keys(appPackage.dependencies).sort();
 const nativeAppVersion = process.env.APP_NATIVE_VERSION || appVersion;
 const updateChannel = process.env.EXPO_UPDATE_CHANNEL || 'development';
 const appUpdatesEnabled = updateChannel === 'preview' || updateChannel === 'production';
@@ -55,6 +57,14 @@ const config: ExpoConfig = {
     ['expo-build-properties', { android: { usesCleartextTraffic: true } }],
     'expo-status-bar',
     'expo-web-browser',
+    [
+      'react-native-legal',
+      {
+        devDepsMode: 'none',
+        includeOptionalDeps: false,
+        transitiveDepsMode: 'all',
+      },
+    ],
     [
       '@sentry/react-native/expo',
       {
@@ -116,6 +126,7 @@ const config: ExpoConfig = {
   },
   extra: {
     mapboxAccessToken: process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN,
+    openSourceLicensePrimaryPackages,
     updateChannel,
     appUpdatesEnabled,
     binaryUpdateManifestUrl: appUpdatesEnabled

@@ -17,7 +17,7 @@ export type AppUpdateManager = {
   isDownloadingBinary: boolean;
   isBinaryDownloaded: boolean;
   binaryProgress: BinaryDownloadProgress | null;
-  checkNow: () => Promise<BinaryUpdate | null>;
+  checkNow: () => Promise<boolean>;
   installBinaryUpdate: () => Promise<void>;
   reloadForHotUpdate: () => Promise<void>;
   showBinaryUpdate: () => void;
@@ -36,7 +36,7 @@ export function useAppUpdates(): AppUpdateManager {
   const isCheckingRef = useRef(false);
 
   const checkNow = useCallback(async () => {
-    if (__DEV__ || !areAppUpdatesEnabled() || isCheckingRef.current) return null;
+    if (__DEV__ || !areAppUpdatesEnabled() || isCheckingRef.current) return false;
     isCheckingRef.current = true;
     setIsChecking(true);
 
@@ -57,7 +57,10 @@ export function useAppUpdates(): AppUpdateManager {
         if (fetched.isNew) setHotUpdateReady(true);
       }
       if (binaryResult.status === 'rejected') throw binaryResult.reason;
-      return binaryResult.value;
+      return Boolean(
+        binaryResult.value ||
+          (hotResult.status === 'fulfilled' && hotResult.value.isAvailable),
+      );
     } finally {
       isCheckingRef.current = false;
       setIsChecking(false);

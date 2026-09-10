@@ -5,6 +5,7 @@ import { createFont, createTamagui } from 'tamagui';
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;
+export const LightPageBackground = '#FFFBFC';
 
 // Keep this scale intentionally small; reuse a semantic role before adding another size.
 const semanticFontSizes = {
@@ -58,11 +59,19 @@ const headingFont = createFont({
   },
 });
 
-const themes = createV5Theme({
+const generatedThemes = createV5Theme({
   childrenThemes: {
     ...defaultChildrenThemes,
   },
 });
+
+const themes = {
+  ...generatedThemes,
+  light: {
+    ...generatedThemes.light,
+    background: LightPageBackground,
+  },
+};
 
 const config = createTamagui({
   ...defaultConfig,

@@ -1,13 +1,13 @@
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { AppUpdateOverlay } from '@/components/app-update-overlay';
 import PlanPickerProvider from '@/components/plan-picker-provider';
+import '@/global.css';
 import { AppUpdateManagerContext } from '@/hooks/use-app-update-manager';
 import { useAppUpdates } from '@/hooks/use-app-updates';
-import '@/global.css';
 import { Sentry, sentryNavigationIntegration } from '@/services/sentry';
 import { useMapData } from '@/store/use-map-data';
 import { useThemePreference } from '@/store/use-theme-preference';
-import tamaguiConfig from '@/tamagui.config';
+import tamaguiConfig, { LightPageBackground } from '@/tamagui.config';
 import { TrueSheetProvider } from '@lodev09/react-native-true-sheet';
 import Toast from '@modules/toaster';
 import Mapbox from '@rnmapbox/maps';
@@ -16,10 +16,10 @@ import {
   DarkTheme,
   DefaultTheme,
   ErrorBoundary as ExpoErrorBoundary,
-  type ErrorBoundaryProps,
   Stack,
   ThemeProvider,
   useNavigationContainerRef,
+  type ErrorBoundaryProps,
 } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -36,6 +36,14 @@ Toast.config({
 });
 
 const MAPBOX_ACCESS_TOKEN = Constants.expoConfig?.extra?.mapboxAccessToken as string | undefined;
+const LightNavigationTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: LightPageBackground,
+    card: LightPageBackground,
+  },
+};
 
 if (MAPBOX_ACCESS_TOKEN) {
   Mapbox.setAccessToken(MAPBOX_ACCESS_TOKEN);
@@ -78,14 +86,20 @@ function RootLayout() {
     <SafeAreaProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <TamaguiProvider config={tamaguiConfig} defaultTheme={theme}>
-          <ThemeProvider value={theme === 'dark' ? DarkTheme : DefaultTheme}>
+          <ThemeProvider value={theme === 'dark' ? DarkTheme : LightNavigationTheme}>
             <TrueSheetProvider>
               <PlanPickerProvider>
                 <AppUpdateManagerContext.Provider value={appUpdates}>
                   <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
                   <AnimatedSplashOverlay />
                   <AppUpdateOverlay manager={appUpdates} />
-                  <Stack screenOptions={{ headerShown: false, animation: 'ios_from_right', orientation: 'portrait' }}>
+                  <Stack
+                    screenOptions={{
+                      headerShown: false,
+                      animation: 'ios_from_right',
+                      orientation: 'portrait',
+                    }}
+                  >
                     <Stack.Screen name="(tabs)" />
                     <Stack.Screen
                       name="dark-mode"
@@ -96,11 +110,27 @@ function RootLayout() {
                       }}
                     />
                     <Stack.Screen
-                      name="clear-cache"
+                      name="about"
                       options={{
                         headerShown: true,
                         headerTitleAlign: 'center',
-                        title: '清理存储空间',
+                        title: '关于',
+                      }}
+                    />
+                    <Stack.Screen
+                      name="open-source-licenses"
+                      options={{
+                        headerShown: true,
+                        headerTitleAlign: 'center',
+                        title: '许可',
+                      }}
+                    />
+                    <Stack.Screen
+                      name="open-source-license"
+                      options={{
+                        headerShown: true,
+                        headerTitleAlign: 'center',
+                        title: '许可证详情',
                       }}
                     />
                     <Stack.Screen

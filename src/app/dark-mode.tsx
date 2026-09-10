@@ -38,13 +38,7 @@ export default function DarkModeScreen() {
     >
       <View bg="$background" width="100%" maxW={MaxContentWidth} flex={1}>
         <YStack bg="$background" gap="$1" px="$3" pt="$3">
-          <XStack
-            bg="$color2"
-            px="$3"
-            py="$2.5"
-            rounded="$2"
-            style={{ justifyContent: 'space-between', alignItems: 'center' }}
-          >
+          <XStack px="$3" py="$2.5" rounded="$2" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
             <Text color="$color" fontSize="$body" lineHeight={24} fontWeight="500">
               跟随系统
             </Text>
@@ -52,13 +46,7 @@ export default function DarkModeScreen() {
           </XStack>
 
           {!followSystem && (
-            <XStack
-              bg="$color2"
-              px="$3"
-              py="$2.5"
-              rounded="$2"
-              style={{ justifyContent: 'space-between', alignItems: 'center' }}
-            >
+            <XStack px="$3" py="$2.5" rounded="$2" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
               <Text color="$color" fontSize="$body" lineHeight={24} fontWeight="500">
                 深色模式
               </Text>
