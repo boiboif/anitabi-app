@@ -1,7 +1,4 @@
-import { config as dotenvConfig } from 'dotenv';
-
 import type { ExpoConfig } from 'expo/config';
-dotenvConfig({ path: '.env.local' });
 
 const appVersion = '0.2.1';
 const nativeAppVersion = process.env.APP_NATIVE_VERSION || appVersion;
