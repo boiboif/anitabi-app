@@ -27,6 +27,7 @@ const externalLinks = [
     description: undefined,
     value: '哔哩哔哩',
     url: 'https://space.bilibili.com/1519338',
+    appUrl: 'bilibili://space/1519338',
     icon: CircleUserRound,
   },
   {
@@ -64,10 +65,21 @@ export default function AboutScreen() {
     },
   });
 
-  const openExternalLink = async (url: string) => {
+  const openExternalLink = async (url: string, appUrl?: string) => {
+    const targetUrl = Platform.OS === 'web' ? url : (appUrl ?? url);
+
     try {
-      await Linking.openURL(url);
+      await Linking.openURL(targetUrl);
     } catch {
+      if (targetUrl !== url) {
+        try {
+          await Linking.openURL(url);
+          return;
+        } catch {
+          // Show the common error below when both the app link and web fallback fail.
+        }
+      }
+
       Alert.alert('无法打开链接', '请稍后重试。');
     }
   };
@@ -123,7 +135,7 @@ export default function AboutScreen() {
               description={link.description}
               value={link.value}
               accessibilityRole="link"
-              onPress={() => void openExternalLink(link.url)}
+              onPress={() => void openExternalLink(link.url, link.appUrl)}
               showDivider={index < externalLinks.length - 1}
             />
           ))}

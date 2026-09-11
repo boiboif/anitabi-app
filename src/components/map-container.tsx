@@ -5,19 +5,10 @@ import PointImageMarkers from '@/components/point-image-markers';
 import PopupCard from '@/components/point-popup-card';
 import type { Bangumi } from '@/services/types';
 import { type MapPointReference, useMapBrowse } from '@/store/use-map-browse';
-import {
-  Camera,
-  Image as MapboxImage,
-  Images,
-  LocationPuck,
-  MapState,
-  MapView,
-  MarkerView,
-} from '@rnmapbox/maps';
+import { Camera, Images, LocationPuck, Image as MapboxImage, MapState, MapView, MarkerView } from '@rnmapbox/maps';
 import { useDebounceFn } from 'ahooks';
 import { useFocusEffect, useNavigation } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { PixelRatio, Platform } from 'react-native';
 import type { EdgeInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { YStack } from 'tamagui';
@@ -46,8 +37,6 @@ const LOCATION_PUCK_BEARING_IMAGE = 'location-puck-bearing';
 const LOCATION_PUCK_COLOR = '#1677FF';
 const LOCATION_PUCK_BEARING_STROKE_WIDTH = 1.5;
 const LOCATION_PUCK_CIRCLE_STROKE_WIDTH = 2;
-const LOCATION_PUCK_PULSING_RADIUS =
-  Platform.OS === 'android' ? PixelRatio.getPixelSizeForLayoutSize(20) : 20;
 
 const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   {
@@ -288,7 +277,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
         bearingImage={LOCATION_PUCK_BEARING_IMAGE}
         puckBearing="heading"
         puckBearingEnabled
-        pulsing={{ isEnabled: true, color: LOCATION_PUCK_COLOR, radius: LOCATION_PUCK_PULSING_RADIUS }}
+        pulsing={{ isEnabled: true, color: LOCATION_PUCK_COLOR }}
       />
       <MapMarkers
         bangumis={bangumis}
