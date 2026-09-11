@@ -1,5 +1,5 @@
+import Toast from '@boiboif/react-native-toast';
 import type { AxiosRequestConfig, Method } from 'axios';
-import { toast } from 'sonner-native';
 import service from './request';
 
 interface CreateHandlerParams {
@@ -12,7 +12,7 @@ interface CreateHandlerParams {
    * 不传则所有 2xx 响应都视为成功。
    */
   adaptor?: (resData: any, config: AxiosRequestConfig) => { success: boolean; msg: string; code: number };
-  /** adaptor 判定失败时的回调，默认 toast.error + throw */
+  /** adaptor 判定失败时的回调，默认 Toast.error + throw */
   errorHandler?: (res: any, config: AxiosRequestConfig) => void;
 }
 
@@ -49,7 +49,7 @@ export const createHandler = (params: CreateHandlerParams) => {
           if (errorHandler) {
             errorHandler(response, merged);
           } else {
-            toast.error(msg);
+            Toast.error(msg);
           }
           throw new Error(`${code}: ${msg}`);
         }

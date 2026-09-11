@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "license": "GPL-3.0-only",
   "dependencies": {
+    "@boiboif/react-native-toast": "^0.1.0",
     "@expo/ui": "~57.0.17",
     "@lodev09/react-native-true-sheet": "^3.11.12",
     "@rnmapbox/maps": "^10.3.5",
@@ -45,7 +46,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
-    "react-native-gesture-handler": "3.2.1",
+    "react-native-gesture-handler": "3.3.0",
     "react-native-legal": "^1.7.0",
     "react-native-mmkv": "^4.3.1",
     "react-native-nitro-image": "^0.15.2",
@@ -60,7 +61,6 @@
     "react-native-vision-camera-worklets": "5.2.3",
     "react-native-web": "~0.21.0",
     "react-native-worklets": "0.10.1",
-    "sonner-native": "^0.26.4",
     "tamagui": "^2.7.7",
     "zustand": "^5.0.14"
   },
@@ -92,7 +92,8 @@
   "expo": {
     "install": {
       "exclude": [
-        "@shopify/flash-list"
+        "@shopify/flash-list",
+        "react-native-gesture-handler"
       ]
     }
   },

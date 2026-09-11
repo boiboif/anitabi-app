@@ -8,8 +8,8 @@ import { Sentry, sentryNavigationIntegration } from '@/services/sentry';
 import { useMapData } from '@/store/use-map-data';
 import { useThemePreference } from '@/store/use-theme-preference';
 import tamaguiConfig, { LightPageBackground } from '@/tamagui.config';
+import Toast from '@boiboif/react-native-toast';
 import { TrueSheetProvider } from '@lodev09/react-native-true-sheet';
-import Toast from '@modules/toaster';
 import Mapbox from '@rnmapbox/maps';
 import Constants from 'expo-constants';
 import {
@@ -26,7 +26,6 @@ import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Toaster } from 'sonner-native';
 import { TamaguiProvider } from 'tamagui';
 
 Toast.config({
@@ -140,7 +139,6 @@ function RootLayout() {
                       }}
                     />
                   </Stack>
-                  <Toaster enableStacking position="center" duration={1000} />
                 </AppUpdateManagerContext.Provider>
               </PlanPickerProvider>
             </TrueSheetProvider>

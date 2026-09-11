@@ -741,6 +741,11 @@
     "@babel/helper-string-parser" "^7.29.7"
     "@babel/helper-validator-identifier" "^7.29.7"
 
+"@boiboif/react-native-toast@^0.1.0":
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/@boiboif/react-native-toast/-/react-native-toast-0.1.0.tgz#6c56502fe2300a8ee5eb19ecddf103a1b21076a3"
+  integrity sha512-0/iXzjZMMMZ8Ri9u2vD715hVy1BMa+7YFNtEP/PK/ukiDW2eQHATSqqnqOXOF/wG5Yb+aP6PFy2vjnntavCZxA==
+
 "@callstack/licenses@^0.3.3":
   version "0.3.3"
   resolved "https://registry.yarnpkg.com/@callstack/licenses/-/licenses-0.3.3.tgz#28350866186615b507823ff96f65b36ae4830ff9"
@@ -8559,10 +8564,10 @@ react-native-drawer-layout@^4.2.2:
     color "^4.2.3"
     use-latest-callback "^0.2.4"
 
-react-native-gesture-handler@3.2.1:
-  version "3.2.1"
-  resolved "https://registry.yarnpkg.com/react-native-gesture-handler/-/react-native-gesture-handler-3.2.1.tgz#83ee1e6f3453ed46d20cbd9c510e836a3333641d"
-  integrity sha512-VEWscxUN29aeccbD2McF0LSXrwOhSdisaSRFiEWg0O/3WrVghNJp/tOtLrCgzb9gfcZ3xdA+K2Sp8F5G3iHx/Q==
+react-native-gesture-handler@3.3.0:
+  version "3.3.0"
+  resolved "https://registry.yarnpkg.com/react-native-gesture-handler/-/react-native-gesture-handler-3.3.0.tgz#58817e551bab57e514fb6784003222d7d7f5738f"
+  integrity sha512-ZCTlJ09nE3GPbm7J74lvwpxmx1TQ/7MDlHZNLARVYTN82k21mJUJ7BmI9eWjEi8eevHiAudI5O1Cpnt0rJfoJA==
   dependencies:
     "@types/react-test-renderer" "^19.1.0"
     invariant "^2.2.4"
@@ -9248,11 +9253,6 @@ slugify@^1.3.4, slugify@^1.6.6:
   version "1.6.9"
   resolved "https://registry.npmjs.org/slugify/-/slugify-1.6.9.tgz"
   integrity sha512-vZ7rfeehZui7wQs438JXBckYLkIIdfHOXsaVEUMyS5fHo1483l1bMdo0EDSWYclY0yZKFOipDy4KHuKs6ssvdg==
-
-sonner-native@^0.26.4:
-  version "0.26.4"
-  resolved "https://registry.yarnpkg.com/sonner-native/-/sonner-native-0.26.4.tgz#57e0eb0f26e84db422e6f0173900b423c31283d0"
-  integrity sha512-wBE/pctNfz+ieXjpYX7uu5hH38ws8xRmH0AFmEdEgkOS363k6N8QfFoyjGqDmdUDy15m4AAvOjd2Wz/jATukIA==
 
 source-map-js@^1.2.1:
   version "1.2.1"

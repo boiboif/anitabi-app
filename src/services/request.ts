@@ -1,6 +1,6 @@
+import Toast from '@boiboif/react-native-toast';
 import type { AxiosError } from 'axios';
 import axios from 'axios';
-import { toast } from 'sonner-native';
 
 const codeMessage: Record<string, string> = {
   200: '服务器成功返回请求的数据。',
@@ -41,13 +41,13 @@ service.interceptors.response.use(
   },
   (error: AxiosError) => {
     if (error.code === 'ERR_NETWORK') {
-      toast.error('网络异常');
+      Toast.error('网络异常');
       return Promise.reject(error);
     }
 
     const { response } = error;
     if (response) {
-      toast.error(codeMessage[response.status]);
+      Toast.error(codeMessage[response.status]);
     }
     return Promise.reject(error);
   },
