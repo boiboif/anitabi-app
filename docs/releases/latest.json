@@ -1,11 +1,11 @@
 {
-  "version": "0.2.3",
-  "displayVersion": "0.2.3",
-  "title": "v0.2.3",
-  "releaseNotes": "新增「关于」页面，可查看开源许可证、常用外部链接并检查应用更新。\n清除缓存现在可直接在「我的」页面完成。\n对比拍摄结果支持从相册更换实拍图，制作对比图更方便。",
-  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.2.3/anitabi-app-v0.2.3-android.apk",
-  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.2.3",
+  "version": "0.2.4",
+  "displayVersion": "0.2.4",
+  "title": "v0.2.4",
+  "releaseNotes": "地图定位体验更稳定，优化定位反馈、方向显示与图片占位表现。\n\nAndroid 现在支持在首页连续按两次返回键退出应用。\n\n优化外部链接打开方式，并改进更新后版本信息的显示。\n\n升级基础交互与提示组件，提升应用稳定性和系统兼容性。",
+  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.2.4/anitabi-app-v0.2.4-android.apk",
+  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.2.4",
   "mandatory": false,
-  "buildNumber": 1017,
-  "fileName": "anitabi-app-v0.2.3-android.apk"
+  "buildNumber": 1018,
+  "fileName": "anitabi-app-v0.2.4-android.apk"
 }
