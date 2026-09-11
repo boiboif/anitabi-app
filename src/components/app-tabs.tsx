@@ -1,3 +1,4 @@
+import { useDoubleBackExit } from '@/hooks/use-double-back-exit';
 import { Heart, Map, User } from '@tamagui/lucide-icons-2';
 import { BlurView } from 'expo-blur';
 import { usePathname } from 'expo-router';
@@ -47,6 +48,8 @@ function TabItem({ name, label, icon: Icon }: (typeof TAB_CONFIG)[number]) {
 }
 
 export default function AppTabs() {
+  useDoubleBackExit();
+
   const themeName = useThemeName();
   const theme = themeName === 'dark' ? 'dark' : 'light';
 
