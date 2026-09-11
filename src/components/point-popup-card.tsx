@@ -45,6 +45,8 @@ export default function PopupCard({ point, bangumi, bangumiTitlePressEnabled = t
             key={point.image}
             source={{ uri: buildImageUrl(point.image, 'plan=h360') }}
             placeholder={{ uri: buildImageUrl(point.image, 'plan=h160') }}
+            placeholderContentFit="cover"
+            transition={0}
             style={{
               width: 250,
               aspectRatio: 16 / 9,
@@ -52,7 +54,6 @@ export default function PopupCard({ point, bangumi, bangumiTitlePressEnabled = t
             }}
             contentFit="cover"
             contentPosition="center"
-            transition={0}
           />
         ) : (
           <View

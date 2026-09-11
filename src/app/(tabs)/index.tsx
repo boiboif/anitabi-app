@@ -27,6 +27,7 @@ type CameraState = {
 
 export default function HomeScreen() {
   const cameraRef = useRef<Camera>(null);
+  const latestLocationRef = useRef<Location | null>(null);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const insets = useSafeAreaInsets();
   const data = useMapData((state) => state.data);
@@ -43,6 +44,9 @@ export default function HomeScreen() {
   }, []);
   const handleCameraChange = useCallback((nextCameraState: CameraState) => {
     setCameraState(nextCameraState);
+  }, []);
+  const handleUserLocationUpdate = useCallback((location: Location) => {
+    latestLocationRef.current = location;
   }, []);
 
   useEffect(() => {
@@ -114,8 +118,9 @@ export default function HomeScreen() {
         return;
       }
 
-      // 尝试读缓存（LocationPuck 运行时大概率已缓存）
-      let loc = await locationManager.getLastKnownLocation();
+      // Mapbox 的 JS locationManager 会永久缓存首次读取的位置，除非另行
+      // 订阅 JS 定位流。优先使用 MapView 与 LocationPuck 同步上报的位置。
+      let loc = latestLocationRef.current ?? (await locationManager.getLastKnownLocation());
 
       if (!loc) {
         // 无缓存时订阅等待第一个位置更新
@@ -161,6 +166,7 @@ export default function HomeScreen() {
         styleIndex={styleIndex}
         showPointImageMarkers={showPointImageMarkers}
         onCameraChange={handleCameraChange}
+        onUserLocationUpdate={handleUserLocationUpdate}
       />
 
       <View position="absolute" l="$0" r="$0" t={insets.top === 0 ? '$2' : insets.top} pt="$2" z={0}>

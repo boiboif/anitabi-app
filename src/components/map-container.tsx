@@ -5,7 +5,7 @@ import PointImageMarkers from '@/components/point-image-markers';
 import PopupCard from '@/components/point-popup-card';
 import type { Bangumi } from '@/services/types';
 import { type MapPointReference, useMapBrowse } from '@/store/use-map-browse';
-import { Camera, LocationPuck, MapState, MapView, MarkerView } from '@rnmapbox/maps';
+import { Camera, LocationPuck, MapState, MapView, MarkerView, type Location } from '@rnmapbox/maps';
 import { useDebounceFn } from 'ahooks';
 import { useFocusEffect, useNavigation } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -21,6 +21,7 @@ type Props = {
   showPointImageMarkers: boolean;
   /** Reports the viewport after camera events stop for 250ms. */
   onCameraChange?: (state: { zoom: number; bounds: { ne: [number, number]; sw: [number, number] } | null }) => void;
+  onUserLocationUpdate?: (location: Location) => void;
   onMapReady?: () => void;
   mode?: 'browse' | 'plan';
   selectedPoint?: MapPointReference | null;
@@ -40,6 +41,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     styleIndex,
     showPointImageMarkers,
     onCameraChange,
+    onUserLocationUpdate,
     onMapReady,
     mode = 'browse',
     selectedPoint,
@@ -240,6 +242,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
       scaleBarEnabled={true}
       scaleBarPosition={{ right: 0, bottom: 8 }}
       onCameraChanged={handleCameraChanged}
+      onUserLocationUpdate={onUserLocationUpdate}
       onDidFinishLoadingMap={handleMapReady}
       onPress={isPlanMode ? onMapPress : clearSelectedMapPoint}
     >

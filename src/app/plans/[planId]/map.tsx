@@ -46,6 +46,7 @@ export default function PlanMapScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const cameraRef = useRef<Camera>(null);
+  const latestLocationRef = useRef<Location | null>(null);
   const initialCameraApplied = useRef(false);
   const [isMapReady, setIsMapReady] = useState(false);
   const [styleIndex, setStyleIndex] = useState(0);
@@ -82,6 +83,9 @@ export default function PlanMapScreen() {
 
   const setCamera = useCallback((camera: Camera | null) => {
     cameraRef.current = camera;
+  }, []);
+  const handleUserLocationUpdate = useCallback((location: Location) => {
+    latestLocationRef.current = location;
   }, []);
 
   useEffect(() => {
@@ -161,7 +165,7 @@ export default function PlanMapScreen() {
         return;
       }
 
-      let location = await locationManager.getLastKnownLocation();
+      let location = latestLocationRef.current ?? (await locationManager.getLastKnownLocation());
       if (!location) {
         location = await new Promise<Location>((resolve) => {
           const listener = (nextLocation: Location) => {
@@ -201,6 +205,7 @@ export default function PlanMapScreen() {
             onPointSelect={setSelectedPoint}
             onMapPress={() => setSelectedPoint(null)}
             onCameraChange={setCameraState}
+            onUserLocationUpdate={handleUserLocationUpdate}
           />
 
           <YStack position="absolute" l="$0" r="$0" t={insets.top} z={20} pointerEvents="box-none">
