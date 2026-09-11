@@ -1,9 +1,10 @@
-import Constants from 'expo-constants';
 import * as Application from 'expo-application';
-import * as FileSystemLegacy from 'expo-file-system/legacy';
+import Constants from 'expo-constants';
 import { File, Paths } from 'expo-file-system';
+import * as FileSystemLegacy from 'expo-file-system/legacy';
 import * as IntentLauncher from 'expo-intent-launcher';
 import * as Linking from 'expo-linking';
+import * as Updates from 'expo-updates';
 import { Platform } from 'react-native';
 
 export type BinaryUpdate = {
@@ -26,8 +27,7 @@ export type BinaryDownloadProgress = {
   percent: number;
 };
 
-const DEFAULT_MANIFEST_URL =
-  'https://raw.githubusercontent.com/boiboif/anitabi-app/main/docs/releases/latest.json';
+const DEFAULT_MANIFEST_URL = 'https://raw.githubusercontent.com/boiboif/anitabi-app/main/docs/releases/latest.json';
 
 function compareVersions(left: string, right: string): number {
   const leftParts = left.split('.').map((part) => Number.parseInt(part, 10) || 0);
@@ -61,9 +61,17 @@ export function areAppUpdatesEnabled(): boolean {
 
 export function getCurrentAppDisplayVersion(): string {
   const configuredVersion = Constants.expoConfig?.version;
-  if (configuredVersion?.includes('-')) return configuredVersion;
-  if (!__DEV__ && Application.nativeApplicationVersion) return Application.nativeApplicationVersion;
-  return configuredVersion ?? Application.nativeApplicationVersion ?? '未知';
+  const displayVersion = configuredVersion?.includes('-')
+    ? configuredVersion
+    : !__DEV__ && Application.nativeApplicationVersion
+      ? Application.nativeApplicationVersion
+      : (configuredVersion ?? Application.nativeApplicationVersion ?? '未知');
+  const hotUpdateId =
+    Platform.OS !== 'web' && Updates.isEnabled && !Updates.isEmbeddedLaunch && !Updates.isEmergencyLaunch
+      ? Updates.updateId
+      : null;
+
+  return hotUpdateId ? `${displayVersion}-${hotUpdateId.slice(0, 8)}` : displayVersion;
 }
 
 export function getBinaryUpdateDisplayVersion(update: BinaryUpdate): string {
@@ -108,8 +116,7 @@ export function isMandatoryUpdate(
   return (
     Boolean(update.mandatory) ||
     Boolean(
-      typeof update.minSupportedBuildNumber === 'number' &&
-        currentBuildNumber < update.minSupportedBuildNumber,
+      typeof update.minSupportedBuildNumber === 'number' && currentBuildNumber < update.minSupportedBuildNumber,
     ) ||
     Boolean(update.minSupportedVersion && compareVersions(currentVersion, update.minSupportedVersion) < 0)
   );
