@@ -5,18 +5,16 @@ import MapContainer from '@/components/map-container';
 import MapTopBangumiIcons from '@/components/map-top-bangumi-icons';
 import PointImageMarkerSwitch from '@/components/point-image-marker-switch';
 import { StrictButton as Button } from '@/components/strict-button';
+import { useMapLocate } from '@/hooks/use-map-locate';
 import { getPointFlyToZoom } from '@/lib/map-camera';
 import type { Bangumi, Point } from '@/services/types';
 import { type MapPointReference } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
 import { usePlans } from '@/store/use-plans';
-import type { Camera, Location } from '@rnmapbox/maps';
-import { locationManager } from '@rnmapbox/maps';
+import type { Camera } from '@rnmapbox/maps';
 import { ArrowLeft } from '@tamagui/lucide-icons-2';
-import { requestForegroundPermissionsAsync } from 'expo-location';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, View, YStack } from 'tamagui';
 
@@ -46,7 +44,7 @@ export default function PlanMapScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const cameraRef = useRef<Camera>(null);
-  const latestLocationRef = useRef<Location | null>(null);
+  const { handleLocate, isLocating } = useMapLocate(cameraRef);
   const initialCameraApplied = useRef(false);
   const [isMapReady, setIsMapReady] = useState(false);
   const [styleIndex, setStyleIndex] = useState(0);
@@ -84,14 +82,6 @@ export default function PlanMapScreen() {
   const setCamera = useCallback((camera: Camera | null) => {
     cameraRef.current = camera;
   }, []);
-  const handleUserLocationUpdate = useCallback((location: Location) => {
-    latestLocationRef.current = location;
-  }, []);
-
-  useEffect(() => {
-    requestForegroundPermissionsAsync().catch(() => {});
-  }, []);
-
   useEffect(() => {
     if (!isMapReady || initialCameraApplied.current || bangumis.length === 0) return;
 
@@ -157,36 +147,6 @@ export default function PlanMapScreen() {
     [selectedBangumiIds, selectedPoint],
   );
 
-  const handleLocate = useCallback(async () => {
-    try {
-      const { status } = await requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('位置权限被拒绝', '请在设置中允许访问位置信息以使用此功能。');
-        return;
-      }
-
-      let location = latestLocationRef.current ?? (await locationManager.getLastKnownLocation());
-      if (!location) {
-        location = await new Promise<Location>((resolve) => {
-          const listener = (nextLocation: Location) => {
-            locationManager.removeListener(listener);
-            resolve(nextLocation);
-          };
-          locationManager.addListener(listener);
-        });
-      }
-
-      cameraRef.current?.setCamera({
-        centerCoordinate: [location.coords.longitude, location.coords.latitude],
-        zoomLevel: 15,
-        animationMode: 'flyTo',
-        animationDuration: 1000,
-      });
-    } catch {
-      Alert.alert('定位失败', '无法获取当前位置，请检查位置服务是否已开启。');
-    }
-  }, []);
-
   return (
     <View flex={1}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -205,7 +165,6 @@ export default function PlanMapScreen() {
             onPointSelect={setSelectedPoint}
             onMapPress={() => setSelectedPoint(null)}
             onCameraChange={setCameraState}
-            onUserLocationUpdate={handleUserLocationUpdate}
           />
 
           <YStack position="absolute" l="$0" r="$0" t={insets.top} z={20} pointerEvents="box-none">
@@ -241,7 +200,7 @@ export default function PlanMapScreen() {
           </YStack>
 
           <YStack r="$2" p="$1.5" position="absolute" b="26%" z={20} gap="$3">
-            <LocateButton onPress={handleLocate} />
+            <LocateButton loading={isLocating} onPress={handleLocate} />
           </YStack>
 
           {progress && <LoadingBadge progress={progress} insets={insets} />}

@@ -7,13 +7,12 @@ import MapTopBangumiIcons from '@/components/map-top-bangumi-icons';
 import PointImageMarkerSwitch from '@/components/point-image-marker-switch';
 import RandomPointButton from '@/components/random-point-button';
 import SearchBox from '@/components/search-box';
+import { useMapLocate } from '@/hooks/use-map-locate';
 import { FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE } from '@/lib/constants';
 import { getPointFlyToZoom } from '@/lib/map-camera';
 import { useMapBrowse } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
-import type { Camera, Location } from '@rnmapbox/maps';
-import { locationManager } from '@rnmapbox/maps';
-import { requestForegroundPermissionsAsync } from 'expo-location';
+import type { Camera } from '@rnmapbox/maps';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, StyleSheet } from 'react-native';
@@ -27,7 +26,7 @@ type CameraState = {
 
 export default function HomeScreen() {
   const cameraRef = useRef<Camera>(null);
-  const latestLocationRef = useRef<Location | null>(null);
+  const { handleLocate, isLocating } = useMapLocate(cameraRef);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const insets = useSafeAreaInsets();
   const data = useMapData((state) => state.data);
@@ -45,15 +44,6 @@ export default function HomeScreen() {
   const handleCameraChange = useCallback((nextCameraState: CameraState) => {
     setCameraState(nextCameraState);
   }, []);
-  const handleUserLocationUpdate = useCallback((location: Location) => {
-    latestLocationRef.current = location;
-  }, []);
-
-  useEffect(() => {
-    // 首次进入即请求定位权限，使 LocationPuck 能正常显示
-    requestForegroundPermissionsAsync().catch(() => {});
-  }, []);
-
   const bangumis = useMemo(() => data?.data.bangumis ?? [], [data]);
   const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const mapCameraRequest = useMapBrowse((state) => state.mapCameraRequest);
@@ -110,41 +100,6 @@ export default function HomeScreen() {
     completeMapCameraRequest(request.id);
   }, [completeMapCameraRequest, data, isCameraReady, mapCameraRequest, mapCameraRequestData, openedBangumiDetailsId]);
 
-  const handleLocate = useCallback(async () => {
-    try {
-      const { status } = await requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('位置权限被拒绝', '请在设置中允许访问位置信息以使用此功能。');
-        return;
-      }
-
-      // Mapbox 的 JS locationManager 会永久缓存首次读取的位置，除非另行
-      // 订阅 JS 定位流。优先使用 MapView 与 LocationPuck 同步上报的位置。
-      let loc = latestLocationRef.current ?? (await locationManager.getLastKnownLocation());
-
-      if (!loc) {
-        // 无缓存时订阅等待第一个位置更新
-        loc = await new Promise<Location>((resolve) => {
-          const listener = (l: Location) => {
-            locationManager.removeListener(listener);
-            resolve(l);
-          };
-          locationManager.addListener(listener);
-        });
-      }
-
-      const { latitude, longitude } = loc.coords;
-      cameraRef.current?.setCamera({
-        centerCoordinate: [longitude, latitude],
-        zoomLevel: 15,
-        animationMode: 'flyTo',
-        animationDuration: 1000,
-      });
-    } catch {
-      Alert.alert('定位失败', '无法获取当前位置，请检查位置服务是否已开启。');
-    }
-  }, []);
-
   const handleRandomPoint = useCallback(() => {
     if (randomPointCandidates.length === 0) {
       Alert.alert('暂无巡礼点', '地图数据加载完成后再试。');
@@ -166,7 +121,6 @@ export default function HomeScreen() {
         styleIndex={styleIndex}
         showPointImageMarkers={showPointImageMarkers}
         onCameraChange={handleCameraChange}
-        onUserLocationUpdate={handleUserLocationUpdate}
       />
 
       <View position="absolute" l="$0" r="$0" t={insets.top === 0 ? '$2' : insets.top} pt="$2" z={0}>
@@ -188,7 +142,7 @@ export default function HomeScreen() {
         <>
           <YStack r="$2" p="$1.5" position="absolute" b="26%" z={20} gap="$3">
             <RandomPointButton onPress={handleRandomPoint} />
-            <LocateButton onPress={handleLocate} />
+            <LocateButton loading={isLocating} onPress={handleLocate} />
           </YStack>
           <View r="$2" p="$1.5" position="absolute" t={200} z={20}>
             <LayerSwitch styleIndex={styleIndex} onChange={setStyleIndex} />

@@ -5,12 +5,22 @@ import PointImageMarkers from '@/components/point-image-markers';
 import PopupCard from '@/components/point-popup-card';
 import type { Bangumi } from '@/services/types';
 import { type MapPointReference, useMapBrowse } from '@/store/use-map-browse';
-import { Camera, LocationPuck, MapState, MapView, MarkerView, type Location } from '@rnmapbox/maps';
+import {
+  Camera,
+  Image as MapboxImage,
+  Images,
+  LocationPuck,
+  MapState,
+  MapView,
+  MarkerView,
+} from '@rnmapbox/maps';
 import { useDebounceFn } from 'ahooks';
 import { useFocusEffect, useNavigation } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { PixelRatio, Platform } from 'react-native';
 import type { EdgeInsets } from 'react-native-safe-area-context';
+import Svg, { Circle, Path } from 'react-native-svg';
+import { YStack } from 'tamagui';
 
 export type Bounds = { ne: number[]; sw: number[] };
 
@@ -21,7 +31,6 @@ type Props = {
   showPointImageMarkers: boolean;
   /** Reports the viewport after camera events stop for 250ms. */
   onCameraChange?: (state: { zoom: number; bounds: { ne: [number, number]; sw: [number, number] } | null }) => void;
-  onUserLocationUpdate?: (location: Location) => void;
   onMapReady?: () => void;
   mode?: 'browse' | 'plan';
   selectedPoint?: MapPointReference | null;
@@ -33,6 +42,12 @@ type Props = {
 const DEFAULT_COORDINATES: [number, number] = [137, 35.2];
 const DEFAULT_ZOOM = 4.6;
 const CAMERA_CHANGE_DEBOUNCE_MS = 250;
+const LOCATION_PUCK_BEARING_IMAGE = 'location-puck-bearing';
+const LOCATION_PUCK_COLOR = '#1677FF';
+const LOCATION_PUCK_BEARING_STROKE_WIDTH = 1.5;
+const LOCATION_PUCK_CIRCLE_STROKE_WIDTH = 2;
+const LOCATION_PUCK_PULSING_RADIUS =
+  Platform.OS === 'android' ? PixelRatio.getPixelSizeForLayoutSize(20) : 20;
 
 const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   {
@@ -41,7 +56,6 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     styleIndex,
     showPointImageMarkers,
     onCameraChange,
-    onUserLocationUpdate,
     onMapReady,
     mode = 'browse',
     selectedPoint,
@@ -234,7 +248,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
 
   return (
     <MapView
-      style={StyleSheet.absoluteFill}
+      style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
       styleURL={MAP_STYLES[styleIndex].url}
       localizeLabels={{ locale: 'zh' }}
       compassEnabled
@@ -242,12 +256,40 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
       scaleBarEnabled={true}
       scaleBarPosition={{ right: 0, bottom: 8 }}
       onCameraChanged={handleCameraChanged}
-      onUserLocationUpdate={onUserLocationUpdate}
       onDidFinishLoadingMap={handleMapReady}
       onPress={isPlanMode ? onMapPress : clearSelectedMapPoint}
     >
       <Camera ref={setCameraRef} centerCoordinate={DEFAULT_COORDINATES} zoomLevel={DEFAULT_ZOOM} animationMode="none" />
-      <LocationPuck visible puckBearingEnabled puckBearing="heading" pulsing={{ isEnabled: true, color: '#007AFF' }} />
+      <Images>
+        <MapboxImage name={LOCATION_PUCK_BEARING_IMAGE}>
+          <YStack width={44} height={44} items="center" collapsable={false}>
+            <Svg width={44} height={44} viewBox="0 0 44 44">
+              <Path
+                d="M22 3 L30.97 15.63 L13.03 15.63 Z"
+                fill={LOCATION_PUCK_COLOR}
+                stroke="#FFFFFF"
+                strokeLinejoin="miter"
+                strokeWidth={LOCATION_PUCK_BEARING_STROKE_WIDTH}
+              />
+              <Circle
+                cx={22}
+                cy={22}
+                r={10.75}
+                fill={LOCATION_PUCK_COLOR}
+                stroke="#FFFFFF"
+                strokeWidth={LOCATION_PUCK_CIRCLE_STROKE_WIDTH}
+              />
+            </Svg>
+          </YStack>
+        </MapboxImage>
+      </Images>
+      <LocationPuck
+        visible
+        bearingImage={LOCATION_PUCK_BEARING_IMAGE}
+        puckBearing="heading"
+        puckBearingEnabled
+        pulsing={{ isEnabled: true, color: LOCATION_PUCK_COLOR, radius: LOCATION_PUCK_PULSING_RADIUS }}
+      />
       <MapMarkers
         bangumis={bangumis}
         selectedBangumiIds={isPlanMode ? (selectedBangumiIds ?? []) : undefined}
