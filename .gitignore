@@ -48,3 +48,6 @@ eas-build/
 /android
 
 downloads/
+
+# VitePress
+docs/.vitepress/cache/

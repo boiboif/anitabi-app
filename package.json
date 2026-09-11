@@ -70,7 +70,8 @@
     "eslint": "^9.0.0",
     "eslint-config-expo": "~57.0.2",
     "prettier": "^3.8.3",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "vitepress": "^1.6.4"
   },
   "scripts": {
     "start": "expo start",
@@ -83,7 +84,10 @@
     "download:images": "node scripts/download-images.mjs",
     "adb-connect": "adb connect 192.168.31.95:5555",
     "build:apk": "expo prebuild --platform android --no-install && cd android && gradlew.bat assembleRelease -PreactNativeArchitectures=arm64-v8a",
-    "release:manifest": "node scripts/generate-release-manifest.cjs"
+    "release:manifest": "node scripts/generate-release-manifest.cjs",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "expo": {
     "install": {
