@@ -133,10 +133,11 @@ const features = [
     </section>
 
     <section class="final-cta section-shell">
-      <div class="final-cta__pin" aria-hidden="true"><span /></div>
-      <span class="eyebrow">NEXT STOP</span>
-      <h2>下一段巡礼，从这里开始。</h2>
-      <p>下载 Android 版本，或者在 GitHub 上一起把 Anitabi 做得更好。</p>
+      <div class="final-cta__copy">
+        <span class="eyebrow">NEXT STOP</span>
+        <h2>下一段巡礼，从这里开始。</h2>
+        <p>下载 Android 版本，或者在 GitHub 上一起把 Anitabi 做得更好。</p>
+      </div>
       <div class="final-cta__actions">
         <a class="download-button download-button--primary" :href="withBase('/download')">获取 Anitabi</a>
         <a class="download-button" href="https://github.com/boiboif/anitabi-app">查看源代码</a>
