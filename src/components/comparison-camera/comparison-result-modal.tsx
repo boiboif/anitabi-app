@@ -1,4 +1,4 @@
-import Toast from '@boiboif/react-native-toast';
+import { Toast } from '@boiboif/react-native-toast';
 import {
   COMPARISON_CAMERA_BOTTOM_REGION_HEIGHT,
   COMPARISON_CAMERA_TOP_REGION_HEIGHT,

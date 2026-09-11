@@ -8,7 +8,7 @@ import { Sentry, sentryNavigationIntegration } from '@/services/sentry';
 import { useMapData } from '@/store/use-map-data';
 import { useThemePreference } from '@/store/use-theme-preference';
 import tamaguiConfig, { LightPageBackground } from '@/tamagui.config';
-import Toast from '@boiboif/react-native-toast';
+import { Toast } from '@boiboif/react-native-toast';
 import { TrueSheetProvider } from '@lodev09/react-native-true-sheet';
 import Mapbox from '@rnmapbox/maps';
 import Constants from 'expo-constants';

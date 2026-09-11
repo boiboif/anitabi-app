@@ -1,4 +1,4 @@
-import Toast from '@boiboif/react-native-toast';
+import { Toast } from '@boiboif/react-native-toast';
 import { locationManager, type Camera, type Location as MapboxLocation } from '@rnmapbox/maps';
 import { hasServicesEnabledAsync, requestForegroundPermissionsAsync } from 'expo-location';
 import { type RefObject, useCallback, useEffect, useRef, useState } from 'react';

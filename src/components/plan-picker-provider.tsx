@@ -1,7 +1,7 @@
 import type { Bangumi, Point } from '@/services/types';
 import { usePlans } from '@/store/use-plans';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
-import Toast from '@boiboif/react-native-toast';
+import { Toast } from '@boiboif/react-native-toast';
 import { Button } from '@tamagui/button';
 import { Plus, Square, SquareCheckBig, X } from '@tamagui/lucide-icons-2';
 import { createContext, type ReactNode, use, useCallback, useMemo, useRef, useState } from 'react';

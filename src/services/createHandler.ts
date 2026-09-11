@@ -1,4 +1,4 @@
-import Toast from '@boiboif/react-native-toast';
+import { Toast } from '@boiboif/react-native-toast';
 import type { AxiosRequestConfig, Method } from 'axios';
 import service from './request';
 

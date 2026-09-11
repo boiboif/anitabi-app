@@ -1,4 +1,4 @@
-import Toast from '@boiboif/react-native-toast';
+import { Toast } from '@boiboif/react-native-toast';
 import { usePathname } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { BackHandler, Platform } from 'react-native';
