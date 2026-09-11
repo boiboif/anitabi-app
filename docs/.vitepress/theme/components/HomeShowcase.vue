@@ -3,17 +3,17 @@ import { withBase } from 'vitepress';
 
 const screenshots = [
   {
-    src: 'https://i0.hdslb.com/bfs/new_dyn/27f14bcd8532a28aa94b2c7e4befdfbf1519338.jpg',
+    src: withBase('/screenshots/explore.webp'),
     alt: 'Anitabi 地图上的动漫巡礼点',
     label: '探索地图',
   },
   {
-    src: 'https://i0.hdslb.com/bfs/new_dyn/48470d9965423be5c3e99076708d203f1519338.jpg',
+    src: withBase('/screenshots/detail.webp'),
     alt: 'Anitabi 巡礼点详情页面',
     label: '发现取景地',
   },
   {
-    src: 'https://i0.hdslb.com/bfs/new_dyn/2ded6575449c3c2cbd246598f68b90c51519338.jpg',
+    src: withBase('/screenshots/compare.webp'),
     alt: 'Anitabi 巡礼对比拍照页面',
     label: '留下对比照',
   },
