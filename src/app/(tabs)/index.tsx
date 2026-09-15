@@ -26,7 +26,7 @@ type CameraState = {
 
 export default function HomeScreen() {
   const cameraRef = useRef<Camera>(null);
-  const { handleLocate, isLocating } = useMapLocate(cameraRef);
+  const { handleLocate, isLocating, isLocationPuckActive, locationPuckRevision } = useMapLocate(cameraRef);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const insets = useSafeAreaInsets();
   const data = useMapData((state) => state.data);
@@ -120,6 +120,8 @@ export default function HomeScreen() {
         bangumis={bangumis}
         styleIndex={styleIndex}
         showPointImageMarkers={showPointImageMarkers}
+        locationPuckActive={isLocationPuckActive}
+        locationPuckRevision={locationPuckRevision}
         onCameraChange={handleCameraChange}
       />
 

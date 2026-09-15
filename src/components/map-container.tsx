@@ -28,6 +28,8 @@ type Props = {
   selectedBangumiIds?: number[];
   onPointSelect?: (point: MapPointReference) => void;
   onMapPress?: () => void;
+  locationPuckActive?: boolean;
+  locationPuckRevision?: number;
 };
 
 const DEFAULT_COORDINATES: [number, number] = [137, 35.2];
@@ -51,6 +53,8 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     selectedBangumiIds,
     onPointSelect,
     onMapPress,
+    locationPuckActive = true,
+    locationPuckRevision = 0,
   },
   ref,
 ) {
@@ -272,13 +276,16 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
           </YStack>
         </MapboxImage>
       </Images>
-      <LocationPuck
-        visible
-        bearingImage={LOCATION_PUCK_BEARING_IMAGE}
-        puckBearing="heading"
-        puckBearingEnabled
-        pulsing={{ isEnabled: true, color: LOCATION_PUCK_COLOR }}
-      />
+      {locationPuckActive && (
+        <LocationPuck
+          key={`location-puck-${locationPuckRevision}`}
+          visible
+          bearingImage={LOCATION_PUCK_BEARING_IMAGE}
+          puckBearing="heading"
+          puckBearingEnabled
+          pulsing={{ isEnabled: true, color: LOCATION_PUCK_COLOR }}
+        />
+      )}
       <MapMarkers
         bangumis={bangumis}
         selectedBangumiIds={isPlanMode ? (selectedBangumiIds ?? []) : undefined}

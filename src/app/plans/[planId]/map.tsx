@@ -44,7 +44,7 @@ export default function PlanMapScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const cameraRef = useRef<Camera>(null);
-  const { handleLocate, isLocating } = useMapLocate(cameraRef);
+  const { handleLocate, isLocating, isLocationPuckActive, locationPuckRevision } = useMapLocate(cameraRef);
   const initialCameraApplied = useRef(false);
   const [isMapReady, setIsMapReady] = useState(false);
   const [styleIndex, setStyleIndex] = useState(0);
@@ -159,6 +159,8 @@ export default function PlanMapScreen() {
             bangumis={bangumis}
             styleIndex={styleIndex}
             showPointImageMarkers={showPointImageMarkers}
+            locationPuckActive={isLocationPuckActive}
+            locationPuckRevision={locationPuckRevision}
             onMapReady={() => setIsMapReady(true)}
             selectedPoint={selectedPoint}
             selectedBangumiIds={selectedBangumiIds}
