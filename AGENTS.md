@@ -9,3 +9,11 @@ Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before 
 - Use inline styles only when a value is dynamic or cannot be expressed with Tamagui props.
 - Keep mobile typography compact and preserve a clear hierarchy; do not increase font sizes without a specific design reason.
 - Do not start, restart, or verify a local development server after routine UI changes unless the user explicitly requests it.
+
+## Build and Packaging Approval
+
+- Before running any packaging, bundling, build, prebuild, native compilation, export, or build-oriented verification command, ask the user for explicit permission and wait for their response.
+- This requirement includes commands such as `expo export`, `expo prebuild`, `expo run:android`, `expo run:ios`, Gradle/Xcode builds, EAS builds, documentation/site builds, and equivalent resource-intensive validation.
+- A request to implement, fix, or verify a feature does not implicitly authorize a build. Prefer lightweight checks such as linting, targeted type checking, and focused tests when they are sufficient.
+- Build permission applies only to the scope and duration explicitly authorized by the user. Ask again for later builds unless the user has clearly stated that subsequent build verification is allowed.
+- If the user says they will perform validation themselves, do not run build or packaging commands; report the lightweight checks completed and leave build validation to them.

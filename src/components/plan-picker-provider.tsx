@@ -1,8 +1,8 @@
+import { StrictButton as Button } from '@/components/strict-button';
 import type { Bangumi, Point } from '@/services/types';
 import { usePlans } from '@/store/use-plans';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { Toast } from '@boiboif/react-native-toast';
-import { Button } from '@tamagui/button';
 import { Plus, Square, SquareCheckBig, X } from '@tamagui/lucide-icons-2';
 import { createContext, type ReactNode, use, useCallback, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView } from 'react-native';
@@ -126,7 +126,7 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
         style={{ paddingTop: 26 }}
         footer={
           <View px="$4" pt="$2" pb="$4" bg="$color1">
-            <Button bg="$primary" color="white" size="$4" onPress={submit}>
+            <Button bg="$primary" color="white" onPress={submit}>
               完成
             </Button>
           </View>
@@ -198,7 +198,6 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
           <Button
             bg="$primary"
             color="white"
-            size="$4"
             disabled={!newPlanTitle.trim()}
             accessibilityState={{ disabled: !newPlanTitle.trim() }}
             opacity={newPlanTitle.trim() ? 1 : 0.5}

@@ -1,4 +1,5 @@
 import { TrueSheet, type TrueSheetProps } from '@lodev09/react-native-true-sheet';
+import { ACTION_SHEET_ICON_SIZE } from '@/lib/ui-sizes';
 import type { IconProps } from '@tamagui/helpers-icon';
 import { ComponentType, forwardRef, useCallback, useRef } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
@@ -21,6 +22,8 @@ export type ActionSheetSection = {
 };
 
 export type ActionSheetProps = Omit<TrueSheetProps, 'children'> & {
+  title?: string;
+  description?: string;
   primaryAction?: ActionSheetAction;
   sections?: ActionSheetSection[];
 };
@@ -46,7 +49,7 @@ function ActionRow({
     >
       <XStack minH={54} items="center" gap="$2" px="$3">
         <View width={30} items="center" justify="center">
-          <Icon size={21} strokeWidth={2} color={iconColor} />
+          <Icon size={ACTION_SHEET_ICON_SIZE} strokeWidth={2} color={iconColor} />
         </View>
         <Text flex={1} fontSize="$body" lineHeight={21} color={iconColor}>
           {action.label}
@@ -57,7 +60,7 @@ function ActionRow({
 }
 
 export const ActionSheet = forwardRef<ActionSheetRef, ActionSheetProps>(function ActionSheet(
-  { primaryAction, sections = [], ...sheetProps },
+  { title, description, primaryAction, sections = [], ...sheetProps },
   ref,
 ) {
   const theme = useTheme();
@@ -88,6 +91,20 @@ export const ActionSheet = forwardRef<ActionSheetRef, ActionSheetProps>(function
       }
     >
       <YStack px="$3" pt="$5" pb="$4" gap="$2.5">
+        {title || description ? (
+          <YStack px="$1" pb="$1" gap="$1">
+            {title ? (
+              <Text fontSize="$subtitle" lineHeight={22} fontWeight="700" color="$color12">
+                {title}
+              </Text>
+            ) : null}
+            {description ? (
+              <Text fontSize="$footnote" lineHeight={18} color="$color11">
+                {description}
+              </Text>
+            ) : null}
+          </YStack>
+        ) : null}
         {primaryAction ? (
           <YStack overflow="hidden" rounded="$3" bg="$color1">
             <ActionRow action={primaryAction} onActivate={activateAction} />

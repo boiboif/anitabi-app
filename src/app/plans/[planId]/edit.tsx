@@ -1,4 +1,5 @@
 import { StrictButton as Button } from '@/components/strict-button';
+import { BLOCK_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';
 import { usePlans } from '@/store/use-plans';
 import { Check } from '@tamagui/lucide-icons-2';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -69,8 +70,7 @@ export default function EditPlanScreen() {
           <Button
             bg="$primary"
             color="white"
-            size="$4"
-            icon={Check}
+            icon={<Check size={BLOCK_BUTTON_ICON_SIZE} />}
             disabled={!title.trim()}
             accessibilityState={{ disabled: !title.trim() }}
             opacity={!title.trim() ? 0.5 : 1}

@@ -33,5 +33,5 @@ Anitabi 把动画取景地数据放进移动端地图，并围绕真实的出行
 应用支持系统深色模式。收藏、计划、缓存和对比图默认保存在设备本地；定位、相机与照片权限只在对应功能需要时使用。
 
 ::: tip 项目仍在持续开发
-分享巡礼计划、多语言和智能路线规划等能力还在计划中。欢迎在 [GitHub Issues](https://github.com/boiboif/anitabi-app/issues) 提交建议。
+巡礼计划支持生成带二维码的分享图片，也可以通过计划文件导入较大的路线。多语言和智能路线规划等能力还在计划中。欢迎在 [GitHub Issues](https://github.com/boiboif/anitabi-app/issues) 提交建议。
 :::

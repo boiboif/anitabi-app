@@ -5,11 +5,16 @@ const appVersion = '0.2.4';
 const openSourceLicensePrimaryPackages = Object.keys(appPackage.dependencies).sort();
 const nativeAppVersion = process.env.APP_NATIVE_VERSION || appVersion;
 const updateChannel = process.env.EXPO_UPDATE_CHANNEL || 'development';
+const appVariant = process.env.APP_VARIANT || 'production';
+const isDevelopmentBuild = appVariant === 'development';
+const appName = isDevelopmentBuild ? 'Anitabi Dev' : 'Anitabi';
+const appIdentifier = isDevelopmentBuild ? 'bbf.anitabiapp.dev' : 'bbf.anitabiapp';
+const appScheme = isDevelopmentBuild ? 'anitabiapp-dev' : 'anitabiapp';
 const appUpdatesEnabled = updateChannel === 'preview' || updateChannel === 'production';
 const binaryUpdateManifestName = updateChannel === 'preview' ? 'preview.json' : 'latest.json';
 
 const config: ExpoConfig = {
-  name: 'Anitabi',
+  name: appName,
   slug: 'anitabi-app',
   version: nativeAppVersion,
   runtimeVersion: appVersion,
@@ -24,13 +29,13 @@ const config: ExpoConfig = {
   },
   orientation: 'default',
   icon: './assets/images/anitabi-icon.png',
-  scheme: 'anitabiapp',
+  scheme: appScheme,
   userInterfaceStyle: 'automatic',
   ios: {
-    bundleIdentifier: 'bbf.anitabiapp',
+    bundleIdentifier: appIdentifier,
     icon: './assets/images/anitabi-icon.png',
     infoPlist: {
-      NSCameraUsageDescription: '用于拍摄巡礼点的实景对比照片',
+      NSCameraUsageDescription: '用于拍摄巡礼点的实景对比照片和扫描巡礼计划二维码',
       NSAppTransportSecurity: {
         NSAllowsArbitraryLoads: true,
       },
@@ -42,7 +47,7 @@ const config: ExpoConfig = {
       foregroundImage: './assets/images/anitabi-icon-adaptive-foreground.png',
     },
     predictiveBackGestureEnabled: false,
-    package: 'bbf.anitabiapp',
+    package: appIdentifier,
     versionCode: Number(process.env.ANDROID_VERSION_CODE ?? 1),
     permissions: ['android.permission.CAMERA', 'android.permission.REQUEST_INSTALL_PACKAGES'],
   },
@@ -52,6 +57,15 @@ const config: ExpoConfig = {
   },
   plugins: [
     'expo-router',
+    [
+      'expo-camera',
+      {
+        cameraPermission: '用于拍摄巡礼点的实景对比照片和扫描巡礼计划二维码',
+        recordAudioAndroid: false,
+        barcodeScannerEnabled: true,
+      },
+    ],
+    'expo-sharing',
     'expo-font',
     'expo-image',
     ['expo-build-properties', { android: { usesCleartextTraffic: true } }],
@@ -127,6 +141,7 @@ const config: ExpoConfig = {
   extra: {
     mapboxAccessToken: process.env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN,
     openSourceLicensePrimaryPackages,
+    appVariant,
     updateChannel,
     appUpdatesEnabled,
     binaryUpdateManifestUrl: appUpdatesEnabled

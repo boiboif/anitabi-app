@@ -36,6 +36,7 @@ type PlansStore = {
   togglePoint: (planId: string, itemKey: string) => void;
   movePoint: (planId: string, itemKey: string, direction: 'up' | 'down') => void;
   reorderPoints: (planId: string, orderedKeys: string[]) => void;
+  importPlan: (title: string, entries: { point: Point; bangumi: Bangumi }[]) => string;
   clearAllPlans: () => void;
 };
 
@@ -156,6 +157,25 @@ export const usePlans = create<PlansStore>((set, get) => ({
       ),
       set,
     );
+  },
+  importPlan: (title, entries) => {
+    const now = Date.now();
+    const seen = new Set<string>();
+    const items = entries.flatMap(({ point, bangumi }) => {
+      const item = makeItem(point, bangumi);
+      if (seen.has(item.key)) return [];
+      seen.add(item.key);
+      return [{ ...item, addedAt: now, completed: false }];
+    });
+    const plan: ItineraryPlan = {
+      id: `${now}-${Math.random().toString(36).slice(2, 8)}`,
+      title: title.trim(),
+      createdAt: now,
+      updatedAt: now,
+      items,
+    };
+    save([plan, ...get().plans], set);
+    return plan.id;
   },
   clearAllPlans: () => {
     clearPlans();

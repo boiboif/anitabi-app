@@ -1,11 +1,6 @@
+import { Children, useRef } from 'react';
+import type { GestureResponderEvent, LayoutChangeEvent, LayoutRectangle, PressableProps } from 'react-native';
 import { Button as TamaguiButton, type ButtonProps } from 'tamagui';
-import { useRef } from 'react';
-import type {
-  GestureResponderEvent,
-  LayoutChangeEvent,
-  LayoutRectangle,
-  PressableProps,
-} from 'react-native';
 
 const strictPressRetentionOffset = { top: 0, right: 0, bottom: 0, left: 0 };
 
@@ -40,10 +35,12 @@ function isInsideLayout(coordinates: PressCoordinates | null, layout: LayoutRect
   return coordinates.x >= 0 && coordinates.x <= layout.width && coordinates.y >= 0 && coordinates.y <= layout.height;
 }
 
-type StrictButtonProps = ButtonProps &
-  Pick<PressableProps, 'onLayout' | 'onResponderMove' | 'pressRetentionOffset'>;
+type StrictButtonProps = ButtonProps & Pick<PressableProps, 'onLayout' | 'onResponderMove' | 'pressRetentionOffset'>;
 
 export function StrictButton({
+  children,
+  size = '$4',
+  fontSize = '$body',
   onLayout,
   onPress,
   onPressIn,
@@ -77,6 +74,7 @@ export function StrictButton({
 
   const buttonProps = {
     ...props,
+    size,
     onLayout: handleLayout,
     onPressIn: handlePressIn,
     onResponderMove: handleResponderMove,
@@ -84,5 +82,15 @@ export function StrictButton({
     pressRetentionOffset: pressRetentionOffset ?? strictPressRetentionOffset,
   } as ButtonProps;
 
-  return <TamaguiButton {...buttonProps} />;
+  return (
+    <TamaguiButton {...buttonProps}>
+      {Children.map(children, (child) =>
+        typeof child === 'string' || typeof child === 'number' ? (
+          <TamaguiButton.Text fontSize={fontSize}>{child}</TamaguiButton.Text>
+        ) : (
+          child
+        ),
+      )}
+    </TamaguiButton>
+  );
 }

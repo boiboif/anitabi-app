@@ -1,10 +1,11 @@
+import { StrictButton as Button } from '@/components/strict-button';
 import { useOpenSourceLibraries } from '@/hooks/use-open-source-libraries';
 import { MaxContentWidth } from '@/tamagui.config';
 import * as Linking from 'expo-linking';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { Alert, Platform, Pressable, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button, Spinner, Text, YStack, useTheme } from 'tamagui';
+import { Spinner, Text, YStack, useTheme } from 'tamagui';
 
 async function openExternalUrl(url: string) {
   try {
@@ -62,7 +63,7 @@ export default function OpenSourceLicenseScreen() {
               <Text text="center" fontSize="$body" lineHeight={22} color="$color11">
                 {error}
               </Text>
-              <Button size="$3" bg="$primary" color="white" onPress={retry}>
+              <Button bg="$primary" color="white" onPress={retry}>
                 重试
               </Button>
             </YStack>

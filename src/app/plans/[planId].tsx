@@ -1,11 +1,25 @@
 import { ActionSheet, type ActionSheetRef } from '@/components/action-sheet';
 import PointListCard from '@/components/point-list-card';
 import { StrictButton as Button } from '@/components/strict-button';
+import { sharePlanFile } from '@/lib/plan-share-files';
+import { createPlanShareBundle } from '@/lib/plan-sharing';
+import { ICON_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapData } from '@/store/use-map-data';
 import { usePlans } from '@/store/use-plans';
 import { FlashList } from '@shopify/flash-list';
-import { ArrowDownUp, Check, GripVertical, MoreHorizontal, Pencil, Plus, Trash2 } from '@tamagui/lucide-icons-2';
+import {
+  ArrowDownUp,
+  Check,
+  FileJson,
+  GripVertical,
+  Image as ImageIcon,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Share2,
+  Trash2,
+} from '@tamagui/lucide-icons-2';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable } from 'react-native';
@@ -117,6 +131,7 @@ export default function PlanDetailScreen() {
   const reorderPoints = usePlans((state) => state.reorderPoints);
   const data = useMapData((state) => state.data);
   const menuSheetRef = useRef<ActionSheetRef>(null);
+  const overflowSheetRef = useRef<ActionSheetRef>(null);
   const [sorting, setSorting] = useState(false);
 
   const resolvedItems = useMemo<ResolvedItem[]>(() => {
@@ -228,6 +243,33 @@ export default function PlanDetailScreen() {
     setTimeout(confirmDelete, 180);
   };
 
+  const openShare = () => {
+    if (plan.items.length === 0) {
+      Alert.alert('暂时无法分享', '计划中还没有点位，添加点位后再分享吧。');
+      return;
+    }
+    const bundle = createPlanShareBundle(plan);
+    if (bundle.qrEligible) {
+      router.navigate({ pathname: '/plans/[planId]/share', params: { planId: plan.id } } as never);
+      return;
+    }
+    overflowSheetRef.current?.present();
+  };
+
+  const shareLargePlanFile = () => {
+    setTimeout(() => {
+      void sharePlanFile(plan).catch((error) => {
+        Alert.alert('无法分享计划文件', error instanceof Error ? error.message : '请稍后重试');
+      });
+    }, 220);
+  };
+
+  const openDisplayOnlyShare = () => {
+    setTimeout(() => {
+      router.navigate({ pathname: '/plans/[planId]/share', params: { planId: plan.id, displayOnly: '1' } } as never);
+    }, 180);
+  };
+
   return (
     <>
       <Stack.Screen
@@ -244,7 +286,7 @@ export default function PlanDetailScreen() {
                 chromeless
                 circular
                 size="$3"
-                icon={<Plus size={22} strokeWidth={2} />}
+                icon={<Plus size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />}
                 onPress={() =>
                   router.navigate({ pathname: '/plans/[planId]/add', params: { planId: plan.id } } as never)
                 }
@@ -254,7 +296,7 @@ export default function PlanDetailScreen() {
                 chromeless
                 circular
                 size="$3"
-                icon={<ArrowDownUp size={22} strokeWidth={2} />}
+                icon={<ArrowDownUp size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />}
                 color={sorting ? '$primary' : '$color12'}
                 onPress={toggleSorting}
                 aria-label={sorting ? '完成排序' : '排序巡礼点'}
@@ -263,7 +305,7 @@ export default function PlanDetailScreen() {
                 chromeless
                 circular
                 size="$3"
-                icon={<MoreHorizontal size={22} strokeWidth={2} />}
+                icon={<MoreHorizontal size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />}
                 onPress={() => menuSheetRef.current?.present()}
                 aria-label="更多操作"
               />
@@ -319,11 +361,29 @@ export default function PlanDetailScreen() {
       <ActionSheet
         ref={menuSheetRef}
         primaryAction={{
-          label: '编辑计划信息',
-          icon: Pencil,
-          onPress: () => router.navigate({ pathname: '/plans/[planId]/edit', params: { planId: plan.id } } as never),
+          label: '分享计划',
+          icon: Share2,
+          onPress: () => setTimeout(openShare, 180),
         }}
-        sections={[{ actions: [{ label: '删除计划', icon: Trash2, destructive: true, onPress: openDeleteConfirm }] }]}
+        sections={[
+          {
+            actions: [
+              {
+                label: '编辑计划信息',
+                icon: Pencil,
+                onPress: () => router.navigate({ pathname: '/plans/[planId]/edit', params: { planId: plan.id } } as never),
+              },
+              { label: '删除计划', icon: Trash2, destructive: true, onPress: openDeleteConfirm },
+            ],
+          },
+        ]}
+      />
+      <ActionSheet
+        ref={overflowSheetRef}
+        title="计划内容较多"
+        description={`当前计划包含 ${plan.items.length} 个点位，生成的二维码会过于密集，经过聊天软件压缩后可能无法正常扫描。建议分享计划文件；文件仅包含计划名称和点位编号。`}
+        primaryAction={{ label: '分享计划文件', icon: FileJson, onPress: shareLargePlanFile }}
+        sections={[{ actions: [{ label: '生成展示图片', icon: ImageIcon, onPress: openDisplayOnlyShare }] }]}
       />
     </>
   );

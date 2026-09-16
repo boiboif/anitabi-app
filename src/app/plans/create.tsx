@@ -1,5 +1,5 @@
+import { StrictButton as Button } from '@/components/strict-button';
 import { usePlans } from '@/store/use-plans';
-import { Button } from '@tamagui/button';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
@@ -58,21 +58,21 @@ export default function CreatePlanScreen() {
               fontSize="$body"
             />
           </YStack>
-          <Button
-            bg="$primary"
-            color="white"
-            size="$4"
-            fontSize="$body"
-            disabled={!title.trim()}
-            accessibilityState={{ disabled: !title.trim() }}
-            opacity={!title.trim() ? 0.5 : 1}
-            onPress={submit}
-          >
-            创建计划
-          </Button>
-          <Button bg="$color3" color="$color11" size="$4" fontSize="$body" onPress={() => router.back()}>
-            取消
-          </Button>
+          <YStack gap="$2">
+            <Button
+              bg="$primary"
+              color="white"
+              disabled={!title.trim()}
+              accessibilityState={{ disabled: !title.trim() }}
+              opacity={!title.trim() ? 0.5 : 1}
+              onPress={submit}
+            >
+              创建计划
+            </Button>
+            <Button bg="$color3" color="$color11" onPress={() => router.back()}>
+              取消
+            </Button>
+          </YStack>
         </ScrollView>
       </KeyboardAvoidingView>
     </>

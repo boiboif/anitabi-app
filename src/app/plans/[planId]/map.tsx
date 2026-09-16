@@ -7,6 +7,7 @@ import PointImageMarkerSwitch from '@/components/point-image-marker-switch';
 import { StrictButton as Button } from '@/components/strict-button';
 import { useMapLocate } from '@/hooks/use-map-locate';
 import { getPointFlyToZoom } from '@/lib/map-camera';
+import { ICON_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';
 import type { Bangumi, Point } from '@/services/types';
 import { type MapPointReference } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
@@ -177,7 +178,7 @@ export default function PlanMapScreen() {
                 width={40}
                 height={40}
                 p="$0"
-                icon={<ArrowLeft size={26} strokeWidth={2.25} color="$primary" />}
+                icon={<ArrowLeft size={ICON_BUTTON_ICON_SIZE} strokeWidth={2.25} color="$primary" />}
                 onPress={() => router.back()}
                 aria-label="返回巡礼计划"
               />
@@ -216,7 +217,7 @@ export default function PlanMapScreen() {
               width={44}
               height={44}
               p="$0"
-              icon={<ArrowLeft size={26} strokeWidth={2.25} color="$color12" />}
+              icon={<ArrowLeft size={ICON_BUTTON_ICON_SIZE} strokeWidth={2.25} color="$color12" />}
               onPress={() => router.back()}
               aria-label="返回巡礼计划"
             />

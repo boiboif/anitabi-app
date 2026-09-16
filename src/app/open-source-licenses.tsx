@@ -1,3 +1,4 @@
+import { StrictButton as Button } from '@/components/strict-button';
 import { useOpenSourceLibraries } from '@/hooks/use-open-source-libraries';
 import { getCurrentAppDisplayVersion } from '@/services/app-update';
 import { MaxContentWidth } from '@/tamagui.config';
@@ -7,7 +8,7 @@ import { Link, Stack, type Href, useLocalSearchParams } from 'expo-router';
 import { Alert, FlatList, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Library } from 'react-native-legal';
-import { Button, Spinner, Text, XStack, YStack, useTheme } from 'tamagui';
+import { Spinner, Text, XStack, YStack, useTheme } from 'tamagui';
 
 async function openLicenseUrl(url: string) {
   try {
@@ -137,7 +138,7 @@ export default function OpenSourceLicensesScreen() {
               {isLoading ? '正在整理开源许可证…' : (error ?? '当前构建中没有可显示的许可证数据。')}
             </Text>
             {error ? (
-              <Button size="$3" bg="$primary" color="white" onPress={retry}>
+              <Button bg="$primary" color="white" onPress={retry}>
                 重试
               </Button>
             ) : null}
