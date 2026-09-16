@@ -88,10 +88,14 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
 
   const submit = useCallback(() => {
     if (!target) return;
+    if (plans.length === 0) {
+      Toast.show('请先新建巡礼计划');
+      return;
+    }
     updatePointPlans(target.point, target.bangumi, selectedPlanIds);
     void pickerSheetRef.current?.dismiss();
     Toast.show(selectedPlanIds.length > 0 ? '已更新巡礼计划' : '已从巡礼计划移除');
-  }, [selectedPlanIds, target, updatePointPlans]);
+  }, [plans.length, selectedPlanIds, target, updatePointPlans]);
 
   const openCreate = useCallback(() => {
     setNewPlanTitle('');
