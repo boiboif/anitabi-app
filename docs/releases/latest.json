@@ -1,11 +1,11 @@
 {
-  "version": "0.2.4",
-  "displayVersion": "0.2.4",
-  "title": "v0.2.4",
-  "releaseNotes": "地图定位体验更稳定，优化定位反馈、方向显示与图片占位表现。\n\nAndroid 现在支持在首页连续按两次返回键退出应用。\n\n优化外部链接打开方式，并改进更新后版本信息的显示。\n\n升级基础交互与提示组件，提升应用稳定性和系统兼容性。",
-  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.2.4/anitabi-app-v0.2.4-android.apk",
-  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.2.4",
+  "version": "0.3.0",
+  "displayVersion": "0.3.0",
+  "title": "v0.3.0",
+  "releaseNotes": "新增巡礼计划分享与导入功能\n优化巡礼计划列表与操作体验\n调整按钮与图标显示，操作界面更加简洁\n改善地图定位与部分交互细节，提升使用稳定性",
+  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.3.0/anitabi-app-v0.3.0-android.apk",
+  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.3.0",
   "mandatory": false,
-  "buildNumber": 1018,
-  "fileName": "anitabi-app-v0.2.4-android.apk"
+  "buildNumber": 1019,
+  "fileName": "anitabi-app-v0.3.0-android.apk"
 }
