@@ -98,6 +98,8 @@ export function AppUpdateOverlay({ manager }: Props) {
             ) : null}
             <Button
               disabled={isDownloadingBinary}
+              accessibilityState={{ disabled: isDownloadingBinary }}
+              opacity={isDownloadingBinary ? 0.5 : 1}
               onPress={isBinary ? () => void manager.installBinaryUpdate() : () => void manager.reloadForHotUpdate()}
             >
               {isDownloadingBinary

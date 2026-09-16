@@ -195,7 +195,15 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
             placeholder="请输入计划名称"
             maxLength={60}
           />
-          <Button bg="$primary" color="white" size="$4" opacity={newPlanTitle.trim() ? 1 : 0.5} onPress={create}>
+          <Button
+            bg="$primary"
+            color="white"
+            size="$4"
+            disabled={!newPlanTitle.trim()}
+            accessibilityState={{ disabled: !newPlanTitle.trim() }}
+            opacity={newPlanTitle.trim() ? 1 : 0.5}
+            onPress={create}
+          >
             创建并加入
           </Button>
         </YStack>

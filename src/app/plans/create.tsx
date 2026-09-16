@@ -63,11 +63,10 @@ export default function CreatePlanScreen() {
             color="white"
             size="$4"
             fontSize="$body"
+            disabled={!title.trim()}
+            accessibilityState={{ disabled: !title.trim() }}
             opacity={!title.trim() ? 0.5 : 1}
-            onPress={() => {
-              if (!title.trim()) return;
-              submit();
-            }}
+            onPress={submit}
           >
             创建计划
           </Button>

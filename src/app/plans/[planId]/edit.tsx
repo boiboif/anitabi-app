@@ -72,6 +72,7 @@ export default function EditPlanScreen() {
             size="$4"
             icon={Check}
             disabled={!title.trim()}
+            accessibilityState={{ disabled: !title.trim() }}
             opacity={!title.trim() ? 0.5 : 1}
             onPress={submit}
           >
