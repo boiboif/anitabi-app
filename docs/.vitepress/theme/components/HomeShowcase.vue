@@ -43,30 +43,6 @@ const features = [
 
 <template>
   <div class="home-showcase">
-    <section class="journey-strip" aria-label="使用流程">
-      <div class="journey-strip__line" aria-hidden="true" />
-      <div class="journey-step">
-        <span class="journey-step__dot" />
-        <strong>发现</strong>
-        <span>浏览动画取景地</span>
-      </div>
-      <div class="journey-step">
-        <span class="journey-step__dot" />
-        <strong>收藏</strong>
-        <span>保存心动坐标</span>
-      </div>
-      <div class="journey-step">
-        <span class="journey-step__dot" />
-        <strong>出发</strong>
-        <span>规划巡礼路线</span>
-      </div>
-      <div class="journey-step">
-        <span class="journey-step__dot" />
-        <strong>重现</strong>
-        <span>拍下同款构图</span>
-      </div>
-    </section>
-
     <section class="product-story section-shell">
       <div class="section-intro">
         <span class="eyebrow">YOUR ANIME PILGRIMAGE</span>
@@ -88,6 +64,30 @@ const features = [
           <img :src="screenshot.src" :alt="screenshot.alt" loading="lazy" />
           <span>{{ screenshot.label }}</span>
         </div>
+      </div>
+    </section>
+
+    <section class="journey-strip" aria-label="使用流程">
+      <div class="journey-strip__line" aria-hidden="true" />
+      <div class="journey-step">
+        <span class="journey-step__dot" />
+        <strong>发现</strong>
+        <span>浏览动画取景地</span>
+      </div>
+      <div class="journey-step">
+        <span class="journey-step__dot" />
+        <strong>收藏</strong>
+        <span>保存心动坐标</span>
+      </div>
+      <div class="journey-step">
+        <span class="journey-step__dot" />
+        <strong>出发</strong>
+        <span>规划巡礼路线</span>
+      </div>
+      <div class="journey-step">
+        <span class="journey-step__dot" />
+        <strong>重现</strong>
+        <span>拍下同款构图</span>
       </div>
     </section>
 

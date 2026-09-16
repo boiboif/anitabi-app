@@ -225,6 +225,7 @@ body {
   position: relative;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
+  margin-bottom: 108px;
   padding: 28px 36px;
   border: 1px solid var(--vp-c-divider);
   border-radius: 24px;
@@ -278,8 +279,8 @@ body {
   grid-template-columns: 0.92fr 1.08fr;
   align-items: center;
   gap: 56px;
-  padding-top: 118px;
-  padding-bottom: 118px;
+  padding-top: 64px;
+  padding-bottom: 92px;
 }
 
 .section-intro h2,
@@ -670,8 +671,8 @@ body {
   .product-story {
     grid-template-columns: 1fr;
     gap: 54px;
-    padding-top: 100px;
-    padding-bottom: 110px;
+    padding-top: 72px;
+    padding-bottom: 88px;
   }
 
   .section-intro {
@@ -738,6 +739,7 @@ body {
   .journey-strip {
     grid-template-columns: repeat(2, 1fr);
     gap: 26px 8px;
+    margin-bottom: 88px;
     padding: 26px 18px;
   }
 
@@ -747,8 +749,8 @@ body {
 
   .product-story {
     gap: 42px;
-    padding-top: 88px;
-    padding-bottom: 88px;
+    padding-top: 56px;
+    padding-bottom: 72px;
   }
 
   .phone-gallery {
