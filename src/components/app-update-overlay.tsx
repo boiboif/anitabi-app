@@ -1,8 +1,8 @@
+import { StrictButton as Button } from '@/components/strict-button';
 import type { AppUpdateManager } from '@/hooks/use-app-updates';
 import { getBinaryUpdateDisplayVersion, getCurrentAppDisplayVersion, isMandatoryUpdate } from '@/services/app-update';
 import { Modal, ScrollView } from 'react-native';
 import { Progress, Text, View, XStack, YStack } from 'tamagui';
-import { StrictButton as Button } from '@/components/strict-button';
 
 type Props = {
   manager: AppUpdateManager;
@@ -16,6 +16,7 @@ export function AppUpdateOverlay({ manager }: Props) {
     isDownloadingBinary,
     isBinaryDownloaded,
     binaryProgress,
+    binaryDownloadError,
   } = manager;
   const visibleBinaryUpdate = isBinaryUpdateVisible ? binaryUpdate : null;
   const binaryMandatory = visibleBinaryUpdate ? isMandatoryUpdate(visibleBinaryUpdate) : false;
@@ -31,6 +32,8 @@ export function AppUpdateOverlay({ manager }: Props) {
   const currentVersion = getCurrentAppDisplayVersion();
   const newVersion = visibleBinaryUpdate ? getBinaryUpdateDisplayVersion(visibleBinaryUpdate) : null;
   const progress = binaryProgress?.percent ?? 0;
+  const hasPartialDownload = (binaryProgress?.bytesWritten ?? 0) > 0;
+  const showBinaryProgress = isBinary && !isBinaryDownloaded && (isDownloadingBinary || binaryProgress !== null);
 
   return (
     <Modal
@@ -70,11 +73,11 @@ export function AppUpdateOverlay({ manager }: Props) {
             </ScrollView>
           </YStack>
 
-          {isDownloadingBinary && !isBinaryDownloaded ? (
+          {showBinaryProgress ? (
             <YStack gap="$2">
               <XStack justify="space-between">
                 <Text fontSize="$footnote" color="$color11">
-                  正在下载安装包
+                  {isDownloadingBinary ? '正在下载安装包' : hasPartialDownload ? '下载已暂停' : '等待下载'}
                 </Text>
                 <Text fontSize="$footnote" color="$color12">
                   {progress}%
@@ -86,8 +89,23 @@ export function AppUpdateOverlay({ manager }: Props) {
             </YStack>
           ) : null}
 
-          <XStack gap="$3" justify="flex-end">
-            {!binaryMandatory ? (
+          {isBinary && binaryDownloadError ? (
+            <Text fontSize="$footnote" color="$red10">
+              {binaryDownloadError}
+            </Text>
+          ) : null}
+
+          <XStack justify="space-between" flexWrap="wrap">
+            {isBinary && isDownloadingBinary ? (
+              <Button
+                chromeless
+                onPress={manager.cancelBinaryUpdate}
+                accessibilityRole="button"
+                accessibilityLabel="取消下载安装包"
+              >
+                取消
+              </Button>
+            ) : !binaryMandatory ? (
               <Button
                 chromeless
                 onPress={isBinary ? manager.dismissBinaryUpdate : manager.dismissHotUpdate}
@@ -96,22 +114,38 @@ export function AppUpdateOverlay({ manager }: Props) {
                 稍后
               </Button>
             ) : null}
-            <Button
-              disabled={isDownloadingBinary}
-              accessibilityState={{ disabled: isDownloadingBinary }}
-              opacity={isDownloadingBinary ? 0.5 : 1}
-              onPress={isBinary ? () => void manager.installBinaryUpdate() : () => void manager.reloadForHotUpdate()}
-            >
-              {isDownloadingBinary
-                ? isBinaryDownloaded
-                  ? '正在打开…'
-                  : '下载中…'
-                : isBinary
+            <XStack>
+              {isBinary && !isBinaryDownloaded && !isDownloadingBinary ? (
+                <Button
+                  chromeless
+                  onPress={() => void manager.downloadBinaryUpdateInBrowser()}
+                  accessibilityRole="button"
+                  accessibilityLabel="使用浏览器下载安装包"
+                >
+                  浏览器下载
+                </Button>
+              ) : null}
+              <Button
+                chromeless
+                color="$primary"
+                disabled={isDownloadingBinary}
+                accessibilityState={{ disabled: isDownloadingBinary }}
+                opacity={isDownloadingBinary ? 0.5 : 1}
+                onPress={isBinary ? () => void manager.installBinaryUpdate() : () => void manager.reloadForHotUpdate()}
+              >
+                {isDownloadingBinary
                   ? isBinaryDownloaded
-                    ? '立即安装'
-                    : '立即更新'
-                  : '重启更新'}
-            </Button>
+                    ? '正在打开…'
+                    : '下载中…'
+                  : isBinary
+                    ? isBinaryDownloaded
+                      ? '立即安装'
+                      : hasPartialDownload
+                        ? '继续下载'
+                        : '立即更新'
+                    : '重启更新'}
+              </Button>
+            </XStack>
           </XStack>
         </YStack>
       </View>

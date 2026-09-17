@@ -1,13 +1,17 @@
 import {
   areAppUpdatesEnabled,
+  cancelBinaryUpdateDownload,
   checkBinaryUpdate,
   downloadAndInstallBinaryUpdate,
+  getResumableBinaryDownloadProgress,
   isBinaryUpdateDownloaded,
+  openBinaryUpdateInBrowser,
+  pauseBinaryUpdateDownload,
   type BinaryDownloadProgress,
   type BinaryUpdate,
 } from '@/services/app-update';
-import { useCallback, useEffect, useRef, useState } from 'react';
 import * as Updates from 'expo-updates';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type AppUpdateManager = {
   binaryUpdate: BinaryUpdate | null;
@@ -17,8 +21,11 @@ export type AppUpdateManager = {
   isDownloadingBinary: boolean;
   isBinaryDownloaded: boolean;
   binaryProgress: BinaryDownloadProgress | null;
+  binaryDownloadError: string | null;
   checkNow: () => Promise<boolean>;
   installBinaryUpdate: () => Promise<void>;
+  cancelBinaryUpdate: () => void;
+  downloadBinaryUpdateInBrowser: () => Promise<void>;
   reloadForHotUpdate: () => Promise<void>;
   showBinaryUpdate: () => void;
   dismissBinaryUpdate: () => void;
@@ -33,7 +40,46 @@ export function useAppUpdates(): AppUpdateManager {
   const [isDownloadingBinary, setIsDownloadingBinary] = useState(false);
   const [isBinaryDownloaded, setIsBinaryDownloaded] = useState(false);
   const [binaryProgress, setBinaryProgress] = useState<BinaryDownloadProgress | null>(null);
+  const [binaryDownloadError, setBinaryDownloadError] = useState<string | null>(null);
   const isCheckingRef = useRef(false);
+  const binaryUpdateRef = useRef<BinaryUpdate | null>(null);
+  const downloadRunningRef = useRef(false);
+
+  const runBinaryDownload = useCallback(async (update: BinaryUpdate) => {
+    if (downloadRunningRef.current) return;
+
+    downloadRunningRef.current = true;
+    setIsDownloadingBinary(true);
+    setBinaryDownloadError(null);
+    const downloaded = isBinaryUpdateDownloaded(update);
+    setIsBinaryDownloaded(downloaded);
+    if (!downloaded) {
+      setBinaryProgress(
+        (current) =>
+          current ??
+          getResumableBinaryDownloadProgress(update) ?? {
+            bytesWritten: 0,
+            totalBytes: 0,
+            percent: 0,
+          },
+      );
+    }
+
+    try {
+      const result = await downloadAndInstallBinaryUpdate(update, setBinaryProgress);
+      if (result === 'cancelled') {
+        setBinaryProgress(null);
+        setBinaryDownloadError(null);
+      }
+    } catch (error) {
+      setBinaryDownloadError('下载失败，请检查网络后重试，或使用浏览器下载。');
+      console.warn('Failed to download binary update', error);
+    } finally {
+      setIsBinaryDownloaded(isBinaryUpdateDownloaded(update));
+      setIsDownloadingBinary(false);
+      downloadRunningRef.current = false;
+    }
+  }, []);
 
   const checkNow = useCallback(async () => {
     if (__DEV__ || !areAppUpdatesEnabled() || isCheckingRef.current) return false;
@@ -47,8 +93,12 @@ export function useAppUpdates(): AppUpdateManager {
       ]);
 
       if (binaryResult.status === 'fulfilled' && binaryResult.value) {
+        binaryUpdateRef.current = binaryResult.value;
         setBinaryUpdate(binaryResult.value);
-        setIsBinaryDownloaded(isBinaryUpdateDownloaded(binaryResult.value));
+        const downloaded = isBinaryUpdateDownloaded(binaryResult.value);
+        setIsBinaryDownloaded(downloaded);
+        setBinaryProgress(downloaded ? null : getResumableBinaryDownloadProgress(binaryResult.value));
+        setBinaryDownloadError(null);
         setIsBinaryUpdateVisible(true);
       }
 
@@ -57,10 +107,7 @@ export function useAppUpdates(): AppUpdateManager {
         if (fetched.isNew) setHotUpdateReady(true);
       }
       if (binaryResult.status === 'rejected') throw binaryResult.reason;
-      return Boolean(
-        binaryResult.value ||
-          (hotResult.status === 'fulfilled' && hotResult.value.isAvailable),
-      );
+      return Boolean(binaryResult.value || (hotResult.status === 'fulfilled' && hotResult.value.isAvailable));
     } finally {
       isCheckingRef.current = false;
       setIsChecking(false);
@@ -68,28 +115,58 @@ export function useAppUpdates(): AppUpdateManager {
   }, []);
 
   const installBinaryUpdate = useCallback(async () => {
-    if (!binaryUpdate || isDownloadingBinary) return;
-    setIsDownloadingBinary(true);
-    const downloaded = isBinaryUpdateDownloaded(binaryUpdate);
-    setIsBinaryDownloaded(downloaded);
-    setBinaryProgress(downloaded ? null : { bytesWritten: 0, totalBytes: 0, percent: 0 });
+    const update = binaryUpdateRef.current;
+    if (!update || downloadRunningRef.current) return;
+    await runBinaryDownload(update);
+  }, [runBinaryDownload]);
 
+  const cancelBinaryUpdate = useCallback(() => {
+    cancelBinaryUpdateDownload();
+  }, []);
+
+  const downloadBinaryUpdateInBrowser = useCallback(async () => {
+    const update = binaryUpdateRef.current;
+    if (!update) return;
+
+    setBinaryDownloadError(null);
     try {
-      await downloadAndInstallBinaryUpdate(binaryUpdate, setBinaryProgress);
-    } finally {
-      setIsBinaryDownloaded(isBinaryUpdateDownloaded(binaryUpdate));
-      setIsDownloadingBinary(false);
+      if (downloadRunningRef.current) await pauseBinaryUpdateDownload();
+      await openBinaryUpdateInBrowser(update);
+    } catch (error) {
+      setBinaryDownloadError('无法打开浏览器，请稍后重试。');
+      console.warn('Failed to open binary update in browser', error);
     }
-  }, [binaryUpdate, isDownloadingBinary]);
+  }, []);
 
   const reloadForHotUpdate = useCallback(async () => {
     await Updates.reloadAsync();
   }, []);
 
   useEffect(() => {
-    void checkNow().catch((error) => {
-      console.warn('Failed to check app updates', error);
-    });
+    let cancelled = false;
+    let idleCallbackId: number | undefined;
+    const timeoutId = setTimeout(() => {
+      const checkWhenIdle = () => {
+        if (cancelled) return;
+        void checkNow().catch((error) => {
+          console.warn('Failed to check app updates', error);
+        });
+      };
+
+      if (typeof requestIdleCallback === 'function') {
+        idleCallbackId = requestIdleCallback(checkWhenIdle, { timeout: 2_000 });
+      } else {
+        checkWhenIdle();
+      }
+    }, 1_500);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+      if (idleCallbackId !== undefined && typeof cancelIdleCallback === 'function') {
+        cancelIdleCallback(idleCallbackId);
+      }
+    };
   }, [checkNow]);
 
   return {
@@ -100,12 +177,17 @@ export function useAppUpdates(): AppUpdateManager {
     isDownloadingBinary,
     isBinaryDownloaded,
     binaryProgress,
+    binaryDownloadError,
     checkNow,
     installBinaryUpdate,
+    cancelBinaryUpdate,
+    downloadBinaryUpdateInBrowser,
     reloadForHotUpdate,
     showBinaryUpdate: () => {
       if (binaryUpdate) {
         setIsBinaryDownloaded(isBinaryUpdateDownloaded(binaryUpdate));
+        setBinaryProgress(getResumableBinaryDownloadProgress(binaryUpdate));
+        setBinaryDownloadError(null);
         setIsBinaryUpdateVisible(true);
       }
     },
