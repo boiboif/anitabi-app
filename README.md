@@ -25,10 +25,10 @@
   <img src="https://i0.hdslb.com/bfs/new_dyn/6fd051ad87aa34fe31b294af191b47411519338.jpg" width="172" alt="搜索2" /> 
   <img src="https://i0.hdslb.com/bfs/new_dyn/78fb71aa4c555227d2731e4166c3d9d51519338.jpg" width="172" alt="收藏1" />
   <img src="https://i0.hdslb.com/bfs/new_dyn/364a53e928ebf646cccd2684962e482e1519338.jpg" width="172" alt="收藏2" />
-  <img src="https://i0.hdslb.com/bfs/new_dyn/09f173b924073edfc887e0897df334551519338.jpg" width="172" alt="我的" />
-  <img src="https://i0.hdslb.com/bfs/new_dyn/18667029fbee44fae9417304705860af1519338.jpg" width="172" alt="巡礼计划" />
-  <img src="https://i0.hdslb.com/bfs/new_dyn/2ded6575449c3c2cbd246598f68b90c51519338.jpg" width="172" alt="巡礼计划1" />
+  <img src="https://i0.hdslb.com/bfs/new_dyn/2ded6575449c3c2cbd246598f68b90c51519338.jpg" width="172" alt="巡礼计划" />
+  <img src="http://i0.hdslb.com/bfs/new_dyn/4a0a2ce7f6e8895cb7e58288ba003ac11519338.jpg" width="172" alt="分享巡礼计划" />
   <img src="https://i0.hdslb.com/bfs/new_dyn/77b0b9e7636e86d058771cc0bbdbd29e1519338.jpg" width="172" alt="巡礼点拍照1" />
+  <img src="https://i0.hdslb.com/bfs/new_dyn/09f173b924073edfc887e0897df334551519338.jpg" width="172" alt="我的" />
 </p>
 
 ## 计划功能
