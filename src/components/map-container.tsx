@@ -192,6 +192,13 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     [isPlanMode, onPointSelect, selectMapPoint],
   );
 
+  const handleBangumiIconPress = useCallback(
+    (bangumi: Bangumi) => {
+      openBangumiDetails(bangumi.id);
+    },
+    [openBangumiDetails],
+  );
+
   // 筛选模式：自动将地图缩放到选中番剧的所有巡礼点范围
   useEffect(() => {
     const cam = cameraRef.current;
@@ -294,13 +301,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
         onPointSelect={handlePointSelect}
       />
       {!isPlanMode && loadedStyleIndex === styleIndex && (
-        <BangumiIcons
-          bangumis={bangumis}
-          zoom={zoom}
-          onIconPress={(bangumi) => {
-            openBangumiDetails(bangumi.id);
-          }}
-        />
+        <BangumiIcons bangumis={bangumis} onIconPress={handleBangumiIconPress} />
       )}
       {showPointImageMarkers && (
         <PointImageMarkers

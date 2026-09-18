@@ -1,5 +1,23 @@
-/** zoom >= 此值时地图上的叠加 icon 完全隐藏，转为顶栏胶囊列表展示 */
-export const MAP_ICON_ZOOM_THRESHOLD = 12.5;
+/** Anitabi 官网在 zoom >= 13 时隐藏作品 icon 图层。 */
+export const MAP_ICON_ZOOM_THRESHOLD = 13;
+
+/** Anitabi 官网作品 icon 的 zoom -> 最低 priority（严格大于）映射。 */
+export const MAP_BANGUMI_ICON_PRIORITY_ZOOM_STOPS = [
+  [0, 760_000],
+  [2, 420_000],
+  [3, 160_000],
+  [3.5, 130_000],
+  [4, 100_000],
+  [4.5, 70_000],
+  [5, 55_000],
+  [6, 28_800],
+  [7, 14_400],
+  [8, 7_200],
+  [9, 3_600],
+  [10, 1_800],
+  [11, 900],
+  [12, 450],
+] as const;
 
 /** Anitabi 的普通巡礼点在该 zoom 起不再按 priority 筛选。 */
 export const MAP_POINT_PRIORITY_ALL_VISIBLE_ZOOM = 17;

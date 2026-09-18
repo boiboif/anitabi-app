@@ -1,4 +1,4 @@
-import { MAP_ICON_ZOOM_THRESHOLD } from '@/lib/constants';
+import { MAP_BANGUMI_ICON_PRIORITY_ZOOM_STOPS, MAP_ICON_ZOOM_THRESHOLD } from '@/lib/constants';
 import { getBangumiIcons } from '@/services/api';
 import { baseUrl } from '@/services/handlers';
 import type { Bangumi } from '@/services/types';
@@ -7,15 +7,13 @@ import { useMapBrowse } from '@/store/use-map-browse';
 import { Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
 import { Directory, File, Paths } from 'expo-file-system';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
-import { ComponentProps, useCallback, useEffect, useMemo, useState } from 'react';
+import { ComponentProps, memo, useCallback, useEffect, useMemo, useState } from 'react';
 
 // ===========================================================================
 // Tunable constants
 // ===========================================================================
 
-const ICON_BASE_SIZE = 60;
 const ICON_SCALE = 0.5;
-const OVERLAP_MULTIPLIER = 1.2;
 const SPRITE_MAX_RETRIES = 3;
 
 // ===========================================================================
@@ -26,45 +24,17 @@ const CACHE_DIR = 'bangumi-icons';
 const cacheDir = () => new Directory(Paths.document, CACHE_DIR);
 const cacheFile = (name: string) => new File(cacheDir(), name);
 
-// ===========================================================================
-// Helpers
-// ===========================================================================
-
-/** Web Mercator 近似：两点在给定 zoom 下的像素距离 */
-function pixelDistance(lat1: number, lng1: number, lat2: number, lng2: number, zoom: number): number {
-  const avgLat = ((lat1 + lat2) / 2) * (Math.PI / 180);
-  const cosLat = Math.cos(avgLat) || 1e-4;
-  const mPerDeg = 111_320;
-  const dx = (lng1 - lng2) * mPerDeg * cosLat;
-  const dy = (lat1 - lat2) * mPerDeg;
-  const meters = Math.sqrt(dx * dx + dy * dy);
-  const resolution = (156_543.03 * cosLat) / Math.pow(2, zoom) / 2;
-  return meters / Math.max(resolution, 1);
-}
-
-/**
- * 按 priority 降序挑选互不重叠的 icon。
- * 一个 item 与任一更高 priority 的 item 在像素上重叠即跳过。
- */
-function selectVisible(candidates: Bangumi[], zoom: number): Bangumi[] {
-  const thresholdPx = ICON_BASE_SIZE * ICON_SCALE * OVERLAP_MULTIPLIER;
-  const sorted = [...candidates].sort((a, b) => (b.priority ?? -Infinity) - (a.priority ?? -Infinity));
-
-  const picked: Bangumi[] = [];
-  for (let i = 0; i < sorted.length; i++) {
-    const item = sorted[i];
-    const [lat, lng] = item.geo;
-    let overlaps = false;
-    for (let j = 0; j < i; j++) {
-      if (pixelDistance(lat, lng, sorted[j].geo[0], sorted[j].geo[1], zoom) < thresholdPx) {
-        overlaps = true;
-        break;
-      }
-    }
-    if (!overlaps) picked.push(item);
-  }
-  return picked;
-}
+const BANGUMI_ICON_PRIORITY_FILTER = [
+  'step',
+  ['zoom'],
+  ['>', ['get', 'priority'], MAP_BANGUMI_ICON_PRIORITY_ZOOM_STOPS[0][1]],
+  ...MAP_BANGUMI_ICON_PRIORITY_ZOOM_STOPS.slice(1).flatMap(([zoom, priority]) => [
+    zoom,
+    ['>', ['get', 'priority'], priority],
+  ]),
+  MAP_ICON_ZOOM_THRESHOLD,
+  true,
+] as unknown as ComponentProps<typeof SymbolLayer>['filter'];
 
 // ===========================================================================
 // Component
@@ -72,11 +42,10 @@ function selectVisible(candidates: Bangumi[], zoom: number): Bangumi[] {
 
 type Props = {
   bangumis: Bangumi[];
-  zoom: number;
   onIconPress?: (bangumi: Bangumi) => void;
 };
 
-export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
+function BangumiIcons({ bangumis, onIconPress }: Props) {
   const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const selectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
 
@@ -208,22 +177,18 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
   }, [spriteMeta]);
 
   // =====================================================================
-  // 3. 重叠过滤 + 组装 Mapbox 数据
+  // 3. 按官网逻辑一次性组装 Mapbox 数据
   // =====================================================================
 
-  const visible = useMemo(() => {
+  const candidates = useMemo(() => {
     if (!allowedIds) return [];
-    const selectedIds = new Set(selectedMapBangumiIds);
-    const candidates = bangumis.filter(
-      (b) => b.cn && allowedIds.has(b.id) && (selectedIds.size === 0 || selectedIds.has(b.id)),
-    );
-    return selectVisible(candidates, zoom);
-  }, [bangumis, allowedIds, zoom, selectedMapBangumiIds]);
+    return bangumis.filter((b) => b.geo?.[0] && b.geo?.[1] && allowedIds.has(b.id));
+  }, [bangumis, allowedIds]);
 
   const { imagesMap, geojson } = useMemo(() => {
     if (!icons) {
       return {
-        imagesMap: {},
+        imagesMap: {} as Record<string, { uri: string }>,
         geojson: { type: 'FeatureCollection', features: [] } as GeoJSON.FeatureCollection,
       };
     }
@@ -231,19 +196,22 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
     const images: Record<string, { uri: string }> = {};
     const features: GeoJSON.Feature[] = [];
 
-    for (const b of visible) {
+    for (const b of candidates) {
       const url = icons.get(b.id);
       if (!url) continue;
       const key = `icon_${b.id}`;
+      const imagePointCount = b.points.filter((point) => point.image).length;
       images[key] = { uri: url };
       features.push({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [b.geo[1], b.geo[0]] },
         properties: {
           iconImage: key,
-          label: b.cn,
-          color: b.color ?? '#000',
+          label: b.cn || b.tAbbr,
+          color: b.color || '#11b4da',
           bangumiId: b.id,
+          priority: b.priority,
+          order: 9_999_999_999_999 - b.modified - b.points.length * 60_000 - imagePointCount * 180_000,
         },
       });
     }
@@ -252,7 +220,7 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
       imagesMap: images,
       geojson: { type: 'FeatureCollection', features } as GeoJSON.FeatureCollection,
     };
-  }, [visible, icons]);
+  }, [candidates, icons]);
 
   const handlePress = useCallback(
     (
@@ -269,11 +237,13 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
     [bangumis, onIconPress],
   );
 
-  if (zoom >= MAP_ICON_ZOOM_THRESHOLD || !spriteMeta || !icons) return null;
+  if (!spriteMeta || !icons) return null;
 
-  // 筛选模式下在底层隐藏所有 icon（保留图层结构）
+  // 官网在作品详情或多作品筛选模式下隐藏整个作品 icon 图层。
   const bangumiIconFilter: ComponentProps<typeof SymbolLayer>['filter'] =
-    openedBangumiDetailsId !== null ? ['==', ['get', 'bangumiId'], -1] : undefined;
+    openedBangumiDetailsId !== null || selectedMapBangumiIds.length > 0
+      ? ['==', ['get', 'bangumiId'], -1]
+      : BANGUMI_ICON_PRIORITY_FILTER;
 
   return (
     <>
@@ -282,21 +252,26 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
         <SymbolLayer
           id="bangumi-icons-layer"
           filter={bangumiIconFilter}
+          maxZoomLevel={MAP_ICON_ZOOM_THRESHOLD}
           style={{
             iconImage: ['get', 'iconImage'],
             iconSize: ICON_SCALE,
             iconAllowOverlap: true,
-            iconAnchor: 'bottom',
+            iconIgnorePlacement: true,
+            iconAnchor: 'center',
+            symbolSortKey: ['get', 'order'],
             textField: ['get', 'label'],
+            textFont: ['DIN Pro Bold', 'Arial Unicode MS Bold'],
             textColor: ['get', 'color'],
-            textSize: 10,
-            textMaxWidth: 8,
-            textLineHeight: 1.2,
+            textSize: 11,
+            textMaxWidth: 7,
+            textLineHeight: 1.1,
             textHaloColor: '#fff',
             textHaloWidth: 1,
+            textHaloBlur: 0,
             textAllowOverlap: true,
-            textOptional: true,
-            textOffset: [0, 0],
+            textIgnorePlacement: true,
+            textOffset: [0, 1],
             textAnchor: 'top',
           }}
         />
@@ -304,3 +279,5 @@ export default function BangumiIcons({ bangumis, zoom, onIconPress }: Props) {
     </>
   );
 }
+
+export default memo(BangumiIcons);

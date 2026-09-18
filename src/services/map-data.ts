@@ -123,7 +123,8 @@ function assembleBangumis(gList: RawGBangumi[], detailMap: Map<number, RawGDetai
       abbr: abbr ? String(abbr) : '',
       tAbbr: tAbbr ? String(tAbbr) : '',
       tags: Array.isArray(tags) ? tags : [],
-      priority: priority ?? 999,
+      // 官网保留缺失 priority 的状态；为其填默认值会改变 zoom filter 的显隐结果。
+      priority: priority ?? undefined,
       icon: icon || '',
     };
   });
