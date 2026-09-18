@@ -68,7 +68,16 @@ const config: ExpoConfig = {
     'expo-sharing',
     'expo-font',
     'expo-image',
-    ['expo-build-properties', { android: { usesCleartextTraffic: true } }],
+    [
+      'expo-build-properties',
+      {
+        android: {
+          usesCleartextTraffic: true,
+          enableMinifyInReleaseBuilds: true,
+          enableShrinkResourcesInReleaseBuilds: true,
+        },
+      },
+    ],
     'expo-status-bar',
     'expo-web-browser',
     [
