@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { withBase } from 'vitepress';
+
 import release from '../../../releases/latest.json';
 
-const formattedSize = 'Android APK';
+const formattedSize = 'Android APK · iOS IPA';
 </script>
 
 <template>
@@ -23,6 +25,7 @@ const formattedSize = 'Android APK';
           </svg>
           下载 Android APK
         </a>
+        <a class="download-button" :href="withBase('/guide/ios-sideloading')">iOS 侧载说明</a>
         <a class="download-button" :href="release.releaseUrl">查看发布说明</a>
       </div>
     </div>

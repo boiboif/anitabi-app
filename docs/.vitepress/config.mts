@@ -29,7 +29,10 @@ const sidebar: DefaultTheme.Sidebar = [
   },
   {
     text: '使用指南',
-    items: [{ text: '快速开始', link: '/guide/getting-started' }],
+    items: [
+      { text: '快速开始', link: '/guide/getting-started' },
+      { text: 'iOS 侧载安装', link: '/guide/ios-sideloading' },
+    ],
   },
   {
     text: '项目文档',

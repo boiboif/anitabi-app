@@ -4,7 +4,7 @@
 
 一个基于 Expo 的圣地巡礼移动端地图应用，展示动漫取景地在世界地图上的点位。数据源来自 [anitabi.cn](https://www.anitabi.cn)。
 
-> 项目官网：[Anitabi](https://boiboif.github.io/anitabi-app/) · [下载 Android 版](https://boiboif.github.io/anitabi-app/download) · [隐私政策](docs/PRIVACY.md) · [贡献指引](CONTRIBUTING.md)
+> 项目官网：[Anitabi](https://boiboif.github.io/anitabi-app/) · [下载应用](https://boiboif.github.io/anitabi-app/download) · [隐私政策](docs/PRIVACY.md) · [贡献指引](CONTRIBUTING.md)
 
 ### 为什么做这个
 
@@ -13,6 +13,11 @@
 ## 当前状态
 
 项目已实现地图浏览、番剧点位渲染与搜索、巡礼点收藏、巡礼计划管理与分享导入、巡礼对比拍照等核心功能，收藏与巡礼计划均支持本地持久化。后续规划见下方 Roadmap。
+
+## 平台支持
+
+- Android 7.0 及以上（API 24；从[下载页面](https://boiboif.github.io/anitabi-app/download)获取已签名 APK）
+- iOS / iPadOS 16.4 及以上（从 [GitHub Releases](https://github.com/boiboif/anitabi-app/releases) 下载未签名 IPA，需要按照 [iOS 侧载安装指南](docs/guide/ios-sideloading.md)自行签名安装）
 
 ## 截图
 

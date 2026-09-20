@@ -10,7 +10,7 @@ hero:
     alt: Anitabi 地图相机图标
   actions:
     - theme: brand
-      text: 下载 Android 版
+      text: 下载应用
       link: /download
     - theme: alt
       text: 开始探索

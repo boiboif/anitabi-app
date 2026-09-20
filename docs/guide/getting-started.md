@@ -7,10 +7,17 @@ description: 下载、安装并开始使用 Anitabi。
 
 ## 下载安装
 
-目前公开下载版本为 Android APK。前往[下载页面](/download)，点击“下载 Android APK”，然后根据系统提示完成安装。
+前往[下载页面](/download)获取适合设备的安装包：
+
+- **Android**：点击“下载 Android APK”，然后根据系统提示完成安装；
+- **iOS/iPadOS**：下载 GitHub Release 中的未签名 IPA，并按照 [iOS 侧载安装指南](/guide/ios-sideloading) 使用自己的 Apple 账户完成签名和安装。
 
 ::: warning Android 安装提示
 从浏览器下载 APK 时，Android 可能提示允许当前浏览器安装未知来源应用。请确认下载地址来自本项目的 GitHub Releases 页面，再决定是否授权安装。
+:::
+
+::: warning iOS 安装提示
+未签名 IPA 不能直接安装。侧载使用第三方工具，免费 Apple 账户签名通常需要每 7 天刷新一次；请先阅读完整指南并确认能够接受这些限制。
 :::
 
 ## 第一次打开

@@ -61,7 +61,7 @@ git tag -a v0.1.1 -m "新增：巡礼点支持一键导航到谷歌地图
 - 地图偶发加载失败"
 ```
 
-Release 会同时上传 APK 的 `.sha256` 校验文件，可用于验证下载完整性。preview 推送 `v<version>-preview` 后，工作流仍会自动计算 `preview.N` 后缀并创建对应的 Release。`mandatory`、`min_supported_version` 等仅在手动 dispatch 时可设置；tag 触发的发版默认非强制，需要强制更新时使用手动 dispatch。iOS 产物为未签名 IPA（`*-unsigned.ipa`），不能直接安装到设备，仅供侧载签名或存档。`Android Release` 工作流保留为仅手动触发的 Android-only 快速兜底；tag 触发统一走 `Mobile Release`，避免同一版本被两个入口重复构建。
+Release 会同时上传 APK 的 `.sha256` 校验文件，可用于验证下载完整性。preview 推送 `v<version>-preview` 后，工作流仍会自动计算 `preview.N` 后缀并创建对应的 Release。`mandatory`、`min_supported_version` 等仅在手动 dispatch 时可设置；tag 触发的发版默认非强制，需要强制更新时使用手动 dispatch。iOS 产物为未签名 IPA（`*-unsigned.ipa`），不能直接安装到设备，仅供侧载签名或存档；面向用户的步骤见 [iOS 侧载安装指南](/guide/ios-sideloading)。`Android Release` 工作流保留为仅手动触发的 Android-only 快速兜底；tag 触发统一走 `Mobile Release`，避免同一版本被两个入口重复构建。
 
 production 发版流程如下：
 
