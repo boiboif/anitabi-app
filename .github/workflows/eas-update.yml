@@ -91,7 +91,7 @@ jobs:
 
           echo "EAS_ENVIRONMENT=$EXPO_UPDATE_CHANNEL" >> "$GITHUB_ENV"
           echo "APP_NATIVE_VERSION=$released_display_version" >> "$GITHUB_ENV"
-          echo "Publishing Android runtime=$app_version, displayVersion=$released_display_version to channel=$EXPO_UPDATE_CHANNEL"
+          echo "Publishing Android and iOS runtime=$app_version, displayVersion=$released_display_version to channel=$EXPO_UPDATE_CHANNEL"
 
       - name: Validate Expo update config
         shell: bash
@@ -121,6 +121,6 @@ jobs:
           '
 
       - name: Publish EAS Update
-        run: npx eas-cli@21.8.0 update --channel "$EXPO_UPDATE_CHANNEL" --environment "$EAS_ENVIRONMENT" --platform android --message "$INPUT_MESSAGE" --non-interactive
+        run: npx eas-cli@21.8.0 update --channel "$EXPO_UPDATE_CHANNEL" --environment "$EAS_ENVIRONMENT" --platform all --message "$INPUT_MESSAGE" --non-interactive
         env:
           INPUT_MESSAGE: ${{ inputs.message }}
