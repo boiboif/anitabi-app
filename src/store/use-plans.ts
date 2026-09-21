@@ -1,5 +1,7 @@
 import { clearPlans, getPlans, setPlans, type ItineraryPlan, type PlanItem } from '@/lib/plan-storage';
 import type { Bangumi, Point } from '@/services/types';
+import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
+import i18n from '@/i18n';
 import { create } from 'zustand';
 
 function pointKey(bangumiId: number, pointId: string): string {
@@ -14,10 +16,10 @@ function makeItem(point: Point, bangumi: Bangumi): PlanItem {
     addedAt: Date.now(),
     completed: false,
     snapshot: {
-      bangumiName: bangumi.cn || bangumi.title || bangumi.en || '未知作品',
+      bangumiName: getBangumiTitle(bangumi) || i18n.t('unknownWork', { defaultValue: '未知作品' }),
       bangumiCover: bangumi.cover,
       bangumiColor: bangumi.color,
-      pointName: point.cn || point.name || '未命名点位',
+      pointName: getPointTitle(point) || i18n.t('unnamedLocation', { defaultValue: '未命名点位' }),
       pointImage: point.image,
       pointMark: point.mark,
       geo: point.geo,

@@ -16,6 +16,7 @@ import type { Camera } from '@rnmapbox/maps';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { View, YStack } from 'tamagui';
 
@@ -25,6 +26,7 @@ type CameraState = {
 };
 
 export default function HomeScreen() {
+  const { t } = useTranslation();
   const cameraRef = useRef<Camera>(null);
   const { handleLocate, isLocating, isLocationPuckActive, locationPuckRevision } = useMapLocate(cameraRef);
   const [isCameraReady, setIsCameraReady] = useState(false);
@@ -102,13 +104,16 @@ export default function HomeScreen() {
 
   const handleRandomPoint = useCallback(() => {
     if (randomPointCandidates.length === 0) {
-      Alert.alert('暂无巡礼点', '地图数据加载完成后再试。');
+      Alert.alert(
+        t('noLocationsYet', { defaultValue: '暂无巡礼点' }),
+        t('tryAgainAfterTheMapDataFinishesLoading', { defaultValue: '地图数据加载完成后再试。' }),
+      );
       return;
     }
 
     const randomIndex = Math.floor(Math.random() * randomPointCandidates.length);
     focusPointFromMapControl(randomPointCandidates[randomIndex]);
-  }, [focusPointFromMapControl, randomPointCandidates]);
+  }, [focusPointFromMapControl, randomPointCandidates, t]);
 
   const [styleIndex, setStyleIndex] = useState(0);
 

@@ -1,5 +1,6 @@
 import Constants from 'expo-constants';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { Library } from 'react-native-legal';
 
 let cachedLibraries: Library[] | undefined;
@@ -74,6 +75,7 @@ export async function loadOpenSourceLibraries(force = false) {
 }
 
 export function useOpenSourceLibraries() {
+  const { t } = useTranslation();
   const [libraries, setLibraries] = useState<Library[]>(cachedLibraries ?? []);
   const [isLoading, setIsLoading] = useState(cachedLibraries === undefined);
   const [error, setError] = useState<string | null>(null);
@@ -85,12 +87,16 @@ export function useOpenSourceLibraries() {
     void loadOpenSourceLibraries(true)
       .then(setLibraries)
       .catch(() => {
-        setError('许可证数据加载失败，请重新构建并安装应用后重试。');
+        setError(
+          t('licenseDataFailedToLoadRebuildAndInstallTheAppThenTryAgain', {
+            defaultValue: '许可证数据加载失败，请重新构建并安装应用后重试。',
+          }),
+        );
       })
       .finally(() => {
         setIsLoading(false);
       });
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     let isActive = true;
@@ -100,7 +106,12 @@ export function useOpenSourceLibraries() {
         if (isActive) setLibraries(result);
       })
       .catch(() => {
-        if (isActive) setError('许可证数据加载失败，请重新构建并安装应用后重试。');
+        if (isActive)
+          setError(
+            t('licenseDataFailedToLoadRebuildAndInstallTheAppThenTryAgain', {
+              defaultValue: '许可证数据加载失败，请重新构建并安装应用后重试。',
+            }),
+          );
       })
       .finally(() => {
         if (isActive) setIsLoading(false);
@@ -109,7 +120,7 @@ export function useOpenSourceLibraries() {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [t]);
 
   const hasPrimaryPackageMetadata = primaryPackageNames.size > 0;
   const { primaryLibraries, additionalLibraries } = useMemo(

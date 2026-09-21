@@ -3,6 +3,7 @@ import type { Bangumi, Point } from '@/services/types';
 import { ListPlus } from '@tamagui/lucide-icons-2';
 import type { GestureResponderEvent } from 'react-native';
 import { Pressable } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme, View } from 'tamagui';
 
 type Props = {
@@ -12,6 +13,7 @@ type Props = {
 };
 
 export default function AddToPlanButton({ point, bangumi, size = 36 }: Props) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const { open } = usePlanPicker();
 
@@ -23,7 +25,7 @@ export default function AddToPlanButton({ point, bangumi, size = 36 }: Props) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="加入巡礼计划"
+      accessibilityLabel={t('joinPilgrimagePlan', { defaultValue: '加入巡礼计划' })}
       hitSlop={8}
       onPress={handlePress}
       style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}

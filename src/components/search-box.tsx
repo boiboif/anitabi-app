@@ -3,6 +3,7 @@ import { BlurView } from 'expo-blur';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useRef, type ComponentProps, type ReactNode } from 'react';
 import { Keyboard, Pressable, StyleSheet, TouchableWithoutFeedback } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { getTokens, Input, styled, TamaguiElement, useThemeName, View } from 'tamagui';
 
 const StyledInput = styled(Input, {
@@ -30,7 +31,7 @@ type Props = {
 } & ComponentProps<typeof StyledInput>;
 
 export default function SearchBox({
-  placeholder = '城市、作品、地标',
+  placeholder,
   left,
   right,
   allowClear = false,
@@ -39,17 +40,19 @@ export default function SearchBox({
   focusOnRoute,
   ...props
 }: Props) {
+  const { t } = useTranslation();
   const themeName = useThemeName();
   const theme = themeName === 'dark' ? 'dark' : 'light';
   const ref = useRef<TamaguiElement | null>(null);
+  const { onChangeText, value } = props;
 
-  const hasValue = typeof props.value === 'string' && props.value.length > 0;
+  const hasValue = typeof value === 'string' && value.length > 0;
   const showClear = allowClear && hasValue && !right;
 
   const handleClear = useCallback(() => {
-    props.onChangeText?.('');
+    onChangeText?.('');
     Keyboard.dismiss();
-  }, [props.onChangeText]);
+  }, [onChangeText]);
 
   useFocusEffect(
     useCallback(() => {
@@ -86,7 +89,7 @@ export default function SearchBox({
           </View>
 
           <StyledInput
-            placeholder={placeholder}
+            placeholder={placeholder ?? t('cityWorkOrLocation', { defaultValue: '城市、作品、地标' })}
             placeholderTextColor="$color9"
             readOnly={readOnly}
             ref={ref}

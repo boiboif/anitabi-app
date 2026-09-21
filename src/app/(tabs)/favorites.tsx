@@ -1,6 +1,7 @@
 import PointListCard from '@/components/point-list-card';
 import RemoveFavoriteButton from '@/components/remove-favorite-button';
 import { type FavoritePoint } from '@/lib/favorite-storage';
+import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useFavoritePoints } from '@/store/use-favorite-points';
@@ -12,6 +13,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { Platform, Pressable } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, View, XStack, YStack, getTokens, useTheme } from 'tamagui';
 
@@ -37,20 +39,20 @@ type FavoriteListItem =
   | { type: 'date'; id: string; label: string }
   | { type: 'favorite'; id: string; item: ResolvedFavorite };
 
-function getDateGroup(timestamp: number): string {
+function getDateGroup(timestamp: number, language: string, todayLabel: string, yesterdayLabel: string): string {
   const today = new Date();
   const target = new Date(timestamp);
   const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
   const targetStart = new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime();
   const days = Math.round((todayStart - targetStart) / 86_400_000);
 
-  if (days === 0) return '今天';
-  if (days === 1) return '昨天';
-  return `${target.getFullYear()}年${target.getMonth() + 1}月${target.getDate()}日`;
+  if (days === 0) return todayLabel;
+  if (days === 1) return yesterdayLabel;
+  return new Intl.DateTimeFormat(language, { year: 'numeric', month: 'long', day: 'numeric' }).format(target);
 }
 
-function formatFavoriteTime(timestamp: number): string {
-  return new Date(timestamp).toLocaleString('zh-CN', {
+function formatFavoriteTime(timestamp: number, language: string): string {
+  return new Date(timestamp).toLocaleString(language, {
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
@@ -58,12 +60,12 @@ function formatFavoriteTime(timestamp: number): string {
   });
 }
 
-function getBangumiName(item: ResolvedFavorite): string {
-  return item.bangumi?.cn || item.bangumi?.title || item.bangumi?.en || item.favorite.snapshot.bangumiName;
+function getBangumiName(item: ResolvedFavorite, language: string): string {
+  return item.bangumi ? getBangumiTitle(item.bangumi, language) : item.favorite.snapshot.bangumiName;
 }
 
-function getPointName(item: ResolvedFavorite): string {
-  return item.point?.cn || item.point?.name || item.favorite.snapshot.pointName;
+function getPointName(item: ResolvedFavorite, language: string): string {
+  return item.point ? getPointTitle(item.point, language) : item.favorite.snapshot.pointName;
 }
 
 function getImagePath(item: ResolvedFavorite): string | undefined {
@@ -73,6 +75,7 @@ function getImagePath(item: ResolvedFavorite): string | undefined {
 }
 
 function FavoriteCard({ item, onPress }: { item: ResolvedFavorite; onPress: () => void }) {
+  const { t, i18n } = useTranslation();
   const removeFavorite = useFavoritePoints((state) => state.removeFavorite);
   const available = Boolean(item.point && item.bangumi);
 
@@ -80,10 +83,17 @@ function FavoriteCard({ item, onPress }: { item: ResolvedFavorite; onPress: () =
     <PointListCard
       point={item.point}
       bangumi={item.bangumi}
-      title={getPointName(item)}
-      subtitle={getBangumiName(item)}
+      title={getPointName(item, i18n.resolvedLanguage ?? i18n.language)}
+      subtitle={getBangumiName(item, i18n.resolvedLanguage ?? i18n.language)}
       description={item.point?.mark || item.favorite.snapshot.pointMark}
-      meta={available ? `收藏于 ${formatFavoriteTime(item.favorite.addedAt)}` : '点位已不可用'}
+      meta={
+        available
+          ? t('favoritedDate', {
+              defaultValue: '收藏于 {{date}}',
+              date: formatFavoriteTime(item.favorite.addedAt, i18n.resolvedLanguage ?? i18n.language),
+            })
+          : t('locationUnavailable', { defaultValue: '点位已不可用' })
+      }
       image={getImagePath(item)}
       imageColor={item.bangumi?.color || item.favorite.snapshot.bangumiColor}
       disabled={!available}
@@ -99,6 +109,7 @@ function FavoriteCard({ item, onPress }: { item: ResolvedFavorite; onPress: () =
 }
 
 function BangumiGridCard({ group, onPress }: { group: BangumiGroup; onPress: () => void }) {
+  const { t } = useTranslation();
   const theme = useTheme();
 
   return (
@@ -115,7 +126,7 @@ function BangumiGridCard({ group, onPress }: { group: BangumiGroup; onPress: () 
               {group.name}
             </Text>
             <Text fontSize="$caption" color="$color11" mt="$0.5">
-              {group.items.length} 个点位
+              {t('locationCount', { defaultValue: '{{count}} 个点位', count: group.items.length })}
             </Text>
           </View>
         </YStack>
@@ -125,6 +136,7 @@ function BangumiGridCard({ group, onPress }: { group: BangumiGroup; onPress: () 
 }
 
 export default function FavoritesScreen() {
+  const { t, i18n } = useTranslation();
   const safeAreaInsets = useSafeAreaInsets();
   const theme = useTheme();
   const router = useRouter();
@@ -176,7 +188,7 @@ export default function FavoritesScreen() {
 
       groups.set(id, {
         id,
-        name: getBangumiName(item),
+        name: getBangumiName(item, i18n.resolvedLanguage ?? i18n.language),
         cover: item.bangumi?.cover || item.favorite.snapshot.bangumiCover,
         color: item.bangumi?.color || item.favorite.snapshot.bangumiColor,
         items: [item],
@@ -185,18 +197,23 @@ export default function FavoritesScreen() {
     }
 
     return Array.from(groups.values()).sort((a, b) => b.latestAddedAt - a.latestAddedAt);
-  }, [resolvedFavorites]);
+  }, [i18n.language, i18n.resolvedLanguage, resolvedFavorites]);
 
   const historyGroups = useMemo(() => {
     const groups = new Map<string, ResolvedFavorite[]>();
     for (const item of resolvedFavorites) {
-      const date = getDateGroup(item.favorite.addedAt);
+      const date = getDateGroup(
+        item.favorite.addedAt,
+        i18n.resolvedLanguage ?? i18n.language,
+        t('today', { defaultValue: '今天' }),
+        t('yesterday', { defaultValue: '昨天' }),
+      );
       const items = groups.get(date) ?? [];
       items.push(item);
       groups.set(date, items);
     }
     return Array.from(groups.entries());
-  }, [resolvedFavorites]);
+  }, [i18n.language, i18n.resolvedLanguage, resolvedFavorites, t]);
 
   const listItems = useMemo<FavoriteListItem[]>(() => {
     if (view === 'bangumi') {
@@ -282,10 +299,10 @@ export default function FavoritesScreen() {
         <XStack mx="$3" mb="$3" gap="$1">
           {(
             [
-              ['bangumi', '按番剧'],
-              ['history', '最近收藏'],
+              ['bangumi', 'byWork', '按番剧'],
+              ['history', 'recentlyFavorited', '最近收藏'],
             ] as const
-          ).map(([key, label]) => (
+          ).map(([key, labelKey, labelDefaultValue]) => (
             <View key={key} flex={1}>
               <Pressable onPress={() => setView(key)}>
                 <View
@@ -300,7 +317,7 @@ export default function FavoritesScreen() {
                     fontWeight={view === key ? '600' : '400'}
                     color={view === key ? '$primary' : '$color11'}
                   >
-                    {label}
+                    {t(labelKey, { defaultValue: labelDefaultValue })}
                   </Text>
                 </View>
               </Pressable>
@@ -310,11 +327,11 @@ export default function FavoritesScreen() {
 
         {loading ? (
           <View minH={240} items="center" justify="center" px="$6">
-            <Text color="$color11">加载收藏数据...</Text>
+            <Text color="$color11">{t('loadingFavorites', { defaultValue: '加载收藏数据...' })}</Text>
           </View>
         ) : resolvedFavorites.length === 0 ? (
           <View minH={240} items="center" justify="center" px="$6">
-            <Text color="$color11">还没有收藏的巡礼点</Text>
+            <Text color="$color11">{t('noFavoriteLocationsYet', { defaultValue: '还没有收藏的巡礼点' })}</Text>
           </View>
         ) : (
           <FlashList
@@ -333,7 +350,9 @@ export default function FavoritesScreen() {
               loadFailed ? (
                 <View items="center" px="$6" pb="$4">
                   <Text fontSize="$caption" color="$color10">
-                    地图数据加载失败，正在显示已保存的收藏信息
+                    {t('mapDataFailedToLoadShowingSavedFavoriteDetails', {
+                      defaultValue: '地图数据加载失败，正在显示已保存的收藏信息',
+                    })}
                   </Text>
                 </View>
               ) : null

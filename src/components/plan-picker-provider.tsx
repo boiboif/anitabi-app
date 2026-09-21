@@ -6,6 +6,7 @@ import { Toast } from '@boiboif/react-native-toast';
 import { Plus, Square, SquareCheckBig, X } from '@tamagui/lucide-icons-2';
 import { createContext, type ReactNode, use, useCallback, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { getTokens, Input, Text, useTheme, View, XStack, YStack } from 'tamagui';
 
 type PlanPickerContextValue = {
@@ -31,6 +32,7 @@ function PlanRow({
   selected: boolean;
   onPress: () => void;
 }) {
+  const { t } = useTranslation();
   const theme = useTheme();
 
   return (
@@ -46,7 +48,7 @@ function PlanRow({
             {title}
           </Text>
           <Text fontSize="$caption" color="$color10">
-            {count} 个点位
+            {t('locationCount', { defaultValue: '{{count}} 个点位', count })}
           </Text>
         </YStack>
         {selected ? (
@@ -60,6 +62,7 @@ function PlanRow({
 }
 
 export default function PlanPickerProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const pickerSheetRef = useRef<TrueSheet>(null);
   const createSheetRef = useRef<TrueSheet>(null);
@@ -89,13 +92,17 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
   const submit = useCallback(() => {
     if (!target) return;
     if (plans.length === 0) {
-      Toast.show('请先新建巡礼计划');
+      Toast.show(t('createAPilgrimagePlanFirst', { defaultValue: '请先新建巡礼计划' }));
       return;
     }
     updatePointPlans(target.point, target.bangumi, selectedPlanIds);
     void pickerSheetRef.current?.dismiss();
-    Toast.show(selectedPlanIds.length > 0 ? '已更新巡礼计划' : '已从巡礼计划移除');
-  }, [plans.length, selectedPlanIds, target, updatePointPlans]);
+    Toast.show(
+      selectedPlanIds.length > 0
+        ? t('pilgrimagePlansUpdated', { defaultValue: '已更新巡礼计划' })
+        : t('removedFromPilgrimagePlans', { defaultValue: '已从巡礼计划移除' }),
+    );
+  }, [plans.length, selectedPlanIds, t, target, updatePointPlans]);
 
   const openCreate = useCallback(() => {
     setNewPlanTitle('');
@@ -127,7 +134,7 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
         footer={
           <View px="$4" pt="$2" pb="$4" bg="$color1">
             <Button bg="$primary" color="white" onPress={submit}>
-              完成
+              {t('done', { defaultValue: '完成' })}
             </Button>
           </View>
         }
@@ -135,20 +142,20 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
         <YStack px="$4" pt="$3" pb="$2" gap="$3">
           <XStack items="center" justify="space-between">
             <Text fontSize="$title" fontWeight="700" color="$color12">
-              加入巡礼计划
+              {t('joinPilgrimagePlan', { defaultValue: '加入巡礼计划' })}
             </Text>
             <Pressable onPress={openCreate} hitSlop={8} style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}>
               <XStack items="center" gap="$1">
                 <Plus size={18} color={theme.primary.val} />
                 <Text color="$primary" fontSize="$body">
-                  新建巡礼计划
+                  {t('newPilgrimagePlan', { defaultValue: '新建巡礼计划' })}
                 </Text>
               </XStack>
             </Pressable>
           </XStack>
           {plans.length === 0 ? (
             <View py="$6" items="center">
-              <Text color="$color11">还没有巡礼计划</Text>
+              <Text color="$color11">{t('noPilgrimagePlansYet', { defaultValue: '还没有巡礼计划' })}</Text>
             </View>
           ) : (
             <ScrollView showsVerticalScrollIndicator={false}>
@@ -181,7 +188,7 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
         <YStack px="$4" pt="$3" pb="$5" gap="$3">
           <XStack items="center" justify="space-between">
             <Text fontSize="$title" fontWeight="700" color="$color12">
-              新建巡礼计划
+              {t('newPilgrimagePlan', { defaultValue: '新建巡礼计划' })}
             </Text>
             <Pressable onPress={() => void createSheetRef.current?.dismiss()} hitSlop={8}>
               <X size={20} color="$color11" />
@@ -192,7 +199,7 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
             placeholderTextColor="$color6"
             value={newPlanTitle}
             onChangeText={setNewPlanTitle}
-            placeholder="请输入计划名称"
+            placeholder={t('enterAPlanName', { defaultValue: '请输入计划名称' })}
             maxLength={60}
           />
           <Button
@@ -203,7 +210,7 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
             opacity={newPlanTitle.trim() ? 1 : 0.5}
             onPress={create}
           >
-            创建并加入
+            {t('createAndAdd', { defaultValue: '创建并加入' })}
           </Button>
         </YStack>
       </TrueSheet>

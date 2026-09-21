@@ -1,6 +1,8 @@
 import { createMMKV } from 'react-native-mmkv';
 
 export type ThemePreference = 'system' | 'light' | 'dark';
+export type AppLanguage = 'zh-CN' | 'ja' | 'en';
+export type LanguagePreference = 'system' | AppLanguage;
 
 type LegacyDarkModeConfig = {
   followSystem: boolean;
@@ -10,8 +12,19 @@ type LegacyDarkModeConfig = {
 const storage = createMMKV({ id: 'anitabi-settings' });
 
 const DARK_MODE_KEY = 'dark-mode-config';
+const LANGUAGE_KEY = 'language-preference';
 
 const DEFAULT_THEME_PREFERENCE: ThemePreference = 'system';
+const DEFAULT_LANGUAGE_PREFERENCE: LanguagePreference = 'system';
+
+export function getLanguagePreference(): LanguagePreference {
+  const preference = storage.getString(LANGUAGE_KEY);
+  return isLanguagePreference(preference) ? preference : DEFAULT_LANGUAGE_PREFERENCE;
+}
+
+export function setLanguagePreference(preference: LanguagePreference): void {
+  storage.set(LANGUAGE_KEY, preference);
+}
 
 export function getThemePreference(): ThemePreference {
   const raw = storage.getString(DARK_MODE_KEY);
@@ -50,4 +63,8 @@ function isLegacyDarkModeConfig(value: unknown): value is LegacyDarkModeConfig {
     typeof value.followSystem === 'boolean' &&
     (value.manualTheme === 'light' || value.manualTheme === 'dark')
   );
+}
+
+function isLanguagePreference(value: unknown): value is LanguagePreference {
+  return value === 'system' || value === 'zh-CN' || value === 'ja' || value === 'en';
 }

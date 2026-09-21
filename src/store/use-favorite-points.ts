@@ -1,5 +1,7 @@
 import { clearFavoritePoints, getFavoritePoints, setFavoritePoints, type FavoritePoint } from '@/lib/favorite-storage';
 import type { Bangumi, Point } from '@/services/types';
+import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
+import i18n from '@/i18n';
 import { create } from 'zustand';
 
 export function getFavoritePointKey(bangumiId: number, pointId: string): string {
@@ -7,8 +9,8 @@ export function getFavoritePointKey(bangumiId: number, pointId: string): string 
 }
 
 function createFavoritePoint(point: Point, bangumi: Bangumi): FavoritePoint {
-  const pointName = point.cn || point.name || '未命名点位';
-  const bangumiName = bangumi.cn || bangumi.title || bangumi.en || '未知作品';
+  const pointName = getPointTitle(point) || i18n.t('unnamedLocation', { defaultValue: '未命名点位' });
+  const bangumiName = getBangumiTitle(bangumi) || i18n.t('unknownWork', { defaultValue: '未知作品' });
 
   return {
     key: getFavoritePointKey(bangumi.id, point.id),

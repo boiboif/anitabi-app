@@ -10,14 +10,16 @@ import { FileJson, Share2 } from '@tamagui/lucide-icons-2';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
 import { View as NativeView, Platform, ScrollView, useWindowDimensions } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { captureRef } from 'react-native-view-shot';
 import { Spinner, Text, View, YStack, useTheme } from 'tamagui';
 
-function messageFrom(error: unknown) {
-  return error instanceof Error ? error.message : '分享失败，请稍后重试';
+function messageFrom(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
 }
 
 export default function PlanShareScreen() {
+  const { t } = useTranslation();
   const { planId, displayOnly } = useLocalSearchParams<{ planId: string; displayOnly?: string }>();
   const plan = usePlans((state) => state.plans.find((item) => item.id === planId));
   const data = useMapData((state) => state.data);
@@ -46,7 +48,7 @@ export default function PlanShareScreen() {
   const shareImage = async () => {
     if (!plan || !cardRef.current || !cardIsReady || sharing) return;
     if (Platform.OS === 'web') {
-      Toast.show('网页版暂不支持分享本地图片');
+      Toast.show(t('sharingLocalImagesIsNotSupportedOnTheWebYet', { defaultValue: '网页版暂不支持分享本地图片' }));
       return;
     }
     setSharing('image');
@@ -60,7 +62,7 @@ export default function PlanShareScreen() {
       });
       await sharePlanImage(uri, plan.title);
     } catch (error) {
-      Toast.show(messageFrom(error));
+      Toast.show(messageFrom(error, t('sharingFailedPleaseTryAgainLater', { defaultValue: '分享失败，请稍后重试' })));
     } finally {
       setSharing(null);
     }
@@ -69,14 +71,14 @@ export default function PlanShareScreen() {
   const shareFile = async () => {
     if (!plan || sharing) return;
     if (Platform.OS === 'web') {
-      Toast.show('网页版暂不支持分享计划文件');
+      Toast.show(t('sharingPlanFilesIsNotSupportedOnTheWebYet', { defaultValue: '网页版暂不支持分享计划文件' }));
       return;
     }
     setSharing('file');
     try {
       await sharePlanFile(plan);
     } catch (error) {
-      Toast.show(messageFrom(error));
+      Toast.show(messageFrom(error, t('sharingFailedPleaseTryAgainLater', { defaultValue: '分享失败，请稍后重试' })));
     } finally {
       setSharing(null);
     }
@@ -85,14 +87,16 @@ export default function PlanShareScreen() {
   if (!plan || !bundle) {
     return (
       <YStack flex={1} items="center" justify="center" bg="$background">
-        <Text color="$color11">计划不存在或已被删除</Text>
+        <Text color="$color11">
+          {t('thePlanDoesNotExistOrHasBeenDeleted', { defaultValue: '计划不存在或已被删除' })}
+        </Text>
       </YStack>
     );
   }
 
   return (
     <>
-      <Stack.Screen options={{ title: '分享巡礼计划' }} />
+      <Stack.Screen options={{ title: t('sharePilgrimagePlan', { defaultValue: '分享巡礼计划' }) }} />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         style={{ flex: 1, backgroundColor: theme.background?.val }}
@@ -121,10 +125,12 @@ export default function PlanShareScreen() {
         {showDisplayOnly ? (
           <YStack width="100%" maxW={520} p="$3" rounded="$4" bg="$color2" gap="$1">
             <Text color="$color12" fontSize="$body" fontWeight="700">
-              这张图片仅供展示
+              {t('thisImageIsForDisplayOnly', { defaultValue: '这张图片仅供展示' })}
             </Text>
             <Text color="$color11" fontSize="$footnote" lineHeight={18}>
-              计划内容较多，图片中不包含可导入二维码。如需让对方导入，请分享计划文件。
+              {t('thisPlanIsTooLargeToIncludeAnImportableQrCodeShareThePlanFileIfTheRecipientNeedsToImportIt', {
+                defaultValue: '计划内容较多，图片中不包含可导入二维码。如需让对方导入，请分享计划文件。',
+              })}
             </Text>
           </YStack>
         ) : null}
@@ -141,7 +147,9 @@ export default function PlanShareScreen() {
             opacity={!cardIsReady || sharing !== null ? 0.55 : 1}
             onPress={() => void shareImage()}
           >
-            {cardIsReady ? '分享图片' : '正在加载图片…'}
+            {cardIsReady
+              ? t('shareImage', { defaultValue: '分享图片' })
+              : t('loadingImage', { defaultValue: '正在加载图片…' })}
           </Button>
           <Button
             bg="$color3"
@@ -152,7 +160,7 @@ export default function PlanShareScreen() {
             opacity={sharing !== null ? 0.55 : 1}
             onPress={() => void shareFile()}
           >
-            分享计划文件
+            {t('sharePlanFile', { defaultValue: '分享计划文件' })}
           </Button>
         </YStack>
       </ScrollView>

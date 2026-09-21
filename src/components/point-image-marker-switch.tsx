@@ -1,5 +1,6 @@
 import { Image, ImageOff } from '@tamagui/lucide-icons-2';
 import { StyleSheet, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   visible: boolean;
@@ -7,8 +8,11 @@ type Props = {
 };
 
 export default function PointImageMarkerSwitch({ visible, onChange }: Props) {
+  const { t } = useTranslation();
   const Icon = visible ? Image : ImageOff;
-  const label = visible ? '隐藏点位图片' : '显示点位图片';
+  const label = visible
+    ? t('hideLocationImages', { defaultValue: '隐藏点位图片' })
+    : t('showLocationImages', { defaultValue: '显示点位图片' });
 
   return (
     <TouchableOpacity

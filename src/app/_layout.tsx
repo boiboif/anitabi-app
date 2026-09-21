@@ -2,16 +2,19 @@ import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { AppUpdateOverlay } from '@/components/app-update-overlay';
 import PlanPickerProvider from '@/components/plan-picker-provider';
 import '@/global.css';
+import i18n, { resolveLanguagePreference } from '@/i18n';
 import { AppUpdateManagerContext } from '@/hooks/use-app-update-manager';
 import { useAppUpdates } from '@/hooks/use-app-updates';
 import { Sentry, sentryNavigationIntegration } from '@/services/sentry';
 import { useMapData } from '@/store/use-map-data';
+import { useLanguagePreference } from '@/store/use-language-preference';
 import { useThemePreference } from '@/store/use-theme-preference';
 import tamaguiConfig, { LightPageBackground } from '@/tamagui.config';
 import { Toast } from '@boiboif/react-native-toast';
 import { TrueSheetProvider } from '@lodev09/react-native-true-sheet';
 import Mapbox from '@rnmapbox/maps';
 import Constants from 'expo-constants';
+import { useLocales } from 'expo-localization';
 import {
   DarkTheme,
   DefaultTheme,
@@ -23,6 +26,7 @@ import {
 } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -66,12 +70,20 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 }
 
 function RootLayout() {
+  const { t } = useTranslation();
+  const locales = useLocales();
   const colorScheme = useColorScheme();
+  const languagePreference = useLanguagePreference((state) => state.preference);
   const preference = useThemePreference((state) => state.preference);
   const theme = resolveTheme(colorScheme, preference);
   const initializeMapData = useMapData((state) => state.initialize);
   const navigationContainerRef = useNavigationContainerRef();
   const appUpdates = useAppUpdates();
+
+  useEffect(() => {
+    if (languagePreference !== 'system') return;
+    void i18n.changeLanguage(resolveLanguagePreference('system', locales[0]?.languageTag));
+  }, [languagePreference, locales]);
 
   useEffect(() => {
     sentryNavigationIntegration.registerNavigationContainer(navigationContainerRef);
@@ -105,7 +117,15 @@ function RootLayout() {
                       options={{
                         headerShown: true,
                         headerTitleAlign: 'center',
-                        title: '深色模式',
+                        title: t('darkMode', { defaultValue: '深色模式' }),
+                      }}
+                    />
+                    <Stack.Screen
+                      name="language"
+                      options={{
+                        headerShown: true,
+                        headerTitleAlign: 'center',
+                        title: t('language', { defaultValue: '语言' }),
                       }}
                     />
                     <Stack.Screen
@@ -113,7 +133,7 @@ function RootLayout() {
                       options={{
                         headerShown: true,
                         headerTitleAlign: 'center',
-                        title: '关于',
+                        title: t('about', { defaultValue: '关于' }),
                       }}
                     />
                     <Stack.Screen
@@ -121,7 +141,7 @@ function RootLayout() {
                       options={{
                         headerShown: true,
                         headerTitleAlign: 'center',
-                        title: '许可',
+                        title: t('licenses', { defaultValue: '许可' }),
                       }}
                     />
                     <Stack.Screen
@@ -129,7 +149,7 @@ function RootLayout() {
                       options={{
                         headerShown: true,
                         headerTitleAlign: 'center',
-                        title: '许可证详情',
+                        title: t('licenseDetails', { defaultValue: '许可证详情' }),
                       }}
                     />
                     <Stack.Screen

@@ -1,11 +1,13 @@
 import FavoritePointButton from '@/components/favorite-point-button';
 import PointCardActions from '@/components/point-card-actions';
 import { formatDuration } from '@/lib/formatDuration';
+import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { Image, type ImageProps } from 'expo-image';
 import { useMemo, type ReactNode } from 'react';
 import { Pressable, type AccessibilityState } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { getTokens, Text, useTheme, View, XStack, YStack } from 'tamagui';
 
 const DEFAULT_CARD_HEIGHT = 110;
@@ -74,7 +76,7 @@ type Props = {
 export default function PointListCard({
   point,
   bangumi,
-  title = point?.cn || point?.name || '未命名点位',
+  title,
   subtitle,
   showSubtitle = true,
   description,
@@ -102,7 +104,11 @@ export default function PointListCard({
   height = DEFAULT_CARD_HEIGHT,
   imageWidth = 150,
 }: Props) {
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
+  const resolvedTitle =
+    (title ?? (point ? getPointTitle(point, i18n.resolvedLanguage) : '')) ||
+    t('unnamedLocation', { defaultValue: '未命名点位' });
   const imagePath = image ?? point?.image ?? bangumi?.cover;
   const resolvedImageSource = useMemo(() => {
     if (imageSource) return imageSource;
@@ -119,7 +125,9 @@ export default function PointListCard({
     }),
     [bangumi?.color, height, imageColor, imageWidth, theme.color9.val],
   );
-  const resolvedSubtitle = subtitle ?? (bangumi?.cn || bangumi?.title || bangumi?.en || '未知');
+  const resolvedSubtitle =
+    (subtitle ?? (bangumi ? getBangumiTitle(bangumi, i18n.resolvedLanguage) : '')) ||
+    t('unknown', { defaultValue: '未知' });
   const epLabel =
     typeof point?.ep === 'number' && point.ep > 0
       ? `EP${point.ep}`
@@ -193,7 +201,7 @@ export default function PointListCard({
               <YStack>
                 <XStack height={30} items="center" gap="$1">
                   <Text flex={1} fontSize="$body" fontWeight="600" color="$color12" numberOfLines={1}>
-                    {title}
+                    {resolvedTitle}
                   </Text>
                   {statusAction}
                   {showFavorite && point && bangumi ? (

@@ -1,4 +1,5 @@
 import { MAP_BANGUMI_ICON_PRIORITY_ZOOM_STOPS, MAP_ICON_ZOOM_THRESHOLD } from '@/lib/constants';
+import { getBangumiMapLabel } from '@/lib/localized-data';
 import { getBangumiIcons } from '@/services/api';
 import { baseUrl } from '@/services/handlers';
 import type { Bangumi } from '@/services/types';
@@ -8,6 +9,7 @@ import { Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
 import { Directory, File, Paths } from 'expo-file-system';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { ComponentProps, memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 // ===========================================================================
 // Tunable constants
@@ -46,6 +48,7 @@ type Props = {
 };
 
 function BangumiIcons({ bangumis, onIconPress }: Props) {
+  const { i18n } = useTranslation();
   const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const selectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
 
@@ -207,7 +210,7 @@ function BangumiIcons({ bangumis, onIconPress }: Props) {
         geometry: { type: 'Point', coordinates: [b.geo[1], b.geo[0]] },
         properties: {
           iconImage: key,
-          label: b.cn || b.tAbbr,
+          label: getBangumiMapLabel(b, i18n.resolvedLanguage),
           color: b.color || '#11b4da',
           bangumiId: b.id,
           priority: b.priority,
@@ -220,7 +223,7 @@ function BangumiIcons({ bangumis, onIconPress }: Props) {
       imagesMap: images,
       geojson: { type: 'FeatureCollection', features } as GeoJSON.FeatureCollection,
     };
-  }, [candidates, icons]);
+  }, [candidates, i18n.resolvedLanguage, icons]);
 
   const handlePress = useCallback(
     (

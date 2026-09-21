@@ -1,4 +1,5 @@
 import type { ItineraryPlan } from '@/lib/plan-storage';
+import i18n from '@/i18n';
 import type { AssembledData, Bangumi, Point } from '@/services/types';
 import { deflateSync, inflateSync, strFromU8, strToU8 } from 'fflate';
 
@@ -75,27 +76,39 @@ function isSharedPlanPoint(value: unknown): value is SharedPlanPoint {
 }
 
 function parseSharedPlan(value: unknown, maxItems: number, requireFileType: boolean): SharedPlan {
-  if (!value || typeof value !== 'object') throw new Error('计划文件格式不正确');
+  if (!value || typeof value !== 'object')
+    throw new Error(i18n.t('invalidPlanFileFormat', { defaultValue: '计划文件格式不正确' }));
   const candidate = value as Partial<SharedPlanFile>;
-  if (requireFileType && candidate.type !== PLAN_SHARE_FILE_TYPE) throw new Error('这不是 Anitabi 巡礼计划文件');
-  if (candidate.v !== PLAN_SHARE_VERSION) throw new Error('暂不支持这个计划文件版本');
+  if (requireFileType && candidate.type !== PLAN_SHARE_FILE_TYPE)
+    throw new Error(i18n.t('thisIsNotAnAnitabiPilgrimagePlanFile', { defaultValue: '这不是 Anitabi 巡礼计划文件' }));
+  if (candidate.v !== PLAN_SHARE_VERSION)
+    throw new Error(i18n.t('thisPlanFileVersionIsNotSupported', { defaultValue: '暂不支持这个计划文件版本' }));
   if (typeof candidate.t !== 'string' || !candidate.t.trim() || candidate.t.length > PLAN_SHARE_MAX_TITLE_LENGTH) {
-    throw new Error('计划名称无效');
+    throw new Error(i18n.t('invalidPlanName', { defaultValue: '计划名称无效' }));
   }
-  if (!Array.isArray(candidate.i) || candidate.i.length === 0) throw new Error('计划中没有可导入的点位');
-  if (candidate.i.length > maxItems) throw new Error(`计划点位不能超过 ${maxItems} 个`);
+  if (!Array.isArray(candidate.i) || candidate.i.length === 0)
+    throw new Error(i18n.t('thePlanHasNoLocationsToImport', { defaultValue: '计划中没有可导入的点位' }));
+  if (candidate.i.length > maxItems)
+    throw new Error(
+      i18n.t('aPlanCannotContainMoreThanCountLocations', {
+        defaultValue: '计划点位不能超过 {{count}} 个',
+        count: maxItems,
+      }),
+    );
 
   const seen = new Set<string>();
   const items: SharedPlanPoint[] = [];
   for (const item of candidate.i) {
-    if (!isSharedPlanPoint(item)) throw new Error('计划中包含无效点位');
+    if (!isSharedPlanPoint(item))
+      throw new Error(i18n.t('thePlanContainsInvalidLocations', { defaultValue: '计划中包含无效点位' }));
     const key = `${item[0]}:${item[1]}`;
     if (seen.has(key)) continue;
     seen.add(key);
     items.push([item[0], item[1]]);
   }
 
-  if (items.length === 0) throw new Error('计划中没有可导入的点位');
+  if (items.length === 0)
+    throw new Error(i18n.t('thePlanHasNoLocationsToImport', { defaultValue: '计划中没有可导入的点位' }));
   return { v: PLAN_SHARE_VERSION, t: candidate.t.trim(), i: items };
 }
 
@@ -112,9 +125,11 @@ export function encodeSharedPlan(data: SharedPlan): string {
 }
 
 export function decodeSharedPlan(packed: string): SharedPlan {
-  if (!packed || packed.length > PLAN_SHARE_MAX_PACKED_LENGTH) throw new Error('二维码中的计划数据无效');
+  if (!packed || packed.length > PLAN_SHARE_MAX_PACKED_LENGTH)
+    throw new Error(i18n.t('invalidPlanDataInQrCode', { defaultValue: '二维码中的计划数据无效' }));
   const inflated = inflateSync(base64UrlToBytes(packed));
-  if (inflated.byteLength > PLAN_SHARE_MAX_INFLATED_BYTES) throw new Error('二维码中的计划数据过大');
+  if (inflated.byteLength > PLAN_SHARE_MAX_INFLATED_BYTES)
+    throw new Error(i18n.t('planDataInQrCodeIsTooLarge', { defaultValue: '二维码中的计划数据过大' }));
   return parseSharedPlan(JSON.parse(strFromU8(inflated)), PLAN_SHARE_MAX_QR_ITEMS, false);
 }
 
@@ -140,20 +155,26 @@ export function createPlanShareBundle(plan: ItineraryPlan): PlanShareBundle {
 export function createSharedPlanFileContent(plan: ItineraryPlan): string {
   const data = createSharedPlan(plan);
   if (data.i.length > PLAN_SHARE_MAX_FILE_ITEMS) {
-    throw new Error(`计划文件最多支持 ${PLAN_SHARE_MAX_FILE_ITEMS} 个点位`);
+    throw new Error(
+      i18n.t('planFilesSupportUpToCountLocations', {
+        defaultValue: '计划文件最多支持 {{count}} 个点位',
+        count: PLAN_SHARE_MAX_FILE_ITEMS,
+      }),
+    );
   }
   const file: SharedPlanFile = { type: PLAN_SHARE_FILE_TYPE, ...data };
   return `${JSON.stringify(file, null, 2)}\n`;
 }
 
 export function parseSharedPlanFile(content: string): SharedPlan {
-  if (strToU8(content).byteLength > PLAN_SHARE_MAX_FILE_BYTES) throw new Error('计划文件不能超过 1 MB');
+  if (strToU8(content).byteLength > PLAN_SHARE_MAX_FILE_BYTES)
+    throw new Error(i18n.t('planFilesCannotExceed1Mb', { defaultValue: '计划文件不能超过 1 MB' }));
   return parseSharedPlan(JSON.parse(content), PLAN_SHARE_MAX_FILE_ITEMS, true);
 }
 
 export function extractPackedPlanFromValue(value: string): string {
   const trimmed = value.trim();
-  if (!trimmed) throw new Error('二维码内容为空');
+  if (!trimmed) throw new Error(i18n.t('qrCodeContentIsEmpty', { defaultValue: '二维码内容为空' }));
 
   try {
     const url = new URL(trimmed);
@@ -166,7 +187,9 @@ export function extractPackedPlanFromValue(value: string): string {
   }
 
   if (/^[A-Za-z0-9_-]+$/u.test(trimmed)) return trimmed;
-  throw new Error('这不是有效的 Anitabi 巡礼计划二维码');
+  throw new Error(
+    i18n.t('thisIsNotAValidAnitabiPilgrimagePlanQrCode', { defaultValue: '这不是有效的 Anitabi 巡礼计划二维码' }),
+  );
 }
 
 export function decodeSharedPlanValue(value: string): SharedPlan {
@@ -201,6 +224,9 @@ export function resolveSharedPlan(data: SharedPlan, mapData: AssembledData): Res
 }
 
 export function sanitizePlanFileName(title: string): string {
-  const safeTitle = title.replace(/[<>:"/\\|?*\u0000-\u001F]/gu, '-').replace(/[. ]+$/u, '').trim();
-  return `${safeTitle || '巡礼计划'}.anitabi-plan.json`;
+  const safeTitle = title
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/gu, '-')
+    .replace(/[. ]+$/u, '')
+    .trim();
+  return `${safeTitle || i18n.t('pilgrimagePlans', { defaultValue: '巡礼计划' })}.anitabi-plan.json`;
 }

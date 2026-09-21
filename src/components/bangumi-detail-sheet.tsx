@@ -1,4 +1,6 @@
 import PointListCard from '@/components/point-list-card';
+import { getCategoryMessage, translateMessage } from '@/i18n/messages';
+import { getBangumiTitle } from '@/lib/localized-data';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapBrowse } from '@/store/use-map-browse';
@@ -10,6 +12,7 @@ import { Image } from 'expo-image';
 import { useIsFocused, useNavigation } from 'expo-router';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, Pressable } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { getTokens, Text, useTheme, View } from 'tamagui';
 
 const SECTION_HEADER_HEIGHT = 32;
@@ -34,6 +37,12 @@ interface FlatSectionHeader {
   title: string;
   count: number;
   expanded: boolean;
+}
+
+function BangumiCategoryLabel({ category }: { category: string }) {
+  const { t } = useTranslation();
+  const message = getCategoryMessage(category);
+  return message ? translateMessage(t, message) : category;
 }
 
 interface FlatPointItem {
@@ -73,6 +82,7 @@ function AccordionControls({
   onLayout?: (event: LayoutChangeEvent) => void;
   onSelectMode: (mode: AccordionMode) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <View
       bg="$color1"
@@ -97,7 +107,7 @@ function AccordionControls({
               color={accordionMode === 'ep' ? '$primary' : '$color11'}
               fontSize="$body"
             >
-              话数
+              {t('episode', { defaultValue: '话数' })}
             </Text>
           </View>
         </Pressable>
@@ -113,7 +123,7 @@ function AccordionControls({
               color={accordionMode === 'folder' ? '$primary' : '$color11'}
               fontSize="$body"
             >
-              分组
+              {t('group', { defaultValue: '分组' })}
             </Text>
           </View>
         </Pressable>
@@ -124,7 +134,7 @@ function AccordionControls({
           style={({ pressed }: { pressed: boolean }) => ({ opacity: pressed ? 0.6 : 1 })}
         >
           <Text fontSize="$footnote" color="$primary">
-            折叠全部
+            {t('collapseAll', { defaultValue: '折叠全部' })}
           </Text>
         </Pressable>
         <Pressable
@@ -132,7 +142,7 @@ function AccordionControls({
           style={({ pressed }: { pressed: boolean }) => ({ opacity: pressed ? 0.6 : 1 })}
         >
           <Text fontSize="$footnote" color="$primary">
-            展开全部
+            {t('expandAll', { defaultValue: '展开全部' })}
           </Text>
         </Pressable>
       </View>
@@ -140,7 +150,14 @@ function AccordionControls({
   );
 }
 
-function groupPoints(points: Point[], mode: AccordionMode, bangumi: Bangumi): AccordionSection[] {
+function groupPoints(
+  points: Point[],
+  mode: AccordionMode,
+  bangumi: Bangumi,
+  language: string,
+  otherLabel: string,
+  unnamedCollectionLabel: string,
+): AccordionSection[] {
   if (mode === 'ep') {
     const numericEpMap = new Map<number, Point[]>();
     const namedEpMap = new Map<string, Point[]>();
@@ -165,7 +182,7 @@ function groupPoints(points: Point[], mode: AccordionMode, bangumi: Bangumi): Ac
       sections.push({ key: `${bangumi.id}-ep-name-${name}`, title: name, data });
     }
     if (pointsWithoutEp.length > 0) {
-      sections.push({ key: `${bangumi.id}-ep-other`, title: '其他', data: pointsWithoutEp });
+      sections.push({ key: `${bangumi.id}-ep-other`, title: otherLabel, data: pointsWithoutEp });
     }
     return sections;
   }
@@ -173,7 +190,7 @@ function groupPoints(points: Point[], mode: AccordionMode, bangumi: Bangumi): Ac
   const pilgrimageGroups = new Map<string, { title: string; data: Point[] }>();
   for (const p of points) {
     if (p.isFolder) {
-      pilgrimageGroups.set(p.id, { title: p.name || p.folder || '未命名合辑', data: [p] });
+      pilgrimageGroups.set(p.id, { title: p.name || p.folder || unnamedCollectionLabel, data: [p] });
     }
   }
 
@@ -197,7 +214,7 @@ function groupPoints(points: Point[], mode: AccordionMode, bangumi: Bangumi): Ac
   if (bangumiPoints.length > 0) {
     sections.push({
       key: 'folder-bangumi',
-      title: bangumi.cn || bangumi.title || bangumi.en || '番剧',
+      title: getBangumiTitle(bangumi, language),
       data: bangumiPoints,
     });
   }
@@ -316,12 +333,18 @@ function useBangumiDetailSheet(bangumiId: number | undefined, onDetailsDismiss: 
 }
 
 function BangumiDetailSheet() {
+  const { t, i18n } = useTranslation();
   const bangumis = useMapData((state) => state.data)?.data.bangumis;
   const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const focusPointFromBangumiDetails = useMapBrowse((state) => state.focusPointFromBangumiDetails);
   const closeBangumiDetails = useMapBrowse((state) => state.closeBangumiDetails);
   const selectedBangumi = bangumis?.find((bangumi) => bangumi.id === openedBangumiDetailsId);
   const theme = useTheme();
+  const localizedBangumiTitle = selectedBangumi
+    ? getBangumiTitle(selectedBangumi, i18n.resolvedLanguage) || t('work', { defaultValue: '番剧' })
+    : '';
+  const originalBangumiTitle =
+    selectedBangumi?.title && selectedBangumi.title !== localizedBangumiTitle ? selectedBangumi.title : null;
   const {
     flashListRef,
     handleDetentChange,
@@ -350,7 +373,14 @@ function BangumiDetailSheet() {
   const sectionRows = useMemo<FlatSectionRows[]>(() => {
     if (!selectedBangumi) return [];
 
-    return groupPoints(selectedBangumi.points, accordionMode, selectedBangumi).map((section) => {
+    return groupPoints(
+      selectedBangumi.points,
+      accordionMode,
+      selectedBangumi,
+      i18n.resolvedLanguage ?? i18n.language,
+      t('other', { defaultValue: '其他' }),
+      t('unnamedCollection', { defaultValue: '未命名合辑' }),
+    ).map((section) => {
       const header = {
         type: ITEM_TYPE_HEADER,
         id: `header-${section.key}`,
@@ -368,7 +398,7 @@ function BangumiDetailSheet() {
         ),
       };
     });
-  }, [accordionMode, selectedBangumi]);
+  }, [accordionMode, i18n.language, i18n.resolvedLanguage, selectedBangumi, t]);
 
   const allExpanded = expandedKeys.size === sectionRows.length && sectionRows.length > 0;
 
@@ -406,7 +436,14 @@ function BangumiDetailSheet() {
       };
     }
     // Commit the new grouping and its expansion state together, without an intermediate collapsed list.
-    const nextSections = groupPoints(selectedBangumi.points, mode, selectedBangumi);
+    const nextSections = groupPoints(
+      selectedBangumi.points,
+      mode,
+      selectedBangumi,
+      i18n.resolvedLanguage ?? i18n.language,
+      t('other', { defaultValue: '其他' }),
+      t('unnamedCollection', { defaultValue: '未命名合辑' }),
+    );
     setExpandedKeys(allExpanded ? new Set(nextSections.map((section) => section.key)) : new Set());
     setAccordionMode(mode);
   };
@@ -582,14 +619,16 @@ function BangumiDetailSheet() {
                     contentFit="cover"
                   />
                   <View flex={1}>
-                    {selectedBangumi?.cn ? (
+                    {localizedBangumiTitle ? (
                       <Text fontWeight="600" fontSize="$subtitle" color="$color12" pr="$8" numberOfLines={2}>
-                        {selectedBangumi?.cn}
+                        {localizedBangumiTitle}
                       </Text>
                     ) : null}
-                    <Text fontSize="$footnote" color="$color11" mt="$1" mb="$1" numberOfLines={1}>
-                      {selectedBangumi?.title}
-                    </Text>
+                    {originalBangumiTitle ? (
+                      <Text fontSize="$footnote" color="$color11" mt="$1" mb="$1" numberOfLines={1}>
+                        {originalBangumiTitle}
+                      </Text>
+                    ) : null}
                     <View flexDirection="row">
                       {selectedBangumi?.city && (
                         <Text fontSize="$footnote" color="$color11">
@@ -600,11 +639,14 @@ function BangumiDetailSheet() {
                         <Text color="$primary" fontWeight="bold">
                           {selectedBangumi?.points.length}
                         </Text>
-                        个巡礼点
+                        {t('locationSuffix', { defaultValue: '个巡礼点' })}
                       </Text>
                     </View>
                     <Text fontSize="$caption" color="$color11" position="absolute" r="$0" b="$0">
-                      最近更新：{dayjs(selectedBangumi?.modified).format('YYYY-MM-DD HH:mm')}
+                      {t('updatedDate', {
+                        defaultValue: '最近更新：{{date}}',
+                        date: dayjs(selectedBangumi?.modified).format('YYYY-MM-DD HH:mm'),
+                      })}
                     </Text>
                   </View>
                   {selectedBangumi?.cat?.trim() ? (
@@ -618,7 +660,7 @@ function BangumiDetailSheet() {
                       style={{ backgroundColor: selectedBangumi?.color || '$color9' }}
                     >
                       <Text fontSize="$caption" color="white" fontWeight="500">
-                        {selectedBangumi?.cat}
+                        <BangumiCategoryLabel category={selectedBangumi.cat} />
                       </Text>
                     </View>
                   ) : null}

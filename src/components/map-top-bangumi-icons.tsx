@@ -1,5 +1,6 @@
 import { hexToRgba } from '@/lib/color';
 import { MAP_ICON_ZOOM_THRESHOLD } from '@/lib/constants';
+import { getBangumiMapLabel } from '@/lib/localized-data';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi } from '@/services/types';
 import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
@@ -8,6 +9,7 @@ import { X } from '@tamagui/lucide-icons-2';
 import { Image } from 'expo-image';
 import { useEffect, useMemo, useRef } from 'react';
 import { Pressable, ScrollView, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { GetThemeValueForKey, Text, useTheme, View } from 'tamagui';
 
 // ===========================================================================
@@ -58,6 +60,7 @@ export default function MapTopBangumiIcons({
   alwaysVisible = false,
   showOpenedBangumiDetails = true,
 }: Props) {
+  const { t, i18n } = useTranslation();
   const scrollViewRef = useRef<ScrollView>(null);
   const theme = useTheme();
   const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
@@ -160,7 +163,7 @@ export default function MapTopBangumiIcons({
               numberOfLines={1}
               style={{ flexShrink: 1 }}
             >
-              {b.cn}
+              {getBangumiMapLabel(b, i18n.resolvedLanguage)}
             </Text>
 
             <View
@@ -279,7 +282,7 @@ export default function MapTopBangumiIcons({
                   numberOfLines={1}
                   style={{ flexShrink: 1 }}
                 >
-                  {b.cn || b.title}
+                  {getBangumiMapLabel(b, i18n.resolvedLanguage)}
                 </Text>
 
                 <View
@@ -316,7 +319,7 @@ export default function MapTopBangumiIcons({
         >
           <View bg="$color2" px="$3" py="$1.5" rounded="$10" boxShadow="0 2px 4px rgba(0,0,0,0.05)">
             <Text color="$color11" fontSize="$footnote" fontWeight="500">
-              清除筛选
+              {t('clearFilters', { defaultValue: '清除筛选' })}
             </Text>
           </View>
         </Pressable>

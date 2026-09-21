@@ -31,6 +31,11 @@ const config: ExpoConfig = {
   icon: './assets/images/anitabi-icon.png',
   scheme: appScheme,
   userInterfaceStyle: 'automatic',
+  locales: {
+    'zh-Hans': './locales/zh-Hans.json',
+    ja: './locales/ja.json',
+    en: './locales/en.json',
+  },
   ios: {
     bundleIdentifier: appIdentifier,
     icon: './assets/images/anitabi-icon.png',
@@ -57,6 +62,12 @@ const config: ExpoConfig = {
   },
   plugins: [
     'expo-router',
+    [
+      'expo-localization',
+      {
+        supportedLocales: ['zh-Hans', 'ja', 'en'],
+      },
+    ],
     [
       'expo-camera',
       {
@@ -139,7 +150,7 @@ const config: ExpoConfig = {
     [
       'expo-sensors',
       {
-        motionPermission: 'Allow $(PRODUCT_NAME) to access your device motion.',
+        motionPermission: '允许 $(PRODUCT_NAME) 访问设备运动与方向数据',
       },
     ],
   ],

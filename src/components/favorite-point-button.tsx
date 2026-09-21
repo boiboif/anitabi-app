@@ -2,6 +2,7 @@ import type { Bangumi, Point } from '@/services/types';
 import { getFavoritePointKey, useFavoritePoints } from '@/store/use-favorite-points';
 import { Heart } from '@tamagui/lucide-icons-2';
 import { Pressable } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme, View } from 'tamagui';
 
 type Props = {
@@ -13,6 +14,7 @@ type Props = {
 };
 
 export default function FavoritePointButton({ point, bangumi, size = 18, buttonSize = 36, overlay = false }: Props) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const key = getFavoritePointKey(bangumi.id, point.id);
   const isFavorite = useFavoritePoints((state) => state.favoriteKeys.has(key));
@@ -22,7 +24,11 @@ export default function FavoritePointButton({ point, bangumi, size = 18, buttonS
   const button = (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={isFavorite ? '取消收藏巡礼点' : '收藏巡礼点'}
+      accessibilityLabel={
+        isFavorite
+          ? t('removeLocationFromFavorites', { defaultValue: '取消收藏巡礼点' })
+          : t('favoriteLocation', { defaultValue: '收藏巡礼点' })
+      }
       hitSlop={8}
       onPress={(event) => {
         event.stopPropagation();

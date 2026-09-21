@@ -3,12 +3,14 @@ import { MAP_STYLES } from '@/components/layer-switch';
 import MapMarkers from '@/components/map-markers';
 import PointImageMarkers from '@/components/point-image-markers';
 import PopupCard from '@/components/point-popup-card';
+import { resolveLanguageTag } from '@/i18n';
 import type { Bangumi } from '@/services/types';
 import { type MapPointReference, useMapBrowse } from '@/store/use-map-browse';
 import { Camera, Images, LocationPuck, Image as MapboxImage, MapState, MapView, MarkerView } from '@rnmapbox/maps';
 import { useDebounceFn } from 'ahooks';
 import { useFocusEffect, useNavigation } from 'expo-router';
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { EdgeInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { YStack } from 'tamagui';
@@ -58,7 +60,10 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   },
   ref,
 ) {
+  const { i18n } = useTranslation();
   const isPlanMode = mode === 'plan';
+  const language = resolveLanguageTag(i18n.resolvedLanguage);
+  const mapLabelLocale = language === 'zh-CN' ? 'zh-Hans' : language;
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const [bounds, setBounds] = useState<Bounds | null>(null);
   const [loadedStyleIndex, setLoadedStyleIndex] = useState<number | null>(null);
@@ -250,7 +255,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     <MapView
       style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
       styleURL={MAP_STYLES[styleIndex].url}
-      localizeLabels={{ locale: 'zh' }}
+      localizeLabels={{ locale: mapLabelLocale }}
       compassEnabled
       compassPosition={{ top: insets.top + 100, right: 8 }}
       scaleBarEnabled={true}

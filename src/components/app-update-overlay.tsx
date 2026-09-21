@@ -2,6 +2,7 @@ import { StrictButton as Button } from '@/components/strict-button';
 import type { AppUpdateManager } from '@/hooks/use-app-updates';
 import { getBinaryUpdateDisplayVersion, getCurrentAppDisplayVersion, isMandatoryUpdate } from '@/services/app-update';
 import { Modal, ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Progress, Text, View, XStack, YStack } from 'tamagui';
 
 type Props = {
@@ -9,6 +10,7 @@ type Props = {
 };
 
 export function AppUpdateOverlay({ manager }: Props) {
+  const { t } = useTranslation();
   const {
     binaryUpdate,
     isBinaryUpdateVisible,
@@ -25,12 +27,17 @@ export function AppUpdateOverlay({ manager }: Props) {
   if (!visible) return null;
 
   const isBinary = Boolean(visibleBinaryUpdate);
-  const title = isBinary ? '检测到更新' : '更新已准备完成';
+  const title = isBinary
+    ? t('updateDetected', { defaultValue: '检测到更新' })
+    : t('updateReady', { defaultValue: '更新已准备完成' });
   const description = isBinary
-    ? (visibleBinaryUpdate?.releaseNotes ?? '下载最新安装包，获取完整功能和修复。')
-    : '更新内容已在后台下载完成，重启应用后立即生效。';
+    ? (visibleBinaryUpdate?.releaseNotes ??
+      t('downloadTheLatestInstallerForAllFeaturesAndFixes', { defaultValue: '下载最新安装包，获取完整功能和修复。' }))
+    : t('theUpdateHasDownloadedInTheBackgroundAndWillApplyAfterRestarting', {
+        defaultValue: '更新内容已在后台下载完成，重启应用后立即生效。',
+      });
   const currentVersion = getCurrentAppDisplayVersion();
-  const newVersion = visibleBinaryUpdate ? getBinaryUpdateDisplayVersion(visibleBinaryUpdate) : null;
+  const newVersion = visibleBinaryUpdate ? getBinaryUpdateDisplayVersion(visibleBinaryUpdate) : '';
   const progress = binaryProgress?.percent ?? 0;
   const hasPartialDownload = (binaryProgress?.bytesWritten ?? 0) > 0;
   const showBinaryProgress = isBinary && !isBinaryDownloaded && (isDownloadingBinary || binaryProgress !== null);
@@ -51,10 +58,10 @@ export function AppUpdateOverlay({ manager }: Props) {
             {isBinary ? (
               <YStack gap="$1">
                 <Text fontSize="$footnote" color="$color11">
-                  新版本：v{newVersion}
+                  {t('newVersionVVersion', { defaultValue: '新版本：v{{version}}', version: newVersion })}
                 </Text>
                 <Text fontSize="$footnote" color="$color11">
-                  当前版本：v{currentVersion}
+                  {t('currentVersionVVersion', { defaultValue: '当前版本：v{{version}}', version: currentVersion })}
                 </Text>
               </YStack>
             ) : null}
@@ -63,7 +70,7 @@ export function AppUpdateOverlay({ manager }: Props) {
           <YStack gap="$2">
             {isBinary ? (
               <Text fontSize="$footnote" fontWeight="600" color="$color12">
-                更新信息
+                {t('releaseNotes', { defaultValue: '更新信息' })}
               </Text>
             ) : null}
             <ScrollView style={{ maxHeight: 180 }}>
@@ -77,7 +84,11 @@ export function AppUpdateOverlay({ manager }: Props) {
             <YStack gap="$2">
               <XStack justify="space-between">
                 <Text fontSize="$footnote" color="$color11">
-                  {isDownloadingBinary ? '正在下载安装包' : hasPartialDownload ? '下载已暂停' : '等待下载'}
+                  {isDownloadingBinary
+                    ? t('downloadingInstaller', { defaultValue: '正在下载安装包' })
+                    : hasPartialDownload
+                      ? t('downloadPaused', { defaultValue: '下载已暂停' })
+                      : t('waitingToDownload', { defaultValue: '等待下载' })}
                 </Text>
                 <Text fontSize="$footnote" color="$color12">
                   {progress}%
@@ -101,9 +112,9 @@ export function AppUpdateOverlay({ manager }: Props) {
                 chromeless
                 onPress={manager.cancelBinaryUpdate}
                 accessibilityRole="button"
-                accessibilityLabel="取消下载安装包"
+                accessibilityLabel={t('cancelInstallerDownload', { defaultValue: '取消下载安装包' })}
               >
-                取消
+                {t('cancel', { defaultValue: '取消' })}
               </Button>
             ) : !binaryMandatory ? (
               <Button
@@ -111,7 +122,7 @@ export function AppUpdateOverlay({ manager }: Props) {
                 onPress={isBinary ? manager.dismissBinaryUpdate : manager.dismissHotUpdate}
                 accessibilityRole="button"
               >
-                稍后
+                {t('later', { defaultValue: '稍后' })}
               </Button>
             ) : null}
             <XStack>
@@ -120,9 +131,9 @@ export function AppUpdateOverlay({ manager }: Props) {
                   chromeless
                   onPress={() => void manager.downloadBinaryUpdateInBrowser()}
                   accessibilityRole="button"
-                  accessibilityLabel="使用浏览器下载安装包"
+                  accessibilityLabel={t('downloadInstallerInBrowser', { defaultValue: '使用浏览器下载安装包' })}
                 >
-                  浏览器下载
+                  {t('browserDownload', { defaultValue: '浏览器下载' })}
                 </Button>
               ) : null}
               <Button
@@ -135,15 +146,15 @@ export function AppUpdateOverlay({ manager }: Props) {
               >
                 {isDownloadingBinary
                   ? isBinaryDownloaded
-                    ? '正在打开…'
-                    : '下载中…'
+                    ? t('opening', { defaultValue: '正在打开…' })
+                    : t('downloading', { defaultValue: '下载中…' })
                   : isBinary
                     ? isBinaryDownloaded
-                      ? '立即安装'
+                      ? t('installNow', { defaultValue: '立即安装' })
                       : hasPartialDownload
-                        ? '继续下载'
-                        : '立即更新'
-                    : '重启更新'}
+                        ? t('resumeDownload', { defaultValue: '继续下载' })
+                        : t('updateNow', { defaultValue: '立即更新' })
+                    : t('restartToUpdate', { defaultValue: '重启更新' })}
               </Button>
             </XStack>
           </XStack>

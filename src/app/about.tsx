@@ -1,6 +1,7 @@
 import { SettingCell } from '@/components/setting-cell';
 import { SettingsSection } from '@/components/settings-section';
 import { useAppUpdateManager } from '@/hooks/use-app-update-manager';
+import { translateMessage, type TranslationMessage } from '@/i18n/messages';
 import {
   areAppUpdatesEnabled,
   getBinaryUpdateDisplayVersion,
@@ -11,35 +12,43 @@ import { CircleUserRound, Github, Globe2, Palette, RefreshCw, Scale } from '@tam
 import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
 import { Alert, Platform, ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { View, useTheme } from 'tamagui';
 
-const externalLinks = [
+const externalLinks: {
+  title: TranslationMessage;
+  description?: TranslationMessage;
+  value: string | TranslationMessage;
+  url: string;
+  appUrl?: string;
+  icon: typeof Github;
+}[] = [
   {
-    title: '项目主页',
-    description: undefined,
+    title: { key: 'projectHomepage', defaultValue: '项目主页' },
     value: 'GitHub',
     url: 'https://github.com/boiboif/anitabi-app',
     icon: Github,
   },
   {
-    title: '作者主页',
-    description: undefined,
-    value: '哔哩哔哩',
+    title: { key: 'authorHomepage', defaultValue: '作者主页' },
+    value: { key: 'bilibili', defaultValue: '哔哩哔哩' },
     url: 'https://space.bilibili.com/1519338',
     appUrl: 'bilibili://space/1519338',
     icon: CircleUserRound,
   },
   {
-    title: '数据来源',
-    description: undefined,
+    title: { key: 'dataSource', defaultValue: '数据来源' },
     value: 'anitabi.cn',
     url: 'https://anitabi.cn',
     icon: Globe2,
   },
   {
-    title: '调色对比生成器',
-    description: '提取动画截图的影调与配色，套用到实景照片',
+    title: { key: 'colorComparisonGenerator', defaultValue: '调色对比生成器' },
+    description: {
+      key: 'applyTheToneAndColorsOfAnAnimeFrameToARealWorldPhoto',
+      defaultValue: '提取动画截图的影调与配色，套用到实景照片',
+    },
     value: '',
     url: 'https://compose.anitabi.cn/',
     icon: Palette,
@@ -47,6 +56,7 @@ const externalLinks = [
 ];
 
 export default function AboutScreen() {
+  const { t } = useTranslation();
   const safeAreaInsets = useSafeAreaInsets();
   const theme = useTheme();
   const appUpdates = useAppUpdateManager();
@@ -80,13 +90,19 @@ export default function AboutScreen() {
         }
       }
 
-      Alert.alert('无法打开链接', '请稍后重试。');
+      Alert.alert(
+        t('couldNotOpenLink', { defaultValue: '无法打开链接' }),
+        t('pleaseTryAgainLaterWithPeriod', { defaultValue: '请稍后重试。' }),
+      );
     }
   };
 
   const openAppUpdate = async () => {
     if (!areAppUpdatesEnabled()) {
-      Alert.alert('开发版本', '当前构建未启用应用更新。');
+      Alert.alert(
+        t('developmentBuild', { defaultValue: '开发版本' }),
+        t('appUpdatesAreDisabledInThisBuild', { defaultValue: '当前构建未启用应用更新。' }),
+      );
       return;
     }
 
@@ -98,10 +114,18 @@ export default function AboutScreen() {
     try {
       const foundUpdate = await appUpdates.checkNow();
       if (!foundUpdate) {
-        Alert.alert('已是最新版本', '当前已安装最新版本。');
+        Alert.alert(
+          t('upToDate', { defaultValue: '已是最新版本' }),
+          t('theLatestVersionIsAlreadyInstalled', { defaultValue: '当前已安装最新版本。' }),
+        );
       }
     } catch {
-      Alert.alert('检查更新失败', '暂时无法获取最新版本信息，请稍后重试。');
+      Alert.alert(
+        t('couldNotCheckForUpdates', { defaultValue: '检查更新失败' }),
+        t('versionInformationIsTemporarilyUnavailablePleaseTryAgainLater', {
+          defaultValue: '暂时无法获取最新版本信息，请稍后重试。',
+        }),
+      );
     }
   };
 
@@ -117,23 +141,25 @@ export default function AboutScreen() {
       }}
     >
       <View bg="$background" width="100%" maxW={MaxContentWidth} flex={1} px="$4" gap="$5">
-        <SettingsSection title="开源" hideTitleWhenSingle>
+        <SettingsSection title={t('openSource', { defaultValue: '开源' })} hideTitleWhenSingle>
           <SettingCell
             icon={Scale}
-            title="开源许可证"
-            description="查看 Anitabi 与第三方依赖的许可证"
+            title={t('openSourceLicenses', { defaultValue: '开源许可证' })}
+            description={t('viewLicensesForAnitabiAndThirdPartyDependencies', {
+              defaultValue: '查看 Anitabi 与第三方依赖的许可证',
+            })}
             onPress={() => router.navigate('/open-source-licenses')}
           />
         </SettingsSection>
 
-        <SettingsSection title="外部链接" hideTitleWhenSingle>
+        <SettingsSection title={t('externalLinks', { defaultValue: '外部链接' })} hideTitleWhenSingle>
           {externalLinks.map((link, index) => (
             <SettingCell
-              key={link.title}
+              key={link.title.key}
               icon={link.icon}
-              title={link.title}
-              description={link.description}
-              value={link.value}
+              title={translateMessage(t, link.title)}
+              description={link.description ? translateMessage(t, link.description) : undefined}
+              value={typeof link.value === 'string' ? link.value : translateMessage(t, link.value)}
               accessibilityRole="link"
               onPress={() => void openExternalLink(link.url, link.appUrl)}
               showDivider={index < externalLinks.length - 1}
@@ -141,20 +167,23 @@ export default function AboutScreen() {
           ))}
         </SettingsSection>
 
-        <SettingsSection title="应用更新" hideTitleWhenSingle>
+        <SettingsSection title={t('appUpdates', { defaultValue: '应用更新' })} hideTitleWhenSingle>
           <SettingCell
             icon={RefreshCw}
-            title="检查更新"
+            title={t('checkForUpdates', { defaultValue: '检查更新' })}
             description={
               appUpdates.binaryUpdate
-                ? `发现新版本 v${getBinaryUpdateDisplayVersion(appUpdates.binaryUpdate)}`
-                : '检查并获取最新版本'
+                ? t('newVersionVVersionAvailable', {
+                    defaultValue: '发现新版本 v{{version}}',
+                    version: getBinaryUpdateDisplayVersion(appUpdates.binaryUpdate),
+                  })
+                : t('checkForTheLatestVersion', { defaultValue: '检查并获取最新版本' })
             }
             value={
               appUpdates.isChecking
-                ? '检查中...'
+                ? t('checking', { defaultValue: '检查中...' })
                 : appUpdates.binaryUpdate
-                  ? '可更新'
+                  ? t('updateAvailable', { defaultValue: '可更新' })
                   : `v${getCurrentAppDisplayVersion()}`
             }
             disabled={appUpdates.isChecking}

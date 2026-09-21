@@ -2,13 +2,13 @@
 
 > 🚀 **持续迭代中** — 核心功能已经可用，更多体验与功能仍在完善。
 
-一个基于 Expo 的圣地巡礼移动端地图应用，展示动漫取景地在世界地图上的点位。数据源来自 [anitabi.cn](https://www.anitabi.cn)。
+一个基于 Expo 的动画圣地巡礼移动端地图应用，展示动漫取景地在世界地图上的点位。数据源来自 [anitabi.cn](https://www.anitabi.cn)。
 
 > 项目官网：[Anitabi](https://boiboif.github.io/anitabi-app/) · [下载应用](https://boiboif.github.io/anitabi-app/download) · [隐私政策](docs/PRIVACY.md) · [贡献指引](CONTRIBUTING.md)
 
 ### 为什么做这个
 
-前段时间去旅行时用了 anitabi 网页端，体验不太理想。索性自己写一个趁手的 App，下次去旅行时圣地巡礼能更方便，也能帮助到别人。
+前段时间去旅行时用了 anitabi 网页端，体验不太理想。索性自己写一个趁手的 App，下次去旅行时动画巡礼能更方便，也能帮助到别人。
 
 ## 当前状态
 
@@ -61,7 +61,7 @@ Anitabi App 是非官方开源客户端，与 [anitabi.cn](https://www.anitabi.c
 
 ## 数据来源与致谢
 
-感谢 [anitabi.cn](https://www.anitabi.cn) 及其贡献者维护动漫圣地巡礼数据和服务。本项目的地图点位、番剧信息及部分相关资源来自 anitabi.cn 或其公开接口。
+感谢 [anitabi.cn](https://www.anitabi.cn) 及其贡献者维护动画圣地巡礼数据和服务。本项目的地图点位、番剧信息及部分相关资源来自 anitabi.cn 或其公开接口。
 
 ## 隐私政策
 
