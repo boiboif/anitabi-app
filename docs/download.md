@@ -14,7 +14,7 @@ description: 获取 Anitabi 最新 Android APK 和 iOS 未签名 IPA。
 | Android | Android 7.0（API 24） | 提供公开 APK，可从 GitHub Releases 下载 |
 | iOS / iPadOS | iOS / iPadOS 16.4 | 提供未签名 IPA，需要使用自己的 Apple 账户侧载签名 |
 
-版本要求与项目使用的 Expo SDK 57 保持一致，详见 [Expo 的 Android 与 iOS 版本支持说明](https://docs.expo.dev/versions/latest/#support-for-android-and-ios-versions)。
+版本要求与项目使用的 Expo SDK 57 保持一致，详见 [Expo 的 Android 与 iOS 版本支持说明](https://docs.expo.dev/versions/v57.0.0/#support-for-android-and-ios-versions)。
 
 ## 安装 iOS 版本
 
