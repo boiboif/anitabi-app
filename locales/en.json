@@ -1,0 +1,12 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Used to take real-world comparison photos at pilgrimage locations and scan pilgrimage-plan QR codes",
+    "NSPhotoLibraryUsageDescription": "Used to choose reference images and photos for pilgrimage comparisons",
+    "NSPhotoLibraryAddUsageDescription": "Used to save generated pilgrimage comparison images to your photo library",
+    "NSLocationWhenInUseUsageDescription": "Used to show your current location on the map",
+    "NSMotionUsageDescription": "Used to access device motion and orientation data"
+  },
+  "android": {
+    "app_name": "Anitabi"
+  }
+}

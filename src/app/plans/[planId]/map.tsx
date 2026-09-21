@@ -16,6 +16,7 @@ import type { Camera } from '@rnmapbox/maps';
 import { ArrowLeft } from '@tamagui/lucide-icons-2';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, View, YStack } from 'tamagui';
 
@@ -37,6 +38,7 @@ function findPoint(bangumis: Bangumi[], reference: MapPointReference | null): Po
 }
 
 export default function PlanMapScreen() {
+  const { t } = useTranslation();
   const { planId, bangumiId, pointId } = useLocalSearchParams<{
     planId: string;
     bangumiId?: string;
@@ -180,7 +182,7 @@ export default function PlanMapScreen() {
                 p="$0"
                 icon={<ArrowLeft size={ICON_BUTTON_ICON_SIZE} strokeWidth={2.25} color="$primary" />}
                 onPress={() => router.back()}
-                aria-label="返回巡礼计划"
+                aria-label={t('backToPilgrimagePlans', { defaultValue: '返回巡礼计划' })}
               />
             </View>
             <MapTopBangumiIcons
@@ -210,7 +212,9 @@ export default function PlanMapScreen() {
         </>
       ) : (
         <YStack flex={1} bg="$background" items="center" justify="center">
-          <Text color="$color11">计划不存在或已被删除</Text>
+          <Text color="$color11">
+            {t('thePlanDoesNotExistOrHasBeenDeleted', { defaultValue: '计划不存在或已被删除' })}
+          </Text>
           <View position="absolute" l="$1" t={insets.top}>
             <Button
               chromeless
@@ -219,7 +223,7 @@ export default function PlanMapScreen() {
               p="$0"
               icon={<ArrowLeft size={ICON_BUTTON_ICON_SIZE} strokeWidth={2.25} color="$color12" />}
               onPress={() => router.back()}
-              aria-label="返回巡礼计划"
+              aria-label={t('backToPilgrimagePlans', { defaultValue: '返回巡礼计划' })}
             />
           </View>
         </YStack>

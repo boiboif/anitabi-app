@@ -9,6 +9,7 @@ import { ChevronRight, FileDown, Plus, ScanLine } from '@tamagui/lucide-icons-2'
 import { Stack, useRouter } from 'expo-router';
 import { memo, useCallback, useMemo, useRef } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Separator, Text, XStack, YStack, useTheme } from 'tamagui';
 
@@ -24,6 +25,7 @@ function planKeyExtractor(plan: ItineraryPlan) {
 }
 
 const PlanListItem = memo(function PlanListItem({ plan, onPress }: PlanListItemProps) {
+  const { t } = useTranslation();
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={plan.title} onPress={() => onPress(plan.id)}>
       <XStack py="$3.5" items="center" gap="$3">
@@ -40,7 +42,7 @@ const PlanListItem = memo(function PlanListItem({ plan, onPress }: PlanListItemP
           </YStack>
           <XStack shrink={0}>
             <Text fontSize="$caption" numberOfLines={1}>
-              {plan.items.length}个点位
+              {t('compactLocationCount', { defaultValue: '{{count}}个点位', count: plan.items.length })}
             </Text>
           </XStack>
         </XStack>
@@ -59,19 +61,21 @@ type EmptyPlansProps = {
 };
 
 const EmptyPlans = memo(function EmptyPlans({ onCreate }: EmptyPlansProps) {
+  const { t } = useTranslation();
   return (
     <YStack flex={1} minH={360} items="center" justify="center" gap="$3">
       <Text fontSize="$subtitle" fontWeight="600" color="$color12">
-        还没有巡礼计划
+        {t('noPilgrimagePlansYet', { defaultValue: '还没有巡礼计划' })}
       </Text>
       <Button bg="$color3" color="$color12" icon={<Plus size={BLOCK_BUTTON_ICON_SIZE} />} onPress={onCreate}>
-        创建巡礼计划
+        {t('createAPilgrimagePlan', { defaultValue: '创建巡礼计划' })}
       </Button>
     </YStack>
   );
 });
 
 export default function PlansScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -95,7 +99,7 @@ export default function PlansScreen() {
     <>
       <Stack.Screen
         options={{
-          title: '巡礼计划',
+          title: t('pilgrimagePlans', { defaultValue: '巡礼计划' }),
           headerRight: () => (
             <XStack items="center" gap="$1">
               <Button
@@ -103,7 +107,7 @@ export default function PlansScreen() {
                 circular
                 size="$3"
                 icon={<ScanLine size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />}
-                aria-label="导入巡礼计划"
+                aria-label={t('importPilgrimagePlan', { defaultValue: '导入巡礼计划' })}
                 onPress={() => importSheetRef.current?.present()}
               />
               <Button
@@ -111,7 +115,7 @@ export default function PlansScreen() {
                 circular
                 size="$3"
                 icon={<Plus size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />}
-                aria-label="新建计划"
+                aria-label={t('newPlan', { defaultValue: '新建计划' })}
                 onPress={openCreatePlan}
               />
             </XStack>
@@ -131,17 +135,23 @@ export default function PlansScreen() {
       />
       <ActionSheet
         ref={importSheetRef}
-        title="导入巡礼计划"
-        description="扫描分享图片中的二维码，或选择别人发送给你的计划文件。"
+        title={t('importPilgrimagePlan', { defaultValue: '导入巡礼计划' })}
+        description={t('scanTheQrCodeInASharedImageOrSelectAPlanFileSentToYou', {
+          defaultValue: '扫描分享图片中的二维码，或选择别人发送给你的计划文件。',
+        })}
         primaryAction={{
-          label: '扫描二维码',
+          label: t('scanQrCode', { defaultValue: '扫描二维码' }),
           icon: ScanLine,
           onPress: () => setTimeout(() => void scanQrCode(), 180),
         }}
         sections={[
           {
             actions: [
-              { label: '从文件导入', icon: FileDown, onPress: () => setTimeout(() => void importFromFile(), 180) },
+              {
+                label: t('importFromFile', { defaultValue: '从文件导入' }),
+                icon: FileDown,
+                onPress: () => setTimeout(() => void importFromFile(), 180),
+              },
             ],
           },
         ]}

@@ -1,6 +1,7 @@
 import PointListCard from '@/components/point-list-card';
 import RemoveFavoriteButton from '@/components/remove-favorite-button';
 import { type FavoritePoint } from '@/lib/favorite-storage';
+import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import type { Bangumi, Point } from '@/services/types';
 import { useFavoritePoints } from '@/store/use-favorite-points';
 import { useMapBrowse } from '@/store/use-map-browse';
@@ -9,6 +10,7 @@ import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo } from 'react';
 import { Platform, ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, View, useTheme } from 'tamagui';
 
@@ -18,12 +20,12 @@ type ResolvedFavorite = {
   point?: Point;
 };
 
-function getBangumiName(item: ResolvedFavorite): string {
-  return item.bangumi?.cn || item.bangumi?.title || item.bangumi?.en || item.favorite.snapshot.bangumiName;
+function getBangumiName(item: ResolvedFavorite, language: string): string {
+  return item.bangumi ? getBangumiTitle(item.bangumi, language) : item.favorite.snapshot.bangumiName;
 }
 
-function getPointName(item: ResolvedFavorite): string {
-  return item.point?.cn || item.point?.name || item.favorite.snapshot.pointName;
+function getPointName(item: ResolvedFavorite, language: string): string {
+  return item.point ? getPointTitle(item.point, language) : item.favorite.snapshot.pointName;
 }
 
 function getImagePath(item: ResolvedFavorite): string | undefined {
@@ -32,8 +34,8 @@ function getImagePath(item: ResolvedFavorite): string | undefined {
   );
 }
 
-function formatFavoriteTime(timestamp: number): string {
-  return new Date(timestamp).toLocaleString('zh-CN', {
+function formatFavoriteTime(timestamp: number, language: string): string {
+  return new Date(timestamp).toLocaleString(language, {
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
@@ -42,6 +44,7 @@ function formatFavoriteTime(timestamp: number): string {
 }
 
 function FavoriteCard({ item, onPress }: { item: ResolvedFavorite; onPress: () => void }) {
+  const { t, i18n } = useTranslation();
   const removeFavorite = useFavoritePoints((state) => state.removeFavorite);
   const available = Boolean(item.point && item.bangumi);
 
@@ -49,10 +52,17 @@ function FavoriteCard({ item, onPress }: { item: ResolvedFavorite; onPress: () =
     <PointListCard
       point={item.point}
       bangumi={item.bangumi}
-      title={getPointName(item)}
+      title={getPointName(item, i18n.resolvedLanguage ?? i18n.language)}
       showSubtitle={false}
       description={item.point?.mark || item.favorite.snapshot.pointMark}
-      meta={available ? `收藏于 ${formatFavoriteTime(item.favorite.addedAt)}` : '点位已不可用'}
+      meta={
+        available
+          ? t('favoritedDate', {
+              defaultValue: '收藏于 {{date}}',
+              date: formatFavoriteTime(item.favorite.addedAt, i18n.resolvedLanguage ?? i18n.language),
+            })
+          : t('locationUnavailable', { defaultValue: '点位已不可用' })
+      }
       image={getImagePath(item)}
       imageColor={item.bangumi?.color || item.favorite.snapshot.bangumiColor}
       disabled={!available}
@@ -68,6 +78,7 @@ function FavoriteCard({ item, onPress }: { item: ResolvedFavorite; onPress: () =
 }
 
 export default function FavoriteBangumiScreen() {
+  const { t, i18n } = useTranslation();
   const safeAreaInsets = useSafeAreaInsets();
   const theme = useTheme();
   const router = useRouter();
@@ -97,7 +108,9 @@ export default function FavoriteBangumiScreen() {
     return resolved.sort((a, b) => b.favorite.addedAt - a.favorite.addedAt);
   }, [data, favoritePoints, id]);
 
-  const title = favorites[0] ? getBangumiName(favorites[0]) : '收藏点位';
+  const title = favorites[0]
+    ? getBangumiName(favorites[0], i18n.resolvedLanguage ?? i18n.language)
+    : t('favoriteLocations', { defaultValue: '收藏点位' });
   const openPoint = useCallback(
     (item: ResolvedFavorite) => {
       if (!item.point || !item.bangumi) return;
@@ -128,11 +141,13 @@ export default function FavoriteBangumiScreen() {
         <View bg="$background" width="100%" maxW={MaxContentWidth} flex={1} px="$3">
           {loading ? (
             <View minH={240} items="center" justify="center">
-              <Text color="$color11">加载收藏数据...</Text>
+              <Text color="$color11">{t('loadingFavorites', { defaultValue: '加载收藏数据...' })}</Text>
             </View>
           ) : favorites.length === 0 ? (
             <View minH={240} items="center" justify="center">
-              <Text color="$color11">该番剧没有收藏的巡礼点</Text>
+              <Text color="$color11">
+                {t('thisWorkHasNoFavoriteLocations', { defaultValue: '该番剧没有收藏的巡礼点' })}
+              </Text>
             </View>
           ) : (
             favorites.map((item) => (

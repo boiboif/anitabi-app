@@ -1,4 +1,5 @@
 import { getCachedData, getGModified, setCachedData, setGModified } from '@/lib/map-storage';
+import i18n from '@/i18n';
 import { getGDetailJSON, getGJSON } from '@/services/api';
 import type { AssembledData, Bangumi, FetchProgress, Point, RawGBangumi, RawGDetail, Theme } from '@/services/types';
 
@@ -155,7 +156,7 @@ export function getCachedMapData(): AssembledData | null {
  */
 export async function refreshMapData(onProgress?: (p: FetchProgress) => void): Promise<AssembledData> {
   const cachedData = getCachedData();
-  onProgress?.({ phase: 'checking', message: '检查数据更新…' });
+  onProgress?.({ phase: 'checking', message: i18n.t('checkingForDataUpdates', { defaultValue: '检查数据更新…' }) });
 
   const gRaw = (await getGJSON()) as [RawGBangumi[], number, number];
   const remoteModified = gRaw[2];
@@ -170,14 +171,26 @@ async function fetchDetails(
   modified: number,
   onProgress?: (p: FetchProgress) => void,
 ): Promise<AssembledData> {
-  onProgress?.({ phase: 'downloading', batch: 0, message: '加载番剧列表…' });
+  onProgress?.({
+    phase: 'downloading',
+    batch: 0,
+    message: i18n.t('loadingWorkList', { defaultValue: '加载番剧列表…' }),
+  });
 
   const batchCount = Math.ceil(gList.length / G_JSON_BATCH_SIZE);
 
   const detailResults = await Promise.allSettled(
     Array.from({ length: batchCount }, (_, i) =>
       getGDetailJSON(i).then((data) => {
-        onProgress?.({ phase: 'downloading', batch: i + 1, message: `加载数据 ${i + 1}/${batchCount}…` });
+        onProgress?.({
+          phase: 'downloading',
+          batch: i + 1,
+          message: i18n.t('loadingDataCurrentTotal', {
+            defaultValue: '加载数据 {{current}}/{{total}}…',
+            current: i + 1,
+            total: batchCount,
+          }),
+        });
         return data as RawGDetail[];
       }),
     ),
@@ -192,13 +205,13 @@ async function fetchDetails(
     }
   }
 
-  onProgress?.({ phase: 'assembling', message: '数据组装中…' });
+  onProgress?.({ phase: 'assembling', message: i18n.t('preparingData', { defaultValue: '数据组装中…' }) });
 
   const assembled = assembleBangumis(gList, detailMap);
   setGModified(modified);
   setCachedData(assembled);
 
-  onProgress?.({ phase: 'done', message: '加载完成' });
+  onProgress?.({ phase: 'done', message: i18n.t('loaded', { defaultValue: '加载完成' }) });
 
   return assembled;
 }

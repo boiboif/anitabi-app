@@ -1,6 +1,7 @@
 import { ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, View, XStack, YStack, useTheme, useThemeName } from 'tamagui';
+import { useTranslation } from 'react-i18next';
 
 import { ThemeSwitch } from '@/components/theme-switch';
 
@@ -8,6 +9,7 @@ import { useThemePreference } from '@/store/use-theme-preference';
 import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
 
 export default function DarkModeScreen() {
+  const { t } = useTranslation();
   const safeAreaInsets = useSafeAreaInsets();
   const theme = useTheme();
   const themeName = useThemeName();
@@ -40,7 +42,7 @@ export default function DarkModeScreen() {
         <YStack bg="$background" gap="$1" px="$3" pt="$3">
           <XStack px="$3" py="$2.5" rounded="$2" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
             <Text color="$color" fontSize="$body" lineHeight={24} fontWeight="500">
-              跟随系统
+              {t('followSystem', { defaultValue: '跟随系统' })}
             </Text>
             <ThemeSwitch checked={followSystem} onCheckedChange={handleFollowSystemChange} />
           </XStack>
@@ -48,7 +50,7 @@ export default function DarkModeScreen() {
           {!followSystem && (
             <XStack px="$3" py="$2.5" rounded="$2" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
               <Text color="$color" fontSize="$body" lineHeight={24} fontWeight="500">
-                深色模式
+                {t('darkMode', { defaultValue: '深色模式' })}
               </Text>
               <ThemeSwitch checked={isDark} onCheckedChange={toggleDarkMode} />
             </XStack>

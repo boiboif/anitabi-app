@@ -1,4 +1,5 @@
 import { StrictButton as Button } from '@/components/strict-button';
+import i18n from '@/i18n';
 import { decodeSharedPlanValue } from '@/lib/plan-sharing';
 import { BLOCK_BUTTON_ICON_SIZE, ICON_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';
 import { usePlanImport } from '@/store/use-plan-import';
@@ -8,14 +9,18 @@ import * as ImagePicker from 'expo-image-picker';
 import { Stack, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Linking } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Spinner, Text, View, XStack, YStack } from 'tamagui';
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : '这不是有效的 Anitabi 巡礼计划二维码';
+  return error instanceof Error
+    ? error.message
+    : i18n.t('thisIsNotAValidAnitabiPilgrimagePlanQrCode', { defaultValue: '这不是有效的 Anitabi 巡礼计划二维码' });
 }
 
 export default function ScanPlanScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
@@ -33,11 +38,11 @@ export default function ScanPlanScreen() {
     try {
       await requestPermission();
     } catch (error) {
-      Alert.alert('无法申请相机权限', errorMessage(error));
+      Alert.alert(t('couldNotRequestCameraPermission', { defaultValue: '无法申请相机权限' }), errorMessage(error));
     } finally {
       setRequestingPermission(false);
     }
-  }, [requestPermission, requestingPermission]);
+  }, [requestPermission, requestingPermission, t]);
 
   useEffect(() => {
     if (!permission || permission.granted || !permission.canAskAgain || requestedPermissionRef.current) return;
@@ -66,13 +71,13 @@ export default function ScanPlanScreen() {
       try {
         importPlanValue(data);
       } catch (error) {
-        Alert.alert('无法识别二维码', errorMessage(error), [
-          { text: '继续扫描', onPress: continueScanning },
-          { text: '取消', style: 'cancel', onPress: () => router.back() },
+        Alert.alert(t('couldNotReadQrCode', { defaultValue: '无法识别二维码' }), errorMessage(error), [
+          { text: t('continueScanning', { defaultValue: '继续扫描' }), onPress: continueScanning },
+          { text: t('cancel', { defaultValue: '取消' }), style: 'cancel', onPress: () => router.back() },
         ]);
       }
     },
-    [continueScanning, importPlanValue, router],
+    [continueScanning, importPlanValue, router, t],
   );
 
   const pickQrImage = useCallback(async () => {
@@ -92,7 +97,12 @@ export default function ScanPlanScreen() {
       }
 
       const codes = await scanFromURLAsync(result.assets[0].uri, ['qr']);
-      if (codes.length === 0) throw new Error('图片中没有识别到二维码，请选择包含完整二维码的图片。');
+      if (codes.length === 0)
+        throw new Error(
+          t('noQrCodeWasFoundChooseAnImageContainingTheCompleteQrCode', {
+            defaultValue: '图片中没有识别到二维码，请选择包含完整二维码的图片。',
+          }),
+        );
 
       let lastError: unknown;
       for (const code of codes) {
@@ -103,16 +113,21 @@ export default function ScanPlanScreen() {
           lastError = error;
         }
       }
-      throw lastError ?? new Error('图片中没有有效的巡礼计划二维码。');
+      throw (
+        lastError ??
+        new Error(
+          t('theImageDoesNotContainAValidPilgrimagePlanQrCode', { defaultValue: '图片中没有有效的巡礼计划二维码。' }),
+        )
+      );
     } catch (error) {
-      Alert.alert('无法从图片导入', errorMessage(error), [
-        { text: '继续扫描', onPress: continueScanning },
-        { text: '取消', style: 'cancel', onPress: () => router.back() },
+      Alert.alert(t('couldNotImportFromImage', { defaultValue: '无法从图片导入' }), errorMessage(error), [
+        { text: t('continueScanning', { defaultValue: '继续扫描' }), onPress: continueScanning },
+        { text: t('cancel', { defaultValue: '取消' }), style: 'cancel', onPress: () => router.back() },
       ]);
     } finally {
       setPickingImage(false);
     }
-  }, [continueScanning, importPlanValue, pickingImage, router]);
+  }, [continueScanning, importPlanValue, pickingImage, router, t]);
 
   const close = () => router.back();
 
@@ -131,10 +146,12 @@ export default function ScanPlanScreen() {
         <Stack.Screen options={{ headerShown: false }} />
         <ScanLine size={36} color="$primary" strokeWidth={1.8} />
         <Text color="$color12" fontSize="$subtitle" fontWeight="700" text="center">
-          需要相机权限
+          {t('cameraPermissionRequired', { defaultValue: '需要相机权限' })}
         </Text>
         <Text color="$color11" fontSize="$footnote" lineHeight={19} text="center">
-          相机只用于识别巡礼计划二维码，不会拍摄或保存照片。
+          {t('theCameraIsOnlyUsedToReadPilgrimagePlanQrCodesItWillNotTakeOrSavePhotos', {
+            defaultValue: '相机只用于识别巡礼计划二维码，不会拍摄或保存照片。',
+          })}
         </Text>
         {permission.canAskAgain ? (
           <Button
@@ -145,15 +162,17 @@ export default function ScanPlanScreen() {
             disabled={requestingPermission}
             onPress={() => void askForPermission()}
           >
-            {requestingPermission ? '正在申请…' : '允许使用相机'}
+            {requestingPermission
+              ? t('requesting', { defaultValue: '正在申请…' })
+              : t('allowCameraAccess', { defaultValue: '允许使用相机' })}
           </Button>
         ) : (
           <Button mt="$2" bg="$primary" color="white" onPress={() => void Linking.openSettings()}>
-            前往系统设置
+            {t('openSystemSettings', { defaultValue: '前往系统设置' })}
           </Button>
         )}
         <Button chromeless color="$color11" onPress={close}>
-          取消
+          {t('cancel', { defaultValue: '取消' })}
         </Button>
       </YStack>
     );
@@ -164,13 +183,13 @@ export default function ScanPlanScreen() {
       <YStack flex={1} bg="$background" px="$6" items="center" justify="center" gap="$3">
         <Stack.Screen options={{ headerShown: false }} />
         <Text color="$color12" fontSize="$subtitle" fontWeight="700" text="center">
-          无法打开相机
+          {t('couldNotOpenCamera', { defaultValue: '无法打开相机' })}
         </Text>
         <Text color="$color11" fontSize="$footnote" lineHeight={19} text="center" selectable>
           {cameraError}
         </Text>
         <Button bg="$color3" color="$color12" onPress={close}>
-          返回
+          {t('back', { defaultValue: '返回' })}
         </Button>
       </YStack>
     );
@@ -200,7 +219,7 @@ export default function ScanPlanScreen() {
           bg="rgba(0,0,0,0.48)"
           icon={<X size={ICON_BUTTON_ICON_SIZE} color="white" />}
           onPress={close}
-          aria-label="关闭扫码"
+          aria-label={t('closeScanner', { defaultValue: '关闭扫码' })}
         />
       </View>
 
@@ -208,7 +227,7 @@ export default function ScanPlanScreen() {
         <XStack minH={44} px="$3" rounded="$4" bg="rgba(0,0,0,0.58)" items="center" gap="$2">
           <ScanLine size={ICON_BUTTON_ICON_SIZE} color="white" />
           <Text color="white" fontSize="$footnote" fontWeight="600" numberOfLines={1}>
-            将分享图片中的二维码放入框内
+            {t('positionTheQrCodeFromTheSharedImageInsideTheFrame', { defaultValue: '将分享图片中的二维码放入框内' })}
           </Text>
         </XStack>
         <Button
@@ -228,7 +247,7 @@ export default function ScanPlanScreen() {
           accessibilityState={{ disabled: pickingImage }}
           opacity={pickingImage ? 0.65 : 1}
           onPress={() => void pickQrImage()}
-          aria-label="从相册选择二维码"
+          aria-label={t('chooseQrCodeFromPhotos', { defaultValue: '从相册选择二维码' })}
           position="absolute"
           r={0}
         />

@@ -48,7 +48,7 @@ const features = [
         <span class="eyebrow">YOUR ANIME PILGRIMAGE</span>
         <h2>故事发生过的地方，<br />值得亲自抵达。</h2>
         <p>
-          Anitabi 为圣地巡礼而生。它把探索、收藏、计划和拍摄放进一张地图，
+          Anitabi 为动画圣地巡礼而生。它把探索、收藏、计划和拍摄放进一张地图，
           让“有一天想去”变成一段真正开始的旅程。
         </p>
       </div>

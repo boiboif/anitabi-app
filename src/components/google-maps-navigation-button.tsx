@@ -2,6 +2,7 @@ import type { Point } from '@/services/types';
 import { Navigation } from '@tamagui/lucide-icons-2';
 import type { GestureResponderEvent } from 'react-native';
 import { Linking, Platform, Pressable } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme, View } from 'tamagui';
 
 type Props = {
@@ -28,6 +29,7 @@ function buildGoogleMapsUrl([latitude, longitude]: [number, number], fallback = 
 }
 
 export default function GoogleMapsNavigationButton({ point, compact = false, compactSize = 30 }: Props) {
+  const { t } = useTranslation();
   const theme = useTheme();
 
   const openGoogleMaps = async (event: GestureResponderEvent) => {
@@ -45,7 +47,7 @@ export default function GoogleMapsNavigationButton({ point, compact = false, com
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="在谷歌地图中导航"
+      accessibilityLabel={t('navigateWithGoogleMaps', { defaultValue: '在谷歌地图中导航' })}
       hitSlop={8}
       onPress={openGoogleMaps}
       style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}

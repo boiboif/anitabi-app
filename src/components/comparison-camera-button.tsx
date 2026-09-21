@@ -3,6 +3,7 @@ import { Camera } from '@tamagui/lucide-icons-2';
 import { type Href, useRouter } from 'expo-router';
 import type { GestureResponderEvent } from 'react-native';
 import { Pressable } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Text, useTheme, View, XStack } from 'tamagui';
 
 type Props = {
@@ -13,6 +14,7 @@ type Props = {
 };
 
 export default function ComparisonCameraButton({ bangumi, point, compact = false, compactSize = 36 }: Props) {
+  const { t } = useTranslation();
   const router = useRouter();
   const theme = useTheme();
 
@@ -27,7 +29,7 @@ export default function ComparisonCameraButton({ bangumi, point, compact = false
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="打开对比图相机"
+      accessibilityLabel={t('openComparisonCamera', { defaultValue: '打开对比图相机' })}
       hitSlop={compact ? 8 : 4}
       onPress={openCamera}
       style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
@@ -40,7 +42,7 @@ export default function ComparisonCameraButton({ bangumi, point, compact = false
         <XStack height={38} rounded="$2" bg="$primary" items="center" justify="center" gap="$1.5" px="$3">
           <Camera size={17} color="white" />
           <Text color="white" fontSize="$footnote" fontWeight="700">
-            对比拍摄
+            {t('compareShot', { defaultValue: '对比拍摄' })}
           </Text>
         </XStack>
       )}

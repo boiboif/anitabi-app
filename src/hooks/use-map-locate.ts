@@ -4,6 +4,7 @@ import { hasServicesEnabledAsync, requestForegroundPermissionsAsync } from 'expo
 import { useFocusEffect } from 'expo-router';
 import { type RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, AppState, type AppStateStatus } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 const CURRENT_LOCATION_TIMEOUT_MS = 10_000;
 const FRESH_LOCATION_MAX_AGE_MS = 15_000;
@@ -43,9 +44,7 @@ function isValidLocation(location: MapboxLocation | null): location is MapboxLoc
 }
 
 function getLocationTimestamp(location: MapboxLocation): number | null {
-  return typeof location.timestamp === 'number' && Number.isFinite(location.timestamp)
-    ? location.timestamp
-    : null;
+  return typeof location.timestamp === 'number' && Number.isFinite(location.timestamp) ? location.timestamp : null;
 }
 
 function isFreshLocation(location: MapboxLocation, now = Date.now()) {
@@ -57,6 +56,7 @@ function isFreshLocation(location: MapboxLocation, now = Date.now()) {
 }
 
 export function useMapLocate(cameraRef: RefObject<Camera | null>) {
+  const { t } = useTranslation();
   const latestSnapshotRef = useRef<LocationSnapshot | null>(null);
   const pendingLocationResolversRef = useRef(new Set<(location: MapboxLocation) => void>());
   const followNextLocationUntilRef = useRef(0);
@@ -261,12 +261,20 @@ export function useMapLocate(cameraRef: RefObject<Camera | null>) {
       const { status } = await requestForegroundPermissionsAsync();
       hasLocationPermissionRef.current = status === 'granted';
       if (status !== 'granted') {
-        Alert.alert('位置权限被拒绝', '请在设置中允许访问位置信息以使用此功能。');
+        Alert.alert(
+          t('locationPermissionDenied', { defaultValue: '位置权限被拒绝' }),
+          t('allowLocationAccessInSettingsToUseThisFeature', {
+            defaultValue: '请在设置中允许访问位置信息以使用此功能。',
+          }),
+        );
         return;
       }
 
       if (!(await hasServicesEnabledAsync())) {
-        Alert.alert('定位服务未开启', '请先开启手机定位服务后重试。');
+        Alert.alert(
+          t('locationServicesAreOff', { defaultValue: '定位服务未开启' }),
+          t('turnOnLocationServicesAndTryAgain', { defaultValue: '请先开启手机定位服务后重试。' }),
+        );
         return;
       }
 
@@ -307,18 +315,25 @@ export function useMapLocate(cameraRef: RefObject<Camera | null>) {
         moveToLocation(await pendingLocation.promise);
       } catch {
         if (isFocusedRef.current) {
-          Toast.show('暂时无法获取当前位置，请稍后重试');
+          Toast.show(
+            t('unableToGetYourLocationPleaseTryAgainLater', { defaultValue: '暂时无法获取当前位置，请稍后重试' }),
+          );
         }
       } finally {
         pendingLocation.cancel();
       }
     } catch {
-      Alert.alert('定位失败', '无法获取当前位置，请检查位置服务是否可用。');
+      Alert.alert(
+        t('couldNotDetermineLocation', { defaultValue: '定位失败' }),
+        t('unableToGetYourLocationCheckThatLocationServicesAreAvailable', {
+          defaultValue: '无法获取当前位置，请检查位置服务是否可用。',
+        }),
+      );
     } finally {
       locatingRef.current = false;
       if (isMountedRef.current) setIsLocating(false);
     }
-  }, [handleLocationUpdate, moveToLocation, recoverLocationProvider, startLocationUpdates, waitForFreshLocation]);
+  }, [handleLocationUpdate, moveToLocation, recoverLocationProvider, startLocationUpdates, t, waitForFreshLocation]);
 
   return {
     handleLocate,

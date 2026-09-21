@@ -22,6 +22,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useIsFocused, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, StatusBar, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import Animated, {
   Easing,
   LinearTransition,
@@ -187,6 +188,7 @@ function normalizeFileUri(filePath: string) {
 }
 
 export default function ComparisonCameraScreen({ bangumi, point, initialReferenceUri, fullReferenceUri }: Props) {
+  const { t } = useTranslation();
   const router = useRouter();
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
@@ -307,11 +309,14 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
       });
       if (!result.canceled && result.assets[0]) setReferenceUri(result.assets[0].uri);
     } catch {
-      Alert.alert('无法选择图片', '请检查照片访问权限后重试。');
+      Alert.alert(
+        t('couldNotSelectImage', { defaultValue: '无法选择图片' }),
+        t('checkPhotoAccessPermissionAndTryAgain', { defaultValue: '请检查照片访问权限后重试。' }),
+      );
     } finally {
       setPickerVisible(false);
     }
-  }, []);
+  }, [t]);
 
   const pickResultPhoto = useCallback(async () => {
     try {
@@ -323,11 +328,14 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
       });
       if (!result.canceled && result.assets[0]) setResultPhotoUri(result.assets[0].uri);
     } catch {
-      Alert.alert('无法选择实拍图', '请检查照片访问权限后重试。');
+      Alert.alert(
+        t('couldNotSelectCameraPhoto', { defaultValue: '无法选择实拍图' }),
+        t('checkPhotoAccessPermissionAndTryAgain', { defaultValue: '请检查照片访问权限后重试。' }),
+      );
     } finally {
       setPickerVisible(false);
     }
-  }, []);
+  }, [t]);
 
   const takePhoto = async () => {
     if (!referenceUri) {
@@ -349,7 +357,12 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
       setResultVisible(true);
     } catch (error) {
       console.error(error);
-      Alert.alert('拍摄失败', '相机暂时无法完成拍摄，请稍后重试。');
+      Alert.alert(
+        t('captureFailed', { defaultValue: '拍摄失败' }),
+        t('theCameraCouldNotCompleteTheShotPleaseTryAgainLater', {
+          defaultValue: '相机暂时无法完成拍摄，请稍后重试。',
+        }),
+      );
     } finally {
       setCapturing(false);
     }
@@ -383,7 +396,10 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
     setAssistMode((current) => (current === 'split' ? 'overlay' : 'split'));
   };
 
-  const referenceFitLabel = referenceFit === 'cover' ? '参考图裁切显示' : '参考图完整显示';
+  const referenceFitLabel =
+    referenceFit === 'cover'
+      ? t('referenceImageFill', { defaultValue: '参考图裁切显示' })
+      : t('referenceImageFit', { defaultValue: '参考图完整显示' });
   const referenceFitControl = (
     <IconButton
       showBackground
@@ -402,7 +418,10 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
       )}
     </IconButton>
   );
-  const assistModeLabel = assistMode === 'split' ? '切换为叠图模式' : '切换为分图模式';
+  const assistModeLabel =
+    assistMode === 'split'
+      ? t('switchToOverlayMode', { defaultValue: '切换为叠图模式' })
+      : t('switchToSplitMode', { defaultValue: '切换为分图模式' });
   const assistModeControl = (
     <IconButton showBackground accessibilityLabel={assistModeLabel} onPress={toggleAssistMode}>
       {assistMode === 'split' ? (
@@ -438,7 +457,13 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={
-                  selected ? `当前 ${label} 变焦，切换至 ${targetLabel}` : `切换至 ${targetLabel} 变焦`
+                  selected
+                    ? t('currentlyLabelZoomSwitchToTarget', {
+                        defaultValue: '当前 {{label}} 变焦，切换至 {{target}}',
+                        label,
+                        target: targetLabel,
+                      })
+                    : t('switchToTargetZoom', { defaultValue: '切换至 {{target}} 变焦', target: targetLabel })
                 }
                 accessibilityState={{ selected }}
                 disabled={!cameraReady || capturing}
@@ -494,10 +519,12 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
       <YStack flex={1} bg="black" items="center" justify="center" p={24}>
         <StatusBar hidden />
         <Text color="white" fontSize="$heading" fontWeight="700">
-          需要相机权限
+          {t('cameraPermissionRequired', { defaultValue: '需要相机权限' })}
         </Text>
         <Text mt={10} color="#a1a1a6" fontSize="$body" text="center">
-          允许访问相机后才能拍摄巡礼对比图。
+          {t('allowCameraAccessToTakePilgrimageComparisonPhotos', {
+            defaultValue: '允许访问相机后才能拍摄巡礼对比图。',
+          })}
         </Text>
         <Pressable
           accessibilityRole="button"
@@ -509,13 +536,13 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
         >
           <View minW={160} height={46} rounded={6} items="center" justify="center" bg="white">
             <Text color="#111111" fontSize="$body" fontWeight="700">
-              授权相机
+              {t('allowCamera', { defaultValue: '授权相机' })}
             </Text>
           </View>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={() => router.back()} style={{ marginTop: 12, padding: 12 }}>
           <Text color="#a1a1a6" fontSize="$body">
-            返回
+            {t('back', { defaultValue: '返回' })}
           </Text>
         </Pressable>
       </YStack>
@@ -526,7 +553,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
     <View flex={1} minH={0} minW={0}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="选择参考图"
+        accessibilityLabel={t('chooseReferenceImage', { defaultValue: '选择参考图' })}
         onPress={pickReference}
         style={{ flex: 1, minHeight: 0, minWidth: 0 }}
       >
@@ -602,7 +629,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
         ) : (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="选择参考图"
+            accessibilityLabel={t('chooseReferenceImage', { defaultValue: '选择参考图' })}
             onPress={pickReference}
             style={{ position: 'absolute', alignSelf: 'center', top: '40%' }}
           >
@@ -639,7 +666,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
               <Blend size={14} color="#c7c7cc" />
             </OrientationRotation>
             <Slider
-              aria-label="叠图透明度"
+              aria-label={t('overlayOpacity', { defaultValue: '叠图透明度' })}
               min={0}
               max={1}
               step={0.05}
@@ -657,14 +684,18 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
         ) : null}
       </View>
       <View flexDirection="row" items="center" justify="space-around" gap={28} width="100%">
-        <IconButton showBackground accessibilityLabel="从相册选择参考图" onPress={pickReference}>
+        <IconButton
+          showBackground
+          accessibilityLabel={t('chooseReferenceImageFromPhotos', { defaultValue: '从相册选择参考图' })}
+          onPress={pickReference}
+        >
           <OrientationRotation rotation={orientationRotationValue}>
             <Images size={18} color="white" />
           </OrientationRotation>
         </IconButton>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="拍照"
+          accessibilityLabel={t('takePhoto', { defaultValue: '拍照' })}
           disabled={!device || !cameraReady || capturing}
           onPress={takePhoto}
           style={({ pressed }) => ({
@@ -688,7 +719,11 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
             )}
           </View>
         </Pressable>
-        <IconButton showBackground accessibilityLabel="切换前后摄像头" onPress={switchCamera}>
+        <IconButton
+          showBackground
+          accessibilityLabel={t('switchCamera', { defaultValue: '切换前后摄像头' })}
+          onPress={switchCamera}
+        >
           <OrientationRotation rotation={orientationRotationValue}>
             <SwitchCamera size={19} color="white" />
           </OrientationRotation>
@@ -697,7 +732,12 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
     </YStack>
   );
 
-  const flashLabel = flashMode === 'off' ? '关闭闪光灯' : flashMode === 'auto' ? '自动闪光灯' : '开启闪光灯';
+  const flashLabel =
+    flashMode === 'off'
+      ? t('flashOff', { defaultValue: '关闭闪光灯' })
+      : flashMode === 'auto'
+        ? t('flashAuto', { defaultValue: '自动闪光灯' })
+        : t('flashOn', { defaultValue: '开启闪光灯' });
 
   return (
     <View flex={1} bg="black">
@@ -711,7 +751,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
         height={insets.top + COMPARISON_CAMERA_TOP_REGION_HEIGHT}
         bg="black"
       >
-        <IconButton accessibilityLabel="关闭相机" onPress={() => router.back()}>
+        <IconButton accessibilityLabel={t('closeCamera', { defaultValue: '关闭相机' })} onPress={() => router.back()}>
           <OrientationRotation rotation={orientationRotationValue}>
             <X size={20} color="white" />
           </OrientationRotation>

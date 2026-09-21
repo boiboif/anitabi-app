@@ -1,28 +1,23 @@
-import {
-  Tabs,
-  TabList,
-  TabTrigger,
-  TabSlot,
-  TabTriggerSlotProps,
-  TabListProps,
-} from 'expo-router/ui';
+import { Tabs, TabList, TabTrigger, TabSlot, TabTriggerSlotProps, TabListProps } from 'expo-router/ui';
 import { SymbolView } from 'expo-symbols';
 import { Pressable, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Text, View, useTheme } from 'tamagui';
 
 import { ExternalLink } from './external-link';
 
 export default function AppTabs() {
+  const { t } = useTranslation();
   return (
     <Tabs>
       <TabSlot style={{ height: '100%' }} />
       <TabList asChild>
         <CustomTabList>
           <TabTrigger name="home" href="/" asChild>
-            <TabButton>Home</TabButton>
+            <TabButton>{t('map', { defaultValue: '地图' })}</TabButton>
           </TabTrigger>
           <TabTrigger name="profile" href="/profile" asChild>
-            <TabButton>我的</TabButton>
+            <TabButton>{t('me', { defaultValue: '我的' })}</TabButton>
           </TabTrigger>
         </CustomTabList>
       </TabList>
@@ -33,9 +28,7 @@ export default function AppTabs() {
 export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps) {
   return (
     <Pressable {...props} style={({ pressed }) => pressed && styles.pressed}>
-      <View
-        bg={isFocused ? '$color4' : '$color2'}
-        style={styles.tabButtonView}>
+      <View bg={isFocused ? '$color4' : '$color2'} style={styles.tabButtonView}>
         <Text fontSize="$body" lineHeight={20} fontWeight="500" color={isFocused ? '$color' : '$color11'}>
           {children}
         </Text>
@@ -45,6 +38,7 @@ export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps
 }
 
 export function CustomTabList({ style, ...props }: TabListProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
 
   return (
@@ -52,19 +46,17 @@ export function CustomTabList({ style, ...props }: TabListProps) {
     <View {...(props as object)} style={[styles.tabListContainer, style]}>
       <View bg="$color2" style={styles.innerContainer}>
         <Text fontSize="$body" lineHeight={20} fontWeight="700" style={styles.brandText}>
-          Expo Starter
+          Anitabi
         </Text>
 
         {props.children}
 
         <ExternalLink href="https://docs.expo.dev" asChild>
           <Pressable style={styles.externalPressable}>
-            <Text lineHeight={30} fontSize="$body">Docs</Text>
-            <SymbolView
-              tintColor={theme.color?.val}
-              name={{ ios: 'arrow.up.right.square', web: 'link' }}
-              size={12}
-            />
+            <Text lineHeight={30} fontSize="$body">
+              {t('docs', { defaultValue: '文档' })}
+            </Text>
+            <SymbolView tintColor={theme.color?.val} name={{ ios: 'arrow.up.right.square', web: 'link' }} size={12} />
           </Pressable>
         </ExternalLink>
       </View>

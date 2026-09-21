@@ -1,0 +1,12 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "巡礼スポットの実写比較写真の撮影と、巡礼プランのQRコード読み取りに使用します",
+    "NSPhotoLibraryUsageDescription": "巡礼スポットの参考画像や比較用写真の選択に使用します",
+    "NSPhotoLibraryAddUsageDescription": "作成した巡礼比較画像を写真ライブラリに保存するために使用します",
+    "NSLocationWhenInUseUsageDescription": "地図上に現在地を表示するために使用します",
+    "NSMotionUsageDescription": "端末のモーションと方向データへのアクセスに使用します"
+  },
+  "android": {
+    "app_name": "Anitabi"
+  }
+}

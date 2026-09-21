@@ -1,5 +1,7 @@
 import PointListCard from '@/components/point-list-card';
 import SearchBox from '@/components/search-box';
+import { getCategoryMessage, translateMessage, type TranslationMessage } from '@/i18n/messages';
+import { getBangumiTitle } from '@/lib/localized-data';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapBrowse } from '@/store/use-map-browse';
@@ -11,6 +13,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, Pressable } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getTokens, Text, useTheme, View } from 'tamagui';
 
@@ -23,16 +26,21 @@ type SearchListItem = { type: 'bangumi'; data: Bangumi } | { type: 'point'; data
 
 type TabKey = 'recent' | 'popular';
 
-const TABS: { key: TabKey; label: string }[] = [
-  { key: 'recent', label: '最近更新' },
-  { key: 'popular', label: '热门作品' },
+const TABS: { key: TabKey; label: TranslationMessage }[] = [
+  { key: 'recent', label: { key: 'recentlyUpdated', defaultValue: '最近更新' } },
+  { key: 'popular', label: { key: 'popularWorks', defaultValue: '热门作品' } },
 ];
 
 // ---------------------------------------------------------------------------
 // Bangumi 卡片
 // ---------------------------------------------------------------------------
 function BangumiCard({ bangumi, onPress }: { bangumi: Bangumi; onPress: () => void }) {
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
+  const categoryMessage = getCategoryMessage(bangumi.cat);
+  const localizedTitle =
+    getBangumiTitle(bangumi, i18n.resolvedLanguage) || t('unknownWork', { defaultValue: '未知作品' });
+  const originalTitle = bangumi.title && bangumi.title !== localizedTitle ? bangumi.title : null;
   return (
     <Pressable onPress={onPress}>
       <View
@@ -58,14 +66,16 @@ function BangumiCard({ bangumi, onPress }: { bangumi: Bangumi; onPress: () => vo
           contentFit="cover"
         />
         <View flex={1}>
-          {bangumi.cn ? (
+          {localizedTitle ? (
             <Text fontWeight="600" fontSize="$subtitle" color="$color12" pr="$8" numberOfLines={2}>
-              {bangumi.cn}
+              {localizedTitle}
             </Text>
           ) : null}
-          <Text fontSize="$footnote" color="$color11" mt="$1" mb="$1" numberOfLines={1}>
-            {bangumi.title}
-          </Text>
+          {originalTitle ? (
+            <Text fontSize="$footnote" color="$color11" mt="$1" mb="$1" numberOfLines={1}>
+              {originalTitle}
+            </Text>
+          ) : null}
           <View flexDirection="row">
             {bangumi.city && (
               <Text fontSize="$footnote" color="$color11">
@@ -76,11 +86,14 @@ function BangumiCard({ bangumi, onPress }: { bangumi: Bangumi; onPress: () => vo
               <Text color="$primary" fontWeight="bold">
                 {bangumi.points.length}
               </Text>
-              个巡礼点
+              {t('locationSuffix', { defaultValue: '个巡礼点' })}
             </Text>
           </View>
           <Text fontSize="$caption" color="$color11" position="absolute" r="$0" b="$0">
-            最近更新：{dayjs(bangumi.modified).format('YYYY-MM-DD HH:mm')}
+            {t('updatedDate', {
+              defaultValue: '最近更新：{{date}}',
+              date: dayjs(bangumi.modified).format('YYYY-MM-DD HH:mm'),
+            })}
           </Text>
         </View>
         {bangumi.cat?.trim() ? (
@@ -94,7 +107,7 @@ function BangumiCard({ bangumi, onPress }: { bangumi: Bangumi; onPress: () => vo
             style={{ backgroundColor: bangumi.color || theme.color9.val }}
           >
             <Text fontSize="$caption" color="white" fontWeight="500">
-              {bangumi.cat}
+              {categoryMessage ? translateMessage(t, categoryMessage) : bangumi.cat}
             </Text>
           </View>
         ) : null}
@@ -125,6 +138,7 @@ function PointCard({ point, bangumi, onPress }: { point: Point; bangumi: Bangumi
 // 主页面
 // ---------------------------------------------------------------------------
 const Search = () => {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<TabKey>('recent');
   const [inputText, setInputText] = useState('');
@@ -179,6 +193,9 @@ const Search = () => {
           .toLowerCase()
           .includes(q) ||
         String(b.en ?? '')
+          .toLowerCase()
+          .includes(q) ||
+        String(b.tAbbr ?? '')
           .toLowerCase()
           .includes(q) ||
         String(b.city ?? '')
@@ -288,26 +305,26 @@ const Search = () => {
         {/* Tab 切换栏 — 搜索时隐藏 */}
         {!searchMode && (
           <View flexDirection="row" mx="$3" mt="$3" gap="$1">
-            {TABS.map((t) => (
+            {TABS.map((tabItem) => (
               <Pressable
-                key={t.key}
+                key={tabItem.key}
                 onPress={() => {
-                  setTab(t.key);
+                  setTab(tabItem.key);
                   flashListRef.current?.scrollToOffset({ offset: 0, animated: false });
                 }}
               >
                 <View
-                  bg={tab === t.key ? '$color3' : 'transparent'}
+                  bg={tab === tabItem.key ? '$color3' : 'transparent'}
                   p="$2"
                   px="$3.5"
-                  rounded={tab === t.key ? '$9' : undefined}
+                  rounded={tab === tabItem.key ? '$9' : undefined}
                 >
                   <Text
-                    fontWeight={tab === t.key ? '600' : '400'}
-                    color={tab === t.key ? '$primary' : '$color11'}
+                    fontWeight={tab === tabItem.key ? '600' : '400'}
+                    color={tab === tabItem.key ? '$primary' : '$color11'}
                     fontSize="$body"
                   >
-                    {t.label}
+                    {translateMessage(t, tabItem.label)}
                   </Text>
                 </View>
               </Pressable>
@@ -319,7 +336,7 @@ const Search = () => {
         {searchMode && listItems.length === 0 ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
             <Text fontSize="$body" color="$color11">
-              未找到相关地标
+              {t('noMatchingLocationsFound', { defaultValue: '未找到相关地标' })}
             </Text>
           </View>
         ) : (

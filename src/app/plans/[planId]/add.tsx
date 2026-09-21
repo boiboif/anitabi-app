@@ -1,5 +1,6 @@
 import PointListCard from '@/components/point-list-card';
 import { type FavoritePoint } from '@/lib/favorite-storage';
+import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import type { Bangumi, Point } from '@/services/types';
 import { useFavoritePoints } from '@/store/use-favorite-points';
 import { useMapData } from '@/store/use-map-data';
@@ -9,6 +10,7 @@ import { Check, Plus } from '@tamagui/lucide-icons-2';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useMemo } from 'react';
 import { Pressable } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, View, YStack, useTheme } from 'tamagui';
 
@@ -22,20 +24,20 @@ type AddPointListItem =
   | { type: 'date'; id: string; label: string }
   | { type: 'point'; id: string; item: AvailableFavorite };
 
-function getDateGroup(timestamp: number): string {
+function getDateGroup(timestamp: number, language: string, todayLabel: string, yesterdayLabel: string): string {
   const today = new Date();
   const target = new Date(timestamp);
   const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
   const targetStart = new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime();
   const days = Math.round((todayStart - targetStart) / 86_400_000);
 
-  if (days === 0) return '今天';
-  if (days === 1) return '昨天';
-  return `${target.getFullYear()}年${target.getMonth() + 1}月${target.getDate()}日`;
+  if (days === 0) return todayLabel;
+  if (days === 1) return yesterdayLabel;
+  return new Intl.DateTimeFormat(language, { year: 'numeric', month: 'long', day: 'numeric' }).format(target);
 }
 
-function formatFavoriteTime(timestamp: number): string {
-  return new Date(timestamp).toLocaleString('zh-CN', {
+function formatFavoriteTime(timestamp: number, language: string): string {
+  return new Date(timestamp).toLocaleString(language, {
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
@@ -44,6 +46,7 @@ function formatFavoriteTime(timestamp: number): string {
 }
 
 export default function AddPlanPointsScreen() {
+  const { t, i18n } = useTranslation();
   const { planId } = useLocalSearchParams<{ planId: string }>();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -67,13 +70,18 @@ export default function AddPlanPointsScreen() {
   const groupedAvailable = useMemo(() => {
     const groups = new Map<string, AvailableFavorite[]>();
     for (const item of available) {
-      const date = getDateGroup(item.favorite.addedAt);
+      const date = getDateGroup(
+        item.favorite.addedAt,
+        i18n.resolvedLanguage ?? i18n.language,
+        t('today', { defaultValue: '今天' }),
+        t('yesterday', { defaultValue: '昨天' }),
+      );
       const items = groups.get(date) ?? [];
       items.push(item);
       groups.set(date, items);
     }
     return Array.from(groups.entries());
-  }, [available]);
+  }, [available, i18n.language, i18n.resolvedLanguage, t]);
 
   const listItems = useMemo<AddPointListItem[]>(
     () =>
@@ -114,15 +122,15 @@ export default function AddPlanPointsScreen() {
           <PointListCard
             point={item.item.point}
             bangumi={item.item.bangumi}
-            title={item.item.point.cn || item.item.point.name || item.item.favorite.snapshot.pointName}
+            title={getPointTitle(item.item.point, i18n.resolvedLanguage) || item.item.favorite.snapshot.pointName}
             subtitle={
-              item.item.bangumi.cn ||
-              item.item.bangumi.title ||
-              item.item.bangumi.en ||
-              item.item.favorite.snapshot.bangumiName
+              getBangumiTitle(item.item.bangumi, i18n.resolvedLanguage) || item.item.favorite.snapshot.bangumiName
             }
             description={item.item.point.mark || item.item.favorite.snapshot.pointMark}
-            meta={`收藏于 ${formatFavoriteTime(item.item.favorite.addedAt)}`}
+            meta={t('favoritedDate', {
+              defaultValue: '收藏于 {{date}}',
+              date: formatFavoriteTime(item.item.favorite.addedAt, i18n.resolvedLanguage ?? i18n.language),
+            })}
             image={
               item.item.point.image ||
               item.item.favorite.snapshot.pointImage ||
@@ -132,12 +140,20 @@ export default function AddPlanPointsScreen() {
             imageColor={item.item.bangumi.color || item.item.favorite.snapshot.bangumiColor}
             opacity={added ? 0.55 : 1}
             onPress={togglePoint}
-            accessibilityLabel={added ? '从巡礼计划移除' : '添加到巡礼计划'}
+            accessibilityLabel={
+              added
+                ? t('removeFromPilgrimagePlan', { defaultValue: '从巡礼计划移除' })
+                : t('addToPilgrimagePlan', { defaultValue: '添加到巡礼计划' })
+            }
             accessibilityState={{ selected: added }}
             topRightAction={
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={added ? '取消选中并移除巡礼点' : '添加到巡礼计划'}
+                accessibilityLabel={
+                  added
+                    ? t('deselectAndRemoveLocation', { defaultValue: '取消选中并移除巡礼点' })
+                    : t('addToPilgrimagePlan', { defaultValue: '添加到巡礼计划' })
+                }
                 accessibilityState={{ selected: added }}
                 hitSlop={8}
                 onPress={(event) => {
@@ -155,15 +171,17 @@ export default function AddPlanPointsScreen() {
         </View>
       );
     },
-    [addPoint, existingKeys, planId, removePoint, theme.primary.val],
+    [addPoint, existingKeys, i18n.language, i18n.resolvedLanguage, planId, removePoint, t, theme.primary.val],
   );
 
   return (
     <>
-      <Stack.Screen options={{ title: '添加巡礼点' }} />
+      <Stack.Screen options={{ title: t('addLocations', { defaultValue: '添加巡礼点' }) }} />
       {available.length === 0 ? (
         <YStack flex={1} minH={260} items="center" justify="center" bg="$background" px="$4" pb={insets.bottom + 24}>
-          <Text color="$color11">暂无可添加的收藏点位</Text>
+          <Text color="$color11">
+            {t('noFavoriteLocationsAvailableToAdd', { defaultValue: '暂无可添加的收藏点位' })}
+          </Text>
         </YStack>
       ) : (
         <FlashList

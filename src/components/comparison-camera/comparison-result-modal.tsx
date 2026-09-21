@@ -12,6 +12,7 @@ import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as MediaLibrary from 'expo-media-library';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Modal, Platform, Pressable, StatusBar, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Images as NitroImages, loadImage, type Image as NitroImage } from 'react-native-nitro-image';
 import { View, XStack } from 'tamagui';
@@ -165,6 +166,7 @@ export default function ComparisonResultModal({
   onPickReference,
   onRetake,
 }: Props) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [loadedReferenceUri, setLoadedReferenceUri] = useState<string>();
   const [loadedPhotoUri, setLoadedPhotoUri] = useState<string>();
@@ -185,7 +187,10 @@ export default function ComparisonResultModal({
       setSaving(true);
       const permission = await MediaLibrary.requestPermissionsAsync(true);
       if (!permission.granted) {
-        Alert.alert('无法保存图片', '请允许应用向系统相册添加照片。');
+        Alert.alert(
+          t('couldNotSaveImage', { defaultValue: '无法保存图片' }),
+          t('allowTheAppToAddPhotosToYourLibrary', { defaultValue: '请允许应用向系统相册添加照片。' }),
+        );
         return;
       }
 
@@ -224,10 +229,15 @@ export default function ComparisonResultModal({
       const outputPath = await canvas.saveToTemporaryFileAsync('jpg', EXPORT_JPEG_QUALITY);
       outputUri = `file://${outputPath}`;
       await MediaLibrary.Asset.create(outputUri);
-      Toast.show('对比图已保存到相册');
+      Toast.show(t('comparisonImageSavedToPhotos', { defaultValue: '对比图已保存到相册' }));
     } catch (error) {
       console.error('[comparison-camera] Failed to export comparison image', error);
-      Alert.alert('保存失败', '生成或保存对比图时出现问题，请稍后重试。');
+      Alert.alert(
+        t('saveFailed', { defaultValue: '保存失败' }),
+        t('thereWasAProblemCreatingOrSavingTheImagePleaseTryAgainLater', {
+          defaultValue: '生成或保存对比图时出现问题，请稍后重试。',
+        }),
+      );
     } finally {
       canvas?.dispose();
       if (outputUri) deleteTemporaryFile(outputUri);
@@ -249,7 +259,7 @@ export default function ComparisonResultModal({
         <XStack z={2} items="center" px={12} pt={insets.top} height={insets.top + COMPARISON_CAMERA_TOP_REGION_HEIGHT}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="关闭拍摄结果"
+            accessibilityLabel={t('closeCaptureResult', { defaultValue: '关闭拍摄结果' })}
             hitSlop={8}
             onPress={onRetake}
             style={({ pressed }) => ({ opacity: pressed ? 0.68 : 1 })}
@@ -290,7 +300,7 @@ export default function ComparisonResultModal({
               <View pointerEvents="none" position="absolute" z={2} t="50%" l={0} r={0} height={2} mt={-1} bg="white" />
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel="从相册更换实拍图"
+                accessibilityLabel={t('replaceCameraPhotoFromLibrary', { defaultValue: '从相册更换实拍图' })}
                 onPress={onPickPhoto}
                 style={({ pressed }) => ({ flex: 1, minHeight: 0, opacity: pressed ? 0.82 : 1 })}
               >
@@ -338,10 +348,18 @@ export default function ComparisonResultModal({
           gap={28}
           bg="black"
         >
-          <ActionButton label="更换参考图" icon={<Images size={17} color="white" />} onPress={onPickReference} />
-          <ActionButton label="重拍" icon={<RotateCcw size={17} color="white" />} onPress={onRetake} />
           <ActionButton
-            label={saving ? '保存中' : '保存'}
+            label={t('replaceReferenceImage', { defaultValue: '更换参考图' })}
+            icon={<Images size={17} color="white" />}
+            onPress={onPickReference}
+          />
+          <ActionButton
+            label={t('retake', { defaultValue: '重拍' })}
+            icon={<RotateCcw size={17} color="white" />}
+            onPress={onRetake}
+          />
+          <ActionButton
+            label={saving ? t('saving', { defaultValue: '保存中' }) : t('save', { defaultValue: '保存' })}
             icon={saving ? <ActivityIndicator color="white" /> : <Download size={21} color="white" />}
             primary
             disabled={!readyToSave}

@@ -1,4 +1,5 @@
 import * as Application from 'expo-application';
+import i18n from '@/i18n';
 import Constants from 'expo-constants';
 import {
   Directory,
@@ -101,7 +102,7 @@ export function getCurrentAppDisplayVersion(): string {
     ? configuredVersion
     : !__DEV__ && Application.nativeApplicationVersion
       ? Application.nativeApplicationVersion
-      : (configuredVersion ?? Application.nativeApplicationVersion ?? '未知');
+      : (configuredVersion ?? Application.nativeApplicationVersion ?? i18n.t('unknown', { defaultValue: '未知' }));
   const hotUpdateId =
     Platform.OS !== 'web' && Updates.isEnabled && !Updates.isEmbeddedLaunch && !Updates.isEmergencyLaunch
       ? Updates.updateId

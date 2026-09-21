@@ -1,11 +1,13 @@
 import FavoritePointButton from '@/components/favorite-point-button';
 import PointCardActions from '@/components/point-card-actions';
 import { formatDuration } from '@/lib/formatDuration';
+import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapBrowse } from '@/store/use-map-browse';
 import { Image } from 'expo-image';
 import { Linking, Pressable } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { getTokens, Text, useTheme, View } from 'tamagui';
 
 type Props = {
@@ -15,11 +17,13 @@ type Props = {
 };
 
 export default function PopupCard({ point, bangumi, bangumiTitlePressEnabled = true }: Props) {
+  const { t, i18n } = useTranslation();
   const theme = useTheme();
   const openBangumiDetails = useMapBrowse((state) => state.openBangumiDetails);
   const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
-  const pointTitle = point.cn || point.name || '未命名点位';
-  const animeTitle = bangumi.cn || bangumi.title || bangumi.en || '未知';
+  const pointTitle =
+    getPointTitle(point, i18n.resolvedLanguage) || t('unnamedLocation', { defaultValue: '未命名点位' });
+  const animeTitle = getBangumiTitle(bangumi, i18n.resolvedLanguage) || t('unknown', { defaultValue: '未知' });
   const epLabel =
     typeof point.ep === 'number' && point.ep > 0
       ? `EP${point.ep}`
@@ -73,7 +77,7 @@ export default function PopupCard({ point, bangumi, bangumiTitlePressEnabled = t
             />
             <View position="absolute" l={0} r={0} t={0} b={0} bg="rgba(0,0,0,0.7)" justify="center" items="center">
               <Text fontSize="$footnote" color="white">
-                暂无截图
+                {t('noImage', { defaultValue: '暂无截图' })}
               </Text>
             </View>
           </View>
@@ -124,7 +128,7 @@ export default function PopupCard({ point, bangumi, bangumiTitlePressEnabled = t
         {bangumiTitlePressEnabled ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`筛选番剧：${animeTitle}`}
+            accessibilityLabel={t('filterWorkTitle', { defaultValue: '筛选番剧：{{title}}', title: animeTitle })}
             hitSlop={6}
             disabled={!!openedBangumiDetailsId}
             onPress={() => openBangumiDetails(bangumi.id)}

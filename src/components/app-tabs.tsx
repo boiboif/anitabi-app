@@ -1,18 +1,21 @@
 import { useDoubleBackExit } from '@/hooks/use-double-back-exit';
+import type { TranslationMessage } from '@/i18n/messages';
 import { Heart, Map, User } from '@tamagui/lucide-icons-2';
 import { BlurView } from 'expo-blur';
 import { usePathname } from 'expo-router';
 import { TabList, Tabs, TabSlot, TabTrigger } from 'expo-router/ui';
 import { Platform, Pressable } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { getTokens, Text, useTheme, useThemeName, View } from 'tamagui';
 
 const TAB_CONFIG = [
-  { name: 'index', label: '地图', icon: Map },
-  { name: 'favorites', label: '收藏', icon: Heart },
-  { name: 'profile', label: '我的', icon: User },
-] as const;
+  { name: 'index', label: { key: 'map', defaultValue: '地图' }, icon: Map },
+  { name: 'favorites', label: { key: 'favorites', defaultValue: '收藏' }, icon: Heart },
+  { name: 'profile', label: { key: 'me', defaultValue: '我的' }, icon: User },
+] as const satisfies readonly { name: string; label: TranslationMessage; icon: typeof Map }[];
 
 function TabItem({ name, label, icon: Icon }: (typeof TAB_CONFIG)[number]) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const pathname = usePathname();
   const isFocused = name === 'index' ? pathname === '/' : pathname.startsWith(`/${name}`);
@@ -39,7 +42,7 @@ function TabItem({ name, label, icon: Icon }: (typeof TAB_CONFIG)[number]) {
             fontSize="$caption"
             style={{ color, fontWeight: isFocused ? '600' : '400', textDecorationLine: 'none' }}
           >
-            {label}
+            {t(label.key, { defaultValue: label.defaultValue })}
           </Text>
         </View>
       </Pressable>

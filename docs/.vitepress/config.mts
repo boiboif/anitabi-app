@@ -46,8 +46,8 @@ const sidebar: DefaultTheme.Sidebar = [
 export default defineConfig({
   lang: 'zh-CN',
   title: 'Anitabi',
-  titleTemplate: ':title · 动漫圣地巡礼地图',
-  description: '把动画中的风景，变成下一段旅程。Anitabi 是一款开源的动漫圣地巡礼地图应用。',
+  titleTemplate: ':title · 动画巡礼地图',
+  description: '把动画中的风景，变成下一段旅程。Anitabi 是一款开源的动画圣地巡礼地图应用。',
   base: siteBase,
   cleanUrls: true,
   lastUpdated: true,
@@ -59,7 +59,7 @@ export default defineConfig({
     ['meta', { name: 'theme-color', content: '#80c7ea' }],
     ['meta', { name: 'color-scheme', content: 'light dark' }],
     ['meta', { property: 'og:type', content: 'website' }],
-    ['meta', { property: 'og:title', content: 'Anitabi · 动漫圣地巡礼地图' }],
+    ['meta', { property: 'og:title', content: 'Anitabi · 动画巡礼地图' }],
     [
       'meta',
       {
@@ -92,7 +92,7 @@ export default defineConfig({
     lightModeSwitchTitle: '切换到浅色模式',
     darkModeSwitchTitle: '切换到深色模式',
     footer: {
-      message: '开源、非官方的动漫圣地巡礼 App',
+      message: '开源、非官方的动画巡礼 App',
       copyright: 'Copyright © 2026 boiboif · GPL-3.0',
     },
   },

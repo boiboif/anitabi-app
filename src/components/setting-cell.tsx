@@ -7,7 +7,7 @@ import { Text, View, XStack, YStack } from 'tamagui';
 type SettingsIcon = ComponentType<IconProps>;
 
 type SettingCellProps = {
-  icon: SettingsIcon;
+  icon?: SettingsIcon;
   title: string;
   description?: string;
   value?: string;
@@ -33,9 +33,11 @@ export function SettingCell({
 }: SettingCellProps) {
   const content = (
     <XStack items="center" gap="$4">
-      <View minH={62} items="center" justify="center">
-        <Icon size={20} color="$color12" />
-      </View>
+      {Icon ? (
+        <View minH={62} items="center" justify="center">
+          <Icon size={20} color="$color12" />
+        </View>
+      ) : null}
       <YStack flex={1}>
         <XStack minH={62} items="center" gap="$3">
           <YStack flex={1} gap="$0.5" justify="center">

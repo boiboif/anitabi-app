@@ -4,18 +4,20 @@ import { MaxContentWidth } from '@/tamagui.config';
 import * as Linking from 'expo-linking';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { Alert, Platform, Pressable, ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Spinner, Text, YStack, useTheme } from 'tamagui';
 
-async function openExternalUrl(url: string) {
+async function openExternalUrl(url: string, errorTitle: string, errorMessage: string) {
   try {
     await Linking.openURL(url);
   } catch {
-    Alert.alert('无法打开链接', '请稍后重试。');
+    Alert.alert(errorTitle, errorMessage);
   }
 }
 
 export default function OpenSourceLicenseScreen() {
+  const { t } = useTranslation();
   const { libraryId: libraryIdParam } = useLocalSearchParams<{ libraryId?: string | string[] }>();
   const libraryId = Array.isArray(libraryIdParam) ? libraryIdParam[0] : libraryIdParam;
   const safeAreaInsets = useSafeAreaInsets();
@@ -39,7 +41,7 @@ export default function OpenSourceLicenseScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: library?.name ?? '许可证详情' }} />
+      <Stack.Screen options={{ title: library?.name ?? t('licenseDetails', { defaultValue: '许可证详情' }) }} />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         style={{ flex: 1, backgroundColor: theme.background?.val }}
@@ -55,7 +57,7 @@ export default function OpenSourceLicenseScreen() {
             <YStack items="center" py="$8" gap="$3">
               <Spinner size="large" color="$primary" />
               <Text fontSize="$body" color="$color11">
-                正在加载许可证…
+                {t('loadingLicense', { defaultValue: '正在加载许可证…' })}
               </Text>
             </YStack>
           ) : error ? (
@@ -64,7 +66,7 @@ export default function OpenSourceLicenseScreen() {
                 {error}
               </Text>
               <Button bg="$primary" color="white" onPress={retry}>
-                重试
+                {t('retry', { defaultValue: '重试' })}
               </Button>
             </YStack>
           ) : library ? (
@@ -75,7 +77,7 @@ export default function OpenSourceLicenseScreen() {
                 </Text>
                 {library.version ? (
                   <Text selectable fontSize="$body" lineHeight={20} color="$color11">
-                    版本 {library.version}
+                    {t('versionVersion', { defaultValue: '版本 {{version}}', version: library.version })}
                   </Text>
                 ) : null}
                 {library.description ? (
@@ -86,11 +88,17 @@ export default function OpenSourceLicenseScreen() {
                 {library.website ? (
                   <Pressable
                     accessibilityRole="link"
-                    onPress={() => void openExternalUrl(library.website!)}
+                    onPress={() =>
+                      void openExternalUrl(
+                        library.website!,
+                        t('couldNotOpenLink', { defaultValue: '无法打开链接' }),
+                        t('pleaseTryAgainLaterWithPeriod', { defaultValue: '请稍后重试。' }),
+                      )
+                    }
                     style={({ pressed }) => ({ alignSelf: 'flex-start', opacity: pressed ? 0.55 : 1 })}
                   >
                     <Text mt="$2" fontSize="$body" lineHeight={22} color="$primary">
-                      查看项目主页
+                      {t('viewProjectHomepage', { defaultValue: '查看项目主页' })}
                     </Text>
                   </Pressable>
                 ) : null}
@@ -106,7 +114,10 @@ export default function OpenSourceLicenseScreen() {
                 >
                   <YStack gap="$1">
                     <Text selectable fontSize="$subtitle" lineHeight={24} fontWeight="600" color="$color12">
-                      {license.name ?? (library.licenses.length > 1 ? `许可证 ${index + 1}` : '开源许可证')}
+                      {license.name ??
+                        (library.licenses.length > 1
+                          ? t('numberedLicense', { defaultValue: '许可证 {{count}}', count: index + 1 })
+                          : t('openSourceLicenses', { defaultValue: '开源许可证' }))}
                     </Text>
                     {license.year ? (
                       <Text selectable fontSize="$body" lineHeight={20} color="$color11">
@@ -116,11 +127,17 @@ export default function OpenSourceLicenseScreen() {
                     {license.url ? (
                       <Pressable
                         accessibilityRole="link"
-                        onPress={() => void openExternalUrl(license.url!)}
+                        onPress={() =>
+                          void openExternalUrl(
+                            license.url!,
+                            t('couldNotOpenLink', { defaultValue: '无法打开链接' }),
+                            t('pleaseTryAgainLaterWithPeriod', { defaultValue: '请稍后重试。' }),
+                          )
+                        }
                         style={({ pressed }) => ({ alignSelf: 'flex-start', opacity: pressed ? 0.55 : 1 })}
                       >
                         <Text fontSize="$body" lineHeight={20} color="$primary">
-                          查看许可证来源
+                          {t('viewLicenseSource', { defaultValue: '查看许可证来源' })}
                         </Text>
                       </Pressable>
                     ) : null}
@@ -134,7 +151,9 @@ export default function OpenSourceLicenseScreen() {
             </>
           ) : (
             <Text text="center" py="$8" fontSize="$body" lineHeight={22} color="$color11">
-              没有找到这个开源组件的许可证信息。
+              {t('noLicenseInformationWasFoundForThisOpenSourceComponent', {
+                defaultValue: '没有找到这个开源组件的许可证信息。',
+              })}
             </Text>
           )}
         </YStack>

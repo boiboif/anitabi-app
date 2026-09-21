@@ -6,19 +6,21 @@ import { ChevronRight } from '@tamagui/lucide-icons-2';
 import * as Linking from 'expo-linking';
 import { Link, Stack, type Href, useLocalSearchParams } from 'expo-router';
 import { Alert, FlatList, Pressable } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Library } from 'react-native-legal';
 import { Spinner, Text, XStack, YStack, useTheme } from 'tamagui';
 
-async function openLicenseUrl(url: string) {
+async function openLicenseUrl(url: string, errorTitle: string, errorMessage: string) {
   try {
     await Linking.openURL(url);
   } catch {
-    Alert.alert('无法打开链接', '请稍后重试。');
+    Alert.alert(errorTitle, errorMessage);
   }
 }
 
 function LicenseListItem({ item }: { item: Library }) {
+  const { t } = useTranslation();
   const licenseCount = item.licenses.length;
 
   return (
@@ -26,7 +28,7 @@ function LicenseListItem({ item }: { item: Library }) {
       <Link href={{ pathname: '/open-source-license', params: { libraryId: item.id } } as unknown as Href} asChild>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`${item.name}，${licenseCount} 份许可证`}
+          accessibilityLabel={`${item.name}，${t('licenseCount', { defaultValue: '{{count}} 份许可证', count: licenseCount })}`}
           style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}
         >
           <YStack minH={76} justify="center" items="flex-start" px="$4" py="$3" gap="$0.5">
@@ -34,7 +36,7 @@ function LicenseListItem({ item }: { item: Library }) {
               {item.name}
             </Text>
             <Text width="100%" fontSize="$body" lineHeight={20} color="$color11">
-              {licenseCount} 份许可证
+              {t('licenseCount', { defaultValue: '{{count}} 份许可证', count: licenseCount })}
             </Text>
           </YStack>
         </Pressable>
@@ -44,6 +46,7 @@ function LicenseListItem({ item }: { item: Library }) {
 }
 
 export default function OpenSourceLicensesScreen() {
+  const { t } = useTranslation();
   const { scope: scopeParam } = useLocalSearchParams<{ scope?: string | string[] }>();
   const scope = Array.isArray(scopeParam) ? scopeParam[0] : scopeParam;
   const isAdditionalList = scope === 'additional';
@@ -54,7 +57,13 @@ export default function OpenSourceLicensesScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: isAdditionalList ? '其他第三方依赖' : '许可' }} />
+      <Stack.Screen
+        options={{
+          title: isAdditionalList
+            ? t('otherThirdPartyDependencies', { defaultValue: '其他第三方依赖' })
+            : t('licenses', { defaultValue: '许可' }),
+        }}
+      />
       <FlatList
         data={displayedLibraries}
         keyExtractor={(item) => item.id}
@@ -70,7 +79,10 @@ export default function OpenSourceLicensesScreen() {
           isAdditionalList ? (
             <YStack width="100%" maxW={MaxContentWidth} self="center" px="$4" pt="$5" pb="$3">
               <Text selectable fontSize="$body" lineHeight={22} color="$color11">
-                以下组件由项目依赖间接引入，保留在完整清单中以满足开源许可证声明要求。
+                {t(
+                  'theFollowingComponentsAreIndirectDependenciesAndRemainInTheFullListToMeetOpenSourceLicenseNoticeRequirements',
+                  { defaultValue: '以下组件由项目依赖间接引入，保留在完整清单中以满足开源许可证声明要求。' },
+                )}
               </Text>
             </YStack>
           ) : (
@@ -84,17 +96,23 @@ export default function OpenSourceLicensesScreen() {
 
               <Pressable
                 accessibilityRole="link"
-                accessibilityLabel="查看 Anitabi 开源许可证"
-                onPress={() => void openLicenseUrl('https://github.com/boiboif/anitabi-app/blob/main/LICENSE')}
+                accessibilityLabel={t('viewAnitabiOpenSourceLicense', { defaultValue: '查看 Anitabi 开源许可证' })}
+                onPress={() =>
+                  void openLicenseUrl(
+                    'https://github.com/boiboif/anitabi-app/blob/main/LICENSE',
+                    t('couldNotOpenLink', { defaultValue: '无法打开链接' }),
+                    t('pleaseTryAgainLaterWithPeriod', { defaultValue: '请稍后重试。' }),
+                  )
+                }
                 style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}
               >
                 <Text mt="$5" fontSize="$body" lineHeight={22} fontWeight="500" color="$color12">
-                  开源许可证
+                  {t('openSourceLicenses', { defaultValue: '开源许可证' })}
                 </Text>
               </Pressable>
 
               <Text mt="$5" fontSize="$body" lineHeight={22} color="$color12">
-                Powered by Expo
+                {t('poweredByExpo', { defaultValue: '由 Expo 提供支持' })}
               </Text>
             </YStack>
           )
@@ -104,7 +122,10 @@ export default function OpenSourceLicensesScreen() {
             <Link push href={{ pathname: '/open-source-licenses', params: { scope: 'additional' } }} asChild>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={`查看其他第三方依赖，共 ${additionalLibraries.length} 个组件`}
+                accessibilityLabel={t('viewCountOtherThirdPartyComponents', {
+                  defaultValue: '查看其他第三方依赖，共 {{count}} 个组件',
+                  count: additionalLibraries.length,
+                })}
                 style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}
               >
                 <XStack
@@ -119,10 +140,13 @@ export default function OpenSourceLicensesScreen() {
                 >
                   <YStack flex={1} gap="$0.5">
                     <Text fontSize="$subtitle" lineHeight={22} fontWeight="500" color="$color12">
-                      其他第三方依赖
+                      {t('otherThirdPartyDependencies', { defaultValue: '其他第三方依赖' })}
                     </Text>
                     <Text fontSize="$body" lineHeight={20} color="$color11">
-                      {additionalLibraries.length} 个组件，查看完整声明
+                      {t('countComponentsViewFullNotices', {
+                        defaultValue: '{{count}} 个组件，查看完整声明',
+                        count: additionalLibraries.length,
+                      })}
                     </Text>
                   </YStack>
                   <ChevronRight size={20} color="$color10" />
@@ -135,11 +159,14 @@ export default function OpenSourceLicensesScreen() {
           <YStack width="100%" maxW={MaxContentWidth} self="center" items="center" px="$4" py="$8" gap="$3">
             {isLoading ? <Spinner size="large" color="$primary" /> : null}
             <Text text="center" fontSize="$body" lineHeight={22} color="$color11">
-              {isLoading ? '正在整理开源许可证…' : (error ?? '当前构建中没有可显示的许可证数据。')}
+              {isLoading
+                ? t('preparingOpenSourceLicenses', { defaultValue: '正在整理开源许可证…' })
+                : (error ??
+                  t('noLicenseDataIsAvailableInThisBuild', { defaultValue: '当前构建中没有可显示的许可证数据。' }))}
             </Text>
             {error ? (
               <Button bg="$primary" color="white" onPress={retry}>
-                重试
+                {t('retry', { defaultValue: '重试' })}
               </Button>
             ) : null}
           </YStack>
