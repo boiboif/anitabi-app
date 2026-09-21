@@ -47,7 +47,7 @@ function BangumiCard({ bangumi, onPress }: { bangumi: Bangumi; onPress: () => vo
         gap="$2.5"
       >
         <Image
-          key={buildImageUrl(bangumi.cover ?? '')}
+          recyclingKey={String(bangumi.id)}
           source={buildImageUrl(bangumi.cover ?? '')}
           style={{
             width: 100,

@@ -8,40 +8,13 @@ import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import dayjs from 'dayjs';
 import { Image } from 'expo-image';
 import { useIsFocused, useNavigation } from 'expo-router';
-import { memo, type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import {
-  type LayoutChangeEvent,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-  Platform,
-  Pressable,
-} from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, Pressable } from 'react-native';
 import { getTokens, Text, useTheme, View } from 'tamagui';
 
 const SECTION_HEADER_HEIGHT = 32;
 const BANGUMI_DETAIL_SHEET_DETENTS = [0.25, 0.8];
 const DEFAULT_BANGUMI_DETAIL_DETENT_INDEX = BANGUMI_DETAIL_SHEET_DETENTS.length - 1;
-
-const PointCard = memo(
-  function PointCard({ point, bangumi, onPress }: { point: Point; bangumi: Bangumi; onPress?: () => void }) {
-    return (
-      <View mx="$2">
-        <PointListCard
-          point={point}
-          bangumi={bangumi}
-          description={point.mark}
-          meta={point.folder}
-          onPress={onPress}
-          showMediaLabels
-          showFavorite
-          showAddToPlan
-        />
-      </View>
-    );
-  },
-  (prev, next) => prev.point.id === next.point.id && prev.bangumi.id === next.bangumi.id,
-);
 
 type AccordionMode = 'ep' | 'folder';
 
@@ -57,8 +30,10 @@ const ITEM_TYPE_POINT = 'point';
 interface FlatSectionHeader {
   type: typeof ITEM_TYPE_HEADER;
   id: string;
+  sectionKey: string;
   title: string;
   count: number;
+  expanded: boolean;
 }
 
 interface FlatPointItem {
@@ -69,19 +44,18 @@ interface FlatPointItem {
 
 type FlatItem = FlatSectionHeader | FlatPointItem;
 
+interface FlatSectionRows {
+  key: string;
+  collapsedHeader: FlatSectionHeader;
+  expandedHeader: FlatSectionHeader;
+  pointItems: FlatPointItem[];
+}
+
 interface PendingModeScroll {
   committed: boolean;
   mode: AccordionMode;
   offset: number;
   sticky: boolean;
-}
-
-function SheetContent({ children }: { children: ReactNode }) {
-  if (Platform.OS === 'android') {
-    return <GestureHandlerRootView style={{ flexGrow: 1 }}>{children}</GestureHandlerRootView>;
-  }
-
-  return children;
 }
 
 function AccordionControls({
@@ -252,15 +226,12 @@ function useBangumiDetailSheet(bangumiId: number | undefined, onDetailsDismiss: 
   const pendingScrollRestoreOffsetRef = useRef<number | null>(null);
   const isRouteFocused = useIsFocused();
   const navigation = useNavigation();
+  // The object identity is a session token used to reject stale native events.
+  // This useMemo is a correctness boundary rather than a render optimization.
   const session = useMemo(() => ({ bangumiId, isRouteFocused }), [bangumiId, isRouteFocused]);
   const activeSessionRef = useRef<typeof session | null>(null);
   const initialDetentIndex =
     savedDetent.bangumiId === bangumiId ? savedDetent.index : DEFAULT_BANGUMI_DETAIL_DETENT_INDEX;
-
-  const resetSavedSheetPosition = useCallback(() => {
-    currentScrollOffsetRef.current = 0;
-    pendingScrollRestoreOffsetRef.current = null;
-  }, []);
 
   useLayoutEffect(() => {
     activeSessionRef.current = session;
@@ -268,7 +239,8 @@ function useBangumiDetailSheet(bangumiId: number | undefined, onDetailsDismiss: 
     loadedBangumiIdRef.current = null;
     if (activeBangumiIdRef.current !== (bangumiId ?? null)) {
       activeBangumiIdRef.current = bangumiId ?? null;
-      resetSavedSheetPosition();
+      currentScrollOffsetRef.current = 0;
+      pendingScrollRestoreOffsetRef.current = null;
     } else {
       pendingScrollRestoreOffsetRef.current = currentScrollOffsetRef.current;
     }
@@ -277,45 +249,37 @@ function useBangumiDetailSheet(bangumiId: number | undefined, onDetailsDismiss: 
       activeSessionRef.current = null;
       isSheetPresentedRef.current = false;
     };
-  }, [bangumiId, resetSavedSheetPosition, session]);
+  }, [bangumiId, session]);
 
   // Native dismiss/load events from an unmounted sheet must not affect its replacement.
-  const isCurrentSession = useCallback(
-    () => activeSessionRef.current === session && isRouteFocused && navigation.isFocused(),
-    [isRouteFocused, navigation, session],
-  );
+  const isCurrentSession = () => activeSessionRef.current === session && isRouteFocused && navigation.isFocused();
 
-  const handleSheetDismiss = useCallback(() => {
+  const handleSheetDismiss = () => {
     if (!isCurrentSession()) return;
     isSheetPresentedRef.current = false;
     setSavedDetent({ bangumiId: undefined, index: DEFAULT_BANGUMI_DETAIL_DETENT_INDEX });
     activeBangumiIdRef.current = null;
-    resetSavedSheetPosition();
+    currentScrollOffsetRef.current = 0;
+    pendingScrollRestoreOffsetRef.current = null;
     onDetailsDismiss();
-  }, [isCurrentSession, onDetailsDismiss, resetSavedSheetPosition]);
+  };
 
-  const handleDetentChange = useCallback(
-    (event: DetentChangeEvent) => {
-      if (!isCurrentSession()) return;
-      const { index } = event.nativeEvent;
-      if (Number.isInteger(index) && index >= 0 && index < BANGUMI_DETAIL_SHEET_DETENTS.length) {
-        setSavedDetent((previous) =>
-          previous.bangumiId === bangumiId && previous.index === index ? previous : { bangumiId, index },
-        );
-      }
-    },
-    [bangumiId, isCurrentSession],
-  );
+  const handleDetentChange = (event: DetentChangeEvent) => {
+    if (!isCurrentSession()) return;
+    const { index } = event.nativeEvent;
+    if (Number.isInteger(index) && index >= 0 && index < BANGUMI_DETAIL_SHEET_DETENTS.length) {
+      setSavedDetent((previous) =>
+        previous.bangumiId === bangumiId && previous.index === index ? previous : { bangumiId, index },
+      );
+    }
+  };
 
-  const handleListScroll = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      if (!isCurrentSession() || !isSheetPresentedRef.current) return;
-      currentScrollOffsetRef.current = event.nativeEvent.contentOffset.y;
-    },
-    [isCurrentSession],
-  );
+  const handleListScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (!isCurrentSession() || !isSheetPresentedRef.current) return;
+    currentScrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+  };
 
-  const restoreListScrollPosition = useCallback(() => {
+  const restoreListScrollPosition = () => {
     const offset = pendingScrollRestoreOffsetRef.current;
     if (offset === null || !isSheetPresentedRef.current || loadedBangumiIdRef.current !== activeBangumiIdRef.current) {
       return;
@@ -324,19 +288,19 @@ function useBangumiDetailSheet(bangumiId: number | undefined, onDetailsDismiss: 
     flashListRef.current?.scrollToOffset({ offset, animated: true });
     currentScrollOffsetRef.current = offset;
     pendingScrollRestoreOffsetRef.current = null;
-  }, []);
+  };
 
-  const handleListLoad = useCallback(() => {
+  const handleListLoad = () => {
     if (!isCurrentSession()) return;
     loadedBangumiIdRef.current = activeBangumiIdRef.current;
     restoreListScrollPosition();
-  }, [isCurrentSession, restoreListScrollPosition]);
+  };
 
-  const handleSheetPresent = useCallback(() => {
+  const handleSheetPresent = () => {
     if (!isCurrentSession()) return;
     isSheetPresentedRef.current = true;
     restoreListScrollPosition();
-  }, [isCurrentSession, restoreListScrollPosition]);
+  };
 
   return {
     flashListRef,
@@ -356,10 +320,7 @@ function BangumiDetailSheet() {
   const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const focusPointFromBangumiDetails = useMapBrowse((state) => state.focusPointFromBangumiDetails);
   const closeBangumiDetails = useMapBrowse((state) => state.closeBangumiDetails);
-  const selectedBangumi = useMemo(
-    () => bangumis?.find((bangumi) => bangumi.id === openedBangumiDetailsId),
-    [bangumis, openedBangumiDetailsId],
-  );
+  const selectedBangumi = bangumis?.find((bangumi) => bangumi.id === openedBangumiDetailsId);
   const theme = useTheme();
   const {
     flashListRef,
@@ -379,70 +340,76 @@ function BangumiDetailSheet() {
   const [controlsOffset, setControlsOffset] = useState<number | null>(null);
   const [isControlsSticky, setIsControlsSticky] = useState(false);
   const [flashListViewportHeight, setFlashListViewportHeight] = useState(0);
-  const allExpandedRef = useRef(true);
   const currentModeScrollOffsetRef = useRef(0);
   const isControlsStickyRef = useRef(false);
   const pendingModeScrollRef = useRef<PendingModeScroll | null>(null);
   const controlsOffsetRef = useRef(Number.POSITIVE_INFINITY);
 
-  const sections = useMemo(() => {
+  // FlashList compares item references at its recycling boundary. Keep point
+  // items stable while expansion state only switches the section header.
+  const sectionRows = useMemo<FlatSectionRows[]>(() => {
     if (!selectedBangumi) return [];
-    return groupPoints(selectedBangumi.points, accordionMode, selectedBangumi);
-  }, [selectedBangumi, accordionMode]);
 
-  const allExpanded = expandedKeys.size === sections.length && sections.length > 0;
+    return groupPoints(selectedBangumi.points, accordionMode, selectedBangumi).map((section) => {
+      const header = {
+        type: ITEM_TYPE_HEADER,
+        id: `header-${section.key}`,
+        sectionKey: section.key,
+        title: section.title,
+        count: section.data.length,
+      } as const;
 
-  // 同步 ref
-  useEffect(() => {
-    allExpandedRef.current = allExpanded;
-  }, [allExpanded]);
+      return {
+        key: section.key,
+        collapsedHeader: { ...header, expanded: false },
+        expandedHeader: { ...header, expanded: true },
+        pointItems: section.data.map(
+          (point): FlatPointItem => ({ type: ITEM_TYPE_POINT, id: `point-${point.id}-${point.name}`, point }),
+        ),
+      };
+    });
+  }, [accordionMode, selectedBangumi]);
+
+  const allExpanded = expandedKeys.size === sectionRows.length && sectionRows.length > 0;
 
   // 番剧切换时重置为全部展开
   useEffect(() => {
     // A new selection must reset the user-controlled accordion state.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setExpandedKeys(new Set(sections.map((s) => s.key)));
+    setExpandedKeys(new Set(sectionRows.map((section) => section.key)));
     setControlsHeight(0);
     setControlsOffset(null);
     setIsControlsSticky(false);
     currentModeScrollOffsetRef.current = 0;
     isControlsStickyRef.current = false;
     controlsOffsetRef.current = Number.POSITIVE_INFINITY;
-    allExpandedRef.current = true;
     pendingModeScrollRef.current = null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBangumi]);
 
-  const setAllSectionsExpanded = useCallback(
-    (expanded: boolean) => {
-      allExpandedRef.current = expanded;
-      setExpandedKeys(expanded ? new Set(sections.map((section) => section.key)) : new Set());
-    },
-    [sections],
-  );
+  const setAllSectionsExpanded = (expanded: boolean) => {
+    setExpandedKeys(expanded ? new Set(sectionRows.map((section) => section.key)) : new Set());
+  };
 
-  const handleAccordionModeChange = useCallback(
-    (mode: AccordionMode) => {
-      if (mode === accordionMode || !selectedBangumi) return;
+  const handleAccordionModeChange = (mode: AccordionMode) => {
+    if (mode === accordionMode || !selectedBangumi) return;
 
-      const controlsOffset = controlsOffsetRef.current;
-      if (Number.isFinite(controlsOffset)) {
-        const sticky = isControlsStickyRef.current;
-        const maximumNonStickyOffset = Math.max(0, controlsOffset - 1);
-        pendingModeScrollRef.current = {
-          committed: false,
-          mode,
-          offset: sticky ? controlsOffset : Math.min(currentModeScrollOffsetRef.current, maximumNonStickyOffset),
-          sticky,
-        };
-      }
-      // Commit the new grouping and its expansion state together, without an intermediate collapsed list.
-      const nextSections = groupPoints(selectedBangumi.points, mode, selectedBangumi);
-      setExpandedKeys(allExpandedRef.current ? new Set(nextSections.map((section) => section.key)) : new Set());
-      setAccordionMode(mode);
-    },
-    [accordionMode, selectedBangumi],
-  );
+    const controlsOffset = controlsOffsetRef.current;
+    if (Number.isFinite(controlsOffset)) {
+      const sticky = isControlsStickyRef.current;
+      const maximumNonStickyOffset = Math.max(0, controlsOffset - 1);
+      pendingModeScrollRef.current = {
+        committed: false,
+        mode,
+        offset: sticky ? controlsOffset : Math.min(currentModeScrollOffsetRef.current, maximumNonStickyOffset),
+        sticky,
+      };
+    }
+    // Commit the new grouping and its expansion state together, without an intermediate collapsed list.
+    const nextSections = groupPoints(selectedBangumi.points, mode, selectedBangumi);
+    setExpandedKeys(allExpanded ? new Set(nextSections.map((section) => section.key)) : new Set());
+    setAccordionMode(mode);
+  };
 
   const toggleSection = useCallback((key: string) => {
     setExpandedKeys((prev) => {
@@ -453,41 +420,38 @@ function BangumiDetailSheet() {
     });
   }, []);
 
-  const handleControlsLayout = useCallback((event: LayoutChangeEvent) => {
+  const handleControlsLayout = (event: LayoutChangeEvent) => {
     const { height, y } = event.nativeEvent.layout;
     controlsOffsetRef.current = y;
     setControlsHeight((previousHeight) => (previousHeight === height ? previousHeight : height));
     setControlsOffset((previousOffset) => (previousOffset === y ? previousOffset : y));
-  }, []);
+  };
 
-  const handleFlashListViewportLayout = useCallback((event: LayoutChangeEvent) => {
+  const handleFlashListViewportLayout = (event: LayoutChangeEvent) => {
     const { height } = event.nativeEvent.layout;
     setFlashListViewportHeight((previousHeight) => (previousHeight === height ? previousHeight : height));
-  }, []);
+  };
 
-  const handleFlashListScroll = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const scrollOffset = event.nativeEvent.contentOffset.y;
-      const pendingScroll = pendingModeScrollRef.current;
-      let restoredSticky = false;
-      if (pendingScroll) {
-        // Ignore scroll events from the previous grouping until the new layout restores its offset.
-        const hasReachedRestoredOffset = scrollOffset + 1 >= pendingScroll.offset;
-        if (!pendingScroll.committed || (pendingScroll.sticky && !hasReachedRestoredOffset)) return;
-        restoredSticky = pendingScroll.sticky;
-        pendingModeScrollRef.current = null;
-      }
+  const handleFlashListScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const scrollOffset = event.nativeEvent.contentOffset.y;
+    const pendingScroll = pendingModeScrollRef.current;
+    let restoredSticky = false;
+    if (pendingScroll) {
+      // Ignore scroll events from the previous grouping until the new layout restores its offset.
+      const hasReachedRestoredOffset = scrollOffset + 1 >= pendingScroll.offset;
+      if (!pendingScroll.committed || (pendingScroll.sticky && !hasReachedRestoredOffset)) return;
+      restoredSticky = pendingScroll.sticky;
+      pendingModeScrollRef.current = null;
+    }
 
-      handleListScroll(event);
-      const shouldStick = restoredSticky || scrollOffset >= controlsOffsetRef.current;
-      currentModeScrollOffsetRef.current = scrollOffset;
-      isControlsStickyRef.current = shouldStick;
-      setIsControlsSticky((wasSticky) => (wasSticky === shouldStick ? wasSticky : shouldStick));
-    },
-    [handleListScroll],
-  );
+    handleListScroll(event);
+    const shouldStick = restoredSticky || scrollOffset >= controlsOffsetRef.current;
+    currentModeScrollOffsetRef.current = scrollOffset;
+    isControlsStickyRef.current = shouldStick;
+    setIsControlsSticky((wasSticky) => (wasSticky === shouldStick ? wasSticky : shouldStick));
+  };
 
-  const handleFlashListLayoutCommit = useCallback(() => {
+  const handleFlashListLayoutCommit = () => {
     const pendingScroll = pendingModeScrollRef.current;
     if (!pendingScroll || pendingScroll.mode !== accordionMode || pendingScroll.committed) return;
 
@@ -498,28 +462,18 @@ function BangumiDetailSheet() {
     setIsControlsSticky(pendingScroll.sticky);
     flashListRef.current?.scrollToOffset({ offset: pendingScroll.offset, animated: false });
     if (!pendingScroll.sticky || isAlreadyAtOffset) pendingModeScrollRef.current = null;
-  }, [accordionMode, flashListRef]);
+  };
 
-  const flatData: FlatItem[] = useMemo(() => {
-    return sections.flatMap((section) => {
-      const items: FlatItem[] = [
-        {
-          type: ITEM_TYPE_HEADER,
-          id: `header-${section.key}`,
-          title: section.title,
-          count: section.data.length,
-        },
-      ];
-      if (expandedKeys.has(section.key)) {
-        items.push(
-          ...section.data.map(
-            (point): FlatPointItem => ({ type: ITEM_TYPE_POINT, id: `point-${point.id}-${point.name}`, point }),
-          ),
-        );
-      }
-      return items;
-    });
-  }, [sections, expandedKeys]);
+  const flatData = useMemo<FlatItem[]>(
+    () =>
+      sectionRows.flatMap((section) => {
+        const expanded = expandedKeys.has(section.key);
+        const items: FlatItem[] = [expanded ? section.expandedHeader : section.collapsedHeader];
+        if (expanded) items.push(...section.pointItems);
+        return items;
+      }),
+    [expandedKeys, sectionRows],
+  );
 
   const stickyHeaderIndices = useMemo(
     () => flatData.map((item, index) => (item.type === ITEM_TYPE_HEADER ? index : -1)).filter((index) => index >= 0),
@@ -529,15 +483,16 @@ function BangumiDetailSheet() {
   const minimumContentHeight =
     flashListViewportHeight > 0 && controlsOffset !== null ? flashListViewportHeight + controlsOffset : undefined;
 
+  // This explicit callback is intentional: FlashList ViewHolder compares the
+  // renderItem reference, so expansion changes must not invalidate point rows.
   const renderFlashItem = useCallback(
     ({ item }: { item: FlatItem }) => {
       if (item.type === ITEM_TYPE_HEADER) {
-        const sectionKey = item.id.slice('header-'.length);
         return (
           <Pressable
             android_ripple={{ color: theme.color5.val }}
             style={{ height: SECTION_HEADER_HEIGHT, backgroundColor: theme.color1.val }}
-            onPress={() => toggleSection(sectionKey)}
+            onPress={() => toggleSection(item.sectionKey)}
           >
             <View position="absolute" t={-1} l={0} r={0} height={2} bg="$color1" />
             <View flexDirection="row" style={{ alignItems: 'center' }} px="$2" py="$2">
@@ -548,24 +503,34 @@ function BangumiDetailSheet() {
                 {item.count}
               </Text>
               <Text fontSize="$footnote" color="$color10">
-                {expandedKeys.has(sectionKey) ? '▲' : '▼'}
+                {item.expanded ? '▲' : '▼'}
               </Text>
             </View>
           </Pressable>
         );
       }
+
+      if (!selectedBangumi) return null;
+
       return (
-        <PointCard
-          point={item.point}
-          bangumi={selectedBangumi!}
-          onPress={() => {
-            focusPointFromBangumiDetails({ bangumiId: selectedBangumi!.id, pointId: item.point.id });
-            void sheetRef.current?.resize(0);
-          }}
-        />
+        <View mx="$2">
+          <PointListCard
+            point={item.point}
+            bangumi={selectedBangumi}
+            description={item.point.mark}
+            meta={item.point.folder}
+            onPress={() => {
+              focusPointFromBangumiDetails({ bangumiId: selectedBangumi.id, pointId: item.point.id });
+              void sheetRef.current?.resize(0);
+            }}
+            showMediaLabels
+            showFavorite
+            showAddToPlan
+          />
+        </View>
       );
     },
-    [selectedBangumi, focusPointFromBangumiDetails, sheetRef, toggleSection, expandedKeys, theme],
+    [focusPointFromBangumiDetails, selectedBangumi, sheetRef, theme.color1.val, theme.color5.val, toggleSection],
   );
 
   // Mount-to-present avoids TrueSheet's uncancellable lazy present() promise on route blur.
@@ -588,102 +553,100 @@ function BangumiDetailSheet() {
       onDetentChange={handleDetentChange}
       style={{ paddingTop: 26 }}
     >
-      <SheetContent>
-        <View flex={1} onLayout={handleFlashListViewportLayout}>
-          <View flex={1}>
-            <FlashList
-              ref={flashListRef}
-              data={flatData}
-              maintainVisibleContentPosition={{ disabled: true }}
-              renderItem={renderFlashItem}
-              getItemType={(item) => item.type}
-              keyExtractor={(item: FlatItem) => item.id}
-              stickyHeaderIndices={stickyHeaderIndices}
-              stickyHeaderConfig={{ offset: controlsHeight }}
-              ListHeaderComponentStyle={{ marginBottom: -controlsHeight }}
-              onCommitLayoutEffect={handleFlashListLayoutCommit}
-              onLoad={handleListLoad}
-              onScroll={handleFlashListScroll}
-              ListHeaderComponent={
-                <>
-                  <View px="$2" mb="$4" display="flex" flexDirection="row" rounded="$4" gap="$2.5">
-                    <Image
-                      source={buildImageUrl(selectedBangumi?.cover ?? '')}
-                      style={{
-                        width: 180,
-                        height: 140,
-                        borderRadius: getTokens().radius['4'].val,
-                        backgroundColor: selectedBangumi?.color || '$color9',
-                      }}
-                      contentFit="cover"
-                    />
-                    <View flex={1}>
-                      {selectedBangumi?.cn ? (
-                        <Text fontWeight="600" fontSize="$subtitle" color="$color12" pr="$8" numberOfLines={2}>
-                          {selectedBangumi?.cn}
-                        </Text>
-                      ) : null}
-                      <Text fontSize="$footnote" color="$color11" mt="$1" mb="$1" numberOfLines={1}>
-                        {selectedBangumi?.title}
+      <View flex={1} onLayout={handleFlashListViewportLayout}>
+        <View flex={1}>
+          <FlashList
+            ref={flashListRef}
+            data={flatData}
+            maintainVisibleContentPosition={{ disabled: true }}
+            renderItem={renderFlashItem}
+            getItemType={(item) => item.type}
+            keyExtractor={(item: FlatItem) => item.id}
+            stickyHeaderIndices={stickyHeaderIndices}
+            stickyHeaderConfig={{ offset: controlsHeight }}
+            ListHeaderComponentStyle={{ marginBottom: -controlsHeight }}
+            onCommitLayoutEffect={handleFlashListLayoutCommit}
+            onLoad={handleListLoad}
+            onScroll={handleFlashListScroll}
+            ListHeaderComponent={
+              <>
+                <View px="$2" mb="$4" display="flex" flexDirection="row" rounded="$4" gap="$2.5">
+                  <Image
+                    source={buildImageUrl(selectedBangumi?.cover ?? '')}
+                    style={{
+                      width: 180,
+                      height: 140,
+                      borderRadius: getTokens().radius['4'].val,
+                      backgroundColor: selectedBangumi?.color || '$color9',
+                    }}
+                    contentFit="cover"
+                  />
+                  <View flex={1}>
+                    {selectedBangumi?.cn ? (
+                      <Text fontWeight="600" fontSize="$subtitle" color="$color12" pr="$8" numberOfLines={2}>
+                        {selectedBangumi?.cn}
                       </Text>
-                      <View flexDirection="row">
-                        {selectedBangumi?.city && (
-                          <Text fontSize="$footnote" color="$color11">
-                            {selectedBangumi?.city} {'· '}
-                          </Text>
-                        )}
+                    ) : null}
+                    <Text fontSize="$footnote" color="$color11" mt="$1" mb="$1" numberOfLines={1}>
+                      {selectedBangumi?.title}
+                    </Text>
+                    <View flexDirection="row">
+                      {selectedBangumi?.city && (
                         <Text fontSize="$footnote" color="$color11">
-                          <Text color="$primary" fontWeight="bold">
-                            {selectedBangumi?.points.length}
-                          </Text>
-                          个巡礼点
+                          {selectedBangumi?.city} {'· '}
                         </Text>
-                      </View>
-                      <Text fontSize="$caption" color="$color11" position="absolute" r="$0" b="$0">
-                        最近更新：{dayjs(selectedBangumi?.modified).format('YYYY-MM-DD HH:mm')}
+                      )}
+                      <Text fontSize="$footnote" color="$color11">
+                        <Text color="$primary" fontWeight="bold">
+                          {selectedBangumi?.points.length}
+                        </Text>
+                        个巡礼点
                       </Text>
                     </View>
-                    {selectedBangumi?.cat?.trim() ? (
-                      <View
-                        position="absolute"
-                        t="$2"
-                        r="$2"
-                        px="$2"
-                        py="$1"
-                        rounded="$2"
-                        style={{ backgroundColor: selectedBangumi?.color || '$color9' }}
-                      >
-                        <Text fontSize="$caption" color="white" fontWeight="500">
-                          {selectedBangumi?.cat}
-                        </Text>
-                      </View>
-                    ) : null}
+                    <Text fontSize="$caption" color="$color11" position="absolute" r="$0" b="$0">
+                      最近更新：{dayjs(selectedBangumi?.modified).format('YYYY-MM-DD HH:mm')}
+                    </Text>
                   </View>
-                  <AccordionControls
-                    accordionMode={accordionMode}
-                    hidden={isControlsSticky}
-                    onSelectMode={handleAccordionModeChange}
-                    onCollapseAll={() => setAllSectionsExpanded(false)}
-                    onExpandAll={() => setAllSectionsExpanded(true)}
-                    onLayout={handleControlsLayout}
-                  />
-                </>
-              }
-              contentContainerStyle={{ paddingBottom: 12, minHeight: minimumContentHeight }}
+                  {selectedBangumi?.cat?.trim() ? (
+                    <View
+                      position="absolute"
+                      t="$2"
+                      r="$2"
+                      px="$2"
+                      py="$1"
+                      rounded="$2"
+                      style={{ backgroundColor: selectedBangumi?.color || '$color9' }}
+                    >
+                      <Text fontSize="$caption" color="white" fontWeight="500">
+                        {selectedBangumi?.cat}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+                <AccordionControls
+                  accordionMode={accordionMode}
+                  hidden={isControlsSticky}
+                  onSelectMode={handleAccordionModeChange}
+                  onCollapseAll={() => setAllSectionsExpanded(false)}
+                  onExpandAll={() => setAllSectionsExpanded(true)}
+                  onLayout={handleControlsLayout}
+                />
+              </>
+            }
+            contentContainerStyle={{ paddingBottom: 12, minHeight: minimumContentHeight }}
+          />
+        </View>
+        {isControlsSticky ? (
+          <View position="absolute" t={0} l={0} r={0} style={{ zIndex: 3 }}>
+            <AccordionControls
+              accordionMode={accordionMode}
+              onSelectMode={handleAccordionModeChange}
+              onCollapseAll={() => setAllSectionsExpanded(false)}
+              onExpandAll={() => setAllSectionsExpanded(true)}
             />
           </View>
-          {isControlsSticky ? (
-            <View position="absolute" t={0} l={0} r={0} style={{ zIndex: 3 }}>
-              <AccordionControls
-                accordionMode={accordionMode}
-                onSelectMode={handleAccordionModeChange}
-                onCollapseAll={() => setAllSectionsExpanded(false)}
-                onExpandAll={() => setAllSectionsExpanded(true)}
-              />
-            </View>
-          ) : null}
-        </View>
-      </SheetContent>
+        ) : null}
+      </View>
     </TrueSheet>
   );
 }

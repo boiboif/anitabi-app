@@ -3,8 +3,8 @@ import PointCardActions from '@/components/point-card-actions';
 import { formatDuration } from '@/lib/formatDuration';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
-import { Image } from 'expo-image';
-import { type ReactNode } from 'react';
+import { Image, type ImageProps } from 'expo-image';
+import { useMemo, type ReactNode } from 'react';
 import { Pressable, type AccessibilityState } from 'react-native';
 import { getTokens, Text, useTheme, View, XStack, YStack } from 'tamagui';
 
@@ -27,6 +27,10 @@ type Props = {
   meta?: string;
   /** 自定义图片路径，未传入时使用巡礼点图片或番剧封面。 */
   image?: string;
+  /** 已解析的图片源；排序浮层可与列表项复用同一个 source 和 cacheKey。 */
+  imageSource?: ImageProps['source'];
+  /** 虚拟列表回收标识；默认使用图片路径，变化时清除上一条目的图片内容。 */
+  imageRecyclingKey?: string;
   /** 图片加载前或缺失时使用的背景色。 */
   imageColor?: string;
   /** 点击卡片主体时触发的回调。 */
@@ -41,6 +45,8 @@ type Props = {
   accessibilityState?: AccessibilityState;
   /** 卡片最左侧的自定义内容，例如排序拖拽把手。 */
   leading?: ReactNode;
+  /** 卡片最右侧的自定义内容，例如排序拖拽把手。 */
+  trailing?: ReactNode;
   /** 卡片右上角的自定义操作，例如添加或删除按钮。 */
   topRightAction?: ReactNode;
   /** 是否将右上角自定义操作沿卡片高度垂直居中。 */
@@ -61,6 +67,8 @@ type Props = {
   actionSize?: number;
   /** 卡片及图片高度，默认为 116。 */
   height?: number;
+  /** 图片宽度，默认为 150。 */
+  imageWidth?: number;
 };
 
 export default function PointListCard({
@@ -72,6 +80,8 @@ export default function PointListCard({
   description,
   meta,
   image,
+  imageSource,
+  imageRecyclingKey,
   imageColor,
   onPress,
   disabled = false,
@@ -79,6 +89,7 @@ export default function PointListCard({
   accessibilityLabel,
   accessibilityState,
   leading,
+  trailing,
   topRightAction,
   topRightActionCentered = false,
   statusAction,
@@ -89,9 +100,25 @@ export default function PointListCard({
   showNavigation = false,
   actionSize = 30,
   height = DEFAULT_CARD_HEIGHT,
+  imageWidth = 150,
 }: Props) {
   const theme = useTheme();
   const imagePath = image ?? point?.image ?? bangumi?.cover;
+  const resolvedImageSource = useMemo(() => {
+    if (imageSource) return imageSource;
+    if (!imagePath) return undefined;
+    const uri = buildImageUrl(imagePath, 'plan=h160');
+    return { uri, cacheKey: uri };
+  }, [imagePath, imageSource]);
+  const imageStyle = useMemo(
+    () => ({
+      width: imageWidth,
+      height,
+      backgroundColor: imageColor || bangumi?.color || theme.color9.val,
+      borderRadius: getTokens().radius['4'].val,
+    }),
+    [bangumi?.color, height, imageColor, imageWidth, theme.color9.val],
+  );
   const resolvedSubtitle = subtitle ?? (bangumi?.cn || bangumi?.title || bangumi?.en || '未知');
   const epLabel =
     typeof point?.ep === 'number' && point.ep > 0
@@ -122,16 +149,13 @@ export default function PointListCard({
           style={{ flex: 1 }}
         >
           <XStack height={height} gap="$2">
-            <View width={150} height={height} overflow="hidden">
+            <View width={imageWidth} height={height} overflow="hidden">
               <Image
-                source={imagePath ? { uri: buildImageUrl(imagePath, 'plan=h160') } : undefined}
-                style={{
-                  width: 150,
-                  height,
-                  backgroundColor: imageColor || bangumi?.color || theme.color9.val,
-                  borderRadius: getTokens().radius['4'].val,
-                }}
+                source={resolvedImageSource}
+                recyclingKey={imageRecyclingKey ?? imagePath}
+                style={imageStyle}
                 contentFit="cover"
+                cachePolicy="memory-disk"
               />
               {showMediaLabels && epLabel ? (
                 <View
@@ -206,6 +230,7 @@ export default function PointListCard({
             </YStack>
           </XStack>
         </Pressable>
+        {trailing}
       </XStack>
       {topRightAction ? (
         <View position="absolute" t={topRightActionCentered ? (height - 30) / 2 : '$2'} r="$2">

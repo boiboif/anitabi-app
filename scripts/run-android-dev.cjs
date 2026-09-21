@@ -20,5 +20,5 @@ function runExpo(args) {
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
-runExpo(['prebuild', '--platform', 'android', '--no-install']);
+runExpo(['prebuild', '--no-clean', '--platform', 'android', '--no-install']);
 runExpo(['run:android', ...process.argv.slice(2)]);

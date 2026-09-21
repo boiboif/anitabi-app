@@ -1,13 +1,16 @@
 import { ActionSheet, type ActionSheetRef } from '@/components/action-sheet';
 import PointListCard from '@/components/point-list-card';
+import StableReorderableList, {
+  type StableReorderableListRenderItem,
+} from '@/components/stable-reorderable-list';
 import { StrictButton as Button } from '@/components/strict-button';
 import { sharePlanFile } from '@/lib/plan-share-files';
 import { createPlanShareBundle } from '@/lib/plan-sharing';
 import { ICON_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';
+import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapData } from '@/store/use-map-data';
 import { usePlans } from '@/store/use-plans';
-import { FlashList } from '@shopify/flash-list';
 import {
   ArrowDownUp,
   Check,
@@ -21,9 +24,8 @@ import {
   Trash2,
 } from '@tamagui/lucide-icons-2';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable } from 'react-native';
-import { Sortable, SortableItem, type SortableRenderItemProps } from 'react-native-reanimated-dnd';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, View, XStack, YStack, useTheme } from 'tamagui';
 
@@ -32,6 +34,7 @@ type ResolvedItem = {
   item: ReturnType<typeof usePlans.getState>['plans'][number]['items'][number];
   point?: Point;
   bangumi?: Bangumi;
+  imageSource?: string;
 };
 
 type DraggablePointRowProps = {
@@ -41,15 +44,45 @@ type DraggablePointRowProps = {
   onRemove: () => void;
   theme: ReturnType<typeof useTheme>;
   sorting: boolean;
+  dragHandle?: ReactNode;
 };
 
-function getOrderedKeys(allPositions: Record<string, number>): string[] {
-  return Object.entries(allPositions)
-    .sort(([, firstPosition], [, secondPosition]) => firstPosition - secondPosition)
-    .map(([key]) => key);
+function ReorderHandle() {
+  return (
+    <View
+      width={44}
+      height="100%"
+      items="center"
+      justify="center"
+      accessibilityRole="button"
+      accessibilityLabel="拖动调整顺序"
+      accessibilityHint="长按后上下拖动"
+    >
+      <GripVertical size={18} color="$color10" />
+    </View>
+  );
 }
 
-function DraggablePointRow({ resolved, onPress, onToggle, onRemove, theme, sorting }: DraggablePointRowProps) {
+function RemovePointButton({ onRemove }: { onRemove: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="移除巡礼点"
+      hitSlop={8}
+      onPress={(event) => {
+        event.stopPropagation();
+        onRemove();
+      }}
+      style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
+    >
+      <View width={44} height="100%" items="center" justify="center">
+        <Trash2 size={17} color="$color11" />
+      </View>
+    </Pressable>
+  );
+}
+
+function DraggablePointRow({ resolved, onPress, onToggle, onRemove, theme, sorting, dragHandle }: DraggablePointRowProps) {
   const { item, point, bangumi } = resolved;
 
   return (
@@ -60,16 +93,13 @@ function DraggablePointRow({ resolved, onPress, onToggle, onRemove, theme, sorti
       subtitle={bangumi?.cn || bangumi?.title || item.snapshot.bangumiName}
       description={point?.mark || item.snapshot.pointMark}
       image={point?.image || item.snapshot.pointImage}
+      imageSource={resolved.imageSource}
+      imageRecyclingKey={resolved.id}
       imageColor={bangumi?.color || item.snapshot.bangumiColor}
       disabled={sorting || !point || !bangumi}
       onPress={onPress}
-      leading={
-        sorting ? (
-          <SortableItem.Handle style={{ width: 44, alignItems: 'center', justifyContent: 'center' }}>
-            <GripVertical size={18} color="$color10" />
-          </SortableItem.Handle>
-        ) : null
-      }
+      leading={sorting ? <RemovePointButton onRemove={onRemove} /> : null}
+      trailing={sorting ? dragHandle : null}
       statusAction={
         !sorting ? (
           <Pressable
@@ -92,32 +122,17 @@ function DraggablePointRow({ resolved, onPress, onToggle, onRemove, theme, sorti
           </Pressable>
         ) : null
       }
-      topRightAction={
-        sorting ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="移除巡礼点"
-            hitSlop={8}
-            onPress={(event) => {
-              event.stopPropagation();
-              onRemove();
-            }}
-            style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
-          >
-            <View width={30} height={30} rounded="$9" bg="$color2" items="center" justify="center">
-              <Trash2 size={15} color="$color11" />
-            </View>
-          </Pressable>
-        ) : undefined
-      }
-      topRightActionCentered
       showCamera={!sorting && Boolean(point && bangumi)}
       showNavigation={!sorting && Boolean(point && bangumi)}
     />
   );
 }
 
-const ITEM_HEIGHT = 116;
+const PLAN_POINT_ROW_HEIGHT = 117;
+const DRAG_PREVIEW_HEIGHT = 79;
+const REORDER_AUTOSCROLL_THRESHOLD = 72;
+const REORDER_AUTOSCROLL_MAX_SPEED = 840;
+const REORDER_MAX_FRAME_DURATION_MS = 34;
 
 export default function PlanDetailScreen() {
   const { planId } = useLocalSearchParams<{ planId: string }>();
@@ -134,87 +149,96 @@ export default function PlanDetailScreen() {
   const overflowSheetRef = useRef<ActionSheetRef>(null);
   const [sorting, setSorting] = useState(false);
 
+  const bangumiById = useMemo(
+    () => new Map((data?.data.bangumis ?? []).map((bangumi) => [bangumi.id, bangumi])),
+    [data],
+  );
+
   const resolvedItems = useMemo<ResolvedItem[]>(() => {
     if (!plan) return [];
+    const pointsByBangumiId = new Map<number, Map<string, Point>>();
     return plan.items.map((item) => {
-      const bangumi = data?.data.bangumis.find((entry) => entry.id === item.bangumiId);
-      const point = bangumi?.points.find((entry) => entry.id === item.pointId);
-      return { id: item.key, item, bangumi, point };
+      const bangumi = bangumiById.get(item.bangumiId);
+      let pointById = pointsByBangumiId.get(item.bangumiId);
+      if (!pointById && bangumi) {
+        pointById = new Map(bangumi.points.map((point) => [point.id, point]));
+        pointsByBangumiId.set(item.bangumiId, pointById);
+      }
+      const point = pointById?.get(item.pointId);
+      const imagePath = point?.image || item.snapshot.pointImage;
+      const imageUri = imagePath ? buildImageUrl(imagePath, 'plan=h160') : undefined;
+      return {
+        id: item.key,
+        item,
+        bangumi,
+        point,
+        imageSource: imageUri,
+      };
     });
-  }, [data, plan]);
-
-  const [sortableOrder, setSortableOrder] = useState<string[] | null>(null);
-  const sortableItems = useMemo(() => {
-    if (!sorting || !sortableOrder) return resolvedItems;
-    const resolvedById = new Map(resolvedItems.map((item) => [item.id, item]));
-    const next = sortableOrder.flatMap((id) => {
-      const item = resolvedById.get(id);
-      return item ? [item] : [];
-    });
-    const knownIds = new Set(next.map((item) => item.id));
-    resolvedItems.forEach((item) => {
-      if (!knownIds.has(item.id)) next.push(item);
-    });
-    return next;
-  }, [resolvedItems, sortableOrder, sorting]);
+  }, [bangumiById, plan]);
 
   const toggleSorting = useCallback(() => {
-    if (!sorting) {
-      setSortableOrder(resolvedItems.map((item) => item.id));
-    } else {
-      setSortableOrder(null);
-    }
     setSorting((current) => !current);
-  }, [resolvedItems, sorting]);
+  }, []);
 
-  // Keep reordering on the UI thread during the gesture; persist the final order once on drop.
-  const handleDrop = useCallback(
-    (_id: string, _position: number, allPositions?: Record<string, number>) => {
-      if (!allPositions) return;
-      reorderPoints(planId, getOrderedKeys(allPositions));
+  const handleReorder = useCallback(
+    (nextOrderIds: string[]) => {
+      reorderPoints(planId, nextOrderIds);
     },
     [planId, reorderPoints],
   );
 
-  const renderSortableItem = useCallback(
-    ({ item, id, ...sortableProps }: SortableRenderItemProps<ResolvedItem>) => (
-      <SortableItem key={id} id={id} data={item} {...sortableProps} onDrop={handleDrop}>
-        <DraggablePointRow
-          resolved={item}
-          onToggle={() => togglePoint(planId, item.item.key)}
-          onRemove={() => removePoint(planId, item.item.key)}
-          theme={theme}
-          sorting
-        />
-      </SortableItem>
-    ),
-    [handleDrop, planId, removePoint, theme, togglePoint],
-  );
-
-  const renderPointRow = useCallback(
-    (item: ResolvedItem) => (
+  const renderListItem = useCallback(
+    ({ item, dragHandle }: StableReorderableListRenderItem<ResolvedItem>) => (
       <DraggablePointRow
-        key={item.id}
         resolved={item}
-        onPress={() => {
-          if (item.bangumi && item.point) {
-            router.navigate({
-              pathname: '/plans/[planId]/map',
-              params: {
-                planId,
-                bangumiId: item.bangumi.id,
-                pointId: item.point.id,
-              },
-            });
-          }
-        }}
+        onPress={
+          sorting
+            ? undefined
+            : () => {
+                if (item.bangumi && item.point) {
+                  router.navigate({
+                    pathname: '/plans/[planId]/map',
+                    params: {
+                      planId,
+                      bangumiId: item.bangumi.id,
+                      pointId: item.point.id,
+                    },
+                  });
+                }
+              }
+        }
         onToggle={() => togglePoint(planId, item.item.key)}
         onRemove={() => removePoint(planId, item.item.key)}
+        dragHandle={dragHandle}
         theme={theme}
-        sorting={false}
+        sorting={sorting}
       />
     ),
-    [planId, removePoint, router, theme, togglePoint],
+    [planId, removePoint, router, sorting, theme, togglePoint],
+  );
+
+  const keyExtractor = useCallback((item: ResolvedItem) => item.id, []);
+  const renderDragHandle = useCallback(() => <ReorderHandle />, []);
+  const renderDragPreview = useCallback(
+    (resolved: ResolvedItem) => {
+      const { item, point, bangumi } = resolved;
+      return (
+        <PointListCard
+          point={point}
+          bangumi={bangumi}
+          title={point?.cn || point?.name || item.snapshot.pointName}
+          subtitle={bangumi?.cn || bangumi?.title || item.snapshot.bangumiName}
+          image={point?.image || item.snapshot.pointImage}
+          imageSource={resolved.imageSource}
+          imageColor={bangumi?.color || item.snapshot.bangumiColor}
+          disabled
+          height={72}
+          imageWidth={72}
+        />
+      );
+    },
+    [],
   );
 
   if (!plan) {
@@ -337,23 +361,26 @@ export default function PlanDetailScreen() {
           <YStack flex={1} minH={220} items="center" justify="center">
             <Text color="$color11">计划里还没有点位</Text>
           </YStack>
-        ) : sorting ? (
-          <Sortable
-            data={sortableItems}
-            itemHeight={ITEM_HEIGHT + 8}
-            itemKeyExtractor={(entry) => entry.id}
-            style={{ flex: 1, backgroundColor: theme.background?.val }}
-            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: insets.bottom + 30 }}
-            renderItem={renderSortableItem}
-          />
         ) : (
-          <FlashList
+          <StableReorderableList
             data={resolvedItems}
-            renderItem={({ item }) => renderPointRow(item)}
-            keyExtractor={(item) => item.id}
+            enabled={sorting}
+            itemHeight={PLAN_POINT_ROW_HEIGHT}
+            keyExtractor={keyExtractor}
+            renderItem={renderListItem}
+            renderDragHandle={renderDragHandle}
+            renderDragPreview={renderDragPreview}
+            onReorder={handleReorder}
+            dragPreviewHeight={DRAG_PREVIEW_HEIGHT}
+            dragPreviewHorizontalInset={54}
+            indicatorColor={theme.primary.val}
+            indicatorInsetStart={44}
+            autoscrollThreshold={REORDER_AUTOSCROLL_THRESHOLD}
+            autoscrollMaxSpeed={REORDER_AUTOSCROLL_MAX_SPEED}
+            maxFrameDurationMs={REORDER_MAX_FRAME_DURATION_MS}
+            contentPaddingHorizontal={12}
+            contentPaddingBottom={insets.bottom + 30}
             style={{ flex: 1, backgroundColor: theme.background?.val }}
-            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: insets.bottom + 30 }}
-            showsVerticalScrollIndicator={false}
           />
         )}
       </YStack>
@@ -371,7 +398,8 @@ export default function PlanDetailScreen() {
               {
                 label: '编辑计划信息',
                 icon: Pencil,
-                onPress: () => router.navigate({ pathname: '/plans/[planId]/edit', params: { planId: plan.id } } as never),
+                onPress: () =>
+                  router.navigate({ pathname: '/plans/[planId]/edit', params: { planId: plan.id } } as never),
               },
               { label: '删除计划', icon: Trash2, destructive: true, onPress: openDeleteConfirm },
             ],

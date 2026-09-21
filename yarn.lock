@@ -8687,11 +8687,6 @@ react-native-qrcode-svg@^6.3.24:
     qrcode "^1.5.4"
     text-encoding "^0.7.0"
 
-react-native-reanimated-dnd@^2.0.0:
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/react-native-reanimated-dnd/-/react-native-reanimated-dnd-2.0.0.tgz#036c1e3d02a37efa36217d392392f37c7aba0dc4"
-  integrity sha512-FXNWZoad5RG4Z6g1xX60/ZEBVkhO9jmmftHAuTML3XrVw15dsU8LwHA5ulVpO9UtX4iBGwAn3CCr3GNRcuH/oQ==
-
 react-native-reanimated@4.5.1:
   version "4.5.1"
   resolved "https://registry.yarnpkg.com/react-native-reanimated/-/react-native-reanimated-4.5.1.tgz#be81ed3a96bf70baeeccdc24d3350883099b7dd3"
