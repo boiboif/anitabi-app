@@ -1,12 +1,21 @@
-# Anitabi App
+<div align="center">
+  <a href="https://boiboif.github.io/anitabi-app/">
+    <img src="docs/public/app-icon.svg" width="128" alt="Anitabi Logo" />
+  </a>
 
-简体中文 | [English](README.en.md) | [日本語](README.ja.md)
+  <h1>Anitabi App</h1>
+</div>
 
-> 🚀 **持续迭代中** — 核心功能已经可用，更多体验与功能仍在完善。
+<p align="center"><strong>把动画里的风景，变成下一段旅程。</strong></p>
 
-一个基于 Expo 的动画圣地巡礼移动端地图应用，展示动漫取景地在世界地图上的点位。数据源来自 [anitabi.cn](https://www.anitabi.cn)。
+<p align="center">
+  一个基于 Expo 的动画圣地巡礼移动端地图应用，在世界地图上发现动漫取景地。数据源来自
+  <a href="https://www.anitabi.cn">anitabi.cn</a>。
+</p>
 
 > 项目官网：[Anitabi](https://boiboif.github.io/anitabi-app/) · [下载应用](https://boiboif.github.io/anitabi-app/download) · [隐私政策](docs/PRIVACY.md) · [贡献指引](CONTRIBUTING.md)
+>
+> 语言：简体中文 · [English](README.en.md) · [日本語](README.ja.md)
 
 ### 为什么做这个
 

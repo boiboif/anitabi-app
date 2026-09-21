@@ -1,12 +1,23 @@
-# Anitabi App
+<div align="center">
+  <a href="https://boiboif.github.io/anitabi-app/en/">
+    <img src="docs/public/app-icon.svg" width="128" alt="Anitabi Logo" />
+  </a>
 
-[简体中文](README.md) | English | [日本語](README.ja.md)
+  <h1>Anitabi App</h1>
+</div>
+
+<p align="center"><strong>Turn anime scenery into your next journey.</strong></p>
 
 > 🚀 **Actively evolving** — The core features are ready to use, with more improvements and capabilities on the way.
 
-An Expo-based mobile map app for anime location pilgrimages, showing real-world anime locations on a world map. Data is provided by [anitabi.cn](https://www.anitabi.cn).
+<p align="center">
+  An Expo-based mobile map app for anime location pilgrimages, showing real-world anime locations on a world map. Data is provided by
+  <a href="https://www.anitabi.cn">anitabi.cn</a>.
+</p>
 
 > [Website](https://boiboif.github.io/anitabi-app/en/) · [Download](https://boiboif.github.io/anitabi-app/en/download) · [Privacy Policy](docs/en/PRIVACY.md) · [Contributing Guide](CONTRIBUTING.md)
+>
+> Languages: [简体中文](README.md) · English · [日本語](README.ja.md)
 
 ### Why this app?
 

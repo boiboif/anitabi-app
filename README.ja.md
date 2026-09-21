@@ -1,12 +1,23 @@
-# Anitabi App
+<div align="center">
+  <a href="https://boiboif.github.io/anitabi-app/ja/">
+    <img src="docs/public/app-icon.svg" width="128" alt="Anitabi Logo" />
+  </a>
 
-[简体中文](README.md) | [English](README.en.md) | 日本語
+  <h1>Anitabi App</h1>
+</div>
+
+<p align="center"><strong>アニメの風景を、次の旅へ。</strong></p>
 
 > 🚀 **継続的に開発中** — コア機能はすでに利用可能で、さらなる改善と新機能を順次追加しています。
 
-Expo をベースにしたアニメ聖地巡礼向けのモバイル地図アプリです。世界地図上にアニメの舞台となった場所を表示します。データは [anitabi.cn](https://www.anitabi.cn) から提供されています。
+<p align="center">
+  Expo をベースにしたアニメ聖地巡礼向けのモバイル地図アプリです。世界地図上にアニメの舞台となった場所を表示します。データは
+  <a href="https://www.anitabi.cn">anitabi.cn</a> から提供されています。
+</p>
 
 > [公式サイト](https://boiboif.github.io/anitabi-app/ja/) · [アプリをダウンロード](https://boiboif.github.io/anitabi-app/ja/download) · [プライバシーポリシー](docs/ja/PRIVACY.md) · [コントリビューションガイド](CONTRIBUTING.md)
+>
+> 言語：[简体中文](README.md) · [English](README.en.md) · 日本語
 
 ### このアプリを作った理由
 
