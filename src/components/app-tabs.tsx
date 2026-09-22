@@ -1,6 +1,6 @@
 import { useDoubleBackExit } from '@/hooks/use-double-back-exit';
 import type { TranslationMessage } from '@/i18n/messages';
-import { Heart, Map, User } from '@tamagui/lucide-icons-2';
+import { CalendarDays, Heart, Map, User } from '@tamagui/lucide-icons-2';
 import { BlurView } from 'expo-blur';
 import { usePathname } from 'expo-router';
 import { TabList, Tabs, TabSlot, TabTrigger } from 'expo-router/ui';
@@ -11,6 +11,7 @@ import { getTokens, Text, useTheme, useThemeName, View } from 'tamagui';
 const TAB_CONFIG = [
   { name: 'index', label: { key: 'map', defaultValue: '地图' }, icon: Map },
   { name: 'favorites', label: { key: 'favorites', defaultValue: '收藏' }, icon: Heart },
+  { name: 'plan', label: { key: 'plans', defaultValue: '计划' }, icon: CalendarDays },
   { name: 'profile', label: { key: 'me', defaultValue: '我的' }, icon: User },
 ] as const satisfies readonly { name: string; label: TranslationMessage; icon: typeof Map }[];
 

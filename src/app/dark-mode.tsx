@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import { ThemeSwitch } from '@/components/theme-switch';
 
+import { useMapStylePreference } from '@/store/use-map-style-preference';
 import { useThemePreference } from '@/store/use-theme-preference';
 import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
 
@@ -15,6 +16,8 @@ export default function DarkModeScreen() {
   const themeName = useThemeName();
   const preference = useThemePreference((state) => state.preference);
   const setPreference = useThemePreference((state) => state.setPreference);
+  const mapStyleFollowsTheme = useMapStylePreference((state) => state.followsTheme);
+  const setMapStyleFollowsTheme = useMapStylePreference((state) => state.setFollowsTheme);
 
   const followSystem = preference === 'system';
   const currentTheme = themeName === 'dark' ? 'dark' : 'light';
@@ -55,6 +58,20 @@ export default function DarkModeScreen() {
               <ThemeSwitch checked={isDark} onCheckedChange={toggleDarkMode} />
             </XStack>
           )}
+
+          <XStack px="$3" py="$2.5" rounded="$2" items="center" justify="space-between" gap="$3">
+            <YStack flex={1} gap="$0.5">
+              <Text color="$color" fontSize="$body" lineHeight={24} fontWeight="500">
+                {t('mapStyleFollowsDarkMode', { defaultValue: '地图跟随深色模式' })}
+              </Text>
+              <Text color="$color10" fontSize="$caption" lineHeight={18}>
+                {t('useStreetMapInLightModeAndDarkMapInDarkMode', {
+                  defaultValue: '浅色模式使用街道地图，深色模式使用深色地图',
+                })}
+              </Text>
+            </YStack>
+            <ThemeSwitch checked={mapStyleFollowsTheme} onCheckedChange={setMapStyleFollowsTheme} />
+          </XStack>
         </YStack>
       </View>
     </ScrollView>

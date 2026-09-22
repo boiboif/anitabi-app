@@ -9,6 +9,7 @@ type Props = {
   point: Point;
   compact?: boolean;
   compactSize?: number;
+  bare?: boolean;
 };
 
 function buildGoogleMapsUrl([latitude, longitude]: [number, number], fallback = false): string {
@@ -28,7 +29,7 @@ function buildGoogleMapsUrl([latitude, longitude]: [number, number], fallback = 
   return `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
 }
 
-export default function GoogleMapsNavigationButton({ point, compact = false, compactSize = 30 }: Props) {
+export default function GoogleMapsNavigationButton({ point, compact = false, compactSize = 30, bare = false }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
 
@@ -56,11 +57,11 @@ export default function GoogleMapsNavigationButton({ point, compact = false, com
         width={compact ? compactSize : 36}
         height={compact ? compactSize : 36}
         rounded="$9"
-        bg="$color2"
+        bg={bare ? 'transparent' : '$color2'}
         items="center"
         justify="center"
       >
-        <Navigation size={compact ? compactSize * 0.5 : 18} color={theme.primary.val} />
+        <Navigation size={compact ? compactSize * (bare ? 0.58 : 0.5) : 18} color={theme.primary.val} />
       </View>
     </Pressable>
   );

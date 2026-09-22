@@ -1,7 +1,7 @@
 import { MAP_POINT_PRIORITY_ALL_VISIBLE_ZOOM, MAP_POINT_PRIORITY_ZOOM_STOPS } from '@/lib/constants';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
-import { useMapBrowse } from '@/store/use-map-browse';
+import { type MapPointReference, useMapBrowse } from '@/store/use-map-browse';
 import { CircleLayer, ShapeSource } from '@rnmapbox/maps';
 import { ComponentProps, useCallback, useMemo } from 'react';
 
@@ -11,6 +11,7 @@ type Props = {
   selectedBangumiIds?: number[];
   openedBangumiDetailsId?: number | null;
   showAllPoints?: boolean;
+  selectedPoint?: MapPointReference | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -18,12 +19,13 @@ type Props = {
 // GeoJSON 坐标顺序为 [lng, lat]
 // ---------------------------------------------------------------------------
 
-function toGeoJSON(bangumis: Bangumi[]): GeoJSON.FeatureCollection {
+function toGeoJSON(bangumis: Bangumi[], selectedPoint?: MapPointReference | null): GeoJSON.FeatureCollection {
   const features: GeoJSON.Feature[] = [];
 
   for (const b of bangumis) {
     for (const p of b.points) {
       if (p.geo[0] === 0 && p.geo[1] === 0) continue;
+      if (selectedPoint?.bangumiId === b.id && selectedPoint.pointId === p.id) continue;
 
       features.push({
         type: 'Feature',
@@ -59,6 +61,7 @@ export default function MapMarkers({
   selectedBangumiIds,
   openedBangumiDetailsId,
   showAllPoints = false,
+  selectedPoint,
 }: Props) {
   const storedOpenedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const storedSelectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
@@ -67,7 +70,7 @@ export default function MapMarkers({
   const activeSelectedBangumiIds = selectedBangumiIds ?? storedSelectedMapBangumiIds;
 
   // 始终用完整数据生成 GeoJSON，筛选通过 filter 表达式实现
-  const geoJSON = useMemo(() => toGeoJSON(bangumis), [bangumis]);
+  const geoJSON = useMemo(() => toGeoJSON(bangumis, selectedPoint), [bangumis, selectedPoint]);
 
   const pointFilter: ComponentProps<typeof CircleLayer>['filter'] = useMemo(() => {
     if (activeOpenedBangumiDetailsId !== null) {

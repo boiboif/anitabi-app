@@ -16,6 +16,7 @@ import {
   FileJson,
   GripVertical,
   Image as ImageIcon,
+  ListTodo,
   MoreHorizontal,
   Pencil,
   Plus,
@@ -31,6 +32,7 @@ import { Text, View, XStack, YStack, useTheme } from 'tamagui';
 
 type ResolvedItem = {
   id: string;
+  sequenceNumber: number;
   item: ReturnType<typeof usePlans.getState>['plans'][number]['items'][number];
   point?: Point;
   bangumi?: Bangumi;
@@ -107,6 +109,8 @@ function DraggablePointRow({
       imageSource={resolved.imageSource}
       imageRecyclingKey={resolved.id}
       imageColor={bangumi?.color || item.snapshot.bangumiColor}
+      sequenceNumber={resolved.sequenceNumber}
+      showMediaLabels
       disabled={sorting || !point || !bangumi}
       onPress={onPress}
       leading={sorting ? <RemovePointButton onRemove={onRemove} /> : null}
@@ -164,6 +168,8 @@ export default function PlanDetailScreen() {
   const menuSheetRef = useRef<ActionSheetRef>(null);
   const overflowSheetRef = useRef<ActionSheetRef>(null);
   const [sorting, setSorting] = useState(false);
+  const [showIncompleteOnly, setShowIncompleteOnly] = useState(false);
+  const hasPlanPoints = (plan?.items.length ?? 0) > 0;
 
   const bangumiById = useMemo(
     () => new Map((data?.data.bangumis ?? []).map((bangumi) => [bangumi.id, bangumi])),
@@ -173,7 +179,7 @@ export default function PlanDetailScreen() {
   const resolvedItems = useMemo<ResolvedItem[]>(() => {
     if (!plan) return [];
     const pointsByBangumiId = new Map<number, Map<string, Point>>();
-    return plan.items.map((item) => {
+    return plan.items.map((item, index) => {
       const bangumi = bangumiById.get(item.bangumiId);
       let pointById = pointsByBangumiId.get(item.bangumiId);
       if (!pointById && bangumi) {
@@ -185,6 +191,7 @@ export default function PlanDetailScreen() {
       const imageUri = imagePath ? buildImageUrl(imagePath, 'plan=h160') : undefined;
       return {
         id: item.key,
+        sequenceNumber: index + 1,
         item,
         bangumi,
         point,
@@ -193,15 +200,31 @@ export default function PlanDetailScreen() {
     });
   }, [bangumiById, plan]);
 
+  const visibleItems = useMemo(
+    () => (showIncompleteOnly ? resolvedItems.filter((resolved) => !resolved.item.completed) : resolvedItems),
+    [resolvedItems, showIncompleteOnly],
+  );
+
   const toggleSorting = useCallback(() => {
+    if (!hasPlanPoints) return;
+    if (!sorting) setShowIncompleteOnly(false);
     setSorting((current) => !current);
-  }, []);
+  }, [hasPlanPoints, sorting]);
 
   const handleReorder = useCallback(
     (nextOrderIds: string[]) => {
       reorderPoints(planId, nextOrderIds);
     },
     [planId, reorderPoints],
+  );
+
+  const handleRemove = useCallback(
+    (itemKey: string) => {
+      const removingLastPoint = plan?.items.length === 1;
+      removePoint(planId, itemKey);
+      if (removingLastPoint) setSorting(false);
+    },
+    [plan?.items.length, planId, removePoint],
   );
 
   const renderListItem = useCallback(
@@ -225,13 +248,13 @@ export default function PlanDetailScreen() {
               }
         }
         onToggle={() => togglePoint(planId, item.item.key)}
-        onRemove={() => removePoint(planId, item.item.key)}
+        onRemove={() => handleRemove(item.item.key)}
         dragHandle={dragHandle}
         theme={theme}
         sorting={sorting}
       />
     ),
-    [planId, removePoint, router, sorting, theme, togglePoint],
+    [handleRemove, planId, router, sorting, theme, togglePoint],
   );
 
   const keyExtractor = useCallback((item: ResolvedItem) => item.id, []);
@@ -248,6 +271,8 @@ export default function PlanDetailScreen() {
           image={point?.image || item.snapshot.pointImage}
           imageSource={resolved.imageSource}
           imageColor={bangumi?.color || item.snapshot.bangumiColor}
+          sequenceNumber={resolved.sequenceNumber}
+          showMediaLabels
           disabled
           height={72}
           imageWidth={72}
@@ -338,6 +363,21 @@ export default function PlanDetailScreen() {
                 chromeless
                 circular
                 size="$3"
+                icon={<ListTodo size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />}
+                color={!hasPlanPoints || sorting ? '$color8' : showIncompleteOnly ? '$primary' : '$color12'}
+                disabled={!hasPlanPoints || sorting}
+                onPress={() => setShowIncompleteOnly((current) => !current)}
+                aria-pressed={showIncompleteOnly}
+                aria-label={
+                  showIncompleteOnly
+                    ? t('showAllLocations', { defaultValue: '显示全部点位' })
+                    : t('showIncompleteLocationsOnly', { defaultValue: '仅显示未完成点位' })
+                }
+              />
+              <Button
+                chromeless
+                circular
+                size="$3"
                 icon={<Plus size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />}
                 onPress={() =>
                   router.navigate({ pathname: '/plans/[planId]/add', params: { planId: plan.id } } as never)
@@ -349,7 +389,8 @@ export default function PlanDetailScreen() {
                 circular
                 size="$3"
                 icon={<ArrowDownUp size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />}
-                color={sorting ? '$primary' : '$color12'}
+                color={!hasPlanPoints ? '$color8' : sorting ? '$primary' : '$color12'}
+                disabled={!hasPlanPoints}
                 onPress={toggleSorting}
                 aria-label={
                   sorting
@@ -393,13 +434,17 @@ export default function PlanDetailScreen() {
 
           {/* <XStack flex={1}></XStack> */}
         </XStack>
-        {resolvedItems.length === 0 ? (
+        {visibleItems.length === 0 ? (
           <YStack flex={1} minH={220} items="center" justify="center">
-            <Text color="$color11">{t('noLocationsInThisPlanYet', { defaultValue: '计划里还没有点位' })}</Text>
+            <Text color="$color11">
+              {showIncompleteOnly && resolvedItems.length > 0
+                ? t('noIncompleteLocations', { defaultValue: '没有未完成点位' })
+                : t('noLocationsInThisPlanYet', { defaultValue: '计划里还没有点位' })}
+            </Text>
           </YStack>
         ) : (
           <StableReorderableList
-            data={resolvedItems}
+            data={visibleItems}
             enabled={sorting}
             itemHeight={PLAN_POINT_ROW_HEIGHT}
             keyExtractor={keyExtractor}

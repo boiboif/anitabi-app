@@ -2,7 +2,7 @@ import { SettingCell } from '@/components/setting-cell';
 import { SettingsSection } from '@/components/settings-section';
 import { clearAppCache } from '@/lib/app-cache';
 import { getCurrentAppDisplayVersion } from '@/services/app-update';
-import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
+import { BottomTabInset, MaxContentWidth, TopLevelPageTopPadding } from '@/tamagui.config';
 import { CalendarDays, HardDrive, Info, Languages, Moon } from '@tamagui/lucide-icons-2';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -23,17 +23,17 @@ export default function ProfileScreen() {
 
   const contentPlatformStyle = Platform.select({
     android: {
-      paddingTop: insets.top,
+      paddingTop: insets.top + TopLevelPageTopPadding,
       paddingLeft: insets.left,
       paddingRight: insets.right,
       paddingBottom: insets.bottom,
     },
     web: {
-      paddingTop: 40,
+      paddingTop: TopLevelPageTopPadding,
       paddingBottom: 24,
     },
     ios: {
-      paddingTop: 28,
+      paddingTop: TopLevelPageTopPadding,
       paddingBottom: insets.bottom,
     },
   });
@@ -92,7 +92,7 @@ export default function ProfileScreen() {
             icon={CalendarDays}
             title={t('pilgrimagePlans', { defaultValue: '巡礼计划' })}
             description={t('arrangeLocationsAndTrackYourProgress', { defaultValue: '安排点位顺序，记录巡礼进度' })}
-            onPress={() => router.navigate('/plans')}
+            onPress={() => router.navigate('/plan' as never)}
           />
         </SettingsSection>
 

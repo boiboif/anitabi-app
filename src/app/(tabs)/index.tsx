@@ -8,6 +8,7 @@ import PointImageMarkerSwitch from '@/components/point-image-marker-switch';
 import RandomPointButton from '@/components/random-point-button';
 import SearchBox from '@/components/search-box';
 import { useMapLocate } from '@/hooks/use-map-locate';
+import { useThemedMapStyle } from '@/hooks/use-themed-map-style';
 import { FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE } from '@/lib/constants';
 import { getPointFlyToZoom } from '@/lib/map-camera';
 import { useMapBrowse } from '@/store/use-map-browse';
@@ -115,7 +116,7 @@ export default function HomeScreen() {
     focusPointFromMapControl(randomPointCandidates[randomIndex]);
   }, [focusPointFromMapControl, randomPointCandidates, t]);
 
-  const [styleIndex, setStyleIndex] = useState(0);
+  const [styleIndex, setStyleIndex] = useThemedMapStyle();
 
   return (
     <View style={styles.container}>

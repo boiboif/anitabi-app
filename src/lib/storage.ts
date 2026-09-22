@@ -13,6 +13,7 @@ const storage = createMMKV({ id: 'anitabi-settings' });
 
 const DARK_MODE_KEY = 'dark-mode-config';
 const LANGUAGE_KEY = 'language-preference';
+const MAP_STYLE_FOLLOWS_THEME_KEY = 'map-style-follows-theme';
 
 const DEFAULT_THEME_PREFERENCE: ThemePreference = 'system';
 const DEFAULT_LANGUAGE_PREFERENCE: LanguagePreference = 'system';
@@ -43,6 +44,14 @@ export function getThemePreference(): ThemePreference {
 
 export function setThemePreference(preference: ThemePreference): void {
   storage.set(DARK_MODE_KEY, JSON.stringify({ preference }));
+}
+
+export function getMapStyleFollowsTheme(): boolean {
+  return storage.getBoolean(MAP_STYLE_FOLLOWS_THEME_KEY) ?? false;
+}
+
+export function setMapStyleFollowsTheme(followsTheme: boolean): void {
+  storage.set(MAP_STYLE_FOLLOWS_THEME_KEY, followsTheme);
 }
 
 function isThemePreferenceConfig(value: unknown): value is { preference: ThemePreference } {

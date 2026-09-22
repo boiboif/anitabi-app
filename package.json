@@ -6,7 +6,8 @@
   "dependencies": {
     "@boiboif/react-native-toast": "^0.1.0",
     "@expo/ui": "~57.0.19",
-    "@lodev09/react-native-true-sheet": "^3.11.12",
+    "@legendapp/list": "3.4.0",
+    "@lodev09/react-native-true-sheet": "3.11.14",
     "@rnmapbox/maps": "^10.3.5",
     "@sentry/react-native": "~7.11.0",
     "@shopify/flash-list": "2.3.2",

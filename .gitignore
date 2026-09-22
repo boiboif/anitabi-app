@@ -27,6 +27,7 @@ keystore/
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+/.tmp/
 
 # macOS
 .DS_Store

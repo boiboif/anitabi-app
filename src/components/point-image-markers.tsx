@@ -2,7 +2,7 @@ import { FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE, MAP_ICON_ZOOM_THRESHOLD
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
-import { useMapBrowse } from '@/store/use-map-browse';
+import { type MapPointReference, useMapBrowse } from '@/store/use-map-browse';
 import { Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
 import { useCallback, useMemo } from 'react';
 import type { Bounds } from './map-container';
@@ -15,6 +15,7 @@ type Props = {
   selectedBangumiIds?: number[];
   openedBangumiDetailsId?: number | null;
   ignoreZoomThreshold?: boolean;
+  selectedPoint?: MapPointReference | null;
 };
 
 /** 判断点位是否在可视区域内 */
@@ -33,6 +34,7 @@ export default function PointImageMarkers({
   selectedBangumiIds,
   openedBangumiDetailsId,
   ignoreZoomThreshold = false,
+  selectedPoint,
 }: Props) {
   const storedOpenedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const storedSelectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
@@ -57,6 +59,7 @@ export default function PointImageMarkers({
       for (const p of b.points) {
         if (!p.image) continue;
         if (p.geo[0] === 0 && p.geo[1] === 0) continue;
+        if (selectedPoint?.bangumiId === b.id && selectedPoint.pointId === p.id) continue;
         if (bounds && !isInBounds(p.geo, bounds)) continue;
         items.push({
           point: p,
@@ -73,6 +76,7 @@ export default function PointImageMarkers({
     bangumis,
     bounds,
     ignoreZoomThreshold,
+    selectedPoint,
     zoom,
     zoomThreshold,
   ]);

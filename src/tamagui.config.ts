@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 import { createFont, createTamagui } from 'tamagui';
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
+export const TopLevelPageTopPadding = Platform.select({ ios: 36, web: 48, default: 8 }) ?? 8;
 export const MaxContentWidth = 800;
 export const LightPageBackground = '#FFFBFC';
 

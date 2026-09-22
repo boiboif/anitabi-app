@@ -1,21 +1,23 @@
 import BangumiIcons from '@/components/bangumi-icons';
-import { MAP_STYLES } from '@/components/layer-switch';
+import { MAP_STYLES } from '@/lib/map-styles';
 import MapMarkers from '@/components/map-markers';
 import PointImageMarkers from '@/components/point-image-markers';
 import PopupCard from '@/components/point-popup-card';
+import SelectedMapPointMarker from '@/components/selected-map-point-marker';
 import { resolveLanguageTag } from '@/i18n';
 import type { Bangumi } from '@/services/types';
 import { type MapPointReference, useMapBrowse } from '@/store/use-map-browse';
 import { Camera, Images, LocationPuck, Image as MapboxImage, MapState, MapView, MarkerView } from '@rnmapbox/maps';
 import { useDebounceFn } from 'ahooks';
 import { useFocusEffect, useNavigation } from 'expo-router';
-import { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ComponentProps, forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { EdgeInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { YStack } from 'tamagui';
 
 export type Bounds = { ne: number[]; sw: number[] };
+type ScaleBarPosition = ComponentProps<typeof MapView>['scaleBarPosition'];
 
 type Props = {
   insets: EdgeInsets;
@@ -32,6 +34,7 @@ type Props = {
   onMapPress?: () => void;
   locationPuckActive?: boolean;
   locationPuckRevision?: number;
+  scaleBarPosition?: ScaleBarPosition;
 };
 
 const DEFAULT_COORDINATES: [number, number] = [137, 35.2];
@@ -57,6 +60,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     onMapPress,
     locationPuckActive = true,
     locationPuckRevision = 0,
+    scaleBarPosition,
   },
   ref,
 ) {
@@ -259,7 +263,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
       compassEnabled
       compassPosition={{ top: insets.top + 100, right: 8 }}
       scaleBarEnabled={true}
-      scaleBarPosition={{ right: 0, bottom: 8 }}
+      scaleBarPosition={scaleBarPosition ?? { right: 0, bottom: 8 }}
       onCameraChanged={handleCameraChanged}
       onDidFinishLoadingMap={handleMapReady}
       onPress={isPlanMode ? onMapPress : clearSelectedMapPoint}
@@ -303,6 +307,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
         selectedBangumiIds={isPlanMode ? (selectedBangumiIds ?? []) : undefined}
         openedBangumiDetailsId={isPlanMode ? null : undefined}
         showAllPoints={isPlanMode}
+        selectedPoint={isPlanMode ? activeSelectedPoint : null}
         onPointSelect={handlePointSelect}
       />
       {!isPlanMode && loadedStyleIndex === styleIndex && (
@@ -316,12 +321,28 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
           selectedBangumiIds={isPlanMode ? (selectedBangumiIds ?? []) : undefined}
           openedBangumiDetailsId={isPlanMode ? null : undefined}
           ignoreZoomThreshold={isPlanMode}
+          selectedPoint={isPlanMode ? activeSelectedPoint : null}
           onPointSelect={handlePointSelect}
         />
       )}
 
-      {/* 选中点位弹窗（图片标记 & 圆点标记共用） */}
-      {selectedPointData && (
+      {isPlanMode && selectedPointData ? (
+        <MarkerView
+          key={`${selectedPointData.bangumi.id}:${selectedPointData.point.id}`}
+          coordinate={[selectedPointData.point.geo[1], selectedPointData.point.geo[0]]}
+          anchor={{ x: 0.5, y: 1 }}
+          allowOverlap
+          allowOverlapWithPuck
+          isSelected
+        >
+          <SelectedMapPointMarker
+            point={selectedPointData.point}
+            bangumi={selectedPointData.bangumi}
+            showImage={showPointImageMarkers}
+            onPress={() => handlePointSelect(selectedPointData.point, selectedPointData.bangumi)}
+          />
+        </MarkerView>
+      ) : selectedPointData ? (
         <MarkerView
           coordinate={[selectedPointData.point.geo[1], selectedPointData.point.geo[0]]}
           anchor={{ x: 0.5, y: 1 }}
@@ -334,7 +355,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
             bangumiTitlePressEnabled={!isPlanMode}
           />
         </MarkerView>
-      )}
+      ) : null}
     </MapView>
   );
 });

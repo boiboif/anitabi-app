@@ -11,9 +11,16 @@ type Props = {
   point: Point;
   compact?: boolean;
   compactSize?: number;
+  bare?: boolean;
 };
 
-export default function ComparisonCameraButton({ bangumi, point, compact = false, compactSize = 36 }: Props) {
+export default function ComparisonCameraButton({
+  bangumi,
+  point,
+  compact = false,
+  compactSize = 36,
+  bare = false,
+}: Props) {
   const { t } = useTranslation();
   const router = useRouter();
   const theme = useTheme();
@@ -35,8 +42,15 @@ export default function ComparisonCameraButton({ bangumi, point, compact = false
       style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
     >
       {compact ? (
-        <View width={compactSize} height={compactSize} rounded="$9" bg="$color2" items="center" justify="center">
-          <Camera size={compactSize * 0.5} color={theme.primary.val} />
+        <View
+          width={compactSize}
+          height={compactSize}
+          rounded="$9"
+          bg={bare ? 'transparent' : '$color2'}
+          items="center"
+          justify="center"
+        >
+          <Camera size={compactSize * (bare ? 0.58 : 0.5)} color={theme.primary.val} />
         </View>
       ) : (
         <XStack height={38} rounded="$2" bg="$primary" items="center" justify="center" gap="$1.5" px="$3">

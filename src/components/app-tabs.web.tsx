@@ -16,6 +16,12 @@ export default function AppTabs() {
           <TabTrigger name="home" href="/" asChild>
             <TabButton>{t('map', { defaultValue: '地图' })}</TabButton>
           </TabTrigger>
+          <TabTrigger name="favorites" href="/favorites" asChild>
+            <TabButton>{t('favorites', { defaultValue: '收藏' })}</TabButton>
+          </TabTrigger>
+          <TabTrigger name="plan" href="/plan" asChild>
+            <TabButton>{t('plans', { defaultValue: '计划' })}</TabButton>
+          </TabTrigger>
           <TabTrigger name="profile" href="/profile" asChild>
             <TabButton>{t('me', { defaultValue: '我的' })}</TabButton>
           </TabTrigger>

@@ -1,5 +1,6 @@
 import FavoritePointButton from '@/components/favorite-point-button';
 import PointCardActions from '@/components/point-card-actions';
+import PointSequenceBadge from '@/components/point-sequence-badge';
 import { formatDuration } from '@/lib/formatDuration';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { buildImageUrl } from '@/services/handlers';
@@ -41,6 +42,8 @@ type Props = {
   disabled?: boolean;
   /** 整张卡片的透明度，默认为 1。 */
   opacity?: number;
+  /** 是否显示选中描边。 */
+  selected?: boolean;
   /** 卡片主体的无障碍操作说明。 */
   accessibilityLabel?: string;
   /** 卡片主体的无障碍状态。 */
@@ -57,6 +60,8 @@ type Props = {
   statusAction?: ReactNode;
   /** 是否在图片底部显示集数和时间标签。 */
   showMediaLabels?: boolean;
+  /** 显示在图片左上角的计划序号。 */
+  sequenceNumber?: number;
   /** 是否显示收藏按钮，需要同时传入 point 和 bangumi。 */
   showFavorite?: boolean;
   /** 是否显示加入巡礼计划按钮，需要同时传入 point 和 bangumi。 */
@@ -88,6 +93,7 @@ export default function PointListCard({
   onPress,
   disabled = false,
   opacity = 1,
+  selected = false,
   accessibilityLabel,
   accessibilityState,
   leading,
@@ -96,6 +102,7 @@ export default function PointListCard({
   topRightActionCentered = false,
   statusAction,
   showMediaLabels = false,
+  sequenceNumber,
   showFavorite = false,
   showAddToPlan = false,
   showCamera = false,
@@ -165,6 +172,7 @@ export default function PointListCard({
                 contentFit="cover"
                 cachePolicy="memory-disk"
               />
+              {typeof sequenceNumber === 'number' ? <PointSequenceBadge sequenceNumber={sequenceNumber} /> : null}
               {showMediaLabels && epLabel ? (
                 <View
                   position="absolute"
@@ -244,6 +252,20 @@ export default function PointListCard({
         <View position="absolute" t={topRightActionCentered ? (height - 30) / 2 : '$2'} r="$2">
           {topRightAction}
         </View>
+      ) : null}
+      {selected ? (
+        <View
+          pointerEvents="none"
+          position="absolute"
+          t={0}
+          r={0}
+          b={0}
+          l={0}
+          rounded="$4"
+          borderWidth={2}
+          borderColor="$primary"
+          z={3}
+        />
       ) : null}
     </View>
   );

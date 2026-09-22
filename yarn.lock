@@ -1643,10 +1643,17 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
-"@lodev09/react-native-true-sheet@^3.11.12":
-  version "3.11.12"
-  resolved "https://registry.yarnpkg.com/@lodev09/react-native-true-sheet/-/react-native-true-sheet-3.11.12.tgz#4ddbb5621ab5f23bcd20d90967b1773543fa8d50"
-  integrity sha512-eL7mfUw0p3dxqXKqck3k7H2Ja6UHGbPSqbVDRKeANuxZN4xctxF1iFSPYHj0LULVtheqxKBhWBiR4lJ25El57Q==
+"@legendapp/list@3.4.0":
+  version "3.4.0"
+  resolved "https://registry.yarnpkg.com/@legendapp/list/-/list-3.4.0.tgz#7eaea562921cb4433a3d40f99ccc92866586a7a3"
+  integrity sha512-Tlx7Uf9pRP/JbrekuWdKf1+42C9MTfl1wGkP8Lvmg2E2T9rCWQphYOs8aOkcvgbAkJ2S+WR+RTXHS2+6U+nROw==
+  dependencies:
+    use-sync-external-store "^1.5.0"
+
+"@lodev09/react-native-true-sheet@3.11.14":
+  version "3.11.14"
+  resolved "https://registry.yarnpkg.com/@lodev09/react-native-true-sheet/-/react-native-true-sheet-3.11.14.tgz#da361d1ea1b410a2fbaca258365cde58e7dd4493"
+  integrity sha512-mkQllLOoSfecqbVeJ8RdlxzvOC374ETdRbC5V1g2Bh6FVDho25Otz+2bd3XNgheR9g10smUaeQrgAB15vX5VjQ==
 
 "@napi-rs/lzma-linux-x64-gnu@1.5.1":
   version "1.5.1"
@@ -10036,7 +10043,7 @@ use-sidecar@^1.1.3:
     detect-node-es "^1.1.0"
     tslib "^2.0.0"
 
-use-sync-external-store@^1.6.0:
+use-sync-external-store@^1.5.0, use-sync-external-store@^1.6.0:
   version "1.7.0"
   resolved "https://registry.yarnpkg.com/use-sync-external-store/-/use-sync-external-store-1.7.0.tgz#6dcb66ef569e02f186af6b3d575f414ce746e18f"
   integrity sha512-6L+EeigHMQhdaIPNIFUKwfWJSwWFQ8gJbJ2DLOs5sDIegTwR9fRxvnM3uciHKjIZhFz+KAv2emhWMRvDmMcY8A==
