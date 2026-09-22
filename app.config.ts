@@ -7,9 +7,14 @@ const nativeAppVersion = process.env.APP_NATIVE_VERSION || appVersion;
 const updateChannel = process.env.EXPO_UPDATE_CHANNEL || 'development';
 const appVariant = process.env.APP_VARIANT || 'production';
 const isDevelopmentBuild = appVariant === 'development';
-const appName = isDevelopmentBuild ? 'Anitabi Dev' : 'Anitabi';
-const appIdentifier = isDevelopmentBuild ? 'bbf.anitabiapp.dev' : 'bbf.anitabiapp';
-const appScheme = isDevelopmentBuild ? 'anitabiapp-dev' : 'anitabiapp';
+const isTestBuild = appVariant === 'test';
+const appName = isDevelopmentBuild ? 'Anitabi Dev' : isTestBuild ? 'Anitabi Test' : 'Anitabi';
+const appIdentifier = isDevelopmentBuild
+  ? 'bbf.anitabiapp.dev'
+  : isTestBuild
+    ? 'bbf.anitabiapp.test'
+    : 'bbf.anitabiapp';
+const appScheme = isDevelopmentBuild ? 'anitabiapp-dev' : isTestBuild ? 'anitabiapp-test' : 'anitabiapp';
 const appUpdatesEnabled = updateChannel === 'preview' || updateChannel === 'production';
 const binaryUpdateManifestName = updateChannel === 'preview' ? 'preview.json' : 'latest.json';
 

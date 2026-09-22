@@ -1,0 +1,94 @@
+name: Android Test Build (Release APK)
+
+run-name: Android test APK · ${{ github.ref_name }} · ${{ github.sha }}
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-test-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build test release APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      APP_VARIANT: test
+      EXPO_UPDATE_CHANNEL: development
+      EXPO_PROJECT_ID: ${{ vars.EXPO_PROJECT_ID }}
+      EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN: ${{ secrets.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN || vars.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN }}
+      SENTRY_DISABLE_AUTO_UPLOAD: 'true'
+      CI: '1'
+      EXPO_NO_DOCTOR: '1'
+
+    steps:
+      - name: Checkout selected branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Install dependencies
+        run: corepack enable && yarn install --frozen-lockfile
+
+      - name: Configure test build
+        id: build_info
+        shell: bash
+        run: |
+          app_version="$(npx expo config --type public --json | node -e 'let input=""; process.stdin.on("data", chunk => { input += chunk; }); process.stdin.on("end", () => process.stdout.write(JSON.parse(input).version));')"
+          version_code=$((GITHUB_RUN_NUMBER * 100 + GITHUB_RUN_ATTEMPT))
+          native_version="${app_version}-test.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}"
+          safe_ref="$(printf '%s' "$GITHUB_REF_NAME" | sed -E 's/[^A-Za-z0-9._-]+/-/g')"
+          short_sha="${GITHUB_SHA:0:7}"
+          asset_name="anitabi-test-${safe_ref}-${short_sha}.apk"
+
+          echo "APP_NATIVE_VERSION=$native_version" >> "$GITHUB_ENV"
+          echo "ANDROID_VERSION_CODE=$version_code" >> "$GITHUB_ENV"
+          echo "ASSET_NAME=$asset_name" >> "$GITHUB_ENV"
+          echo "artifact_name=android-test-${safe_ref}-${short_sha}" >> "$GITHUB_OUTPUT"
+
+          echo "Building $native_version ($version_code) from $GITHUB_REF_NAME@$short_sha"
+
+      - name: Generate Android project
+        run: npx expo prebuild --clean --platform android --no-install
+
+      - name: Build release APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease \
+            -PreactNativeArchitectures=arm64-v8a \
+            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" \
+            --max-workers=2 \
+            --no-daemon \
+            --stacktrace \
+            -x lintVitalAnalyzeRelease
+
+      - name: Prepare APK artifact
+        shell: bash
+        run: cp android/app/build/outputs/apk/release/app-release.apk "$ASSET_NAME"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.build_info.outputs.artifact_name }}
+          path: ${{ env.ASSET_NAME }}
+          if-no-files-found: error
+          retention-days: 14

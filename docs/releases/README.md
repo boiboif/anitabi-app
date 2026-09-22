@@ -115,6 +115,14 @@ yarn release:manifest --from-github --min-supported-build-number 1001
 
 未设置 `EXPO_UPDATE_CHANNEL` 时，应用使用 `development` 频道并同时禁用 EAS 热更新和整包更新检查。本地 debug 与本地 release 构建因此都不会收到 preview 或 production 更新。GitHub Actions 会在构建或发布更新时显式设置 `preview` 或 `production`，对应发布包的更新能力不受影响。
 
+## 测试 Release APK
+
+需要从任意分支生成可安装的测试包时，进入 GitHub 的 `Actions` → `Android Test Build (Release APK)` → `Run workflow`，在 GitHub 自带的分支选择器中选择要构建的分支后运行。
+
+该工作流使用 `APP_VARIANT=test` 构建经过 release 优化的 arm64-v8a APK，并将结果保存为 14 天有效的 Actions Artifact。测试包显示为 `Anitabi Test`，Android applicationId 为 `bbf.anitabiapp.test`，可以与正式版 `bbf.anitabiapp` 同时安装。测试包使用 `development` 更新频道，因此不会接收 preview 或 production 更新。
+
+此流程不会创建 Git tag 或 GitHub Release，不会修改更新清单，也不会提交代码或发布 EAS Update。APK 使用调试证书签署，仅用于内部测试，不能用于覆盖安装正式版或对外发布。
+
 ## 热更新
 
 热更新只适用于 JavaScript、资源和配置中不涉及原生代码的改动。进入 `Actions` → `EAS Hot Update` → `Run workflow`，选择目标 channel 并填写更新说明。原生版本以当前 `app.config.ts` 的 `version` 和已安装应用为准。工作流会执行：
