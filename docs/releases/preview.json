@@ -1,11 +1,11 @@
 {
-  "version": "0.1.1",
-  "displayVersion": "0.1.1-preview.1",
-  "title": "v0.1.1-preview.1",
-  "releaseNotes": "优化巡礼对比图拍照缩放交互",
-  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.1.1-preview.1/anitabi-app-v0.1.1-preview.1-android.apk",
-  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.1.1-preview.1",
+  "version": "0.4.0",
+  "displayVersion": "0.4.0-preview.1",
+  "title": "v0.4.0-preview.1",
+  "releaseNotes": "## 主要功能\n- 新增简体中文、日语和英语多语言支持，并提供应用内语言切换。\n- 重构巡礼计划入口、列表卡片和详情页，新增排序、未完成筛选、序号及点位信息。\n- 新增地图点位卡片与列表面板，支持点位循环切换、重新定位、拍照、导航和完成状态管理。\n- 新增地图底图跟随深色模式设置，优化选中标记、比例尺和控件暗色样式。\n\n## 体验优化\n- 优化巡礼计划点位排序交互，以及列表滚动与回收表现。\n- 升级 Legend List、TrueSheet 等依赖，完善整体兼容性。\n\n## 文档\n- 新增中、日、英三语项目文档。\n- 新增 iOS 侧载指南，并更新下载及功能说明。\n\n## 工程维护\n- 改进热更新与 Android 测试构建流程。",
+  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.4.0-preview.1/anitabi-app-v0.4.0-preview.1-android.apk",
+  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.4.0-preview.1",
   "mandatory": false,
-  "buildNumber": 1013,
-  "fileName": "anitabi-app-v0.1.1-preview.1-android.apk"
+  "buildNumber": 1021,
+  "fileName": "anitabi-app-v0.4.0-preview.1-android.apk"
 }
