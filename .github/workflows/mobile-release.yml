@@ -44,7 +44,7 @@ jobs:
   prepare:
     name: Prepare versions
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' || inputs.release_type == 'preview' || github.ref == 'refs/heads/main'
     outputs:
       app_version: ${{ steps.config.outputs.app_version }}
       build_number: ${{ steps.config.outputs.build_number }}
@@ -463,7 +463,7 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/* --clobber
           else
-            gh release create "$TAG" dist/* --title "$TAG" --notes-file release-notes.md $PRERELEASE_FLAG
+            gh release create "$TAG" dist/* --target "$GITHUB_SHA" --title "$TAG" --notes-file release-notes.md $PRERELEASE_FLAG
           fi
 
       - name: Generate update manifest
@@ -483,5 +483,10 @@ jobs:
             echo "manifest is unchanged"
           else
             git commit -m "chore: update release manifest for $TAG"
-            git push origin HEAD:main
+            if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+              target_branch="$GITHUB_REF_NAME"
+            else
+              target_branch="main"
+            fi
+            git push origin "HEAD:$target_branch"
           fi
