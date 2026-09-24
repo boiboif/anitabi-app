@@ -167,12 +167,8 @@ export default function HomeScreen() {
       )}
 
       <YStack r="$2" p="$1.5" position="absolute" t={200} z={20} gap="$3">
-        {!selectedBangumi && (
-          <>
-            <LayerSwitch styleIndex={styleIndex} onChange={setStyleIndex} />
-            <Building3DSwitch enabled={show3DBuildings} onChange={handle3DBuildingsChange} />
-          </>
-        )}
+        {!selectedBangumi && <LayerSwitch styleIndex={styleIndex} onChange={setStyleIndex} />}
+        <Building3DSwitch enabled={show3DBuildings} onChange={handle3DBuildingsChange} />
         {cameraState.zoom >= FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE && (
           <PointImageMarkerSwitch visible={showPointImageMarkers} onChange={setShowPointImageMarkers} />
         )}
