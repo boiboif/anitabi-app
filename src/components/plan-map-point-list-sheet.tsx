@@ -162,10 +162,9 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
     () => visiblePoints.findIndex((resolved) => resolved.item.key === selectedKey),
     [selectedKey, visiblePoints],
   );
-  const selectedScrollIndex = Math.max(0, selectedIndex - 1);
   const initialScrollIndex = useMemo(
-    () => (selectedIndex >= 0 ? { index: selectedScrollIndex, viewOffset: 4, viewPosition: 0 } : undefined),
-    [selectedIndex, selectedScrollIndex],
+    () => (selectedIndex >= 0 ? { index: selectedIndex, viewOffset: 4, viewPosition: 0 } : undefined),
+    [selectedIndex],
   );
 
   const clearScrollIdleTimer = useCallback(() => {
@@ -277,18 +276,16 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
     if (isScrollingRef.current || selectedIndex < 0) return;
     resetLocateButton();
     programmaticScrollRef.current = true;
-    void listRef.current
-      ?.scrollToIndex({ index: selectedScrollIndex, viewOffset: 4, viewPosition: 0, animated: true })
-      .then(
-        () => {
-          programmaticScrollRef.current = false;
-          lastScrollOffsetRef.current = null;
-        },
-        () => {
-          programmaticScrollRef.current = false;
-        },
-      );
-  }, [resetLocateButton, selectedIndex, selectedScrollIndex]);
+    void listRef.current?.scrollIndexIntoView({ index: selectedIndex, animated: true }).then(
+      () => {
+        programmaticScrollRef.current = false;
+        lastScrollOffsetRef.current = null;
+      },
+      () => {
+        programmaticScrollRef.current = false;
+      },
+    );
+  }, [resetLocateButton, selectedIndex]);
 
   const scrollToSelected = useCallback(() => {
     if (!listReadyRef.current || selectedIndex < 0) {
@@ -298,18 +295,16 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
     }
     pendingScrollRef.current = false;
     programmaticScrollRef.current = true;
-    void listRef.current
-      ?.scrollToIndex({ index: selectedScrollIndex, viewOffset: 4, viewPosition: 0, animated: false })
-      .then(
-        () => {
-          programmaticScrollRef.current = false;
-          lastScrollOffsetRef.current = null;
-        },
-        () => {
-          programmaticScrollRef.current = false;
-        },
-      );
-  }, [selectedIndex, selectedScrollIndex]);
+    void listRef.current?.scrollIndexIntoView({ index: selectedIndex, animated: false }).then(
+      () => {
+        programmaticScrollRef.current = false;
+        lastScrollOffsetRef.current = null;
+      },
+      () => {
+        programmaticScrollRef.current = false;
+      },
+    );
+  }, [selectedIndex]);
 
   const scrollToFilteredSelection = useCallback(() => {
     if (!pendingFilterScrollRef.current || !sheetPresentedRef.current || !listReadyRef.current) return;
@@ -325,12 +320,7 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
     programmaticScrollRef.current = true;
     const scroll =
       selectedIndex >= 0
-        ? listRef.current?.scrollToIndex({
-            index: selectedScrollIndex,
-            viewOffset: 4,
-            viewPosition: 0,
-            animated: false,
-          })
+        ? listRef.current?.scrollIndexIntoView({ index: selectedIndex, animated: false })
         : listRef.current?.scrollToOffset({ offset: 0, animated: false });
     if (!scroll) {
       filterTransitionRef.current = false;
@@ -350,7 +340,7 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
         programmaticScrollRef.current = false;
       },
     );
-  }, [selectedIndex, selectedScrollIndex, visiblePoints.length]);
+  }, [selectedIndex, visiblePoints.length]);
 
   const scheduleFilteredScroll = useCallback(() => {
     cancelFilterScrollFrame();
