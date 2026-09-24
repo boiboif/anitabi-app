@@ -45,6 +45,7 @@ jobs:
       - name: Build website
         env:
           DOCS_BASE: /anitabi-app/
+          DOCS_UMAMI_WEBSITE_ID: ${{ vars.DOCS_UMAMI_WEBSITE_ID }}
         run: yarn docs:build
 
       - name: Upload Pages artifact

@@ -1,7 +1,23 @@
-import { defineConfig, type DefaultTheme } from 'vitepress';
+import { defineConfig, type DefaultTheme, type HeadConfig } from 'vitepress';
 
 const repository = 'https://github.com/boiboif/anitabi-app';
 const siteBase = process.env.DOCS_BASE ?? '/';
+const umamiWebsiteId = process.env.DOCS_UMAMI_WEBSITE_ID?.trim();
+const analyticsHead: HeadConfig[] = umamiWebsiteId
+  ? [
+      [
+        'script',
+        {
+          defer: '',
+          src: 'https://cloud.umami.is/script.js',
+          'data-website-id': umamiWebsiteId,
+          'data-domains': 'boiboif.github.io',
+          'data-exclude-search': 'true',
+          'data-exclude-hash': 'true',
+        },
+      ],
+    ]
+  : [];
 
 const zhNav: DefaultTheme.NavItem[] = [
   { text: '首页', link: '/' },
@@ -241,6 +257,7 @@ export default defineConfig({
     ['meta', { name: 'theme-color', content: '#80c7ea' }],
     ['meta', { name: 'color-scheme', content: 'light dark' }],
     ['meta', { property: 'og:type', content: 'website' }],
+    ...analyticsHead,
   ],
   markdown: {
     lineNumbers: true,
