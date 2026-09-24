@@ -369,6 +369,8 @@ const en = {
   theServiceIsTemporarilyUnavailableDueToOverloadOrMaintenance:
     'The service is temporarily unavailable due to overload or maintenance.',
   gatewayTimeout: 'Gateway timeout.',
+  turnOn3DMapMode: 'Turn on 3D map mode',
+  turnOff3DMapMode: 'Turn off 3D map mode',
 } as const satisfies Record<TranslationKey, string>;
 
 export default en;

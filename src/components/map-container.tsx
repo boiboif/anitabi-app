@@ -1,4 +1,5 @@
 import BangumiIcons from '@/components/bangumi-icons';
+import Map3DBuildings from '@/components/map-3d-buildings';
 import { MAP_STYLES } from '@/lib/map-styles';
 import MapMarkers from '@/components/map-markers';
 import PointImageMarkers from '@/components/point-image-markers';
@@ -23,6 +24,7 @@ type Props = {
   insets: EdgeInsets;
   bangumis: Bangumi[];
   styleIndex: number;
+  show3DBuildings: boolean;
   showPointImageMarkers: boolean;
   /** Reports the viewport after camera events stop for 250ms. */
   onCameraChange?: (state: { zoom: number; bounds: { ne: [number, number]; sw: [number, number] } | null }) => void;
@@ -51,6 +53,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     insets,
     bangumis,
     styleIndex,
+    show3DBuildings,
     showPointImageMarkers,
     onCameraChange,
     onMapReady,
@@ -304,6 +307,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
           pulsing={{ isEnabled: true, color: LOCATION_PUCK_COLOR }}
         />
       )}
+      {show3DBuildings && <Map3DBuildings styleIndex={styleIndex} />}
       <MapMarkers
         bangumis={bangumis}
         selectedBangumiIds={isPlanMode ? (selectedBangumiIds ?? []) : undefined}

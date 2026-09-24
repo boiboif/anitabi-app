@@ -1,3 +1,4 @@
+import Building3DSwitch from '@/components/building-3d-switch';
 import LayerSwitch from '@/components/layer-switch';
 import LoadingBadge from '@/components/loading-badge';
 import LocateButton from '@/components/locate-button';
@@ -82,6 +83,7 @@ export default function PlanMapScreen() {
   const initialCameraApplied = useRef(false);
   const [isMapReady, setIsMapReady] = useState(false);
   const [styleIndex, setStyleIndex] = useThemedMapStyle();
+  const [show3DBuildings, setShow3DBuildings] = useState(false);
   const [showPointImageMarkers, setShowPointImageMarkers] = useState(true);
   const [selectedBangumiIds, setSelectedBangumiIds] = useState<number[]>([]);
   const [cameraState, setCameraState] = useState<CameraState>({ zoom: 4.6, bounds: null });
@@ -155,6 +157,14 @@ export default function PlanMapScreen() {
 
   const setCamera = useCallback((camera: Camera | null) => {
     cameraRef.current = camera;
+  }, []);
+  const handle3DBuildingsChange = useCallback((enabled: boolean) => {
+    setShow3DBuildings(enabled);
+    cameraRef.current?.setCamera({
+      pitch: enabled ? 45 : 0,
+      animationDuration: 500,
+      animationMode: 'easeTo',
+    });
   }, []);
   const handlePointCardHeightChange = useCallback((height: number) => {
     setPointCardHeight((current) => (current === height ? current : height));
@@ -305,6 +315,7 @@ export default function PlanMapScreen() {
             insets={insets}
             bangumis={bangumis}
             styleIndex={styleIndex}
+            show3DBuildings={show3DBuildings}
             showPointImageMarkers={showPointImageMarkers}
             locationPuckActive={isLocationPuckActive}
             locationPuckRevision={locationPuckRevision}
@@ -346,6 +357,7 @@ export default function PlanMapScreen() {
 
           <YStack r="$2" p="$1.5" position="absolute" t={200} z={20} gap="$3">
             <LayerSwitch styleIndex={styleIndex} onChange={setStyleIndex} />
+            <Building3DSwitch enabled={show3DBuildings} onChange={handle3DBuildingsChange} />
             <PointImageMarkerSwitch visible={showPointImageMarkers} onChange={setShowPointImageMarkers} />
           </YStack>
 

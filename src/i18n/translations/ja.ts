@@ -369,6 +369,8 @@ const ja = {
   theServiceIsTemporarilyUnavailableDueToOverloadOrMaintenance:
     '過負荷またはメンテナンスのため、サービスを一時的に利用できません。',
   gatewayTimeout: 'ゲートウェイがタイムアウトしました。',
+  turnOn3DMapMode: '3Dマップモードをオンにする',
+  turnOff3DMapMode: '3Dマップモードをオフにする',
 } as const satisfies Record<TranslationKey, string>;
 
 export default ja;

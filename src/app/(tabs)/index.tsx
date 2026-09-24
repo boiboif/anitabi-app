@@ -1,4 +1,5 @@
 import BangumiDetailSheet from '@/components/bangumi-detail-sheet';
+import Building3DSwitch from '@/components/building-3d-switch';
 import LayerSwitch from '@/components/layer-switch';
 import LoadingBadge from '@/components/loading-badge';
 import LocateButton from '@/components/locate-button';
@@ -39,6 +40,7 @@ export default function HomeScreen() {
     zoom: 4.6,
     bounds: null,
   });
+  const [show3DBuildings, setShow3DBuildings] = useState(false);
   const [showPointImageMarkers, setShowPointImageMarkers] = useState(true);
   const setCameraRef = useCallback((camera: Camera | null) => {
     cameraRef.current = camera;
@@ -117,6 +119,14 @@ export default function HomeScreen() {
   }, [focusPointFromMapControl, randomPointCandidates, t]);
 
   const [styleIndex, setStyleIndex] = useThemedMapStyle();
+  const handle3DBuildingsChange = useCallback((enabled: boolean) => {
+    setShow3DBuildings(enabled);
+    cameraRef.current?.setCamera({
+      pitch: enabled ? 45 : 0,
+      animationDuration: 500,
+      animationMode: 'easeTo',
+    });
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -125,6 +135,7 @@ export default function HomeScreen() {
         insets={insets}
         bangumis={bangumis}
         styleIndex={styleIndex}
+        show3DBuildings={show3DBuildings}
         showPointImageMarkers={showPointImageMarkers}
         locationPuckActive={isLocationPuckActive}
         locationPuckRevision={locationPuckRevision}
@@ -152,17 +163,20 @@ export default function HomeScreen() {
             <RandomPointButton onPress={handleRandomPoint} />
             <LocateButton loading={isLocating} onPress={handleLocate} />
           </YStack>
-          <View r="$2" p="$1.5" position="absolute" t={200} z={20}>
-            <LayerSwitch styleIndex={styleIndex} onChange={setStyleIndex} />
-          </View>
         </>
       )}
 
-      {cameraState.zoom >= FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE && (
-        <View r="$2" p="$1.5" position="absolute" t={200} z={20}>
+      <YStack r="$2" p="$1.5" position="absolute" t={200} z={20} gap="$3">
+        {!selectedBangumi && (
+          <>
+            <LayerSwitch styleIndex={styleIndex} onChange={setStyleIndex} />
+            <Building3DSwitch enabled={show3DBuildings} onChange={handle3DBuildingsChange} />
+          </>
+        )}
+        {cameraState.zoom >= FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE && (
           <PointImageMarkerSwitch visible={showPointImageMarkers} onChange={setShowPointImageMarkers} />
-        </View>
-      )}
+        )}
+      </YStack>
 
       <BangumiDetailSheet />
     </View>

@@ -352,6 +352,8 @@ const zh = {
   gatewayError: '网关错误。',
   theServiceIsTemporarilyUnavailableDueToOverloadOrMaintenance: '服务不可用，服务器暂时过载或维护。',
   gatewayTimeout: '网关超时。',
+  turnOn3DMapMode: '开启 3D 地图模式',
+  turnOff3DMapMode: '关闭 3D 地图模式',
 } as const;
 
 export type TranslationKey = keyof typeof zh;
