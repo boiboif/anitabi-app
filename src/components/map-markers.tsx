@@ -12,6 +12,7 @@ type Props = {
   openedBangumiDetailsId?: number | null;
   showAllPoints?: boolean;
   selectedPoint?: MapPointReference | null;
+  maxVisualDiameter?: number;
 };
 
 // ---------------------------------------------------------------------------
@@ -62,6 +63,7 @@ export default function MapMarkers({
   openedBangumiDetailsId,
   showAllPoints = false,
   selectedPoint,
+  maxVisualDiameter,
 }: Props) {
   const storedOpenedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const storedSelectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
@@ -110,16 +112,39 @@ export default function MapMarkers({
     [bangumis, onPointSelect],
   );
 
-  const circleStyle = useMemo(
-    (): ComponentProps<typeof CircleLayer>['style'] => ({
+  const circleStyle = useMemo((): ComponentProps<typeof CircleLayer>['style'] => {
+    // Mapbox draws the stroke outside the radius, so the original maximum diameter is 2 * (16 + 6) = 44.
+    // Keep zoom as the top-level interpolation input; cap its stops instead of wrapping it in a min expression.
+    const radiusCap = maxVisualDiameter === undefined ? Infinity : (maxVisualDiameter * 16) / 44;
+    const strokeCap = maxVisualDiameter === undefined ? Infinity : (maxVisualDiameter * 6) / 44;
+    return {
       circleSortKey: 90_001,
       circleColor: ['get', 'color'],
-      circleRadius: ['interpolate', ['exponential', 1.75], ['zoom'], 12, 4, 18, 8, 22, 16],
-      circleStrokeWidth: ['interpolate', ['exponential', 1.75], ['zoom'], 12, 1.5, 18, 3, 22, 6],
+      circleRadius: [
+        'interpolate',
+        ['exponential', 1.75],
+        ['zoom'],
+        12,
+        Math.min(4, radiusCap),
+        18,
+        Math.min(8, radiusCap),
+        22,
+        Math.min(16, radiusCap),
+      ],
+      circleStrokeWidth: [
+        'interpolate',
+        ['exponential', 1.75],
+        ['zoom'],
+        12,
+        Math.min(1.5, strokeCap),
+        18,
+        Math.min(3, strokeCap),
+        22,
+        Math.min(6, strokeCap),
+      ],
       circleStrokeColor: '#ffffff',
-    }),
-    [],
-  );
+    };
+  }, [maxVisualDiameter]);
 
   return (
     <>

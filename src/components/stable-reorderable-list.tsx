@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/immutability -- Reanimated SharedValues are mutable UI-thread state. */
-import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
+import { LegendList, type LegendListRenderItemProps } from '@legendapp/list/react-native';
 import {
   memo,
   type ReactElement,
@@ -61,7 +61,6 @@ type StableReorderableListProps<T> = {
   contentPaddingHorizontal?: number;
   contentPaddingBottom?: number;
   drawDistance?: number;
-  maxItemsInRecyclePool?: number;
   autoscrollThreshold?: number;
   autoscrollMaxSpeed?: number;
   maxFrameDurationMs?: number;
@@ -172,7 +171,7 @@ function PositionedRowInner<T>({
   onDraggingChange,
   onPreviewChange,
 }: PositionedRowProps<T>) {
-  // FlashList can recycle this component for another item while its gesture is
+  // LegendList can recycle this component for another item while its gesture is
   // still active. Keep the key captured at touch-down independent from props.
   const gestureItemKey = useSharedValue<string | null>(null);
   const gestureWasActive = useSharedValue(false);
@@ -224,14 +223,7 @@ function PositionedRowInner<T>({
           0,
           Math.max(0, viewportHeight.value - dragPreviewHeight),
         );
-        updateTargetIndex(
-          itemHeight,
-          itemCount,
-          dragPreviewHeight,
-          previewTop,
-          scrollOffset,
-          targetIndex,
-        );
+        updateTargetIndex(itemHeight, itemCount, dragPreviewHeight, previewTop, scrollOffset, targetIndex);
 
         const pointerY = event.absoluteY - viewportTop.value;
         if (pointerY < autoscrollThreshold) {
@@ -258,7 +250,7 @@ function PositionedRowInner<T>({
         }
 
         // Stop on the UI thread as soon as the finger is released. Waiting for
-        // JS state or onFinalize leaves FlashList recycling races open.
+        // JS state or onFinalize leaves list recycling races open.
         autoscrollSpeed.value = 0;
         activeKey.value = null;
         dragSessionKey.value = null;
@@ -345,7 +337,6 @@ export default function StableReorderableList<T>({
   contentPaddingHorizontal = 0,
   contentPaddingBottom = 0,
   drawDistance,
-  maxItemsInRecyclePool = 24,
   autoscrollThreshold = DEFAULT_AUTOSCROLL_THRESHOLD,
   autoscrollMaxSpeed = DEFAULT_AUTOSCROLL_MAX_SPEED,
   maxFrameDurationMs = DEFAULT_MAX_FRAME_DURATION_MS,
@@ -461,13 +452,13 @@ export default function StableReorderableList<T>({
 
   const renderScrollComponent = useCallback(
     (props: ScrollViewProps) => {
-      const flashListScrollRef = (props as ScrollViewProps & { ref?: Ref<ScrollView> }).ref;
+      const listScrollRef = (props as ScrollViewProps & { ref?: Ref<ScrollView> }).ref;
       return (
         <Animated.ScrollView
           {...props}
           ref={(node: ScrollView | null) => {
             scrollRef(node);
-            assignRef(flashListScrollRef, node);
+            assignRef(listScrollRef, node);
           }}
         />
       );
@@ -476,7 +467,7 @@ export default function StableReorderableList<T>({
   );
 
   const renderRow = useCallback(
-    ({ item }: ListRenderItemInfo<T>) => {
+    ({ item }: LegendListRenderItemProps<T>) => {
       const itemKey = keyExtractor(item);
       return (
         <PositionedRow
@@ -536,12 +527,17 @@ export default function StableReorderableList<T>({
     ],
   );
 
+  const getFixedItemSize = useCallback(() => itemHeight, [itemHeight]);
+
   return (
     <View ref={viewportRef} style={[styles.viewport, style]} onLayout={handleLayout}>
-      <FlashList
+      <LegendList
         data={data}
         renderItem={renderRow}
         keyExtractor={keyExtractor}
+        extraData={enabled}
+        recycleItems
+        getFixedItemSize={getFixedItemSize}
         renderScrollComponent={renderScrollComponent}
         onScroll={handleScroll}
         scrollEventThrottle={16}
@@ -550,8 +546,7 @@ export default function StableReorderableList<T>({
         overScrollMode="never"
         showsVerticalScrollIndicator={false}
         drawDistance={drawDistance ?? itemHeight * 8}
-        maxItemsInRecyclePool={maxItemsInRecyclePool}
-        maintainVisibleContentPosition={{ disabled: true }}
+        maintainVisibleContentPosition={false}
         style={styles.list}
         contentContainerStyle={{
           paddingHorizontal: contentPaddingHorizontal,

@@ -4,7 +4,7 @@ import type { Bangumi, Point } from '@/services/types';
 import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
 import { type MapPointReference, useMapBrowse } from '@/store/use-map-browse';
 import { Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
-import { useCallback, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import type { Bounds } from './map-container';
 
 type Props = {
@@ -18,6 +18,19 @@ type Props = {
   selectedPoint?: MapPointReference | null;
 };
 
+type ImageMarkerCandidate = {
+  point: Point;
+  bangumi: Bangumi;
+  imageUrl: string;
+  order: number;
+};
+
+type LayerProps = {
+  visible: ImageMarkerCandidate[];
+  bangumis: Bangumi[];
+  onPointSelect?: Props['onPointSelect'];
+};
+
 /** 判断点位是否在可视区域内 */
 function isInBounds(geo: [number, number], bounds: Bounds): boolean {
   const [lat, lng] = geo;
@@ -25,6 +38,127 @@ function isInBounds(geo: [number, number], bounds: Bounds): boolean {
   const [neLng, neLat] = bounds.ne;
   return lat >= swLat && lat <= neLat && lng >= swLng && lng <= neLng;
 }
+
+function isNotSelected(item: ImageMarkerCandidate, selectedPoint?: MapPointReference | null): boolean {
+  return selectedPoint?.bangumiId !== item.bangumi.id || selectedPoint.pointId !== item.point.id;
+}
+
+function firstLatitudeAtLeast(items: ImageMarkerCandidate[], latitude: number): number {
+  let low = 0;
+  let high = items.length;
+  while (low < high) {
+    const middle = (low + high) >>> 1;
+    if (items[middle].point.geo[0] < latitude) low = middle + 1;
+    else high = middle;
+  }
+  return low;
+}
+
+function firstLatitudeAbove(items: ImageMarkerCandidate[], latitude: number): number {
+  let low = 0;
+  let high = items.length;
+  while (low < high) {
+    const middle = (low + high) >>> 1;
+    if (items[middle].point.geo[0] <= latitude) low = middle + 1;
+    else high = middle;
+  }
+  return low;
+}
+
+function getVisibleCandidates(
+  candidates: ImageMarkerCandidate[],
+  byLatitude: ImageMarkerCandidate[],
+  bounds: Bounds | null,
+  selectedPoint?: MapPointReference | null,
+): ImageMarkerCandidate[] {
+  if (!bounds) return selectedPoint ? candidates.filter((item) => isNotSelected(item, selectedPoint)) : candidates;
+  const south = bounds.sw[1];
+  const north = bounds.ne[1];
+  if (south > north) return [];
+
+  // Keep the original full-scan path for unusual bounds and wide viewports.
+  if (!Number.isFinite(south) || !Number.isFinite(north)) {
+    return candidates.filter((item) => isNotSelected(item, selectedPoint) && isInBounds(item.point.geo, bounds));
+  }
+  const start = firstLatitudeAtLeast(byLatitude, south);
+  const end = firstLatitudeAbove(byLatitude, north);
+  if (end - start >= candidates.length / 2) {
+    return candidates.filter((item) => isNotSelected(item, selectedPoint) && isInBounds(item.point.geo, bounds));
+  }
+
+  const visible: ImageMarkerCandidate[] = [];
+  for (let index = start; index < end; index++) {
+    const item = byLatitude[index];
+    if (isNotSelected(item, selectedPoint) && isInBounds(item.point.geo, bounds)) visible.push(item);
+  }
+  // Symbol order and duplicate image keys must match the original data order.
+  return visible.sort((a, b) => a.order - b.order);
+}
+
+const PointImageLayer = memo(
+  function PointImageLayer({ visible, bangumis, onPointSelect }: LayerProps) {
+    const imagesMap: Record<string, { uri: string }> = {};
+    const features: GeoJSON.Feature[] = [];
+    for (const item of visible) {
+      const key = `point_img_${item.point.id}`;
+      imagesMap[key] = { uri: item.imageUrl };
+      features.push({
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: [item.point.geo[1], item.point.geo[0]],
+        },
+        properties: {
+          id: item.point.id,
+          bangumiId: item.bangumi.id,
+          iconImage: key,
+        },
+      });
+    }
+    const geojson = { type: 'FeatureCollection', features } as GeoJSON.FeatureCollection;
+
+    const handlePress = (e: { features: GeoJSON.Feature[] }) => {
+      const feature = e.features?.[0];
+      if (!feature?.properties) return;
+      const pointId = feature.properties.id as string | undefined;
+      const bangumiId = feature.properties.bangumiId as number | undefined;
+      if (!pointId || bangumiId == null) return;
+
+      for (const b of bangumis) {
+        if (b.id !== bangumiId) continue;
+        for (const p of b.points) {
+          if (p.id === pointId) {
+            onPointSelect?.(p, b);
+            return;
+          }
+        }
+      }
+    };
+
+    return (
+      <>
+        <Images images={imagesMap} />
+        <ShapeSource id="point-images-source" shape={geojson} onPress={handlePress}>
+          <SymbolLayer
+            id="point-images-layer"
+            style={{
+              iconImage: ['get', 'iconImage'],
+              iconSize: 0.4,
+              iconAllowOverlap: true,
+              iconAnchor: 'bottom',
+              iconOffset: [0, -16],
+            }}
+          />
+        </ShapeSource>
+      </>
+    );
+  },
+  (previous, next) =>
+    previous.bangumis === next.bangumis &&
+    previous.onPointSelect === next.onPointSelect &&
+    previous.visible.length === next.visible.length &&
+    previous.visible.every((item, index) => item === next.visible[index]),
+);
 
 export default function PointImageMarkers({
   bangumis,
@@ -43,14 +177,14 @@ export default function PointImageMarkers({
   const activeSelectedBangumiIds = selectedBangumiIds ?? storedSelectedMapBangumiIds;
   const isFilterActive = activeOpenedBangumiDetailsId !== null || activeSelectedBangumiIds.length > 0;
 
-  const zoomThreshold = useMemo(() => {
-    return isFilterActive ? FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE : MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE;
-  }, [isFilterActive]);
+  const zoomThreshold = isFilterActive
+    ? FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE
+    : MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE;
+  const belowZoomThreshold = !ignoreZoomThreshold && (zoom < zoomThreshold || !bounds);
 
-  const visible = useMemo(() => {
-    if (!ignoreZoomThreshold && (zoom < zoomThreshold || !bounds)) return [];
-
-    const items: { point: Point; bangumi: Bangumi; imageUrl: string }[] = [];
+  const candidates = useMemo(() => {
+    if (belowZoomThreshold) return [];
+    const items: ImageMarkerCandidate[] = [];
     const selectedIds = new Set(activeSelectedBangumiIds);
 
     for (const b of bangumis) {
@@ -59,94 +193,24 @@ export default function PointImageMarkers({
       for (const p of b.points) {
         if (!p.image) continue;
         if (p.geo[0] === 0 && p.geo[1] === 0) continue;
-        if (selectedPoint?.bangumiId === b.id && selectedPoint.pointId === p.id) continue;
-        if (bounds && !isInBounds(p.geo, bounds)) continue;
         items.push({
           point: p,
           bangumi: b,
           imageUrl: buildImageUrl(p.image, 'plan=h160'),
+          order: items.length,
         });
       }
     }
 
     return items;
-  }, [
-    activeOpenedBangumiDetailsId,
-    activeSelectedBangumiIds,
-    bangumis,
-    bounds,
-    ignoreZoomThreshold,
-    selectedPoint,
-    zoom,
-    zoomThreshold,
-  ]);
-
-  const { imagesMap, geojson } = useMemo(() => {
-    const images: Record<string, { uri: string }> = {};
-    const features: GeoJSON.Feature[] = [];
-
-    for (const item of visible) {
-      const key = `point_img_${item.point.id}`;
-      images[key] = { uri: item.imageUrl };
-      features.push({
-        type: 'Feature',
-        geometry: {
-          type: 'Point',
-          coordinates: [item.point.geo[1], item.point.geo[0]],
-        },
-        properties: {
-          id: item.point.id,
-          bangumiId: item.bangumi.id,
-          iconImage: key,
-        },
-      });
-    }
-
-    return {
-      imagesMap: images,
-      geojson: { type: 'FeatureCollection', features } as GeoJSON.FeatureCollection,
-    };
-  }, [visible]);
-
-  /** 点击图片标记 → 查找完整点/番数据 → 弹出详情 */
-  const handlePress = useCallback(
-    (e: { features: GeoJSON.Feature[] }) => {
-      const feature = e.features?.[0];
-      if (!feature?.properties) return;
-      const pointId = feature.properties.id as string | undefined;
-      const bangumiId = feature.properties.bangumiId as number | undefined;
-      if (!pointId || bangumiId == null) return;
-
-      for (const b of bangumis) {
-        if (b.id !== bangumiId) continue;
-        for (const p of b.points) {
-          if (p.id === pointId) {
-            onPointSelect?.(p, b);
-            return;
-          }
-        }
-      }
-    },
-    [bangumis, onPointSelect],
+  }, [activeOpenedBangumiDetailsId, activeSelectedBangumiIds, bangumis, belowZoomThreshold]);
+  const byLatitude = useMemo(
+    () =>
+      candidates.filter((item) => Number.isFinite(item.point.geo[0])).sort((a, b) => a.point.geo[0] - b.point.geo[0]),
+    [candidates],
   );
+  const visible = belowZoomThreshold ? [] : getVisibleCandidates(candidates, byLatitude, bounds, selectedPoint);
 
-  if ((!ignoreZoomThreshold && (zoom < zoomThreshold || !bounds)) || visible.length === 0) return null;
-
-  return (
-    <>
-      <Images images={imagesMap} />
-      <ShapeSource id="point-images-source" shape={geojson} onPress={handlePress}>
-        <SymbolLayer
-          id="point-images-layer"
-          style={{
-            iconImage: ['get', 'iconImage'],
-            iconSize: 0.4,
-            iconAllowOverlap: true,
-            iconAnchor: 'bottom',
-            iconOffset: [0, -16],
-          }}
-        />
-      </ShapeSource>
-    </>
-  );
+  if (visible.length === 0) return null;
+  return <PointImageLayer visible={visible} bangumis={bangumis} onPointSelect={onPointSelect} />;
 }

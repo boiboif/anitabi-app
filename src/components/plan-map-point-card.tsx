@@ -1,26 +1,23 @@
 import ComparisonCameraButton from '@/components/comparison-camera-button';
 import GoogleMapsNavigationButton from '@/components/google-maps-navigation-button';
+import PlanMapPointCardPage from '@/components/plan-map-point-card-page';
 import type { PlanMapResolvedPoint } from '@/components/plan-map-point-types';
-import PointSequenceBadge from '@/components/point-sequence-badge';
-import { formatDuration } from '@/lib/formatDuration';
-import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
-import { buildImageUrl } from '@/services/handlers';
+import SwipeableCardCarousel, { type SwipeableCardCarouselHandle } from '@/components/swipeable-card-carousel';
 import { CheckCircle2, ChevronLeft, ChevronRight, Flag } from '@tamagui/lucide-icons-2';
-import { Image } from 'expo-image';
-import { useCallback } from 'react';
+import { memo, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, type LayoutChangeEvent } from 'react-native';
-import { getTokens, Text, useTheme, useThemeName, View, XStack, YStack } from 'tamagui';
+import { useTheme, useThemeName, View, XStack, YStack } from 'tamagui';
 
 export const PLAN_MAP_POINT_CARD_FALLBACK_HEIGHT = 231;
 export const PLAN_MAP_POINT_CARD_BOTTOM_OFFSET = 24;
 
 type Props = {
   resolved: PlanMapResolvedPoint;
+  previous: PlanMapResolvedPoint | null;
+  next: PlanMapResolvedPoint | null;
   total: number;
   bottomInset: number;
-  hasPrevious: boolean;
-  hasNext: boolean;
   onPrevious: () => void;
   onNext: () => void;
   onRefocus: () => void;
@@ -53,35 +50,23 @@ function IconButton({ label, disabled = false, onPress, children }: IconButtonPr
   );
 }
 
-export default function PlanMapPointCard({
+function PlanMapPointCard({
   resolved,
+  previous,
+  next,
   total,
   bottomInset,
-  hasPrevious,
-  hasNext,
   onPrevious,
   onNext,
   onRefocus,
   onToggleCompleted,
   onHeightChange,
 }: Props) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const theme = useTheme();
   const themeName = useThemeName();
-  const { point, bangumi, item, planIndex } = resolved;
-  const pointTitle =
-    getPointTitle(point, i18n.resolvedLanguage) || t('unnamedLocation', { defaultValue: '未命名点位' });
-  const bangumiTitle =
-    getBangumiTitle(bangumi, i18n.resolvedLanguage) || t('unknownWork', { defaultValue: '未知作品' });
-  const epLabel =
-    typeof point.ep === 'number' && point.ep > 0
-      ? `EP${point.ep}`
-      : typeof point.ep === 'string' && point.ep
-        ? point.ep
-        : undefined;
-  const timeLabel = typeof point.s === 'number' && point.s >= 0 ? formatDuration(point.s) : undefined;
-  const imagePath = point.image || bangumi.cover;
-  const innerRadius = getTokens().radius['3'].val;
+  const carouselRef = useRef<SwipeableCardCarouselHandle>(null);
+  const { point, bangumi, item } = resolved;
   const handleLayout = useCallback(
     (event: LayoutChangeEvent) => onHeightChange?.(Math.ceil(event.nativeEvent.layout.height)),
     [onHeightChange],
@@ -101,94 +86,51 @@ export default function PlanMapPointCard({
           ? '0 6px 24px rgba(0,0,0,0.58), 0 0 0 1px rgba(255,255,255,0.08)'
           : '0 6px 24px rgba(0,0,0,0.3)'
       }
-      px="$2.5"
       py="$1.5"
       gap="$1.5"
       onLayout={handleLayout}
     >
-      <XStack minH={44} items="center">
-        <IconButton
-          label={t('previousPlanLocation', { defaultValue: '上一个点位' })}
-          disabled={!hasPrevious}
-          onPress={onPrevious}
+      <View position="relative">
+        <SwipeableCardCarousel
+          ref={carouselRef}
+          currentKey={item.key}
+          current={<PlanMapPointCardPage resolved={resolved} total={total} />}
+          previousKey={previous?.item.key}
+          previous={previous ? <PlanMapPointCardPage resolved={previous} total={total} /> : undefined}
+          nextKey={next?.item.key}
+          next={next ? <PlanMapPointCardPage resolved={next} total={total} /> : undefined}
+          onPrevious={onPrevious}
+          onNext={onNext}
+          estimatedHeight={169}
+        />
+        <XStack
+          position="absolute"
+          t={0}
+          l="$2.5"
+          r="$2.5"
+          height={44}
+          items="center"
+          justify="space-between"
+          pointerEvents="box-none"
         >
-          <ChevronLeft size={24} strokeWidth={2.25} color={theme.primary.val} />
-        </IconButton>
+          <IconButton
+            label={t('previousPlanLocation', { defaultValue: '上一个点位' })}
+            disabled={!previous}
+            onPress={() => carouselRef.current?.previous()}
+          >
+            <ChevronLeft size={24} strokeWidth={2.25} color={theme.primary.val} />
+          </IconButton>
+          <IconButton
+            label={t('nextPlanLocation', { defaultValue: '下一个点位' })}
+            disabled={!next}
+            onPress={() => carouselRef.current?.next()}
+          >
+            <ChevronRight size={24} strokeWidth={2.25} color={theme.primary.val} />
+          </IconButton>
+        </XStack>
+      </View>
 
-        <YStack flex={1} items="center" justify="center" minW={0}>
-          <Text fontSize="$caption" color="$color10" style={{ fontVariant: ['tabular-nums'] }}>
-            {planIndex + 1} / {total}
-          </Text>
-          <Text fontSize="$body" lineHeight={20} fontWeight="700" color="$color12" numberOfLines={1}>
-            {pointTitle}
-          </Text>
-        </YStack>
-
-        <IconButton label={t('nextPlanLocation', { defaultValue: '下一个点位' })} disabled={!hasNext} onPress={onNext}>
-          <ChevronRight size={24} strokeWidth={2.25} color={theme.primary.val} />
-        </IconButton>
-      </XStack>
-
-      <XStack gap="$2" items="center">
-        <View width={190} aspectRatio={16 / 10} rounded="$3" overflow="hidden" bg="$color5">
-          {imagePath ? (
-            <Image
-              source={{ uri: buildImageUrl(imagePath, 'plan=h360') }}
-              placeholder={{ uri: buildImageUrl(imagePath, 'plan=h160') }}
-              recyclingKey={imagePath}
-              placeholderContentFit="cover"
-              cachePolicy="memory-disk"
-              contentFit="cover"
-              transition={0}
-              style={{ width: '100%', height: '100%' }}
-            />
-          ) : null}
-          <PointSequenceBadge sequenceNumber={planIndex + 1} />
-          {epLabel ? (
-            <View
-              position="absolute"
-              l={0}
-              b={0}
-              bg="rgba(0,0,0,0.58)"
-              px="$1.5"
-              py="$0.5"
-              style={{ borderTopRightRadius: innerRadius }}
-            >
-              <Text fontSize="$caption" fontWeight="700" color="white">
-                {epLabel}
-              </Text>
-            </View>
-          ) : null}
-          {timeLabel ? (
-            <View
-              position="absolute"
-              r={0}
-              b={0}
-              bg="rgba(0,0,0,0.58)"
-              px="$1.5"
-              py="$0.5"
-              style={{ borderTopLeftRadius: innerRadius }}
-            >
-              <Text fontSize="$caption" color="white">
-                {timeLabel}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-
-        <YStack flex={1} minW={0} self="stretch" justify="flex-start" gap="$0.5" pt="$0.5">
-          <Text fontSize="$footnote" lineHeight={18} fontWeight="600" color="$primary" numberOfLines={1}>
-            {bangumiTitle}
-          </Text>
-          {point.mark ? (
-            <Text fontSize="$caption" lineHeight={16} color="$color11" numberOfLines={6}>
-              {point.mark}
-            </Text>
-          ) : null}
-        </YStack>
-      </XStack>
-
-      <XStack height={38} items="center">
+      <XStack height={38} items="center" px="$2.5">
         <XStack flex={1} items="center" justify="center">
           <IconButton label={t('refocusSelectedLocation', { defaultValue: '回到当前点位' })} onPress={onRefocus}>
             <Flag size={22} strokeWidth={2.15} color="$primary" />
@@ -228,3 +170,5 @@ export default function PlanMapPointCard({
     </YStack>
   );
 }
+
+export default memo(PlanMapPointCard);

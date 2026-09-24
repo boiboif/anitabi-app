@@ -111,6 +111,7 @@ function DraggablePointRow({
       imageColor={bangumi?.color || item.snapshot.bangumiColor}
       sequenceNumber={resolved.sequenceNumber}
       showMediaLabels
+      opacity={item.completed ? 0.58 : 1}
       disabled={sorting || !point || !bangumi}
       onPress={onPress}
       leading={sorting ? <RemovePointButton onRemove={onRemove} /> : null}
@@ -273,6 +274,7 @@ export default function PlanDetailScreen() {
           imageColor={bangumi?.color || item.snapshot.bangumiColor}
           sequenceNumber={resolved.sequenceNumber}
           showMediaLabels
+          opacity={item.completed ? 0.58 : 1}
           disabled
           height={72}
           imageWidth={72}

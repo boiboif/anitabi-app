@@ -149,6 +149,7 @@ const zh = {
   previousPlanLocation: '上一个点位',
   nextPlanLocation: '下一个点位',
   refocusSelectedLocation: '回到当前点位',
+  scrollToSelectedLocation: '定位到选中点位',
   viewPlanLocations: '查看计划点位',
   planLocations: '计划点位',
   tapALocationToShowItOnTheMap: '点击点位即可在地图中定位',

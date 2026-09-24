@@ -2,6 +2,12 @@
 
 Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before writing any code.
 
+## React Compiler
+
+- React Compiler is enabled in `app.config.ts` (`reactCompiler: true`). Rely on its automatic memoization by default; do not add `useMemo`, `useCallback`, or `React.memo` merely to stabilize references or prevent routine re-renders.
+- Use manual memoization only when it provides specific control the compiler cannot infer or a demonstrated benefit, such as a required stable effect dependency or a semantic comparison of changing inputs. Keep dependencies complete and never rely on memoization for correctness.
+- Do not remove existing manual memoization as a blanket cleanup. React recommends retaining it or testing carefully when changing it, because removal can change the compiler's output. See https://react.dev/learn/react-compiler and https://react.dev/blog/2025/10/07/react-compiler-1.
+
 ## UI Implementation
 
 - For Expo UI, prefer Tamagui primitives and props (`XStack`, `YStack`, spacing tokens, color tokens, and variants) over React Native `StyleSheet.create`.

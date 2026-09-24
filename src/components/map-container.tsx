@@ -30,6 +30,7 @@ type Props = {
   mode?: 'browse' | 'plan';
   selectedPoint?: MapPointReference | null;
   selectedBangumiIds?: number[];
+  maxPointMarkerDiameter?: number;
   onPointSelect?: (point: MapPointReference) => void;
   onMapPress?: () => void;
   locationPuckActive?: boolean;
@@ -56,6 +57,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     mode = 'browse',
     selectedPoint,
     selectedBangumiIds,
+    maxPointMarkerDiameter,
     onPointSelect,
     onMapPress,
     locationPuckActive = true,
@@ -308,6 +310,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
         openedBangumiDetailsId={isPlanMode ? null : undefined}
         showAllPoints={isPlanMode}
         selectedPoint={isPlanMode ? activeSelectedPoint : null}
+        maxVisualDiameter={maxPointMarkerDiameter}
         onPointSelect={handlePointSelect}
       />
       {!isPlanMode && loadedStyleIndex === styleIndex && (

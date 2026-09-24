@@ -156,6 +156,7 @@ const ja = {
   previousPlanLocation: '前のスポット',
   nextPlanLocation: '次のスポット',
   refocusSelectedLocation: '選択中のスポットに戻る',
+  scrollToSelectedLocation: '選択中のスポットまでスクロール',
   viewPlanLocations: 'プランのスポットを表示',
   planLocations: 'プランのスポット',
   tapALocationToShowItOnTheMap: 'スポットをタップすると地図上に表示します',

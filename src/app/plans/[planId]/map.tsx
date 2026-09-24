@@ -14,7 +14,7 @@ import { StrictButton as Button } from '@/components/strict-button';
 import { useMapLocate } from '@/hooks/use-map-locate';
 import { useThemedMapStyle } from '@/hooks/use-themed-map-style';
 import { getPointFlyToZoom } from '@/lib/map-camera';
-import { ICON_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';
+import { ICON_BUTTON_ICON_SIZE, SELECTED_MAP_POINT_DOT_DIAMETER } from '@/lib/ui-sizes';
 import type { Bangumi, Point } from '@/services/types';
 import { type MapPointReference } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
@@ -241,6 +241,18 @@ export default function PlanMapScreen() {
     },
     [moveCameraToPoint, selectedBangumiIds],
   );
+  const focusPreviousPoint = useCallback(() => {
+    if (previousPoint) focusPoint(previousPoint);
+  }, [focusPoint, previousPoint]);
+  const focusNextPoint = useCallback(() => {
+    if (nextPoint) focusPoint(nextPoint);
+  }, [focusPoint, nextPoint]);
+  const refocusSelectedPoint = useCallback(() => {
+    if (selectedResolvedPoint) moveCameraToPoint(selectedResolvedPoint);
+  }, [moveCameraToPoint, selectedResolvedPoint]);
+  const toggleSelectedPointCompleted = useCallback(() => {
+    if (selectedResolvedPoint && plan) togglePoint(plan.id, selectedResolvedPoint.item.key);
+  }, [plan, selectedResolvedPoint, togglePoint]);
 
   const handlePointSelect = useCallback(
     (reference: MapPointReference) => {
@@ -300,6 +312,7 @@ export default function PlanMapScreen() {
             onMapReady={() => setIsMapReady(true)}
             selectedPoint={selectedPoint}
             selectedBangumiIds={selectedBangumiIds}
+            maxPointMarkerDiameter={SELECTED_MAP_POINT_DOT_DIAMETER - 2}
             onPointSelect={handlePointSelect}
             onCameraChange={setCameraState}
           />
@@ -362,14 +375,14 @@ export default function PlanMapScreen() {
           {selectedResolvedPoint ? (
             <PlanMapPointCard
               resolved={selectedResolvedPoint}
+              previous={previousPoint}
+              next={nextPoint}
               total={plan.items.length}
               bottomInset={insets.bottom}
-              hasPrevious={Boolean(previousPoint)}
-              hasNext={Boolean(nextPoint)}
-              onPrevious={() => previousPoint && focusPoint(previousPoint)}
-              onNext={() => nextPoint && focusPoint(nextPoint)}
-              onRefocus={() => moveCameraToPoint(selectedResolvedPoint)}
-              onToggleCompleted={() => togglePoint(plan.id, selectedResolvedPoint.item.key)}
+              onPrevious={focusPreviousPoint}
+              onNext={focusNextPoint}
+              onRefocus={refocusSelectedPoint}
+              onToggleCompleted={toggleSelectedPointCompleted}
               onHeightChange={handlePointCardHeightChange}
             />
           ) : null}
