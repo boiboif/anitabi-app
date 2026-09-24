@@ -1,11 +1,11 @@
 {
-  "version": "0.3.1",
-  "displayVersion": "0.3.1",
-  "title": "v0.3.1",
-  "releaseNotes": "- 地图缩放更加流畅，作品图标的显示与隐藏更加自然。\n- 提升应用启动速度，并减小 Android 安装包体积。\n- 优化应用内更新下载，支持中断后继续、取消下载和浏览器下载。",
-  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.3.1/anitabi-app-v0.3.1-android.apk",
-  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.3.1",
+  "version": "0.4.0",
+  "displayVersion": "0.4.0",
+  "title": "v0.4.0",
+  "releaseNotes": "1. 新增 3D 建筑地图模式，可一键开启或关闭。\n2. 巡礼计划全面升级：支持排序、未完成筛选，并可在地图中快速切换点位、重新定位和标记完成。\n3. 新增中文、日语、英语切换；地图底图可跟随深色模式。\n4. 优化地图点位显示、巡礼拍照与使用流畅度。",
+  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.4.0/anitabi-app-v0.4.0-android.apk",
+  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.4.0",
   "mandatory": false,
-  "buildNumber": 1020,
-  "fileName": "anitabi-app-v0.3.1-android.apk"
+  "buildNumber": 1022,
+  "fileName": "anitabi-app-v0.4.0-android.apk"
 }
