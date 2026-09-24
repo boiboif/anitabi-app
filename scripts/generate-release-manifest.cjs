@@ -20,8 +20,8 @@ Options:
   --build-number <number>            Android versionCode
   --tag <tag>                       GitHub tag; defaults to v<version>
   --title <text>                    Dialog title
-  --notes <text>                    Release notes text
-  --notes-file <path>               Read release notes from a UTF-8 file
+  --notes <text>                    In-app release notes text (overrides GitHub body)
+  --notes-file <path>               Read in-app notes from a UTF-8 file (overrides GitHub body)
   --from-github                     Read title, notes and APK asset from GitHub Release
   --repo <owner/name>               GitHub repository; defaults to GH_REPO or git origin
   --asset-name <filename.apk>       APK asset name
@@ -175,22 +175,25 @@ function buildManifest(options) {
   const repo = resolveRepo(options.repo);
   const tag = options.tag ?? `v${version}`;
   const defaultAssetName = options.assetName ?? `anitabi-app-${tag}-android.apk`;
+  const overrideNotes = options.notesFile
+    ? fs.readFileSync(path.resolve(projectRoot, options.notesFile), 'utf8').trim()
+    : options.notes?.trim();
+  if (options.notesFile && !overrideNotes) {
+    throw new Error(`--notes-file is empty: ${options.notesFile}`);
+  }
   let releaseData;
 
   if (options.fromGithub) {
     releaseData = readReleaseFromGithub(tag, repo, options.assetName);
+    if (overrideNotes) releaseData.releaseNotes = overrideNotes;
   } else {
-    let releaseNotes = options.notes;
-    if (options.notesFile) {
-      releaseNotes = fs.readFileSync(path.resolve(projectRoot, options.notesFile), 'utf8').trim();
-    }
-    if (!releaseNotes?.trim()) {
+    if (!overrideNotes) {
       throw new Error('Pass --notes, --notes-file, or --from-github to provide release notes.');
     }
 
     releaseData = {
       title: options.title ?? `Anitabi ${tag}`,
-      releaseNotes: releaseNotes.trim(),
+      releaseNotes: overrideNotes,
       releaseUrl: `https://github.com/${repo}/releases/tag/${encodeURIComponent(tag)}`,
       apkUrl: `https://github.com/${repo}/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(defaultAssetName)}`,
       fileName: defaultAssetName,

@@ -12,7 +12,7 @@ on:
           - production
           - preview
       release_notes:
-        description: 'GitHub Release and in-app notes; use \n for line breaks. Ignored for tag triggers, which use the tag annotation.'
+        description: 'GitHub Release notes; use \n for line breaks. In-app notes use release-notes/<tag>-app.txt when present.'
         required: false
         default: ''
         type: string
@@ -291,6 +291,8 @@ jobs:
         shell: bash
         run: |
           manifest_args=(yarn release:manifest --version "$APP_VERSION" --tag "$TAG" --build-number "$ANDROID_VERSION_CODE" --from-github --asset-name "$ASSET_NAME" --output "$MANIFEST_PATH")
+          app_notes_file="release-notes/${TAG}-app.txt"
+          if [[ -f "$app_notes_file" ]]; then manifest_args+=(--notes-file "$app_notes_file"); fi
           if [[ "$MANDATORY" == "true" ]]; then manifest_args+=(--mandatory); fi
           if [[ -n "$MIN_SUPPORTED_VERSION" ]]; then manifest_args+=(--min-supported-version "$MIN_SUPPORTED_VERSION"); fi
           if [[ -n "$MIN_SUPPORTED_BUILD_NUMBER" ]]; then manifest_args+=(--min-supported-build-number "$MIN_SUPPORTED_BUILD_NUMBER"); fi

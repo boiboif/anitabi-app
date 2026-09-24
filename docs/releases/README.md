@@ -52,13 +52,11 @@ git tag -a v0.0.5 -m "修复地图加载问题
 git push origin v0.0.5
 ```
 
-tag 的格式必须是 `v<version>`（production）或 `v<version>-preview`（preview），且必须与 `app.config.ts` 的 `appVersion` 一致。更新说明取自 annotated tag 的消息（`git tag -a`），支持多行，同一份内容会同时用于 GitHub Release 页面和应用内更新弹窗，建议直接面向最终用户书写：
+tag 的格式必须是 `v<version>`（production）或 `v<version>-preview`（preview），且必须与 `app.config.ts` 的 `appVersion` 一致。GitHub Release 说明取自 annotated tag 的消息（`git tag -a`），支持多行。应用内更新弹窗优先读取仓库中的 `release-notes/<最终tag>-app.txt`，没有该文件时才使用 GitHub Release 正文。应用内文案应在发版前单独审核并提交。例如：
 
 ```bash
-git tag -a v0.1.1 -m "新增：巡礼点支持一键导航到谷歌地图
-
-修复：
-- 地图偶发加载失败"
+git tag -a v0.4.0 -F release-notes/v0.4.0.md
+git push origin v0.4.0
 ```
 
 Release 会同时上传 APK 的 `.sha256` 校验文件，可用于验证下载完整性。preview 推送 `v<version>-preview` 后，工作流仍会自动计算 `preview.N` 后缀并创建对应的 Release。`mandatory`、`min_supported_version` 等仅在手动 dispatch 时可设置；tag 触发的发版默认非强制，需要强制更新时使用手动 dispatch。iOS 产物为未签名 IPA（`*-unsigned.ipa`），不能直接安装到设备，仅供侧载签名或存档；面向用户的步骤见 [iOS 侧载安装指南](/guide/ios-sideloading)。`Android Release` 工作流保留为仅手动触发的 Android-only 快速兜底；tag 触发统一走 `Mobile Release`，避免同一版本被两个入口重复构建。
@@ -66,7 +64,7 @@ Release 会同时上传 APK 的 `.sha256` 校验文件，可用于验证下载�
 production 发版流程如下：
 
 1. 确保代码已合并到 `main`，并从 `main` 分支运行 `Android Release`。
-2. 选择 `production`，填写 `release_notes`。Actions 输入框是单行控件，需要换行时输入字面量 `\n`，例如 `修复地图加载问题\n优化图片缓存\n调整更新提示`；工作流会将其转换成 GitHub Release 和应用内更新说明中的真实换行。版本号不在 Actions 页面填写，以 `app.config.ts` 的 `appVersion` 为准。
+2. 选择 `production`，填写 GitHub Release 使用的 `release_notes`。Actions 输入框是单行控件，需要换行时输入字面量 `\n`，例如 `修复地图加载问题\n优化图片缓存\n调整更新提示`。应用内文案请提前写入并审核 `release-notes/v<version>-app.txt`。版本号不在 Actions 页面填写，以 `app.config.ts` 的 `appVersion` 为准。
 3. 需要强制更新时勾选 `mandatory`；也可以填写 `min_supported_version` 或 `min_supported_build_number`。
 4. Actions 使用旧 EAS keystore 构建签名 APK，创建 `v<version>` GitHub Release。
 5. Actions 自动生成并提交 `docs/releases/latest.json`。客户端随后可发现该 APK。
@@ -83,7 +81,7 @@ production 始终使用精确 tag `v<version>`，例如 `v0.0.1`。如果同名 
 yarn release:manifest --from-github --version 0.0.2 --build-number 1002
 ```
 
-脚本会读取对应的 `v<version>` GitHub Release，自动获取标题、Release Notes 和 APK 下载地址，然后生成 `docs/releases/latest.json`。
+脚本会读取对应的 `v<version>` GitHub Release，自动获取标题、Release Notes 和 APK 下载地址，然后生成 `docs/releases/latest.json`。如需与 GitHub Release 区分应用内文案，可同时传入 `--notes-file release-notes/v<version>-app.txt`；这只覆盖清单中的 `releaseNotes` 字段。
 
 也可以在 GitHub Release 创建前手动提供更新说明：
 
