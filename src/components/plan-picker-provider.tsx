@@ -140,14 +140,14 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
           <View px="$4" pt="$2" pb="$4" bg="$color1">
             <Pressable
               accessibilityRole="checkbox"
-              accessibilityLabel={t('alsoFavorite', { defaultValue: '同时收藏' })}
+              accessibilityLabel={t('alsoFavorite', { defaultValue: '加入同时收藏' })}
               accessibilityState={{ checked: alsoFavorite }}
               onPress={() => setAlsoFavorite((current) => !current)}
               style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
             >
               <XStack minH={44} items="center" justify="space-between" mb="$2">
                 <Text fontSize="$body" color="$color12">
-                  {t('alsoFavorite', { defaultValue: '同时收藏' })}
+                  {t('alsoFavorite', { defaultValue: '加入同时收藏' })}
                 </Text>
                 {alsoFavorite ? (
                   <SquareCheckBig size={23} strokeWidth={2.5} color={theme.primary.val} />
