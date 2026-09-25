@@ -12,6 +12,7 @@ import { useMapLocate } from '@/hooks/use-map-locate';
 import { useThemedMapStyle } from '@/hooks/use-themed-map-style';
 import { FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE } from '@/lib/constants';
 import { getPointFlyToZoom } from '@/lib/map-camera';
+import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
 import { useMapBrowse } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
 import type { Camera } from '@rnmapbox/maps';
@@ -54,6 +55,7 @@ export default function HomeScreen() {
   const mapCameraRequest = useMapBrowse((state) => state.mapCameraRequest);
   const focusPointFromMapControl = useMapBrowse((state) => state.focusPointFromMapControl);
   const completeMapCameraRequest = useMapBrowse((state) => state.completeMapCameraRequest);
+  const clearMapBangumiFilter = useMapBangumiFilter((state) => state.clear);
   const randomPointCandidates = useMemo(
     () =>
       bangumis.flatMap((bangumi) =>
@@ -115,8 +117,9 @@ export default function HomeScreen() {
     }
 
     const randomIndex = Math.floor(Math.random() * randomPointCandidates.length);
+    clearMapBangumiFilter();
     focusPointFromMapControl(randomPointCandidates[randomIndex]);
-  }, [focusPointFromMapControl, randomPointCandidates, t]);
+  }, [clearMapBangumiFilter, focusPointFromMapControl, randomPointCandidates, t]);
 
   const [styleIndex, setStyleIndex] = useThemedMapStyle();
   const handle3DBuildingsChange = useCallback((enabled: boolean) => {
