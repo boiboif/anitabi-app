@@ -6,7 +6,7 @@ import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { Check, ListTodo } from '@tamagui/lucide-icons-2';
 import { forwardRef, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { type NativeScrollEvent, type NativeSyntheticEvent, Pressable } from 'react-native';
+import { type NativeScrollEvent, type NativeSyntheticEvent, Pressable, type ScrollView } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { Text, useTheme, useThemeName, View, XStack, YStack } from 'tamagui';
 import { useStore } from 'zustand';
@@ -118,6 +118,8 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
   const callbacksRef = useRef({ onSelect, onToggleCompleted });
   const listRef = useRef<LegendListRef>(null);
   const listReadyRef = useRef(false);
+  const contentReadyRef = useRef(false);
+  const openingPositionReadyRef = useRef(false);
   const sheetPresentedRef = useRef(false);
   const pendingScrollRef = useRef(false);
   const pendingFilterScrollRef = useRef(false);
@@ -162,8 +164,15 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
     () => visiblePoints.findIndex((resolved) => resolved.item.key === selectedKey),
     [selectedKey, visiblePoints],
   );
-  const initialScrollIndex = useMemo(
-    () => (selectedIndex >= 0 ? { index: selectedIndex, viewOffset: 4, viewPosition: 0 } : undefined),
+  const scrollToSelectedNative = useCallback(
+    (animated: boolean) => {
+      const scrollView = listRef.current?.getNativeScrollRef() as ScrollView | undefined;
+      if (!scrollView || selectedIndex < 0) return false;
+      // TrueSheet adds native scroll padding at the 0.6 detent. LegendList's
+      // JS scroll limit does not include it, so let Android clamp this offset.
+      scrollView.scrollTo({ y: Math.max(0, selectedIndex - 1) * PLAN_POINT_ROW_SIZE, animated });
+      return true;
+    },
     [selectedIndex],
   );
 
@@ -272,39 +281,46 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
     setIsScrolling(true);
   }, [clearHideLocateTimer, clearScrollIdleTimer]);
 
+  const handleMomentumScrollEnd = useCallback(() => {
+    if (programmaticScrollRef.current) {
+      programmaticScrollRef.current = false;
+      lastScrollOffsetRef.current = null;
+    }
+    finishScrolling();
+  }, [finishScrolling]);
+
   const handleLocateSelected = useCallback(() => {
     if (isScrollingRef.current || selectedIndex < 0) return;
     resetLocateButton();
     programmaticScrollRef.current = true;
-    void listRef.current?.scrollIndexIntoView({ index: selectedIndex, animated: true }).then(
-      () => {
-        programmaticScrollRef.current = false;
-        lastScrollOffsetRef.current = null;
-      },
-      () => {
-        programmaticScrollRef.current = false;
-      },
-    );
-  }, [resetLocateButton, selectedIndex]);
+    if (!scrollToSelectedNative(true)) programmaticScrollRef.current = false;
+  }, [resetLocateButton, scrollToSelectedNative, selectedIndex]);
 
   const scrollToSelected = useCallback(() => {
-    if (!listReadyRef.current || selectedIndex < 0) {
+    if (selectedIndex < 0) {
       pendingScrollRef.current = false;
       programmaticScrollRef.current = false;
       return;
     }
-    pendingScrollRef.current = false;
-    programmaticScrollRef.current = true;
-    void listRef.current?.scrollIndexIntoView({ index: selectedIndex, animated: false }).then(
-      () => {
+    if (scrollToSelectedNative(false)) {
+      pendingScrollRef.current = false;
+      programmaticScrollRef.current = true;
+      requestAnimationFrame(() => {
         programmaticScrollRef.current = false;
         lastScrollOffsetRef.current = null;
-      },
-      () => {
-        programmaticScrollRef.current = false;
-      },
-    );
-  }, [selectedIndex]);
+      });
+    }
+  }, [scrollToSelectedNative, selectedIndex]);
+
+  const scrollDuringPresentation = useCallback(() => {
+    if (
+      pendingScrollRef.current &&
+      openingPositionReadyRef.current &&
+      (contentReadyRef.current || listReadyRef.current)
+    ) {
+      scrollToSelected();
+    }
+  }, [scrollToSelected]);
 
   const scrollToFilteredSelection = useCallback(() => {
     if (!pendingFilterScrollRef.current || !sheetPresentedRef.current || !listReadyRef.current) return;
@@ -317,30 +333,22 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
       return;
     }
 
-    programmaticScrollRef.current = true;
-    const scroll =
-      selectedIndex >= 0
-        ? listRef.current?.scrollIndexIntoView({ index: selectedIndex, animated: false })
-        : listRef.current?.scrollToOffset({ offset: 0, animated: false });
-    if (!scroll) {
+    const scrollView = listRef.current?.getNativeScrollRef() as ScrollView | undefined;
+    if (!scrollView) {
       filterTransitionRef.current = false;
       programmaticScrollRef.current = false;
       return;
     }
-    void scroll.then(
-      () => {
-        if (transitionId !== filterTransitionIdRef.current) return;
-        filterTransitionRef.current = false;
-        programmaticScrollRef.current = false;
-        lastScrollOffsetRef.current = null;
-      },
-      () => {
-        if (transitionId !== filterTransitionIdRef.current) return;
-        filterTransitionRef.current = false;
-        programmaticScrollRef.current = false;
-      },
-    );
-  }, [selectedIndex, visiblePoints.length]);
+    programmaticScrollRef.current = true;
+    if (selectedIndex >= 0) scrollToSelectedNative(false);
+    else scrollView.scrollTo({ y: 0, animated: false });
+    requestAnimationFrame(() => {
+      if (transitionId !== filterTransitionIdRef.current) return;
+      filterTransitionRef.current = false;
+      programmaticScrollRef.current = false;
+      lastScrollOffsetRef.current = null;
+    });
+  }, [scrollToSelectedNative, selectedIndex, visiblePoints.length]);
 
   const scheduleFilteredScroll = useCallback(() => {
     cancelFilterScrollFrame();
@@ -360,7 +368,8 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
     listReadyRef.current = true;
     if (pendingFilterScrollRef.current) scheduleFilteredScroll();
     else if (sheetPresentedRef.current && pendingScrollRef.current) scrollToSelected();
-  }, [scheduleFilteredScroll, scrollToSelected]);
+    else scrollDuringPresentation();
+  }, [scheduleFilteredScroll, scrollDuringPresentation, scrollToSelected]);
 
   const toggleIncompleteFilter = useCallback(() => {
     cancelFilterScrollFrame();
@@ -397,17 +406,24 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
       cornerRadius={22}
       backgroundColor={theme.color2.val}
       grabberOptions={{ color: theme.primary.val, adaptive: false, topMargin: 8, width: 42, height: 5 }}
+      onWillPresent={() => {
+        pendingScrollRef.current = true;
+        openingPositionReadyRef.current = false;
+      }}
+      onPositionChange={() => {
+        openingPositionReadyRef.current = true;
+        scrollDuringPresentation();
+      }}
       onDidPresent={() => {
         sheetPresentedRef.current = true;
         resetLocateButton();
-        if (listReadyRef.current) {
-          scrollToSelected();
-        } else {
-          pendingScrollRef.current = true;
-        }
+        if (pendingScrollRef.current && (contentReadyRef.current || listReadyRef.current)) scrollToSelected();
       }}
       onDidDismiss={() => {
         sheetPresentedRef.current = false;
+        listReadyRef.current = false;
+        contentReadyRef.current = false;
+        openingPositionReadyRef.current = false;
         pendingScrollRef.current = false;
         pendingFilterScrollRef.current = false;
         filterTransitionIdRef.current += 1;
@@ -490,13 +506,19 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
         keyExtractor={(resolved) => resolved.item.key}
         renderItem={renderPoint}
         getFixedItemSize={getPlanPointRowSize}
-        initialScrollIndex={initialScrollIndex}
+        onContentSizeChange={(_, height) => {
+          if (height <= 0) return;
+          contentReadyRef.current = true;
+          if (!openingPositionReadyRef.current && !sheetPresentedRef.current) scrollToSelectedNative(false);
+          if (sheetPresentedRef.current && pendingScrollRef.current) scrollToSelected();
+          else scrollDuringPresentation();
+        }}
         onReady={handleListReady}
         onScroll={handleScroll}
         onScrollBeginDrag={handleScrollBeginDrag}
         onScrollEndDrag={handleScrollEndDrag}
         onMomentumScrollBegin={handleMomentumScrollBegin}
-        onMomentumScrollEnd={finishScrolling}
+        onMomentumScrollEnd={handleMomentumScrollEnd}
         scrollEventThrottle={16}
         ListEmptyComponent={
           <YStack minH={180} items="center" justify="center" px="$4">
