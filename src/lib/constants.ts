@@ -42,8 +42,11 @@ export const MAP_POINT_PRIORITY_ZOOM_STOPS = [
   [16, 3],
 ] as const;
 
-/** 当 zoom 大于此值时，地图中显示巡礼点图片。 */
+/** 图片出现的最低 zoom（zoom >= 此值时显示巡礼点图片）。 */
 export const MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE = 18;
 
-/** 筛选模式下，当 zoom 大于此值时，地图中显示巡礼点图片。 */
+/** 筛选模式下，图片出现的最低 zoom（zoom >= 此值时显示巡礼点图片）。 */
 export const FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE = 18;
+
+/** 图片稀疏曲线基准级相对出图阈值的偏移：基准级 = 阈值 + 此值。值越大，同一 zoom 下图片越稀疏。 */
+export const MAP_IMAGE_PRIORITY_BASE_ZOOM_OFFSET = 1;

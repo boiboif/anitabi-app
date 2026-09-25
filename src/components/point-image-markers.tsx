@@ -1,4 +1,8 @@
-import { FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE, MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE } from '@/lib/constants';
+import {
+  FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE,
+  MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE,
+  MAP_IMAGE_PRIORITY_BASE_ZOOM_OFFSET,
+} from '@/lib/constants';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
@@ -190,9 +194,11 @@ export default function PointImageMarkers({
   const zoomThreshold = isFilterActive
     ? FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE
     : MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE;
-  const belowZoomThreshold = !ignoreZoomThreshold && (imageZoom <= zoomThreshold || !imageBounds);
-  // The website progressively reveals lower-priority screenshots as the map zooms in.
-  const minimumImagePriority = ignoreZoomThreshold ? 0 : 3 * 2 ** (19 - imageZoom);
+  // zoom >= threshold 开始出图；稀疏曲线以 threshold + 偏移 为基准级（最低 priority 门槛为 3），
+  // 之后每降低一级 zoom，最低 priority 门槛翻倍。
+  const imagePriorityBaseZoom = zoomThreshold + MAP_IMAGE_PRIORITY_BASE_ZOOM_OFFSET;
+  const belowZoomThreshold = !ignoreZoomThreshold && (imageZoom < zoomThreshold || !imageBounds);
+  const minimumImagePriority = ignoreZoomThreshold ? 0 : 3 * 2 ** (imagePriorityBaseZoom - imageZoom);
 
   const candidates = useMemo(() => {
     if (belowZoomThreshold) return [];
