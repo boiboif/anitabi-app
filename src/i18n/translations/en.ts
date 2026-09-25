@@ -156,6 +156,7 @@ const en = {
   nextPlanLocation: 'Next plan location',
   refocusSelectedLocation: 'Recenter on selected location',
   scrollToSelectedLocation: 'Scroll to selected location',
+  mapMode: 'Map mode',
   viewPlanLocations: 'View plan locations',
   planLocations: 'Plan locations',
   tapALocationToShowItOnTheMap: 'Tap a location to show it on the map',

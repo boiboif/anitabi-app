@@ -2,9 +2,9 @@ import { ActionSheet, type ActionSheetRef } from '@/components/action-sheet';
 import PointListCard from '@/components/point-list-card';
 import StableReorderableList, { type StableReorderableListRenderItem } from '@/components/stable-reorderable-list';
 import { StrictButton as Button } from '@/components/strict-button';
+import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { sharePlanFile } from '@/lib/plan-share-files';
 import { createPlanShareBundle } from '@/lib/plan-sharing';
-import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { ICON_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
@@ -17,6 +17,7 @@ import {
   GripVertical,
   Image as ImageIcon,
   ListTodo,
+  MapPinned,
   MoreHorizontal,
   Pencil,
   Plus,
@@ -25,8 +26,8 @@ import {
 } from '@tamagui/lucide-icons-2';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Alert, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, View, XStack, YStack, useTheme } from 'tamagui';
 
@@ -228,6 +229,15 @@ export default function PlanDetailScreen() {
     [plan?.items.length, planId, removePoint],
   );
 
+  const openPlanMap = useCallback(() => {
+    const target = plan?.items.find((item) => !item.completed) ?? plan?.items[0];
+    if (!target) return;
+    router.navigate({
+      pathname: '/plans/[planId]/map',
+      params: { planId, bangumiId: target.bangumiId, pointId: target.pointId },
+    } as never);
+  }, [plan, planId, router]);
+
   const renderListItem = useCallback(
     ({ item, dragHandle }: StableReorderableListRenderItem<ResolvedItem>) => (
       <DraggablePointRow
@@ -360,7 +370,17 @@ export default function PlanDetailScreen() {
           headerTintColor: theme.color12?.val,
           headerBackButtonDisplayMode: 'minimal',
           headerRight: () => (
-            <XStack items="center" gap="$1">
+            <XStack items="center" gap="$1.5">
+              <Button
+                chromeless
+                circular
+                size="$3"
+                icon={<MapPinned size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />}
+                color={!hasPlanPoints ? '$color8' : '$color12'}
+                disabled={!hasPlanPoints}
+                onPress={openPlanMap}
+                aria-label={t('mapMode', { defaultValue: '地图模式' })}
+              />
               <Button
                 chromeless
                 circular
@@ -380,16 +400,6 @@ export default function PlanDetailScreen() {
                 chromeless
                 circular
                 size="$3"
-                icon={<Plus size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />}
-                onPress={() =>
-                  router.navigate({ pathname: '/plans/[planId]/add', params: { planId: plan.id } } as never)
-                }
-                aria-label={t('addLocations', { defaultValue: '添加巡礼点' })}
-              />
-              <Button
-                chromeless
-                circular
-                size="$3"
                 icon={<ArrowDownUp size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />}
                 color={!hasPlanPoints ? '$color8' : sorting ? '$primary' : '$color12'}
                 disabled={!hasPlanPoints}
@@ -399,6 +409,16 @@ export default function PlanDetailScreen() {
                     ? t('finishReordering', { defaultValue: '完成排序' })
                     : t('reorderLocations', { defaultValue: '排序巡礼点' })
                 }
+              />
+              <Button
+                chromeless
+                circular
+                size="$3"
+                icon={<Plus size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />}
+                onPress={() =>
+                  router.navigate({ pathname: '/plans/[planId]/add', params: { planId: plan.id } } as never)
+                }
+                aria-label={t('addLocations', { defaultValue: '添加巡礼点' })}
               />
               <Button
                 chromeless
