@@ -58,7 +58,8 @@ export type RawPoint = [
 
 export type Point = {
   id: string;
-  name?: string;
+  /** 上游确实存在 name 为数字的点位，保留原值不做转换。 */
+  name?: string | number;
   cn: string;
   isFolder: boolean;
   mid?: string;

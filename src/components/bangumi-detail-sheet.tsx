@@ -11,8 +11,8 @@ import dayjs from 'dayjs';
 import { Image } from 'expo-image';
 import { useIsFocused, useNavigation } from 'expo-router';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, Pressable } from 'react-native';
 import { getTokens, Text, useTheme, View } from 'tamagui';
 
 const SECTION_HEADER_HEIGHT = 32;
@@ -190,7 +190,9 @@ function groupPoints(
   const pilgrimageGroups = new Map<string, { title: string; data: Point[] }>();
   for (const p of points) {
     if (p.isFolder) {
-      pilgrimageGroups.set(p.id, { title: p.name || p.folder || unnamedCollectionLabel, data: [p] });
+      // 上游 name 允许是数字；分组标题要参与 localeCompare，数字名跳过。
+      const nameText = typeof p.name === 'string' ? p.name : '';
+      pilgrimageGroups.set(p.id, { title: nameText || p.folder || p.cn || unnamedCollectionLabel, data: [p] });
     }
   }
 
