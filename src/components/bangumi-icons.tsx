@@ -18,6 +18,47 @@ import { useTranslation } from 'react-i18next';
 const ICON_SCALE = 0.5;
 const SPRITE_MAX_RETRIES = 3;
 
+// Map style reloads unmount BangumiIcons. Keep completed (and in-flight) crops
+// outside the component so remounting does not manipulate the same sprite again.
+const croppedIconsCache = new Map<string, Promise<Map<number, string>>>();
+
+function getCroppedIcons(spriteMeta: { ids: number[]; url: string }) {
+  const cacheKey = `${spriteMeta.url}:${spriteMeta.ids.join(',')}`;
+  const cached = croppedIconsCache.get(cacheKey);
+  if (cached) return cached;
+
+  const crop = async (retries = 0): Promise<Map<number, string>> => {
+    try {
+      const results = await Promise.all(
+        spriteMeta.ids.map(async (id, i) => {
+          const row = Math.floor(i / 20);
+          const col = i % 20;
+          const { uri } = await ImageManipulator.manipulate(spriteMeta.url)
+            .crop({ originX: col * 60, originY: row * 60, width: 60, height: 60 })
+            .renderAsync()
+            .then((img) => img.saveAsync({ compress: 1, format: SaveFormat.PNG }));
+          return [id, uri] as const;
+        }),
+      );
+      return new Map(results);
+    } catch (err) {
+      if (retries < SPRITE_MAX_RETRIES) {
+        await new Promise((resolve) => setTimeout(resolve, Math.pow(2, retries + 1) * 1000));
+        return crop(retries + 1);
+      }
+      throw err;
+    }
+  };
+
+  const task = crop().catch((err) => {
+    // Let a later mount retry after a failed crop instead of caching a rejection.
+    croppedIconsCache.delete(cacheKey);
+    throw err;
+  });
+  croppedIconsCache.set(cacheKey, task);
+  return task;
+}
+
 // ===========================================================================
 // Cache helpers
 // ===========================================================================
@@ -147,33 +188,17 @@ function BangumiIcons({ bangumis, onIconPress }: Props) {
   useEffect(() => {
     if (!spriteMeta) return;
     let cancelled = false;
-    let retries = 0;
-
-    const crop = async () => {
+    const cacheKey = `${spriteMeta.url}:${spriteMeta.ids.join(',')}`;
+    if (!croppedIconsCache.has(cacheKey)) {
       console.log('[bangumi-icons] crop 开始, url:', spriteMeta.url, 'ids count:', spriteMeta.ids.length);
-      try {
-        const results = await Promise.all(
-          spriteMeta.ids.map(async (id, i) => {
-            const row = Math.floor(i / 20);
-            const col = i % 20;
-            const { uri } = await ImageManipulator.manipulate(spriteMeta.url)
-              .crop({ originX: col * 60, originY: row * 60, width: 60, height: 60 })
-              .renderAsync()
-              .then((img) => img.saveAsync({ compress: 1, format: SaveFormat.PNG }));
-            return [id, uri] as const;
-          }),
-        );
-        if (!cancelled) setIcons(new Map(results));
-      } catch (err) {
+    }
+    getCroppedIcons(spriteMeta)
+      .then((result) => {
+        if (!cancelled) setIcons(result);
+      })
+      .catch((err) => {
         console.error('雪碧图加载/裁剪失败:', err);
-        if (!cancelled && retries < SPRITE_MAX_RETRIES) {
-          retries++;
-          setTimeout(crop, Math.pow(2, retries) * 1000);
-        }
-      }
-    };
-
-    crop();
+      });
     return () => {
       cancelled = true;
     };
