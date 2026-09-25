@@ -1,10 +1,11 @@
 import { ActionSheet, type ActionSheetRef } from '@/components/action-sheet';
 import PlanListCard from '@/components/plan-list-card';
+import PlanSortButton from '@/components/plan-sort-button';
 import { StrictButton as Button } from '@/components/strict-button';
 import { usePlanImportActions } from '@/hooks/use-plan-import-actions';
-import type { ItineraryPlan } from '@/lib/plan-storage';
 import { sharePlanFile } from '@/lib/plan-share-files';
 import { createPlanShareBundle } from '@/lib/plan-sharing';
+import type { ItineraryPlan } from '@/lib/plan-storage';
 import { BLOCK_BUTTON_ICON_SIZE, ICON_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';
 import { usePlans } from '@/store/use-plans';
 import { BottomTabInset, TopLevelPageTopPadding } from '@/tamagui.config';
@@ -21,8 +22,8 @@ import {
 } from '@tamagui/lucide-icons-2';
 import { useRouter } from 'expo-router';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
-import { Alert, Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Alert, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, View, XStack, YStack, useTheme } from 'tamagui';
 
@@ -47,9 +48,12 @@ type PlanHeaderActionsProps = {
 
 const PlanHeaderActions = memo(function PlanHeaderActions({ onImport, onCreate }: PlanHeaderActionsProps) {
   const { t } = useTranslation();
+  const sortOrder = usePlans((state) => state.planListSortOrder);
+  const toggleSortOrder = usePlans((state) => state.togglePlanListSortOrder);
 
   return (
-    <XStack items="center" gap="$1">
+    <XStack items="center" gap="$1.5">
+      <PlanSortButton sortOrder={sortOrder} onPress={toggleSortOrder} />
       <Button
         chromeless
         circular
@@ -104,12 +108,17 @@ export default function PlansScreen() {
   const insets = useSafeAreaInsets();
   const plans = usePlans((state) => state.plans);
   const deletePlan = usePlans((state) => state.deletePlan);
+  const sortOrder = usePlans((state) => state.planListSortOrder);
   const importSheetRef = useRef<ActionSheetRef>(null);
   const menuSheetRef = useRef<ActionSheetRef>(null);
   const overflowSheetRef = useRef<ActionSheetRef>(null);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const { scanQrCode, importFromFile } = usePlanImportActions();
   const selectedPlan = useMemo(() => plans.find((plan) => plan.id === selectedPlanId), [plans, selectedPlanId]);
+  const sortedPlans = useMemo(
+    () => [...plans].sort((a, b) => (sortOrder === 'desc' ? b.createdAt - a.createdAt : a.createdAt - b.createdAt)),
+    [plans, sortOrder],
+  );
   const openCreatePlan = useCallback(() => router.navigate('/plans/create' as never), [router]);
   const openImportSheet = useCallback(() => importSheetRef.current?.present(), []);
   const openPlan = useCallback(
@@ -125,22 +134,25 @@ export default function PlansScreen() {
     [openPlan, openPlanMenu],
   );
   const renderEmptyPlans = useCallback(() => <EmptyPlans onCreate={openCreatePlan} />, [openCreatePlan]);
+  const pagePaddingTop = useMemo(
+    () => Platform.select({
+      android: insets.top + TopLevelPageTopPadding,
+      ios: TopLevelPageTopPadding,
+      web: TopLevelPageTopPadding,
+      default: TopLevelPageTopPadding,
+    }),
+    [insets.top],
+  );
   const contentContainerStyle = useMemo(
     () => ({
       paddingHorizontal: 16,
-      paddingTop: Platform.select({
-        android: insets.top + TopLevelPageTopPadding,
-        ios: TopLevelPageTopPadding,
-        web: TopLevelPageTopPadding,
-        default: TopLevelPageTopPadding,
-      }),
       paddingBottom: insets.bottom + BottomTabInset + 24,
     }),
-    [insets.bottom, insets.top],
+    [insets.bottom],
   );
   const contentInset = useMemo(
-    () => ({ top: insets.top, right: insets.right, bottom: 0, left: insets.left }),
-    [insets.left, insets.right, insets.top],
+    () => ({ top: 0, right: insets.right, bottom: 0, left: insets.left }),
+    [insets.left, insets.right],
   );
   const listStyle = useMemo(() => ({ flex: 1, backgroundColor: theme.background?.val }), [theme.background?.val]);
 
@@ -210,19 +222,24 @@ export default function PlansScreen() {
 
   return (
     <>
-      <FlashList
-        data={plans}
-        keyExtractor={planKeyExtractor}
-        renderItem={renderPlan}
-        ItemSeparatorComponent={PlanSeparator}
-        ListHeaderComponent={<PlanListHeader onImport={openImportSheet} onCreate={openCreatePlan} />}
-        ListEmptyComponent={renderEmptyPlans}
-        ListEmptyComponentStyle={emptyListStyle}
-        contentInset={contentInset}
-        contentInsetAdjustmentBehavior="never"
-        style={listStyle}
-        contentContainerStyle={contentContainerStyle}
-      />
+      <YStack flex={1} bg="$background" pt={pagePaddingTop}>
+        <View mx="$4">
+          <PlanListHeader onImport={openImportSheet} onCreate={openCreatePlan} />
+        </View>
+        <FlashList
+          data={sortedPlans}
+          maintainVisibleContentPosition={{ disabled: true }}
+          keyExtractor={planKeyExtractor}
+          renderItem={renderPlan}
+          ItemSeparatorComponent={PlanSeparator}
+          ListEmptyComponent={renderEmptyPlans}
+          ListEmptyComponentStyle={emptyListStyle}
+          contentInset={contentInset}
+          contentInsetAdjustmentBehavior="never"
+          style={listStyle}
+          contentContainerStyle={contentContainerStyle}
+        />
+      </YStack>
       <ActionSheet
         ref={importSheetRef}
         title={t('importPilgrimagePlan', { defaultValue: '导入巡礼计划' })}

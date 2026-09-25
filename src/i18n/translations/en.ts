@@ -98,6 +98,8 @@ const en = {
   openComparisonCamera: 'Open comparison camera',
   compareShot: 'Compare shot',
   newPlan: 'New plan',
+  sortPlansOldestFirst: 'Newest first. Tap to show oldest first.',
+  sortPlansNewestFirst: 'Oldest first. Tap to show newest first.',
   planName: 'Plan name',
   enterText: 'Enter text',
   notesOptional: 'Notes (optional)',

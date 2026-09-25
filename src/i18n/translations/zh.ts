@@ -95,6 +95,8 @@ const zh = {
   openComparisonCamera: '打开对比图相机',
   compareShot: '对比拍摄',
   newPlan: '新建计划',
+  sortPlansOldestFirst: '当前按创建时间倒序，点击切换为正序',
+  sortPlansNewestFirst: '当前按创建时间正序，点击切换为倒序',
   planName: '计划名称',
   enterText: '请输入',
   notesOptional: '备注（可选）',

@@ -1,4 +1,13 @@
-import { clearPlans, getPlans, setPlans, type ItineraryPlan, type PlanItem } from '@/lib/plan-storage';
+import {
+  clearPlans,
+  getPlanListSortOrder,
+  getPlans,
+  setPlanListSortOrder,
+  setPlans,
+  type ItineraryPlan,
+  type PlanItem,
+  type PlanListSortOrder,
+} from '@/lib/plan-storage';
 import type { Bangumi, Point } from '@/services/types';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import i18n from '@/i18n';
@@ -29,6 +38,8 @@ function makeItem(point: Point, bangumi: Bangumi): PlanItem {
 
 type PlansStore = {
   plans: ItineraryPlan[];
+  planListSortOrder: PlanListSortOrder;
+  togglePlanListSortOrder: () => void;
   createPlan: (title: string, description?: string) => string;
   updatePlan: (id: string, patch: Pick<ItineraryPlan, 'title' | 'description'>) => void;
   deletePlan: (id: string) => void;
@@ -51,6 +62,12 @@ function save(next: ItineraryPlan[], set: (value: Partial<PlansStore>) => void) 
 
 export const usePlans = create<PlansStore>((set, get) => ({
   plans: initialPlans,
+  planListSortOrder: getPlanListSortOrder(),
+  togglePlanListSortOrder: () => {
+    const next = get().planListSortOrder === 'desc' ? 'asc' : 'desc';
+    setPlanListSortOrder(next);
+    set({ planListSortOrder: next });
+  },
   createPlan: (title, description) => {
     const now = Date.now();
     const plan: ItineraryPlan = {

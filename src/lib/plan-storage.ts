@@ -36,6 +36,25 @@ try {
 }
 
 const PLANS_KEY = 'itinerary-plans-v1';
+const PLAN_LIST_SORT_ORDER_KEY = 'itinerary-plan-list-sort-order-v1';
+
+export type PlanListSortOrder = 'asc' | 'desc';
+
+export function getPlanListSortOrder(): PlanListSortOrder {
+  try {
+    return storage?.getString(PLAN_LIST_SORT_ORDER_KEY) === 'asc' ? 'asc' : 'desc';
+  } catch {
+    return 'desc';
+  }
+}
+
+export function setPlanListSortOrder(value: PlanListSortOrder): void {
+  try {
+    storage?.set(PLAN_LIST_SORT_ORDER_KEY, value);
+  } catch (error) {
+    console.warn('MMKV setPlanListSortOrder failed:', error);
+  }
+}
 
 export function getPlans(): ItineraryPlan[] {
   if (!storage) return [];

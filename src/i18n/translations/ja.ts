@@ -100,6 +100,8 @@ const ja = {
   openComparisonCamera: '比較カメラを開く',
   compareShot: '比較撮影',
   newPlan: '新規プラン',
+  sortPlansOldestFirst: '新しい順です。タップすると古い順に切り替えます',
+  sortPlansNewestFirst: '古い順です。タップすると新しい順に切り替えます',
   planName: 'プラン名',
   enterText: '入力してください',
   notesOptional: 'メモ（任意）',
