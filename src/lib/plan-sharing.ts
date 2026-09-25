@@ -5,8 +5,8 @@ import { deflateSync, inflateSync, strFromU8, strToU8 } from 'fflate';
 
 export const PLAN_SHARE_VERSION = 1 as const;
 export const PLAN_SHARE_FILE_TYPE = 'anitabi-plan' as const;
-export const PLAN_SHARE_MAX_QR_ITEMS = 150;
-export const PLAN_SHARE_MAX_QR_URL_BYTES = 1000;
+export const PLAN_SHARE_MAX_QR_ITEMS = 200;
+export const PLAN_SHARE_MAX_QR_URL_BYTES = 1200;
 export const PLAN_SHARE_MAX_FILE_ITEMS = 5000;
 export const PLAN_SHARE_MAX_FILE_BYTES = 1024 * 1024;
 

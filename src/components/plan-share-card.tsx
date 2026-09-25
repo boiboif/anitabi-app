@@ -104,16 +104,16 @@ export function PlanShareCard({ title, points, totalCount, shareUrl, displayOnly
           </YStack>
 
           {shareUrl && !displayOnly ? (
-            <YStack width={144} items="center" justify="center" gap={7}>
+            <YStack width={156} items="center" justify="center" gap={7}>
               <View p={6} bg="white" borderWidth={1} borderColor="#F1DCE3" rounded={12}>
-                <QRCode value={shareUrl} size={128} quietZone={0} ecl="M" backgroundColor="white" color="#211A1E" />
+                <QRCode value={shareUrl} size={140} quietZone={0} ecl="M" backgroundColor="white" color="#211A1E" />
               </View>
               <Text color="#6C5E65" fontSize={9} lineHeight={12} text="center">
                 {t('scanToImportPilgrimagePlan', { defaultValue: '扫码导入巡礼计划' })}
               </Text>
             </YStack>
           ) : (
-            <YStack width={144} items="center" justify="center" gap={7} p={12} rounded={16} bg="#FFF3F6">
+            <YStack width={156} items="center" justify="center" gap={7} p={12} rounded={16} bg="#FFF3F6">
               <MapPinned size={34} color="#FB7299" strokeWidth={1.8} />
               <Text color="#9A5A6D" fontSize={10} lineHeight={14} fontWeight="700" text="center">
                 {t('planYourPilgrimageWithAnitabi', { defaultValue: '使用 Anitabi\n规划巡礼路线' })}
