@@ -37,6 +37,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 const DEFAULT_AUTOSCROLL_THRESHOLD = 72;
 const DEFAULT_AUTOSCROLL_MAX_SPEED = 840;
 const DEFAULT_MAX_FRAME_DURATION_MS = 34;
+const EMPTY_KEYS: string[] = [];
 
 type PositionMap = Record<string, number>;
 
@@ -342,14 +343,17 @@ export default function StableReorderableList<T>({
   maxFrameDurationMs = DEFAULT_MAX_FRAME_DURATION_MS,
   style,
 }: StableReorderableListProps<T>) {
-  const keys = useMemo(() => data.map(keyExtractor), [data, keyExtractor]);
-  const itemByKey = useMemo(() => new Map(data.map((item) => [keyExtractor(item), item])), [data, keyExtractor]);
+  const keys = useMemo(() => (enabled ? data.map(keyExtractor) : EMPTY_KEYS), [data, enabled, keyExtractor]);
+  const itemByKey = useMemo(
+    () => (enabled ? new Map(data.map((item) => [keyExtractor(item), item])) : new Map<string, T>()),
+    [data, enabled, keyExtractor],
+  );
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
   const [previewKey, setPreviewKey] = useState<string | null>(null);
   const viewportRef = useRef<View>(null);
   const scrollRef = useAnimatedRef<ScrollView>();
-  const positions = useSharedValue<PositionMap>(positionsFromOrder(keys));
-  const order = useSharedValue<string[]>(keys);
+  const positions = useSharedValue<PositionMap>({});
+  const order = useSharedValue<string[]>(EMPTY_KEYS);
   const activeKey = useSharedValue<string | null>(null);
   const dragSessionKey = useSharedValue<string | null>(null);
   const dragStartIndex = useSharedValue(0);
@@ -468,6 +472,9 @@ export default function StableReorderableList<T>({
 
   const renderRow = useCallback(
     ({ item }: LegendListRenderItemProps<T>) => {
+      if (!enabled) {
+        return <View style={[styles.row, { height: itemHeight }]}>{renderItem({ item, dragHandle: null })}</View>;
+      }
       const itemKey = keyExtractor(item);
       return (
         <PositionedRow
@@ -545,7 +552,7 @@ export default function StableReorderableList<T>({
         bounces={false}
         overScrollMode="never"
         showsVerticalScrollIndicator={false}
-        drawDistance={drawDistance ?? itemHeight * 8}
+        drawDistance={drawDistance ?? itemHeight * (enabled ? 8 : 4)}
         maintainVisibleContentPosition={false}
         style={styles.list}
         contentContainerStyle={{
