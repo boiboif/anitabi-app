@@ -2,21 +2,21 @@ import { create } from 'zustand';
 
 type MapBangumiFilterStore = {
   selectedBangumiIds: number[];
-  toggleBangumi: (bangumiId: number, visibleBangumiIds: number[]) => void;
+  toggleBangumi: (bangumiId: number) => void;
   clear: () => void;
 };
 
 export const useMapBangumiFilter = create<MapBangumiFilterStore>((set) => ({
   selectedBangumiIds: [],
 
-  toggleBangumi: (bangumiId, visibleBangumiIds) =>
+  toggleBangumi: (bangumiId) =>
     set((state) => {
       const wasSelected = state.selectedBangumiIds.includes(bangumiId);
-      const visibleIds = new Set(visibleBangumiIds);
-      const next = state.selectedBangumiIds.filter((id) => visibleIds.has(id));
 
       return {
-        selectedBangumiIds: wasSelected ? next.filter((id) => id !== bangumiId) : [...next, bangumiId],
+        selectedBangumiIds: wasSelected
+          ? state.selectedBangumiIds.filter((id) => id !== bangumiId)
+          : [...state.selectedBangumiIds, bangumiId],
       };
     }),
 

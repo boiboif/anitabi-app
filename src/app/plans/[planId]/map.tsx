@@ -288,13 +288,11 @@ export default function PlanMapScreen() {
   );
 
   const handleToggleBangumi = useCallback(
-    (id: number, visibleBangumiIds: number[]) => {
+    (id: number) => {
       const wasSelected = selectedBangumiIds.includes(id);
-      const visibleIds = new Set(visibleBangumiIds);
-      const visibleSelectedIds = selectedBangumiIds.filter((selectedId) => visibleIds.has(selectedId));
       const nextSelectedIds = wasSelected
-        ? visibleSelectedIds.filter((selectedId) => selectedId !== id)
-        : [...visibleSelectedIds, id];
+        ? selectedBangumiIds.filter((selectedId) => selectedId !== id)
+        : [...selectedBangumiIds, id];
 
       setSelectedBangumiIds(nextSelectedIds);
       if (selectedPoint && nextSelectedIds.length > 0 && !nextSelectedIds.includes(selectedPoint.bangumiId)) {

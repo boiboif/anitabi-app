@@ -45,7 +45,7 @@ type Props = {
   bounds: { ne: [number, number]; sw: [number, number] } | null;
   filter?: {
     selectedBangumiIds: number[];
-    onToggleBangumi: (bangumiId: number, visibleBangumiIds: number[]) => void;
+    onToggleBangumi: (bangumiId: number) => void;
     onClear: () => void;
   };
   alwaysVisible?: boolean;
@@ -95,15 +95,12 @@ export default function MapTopBangumiIcons({
 
   const displayedBangumis = useMemo(() => {
     const selectedIds = new Set(selectedMapBangumiIds);
-    const inViewIds = new Set(inViewBangumis.map((bangumi) => bangumi.id));
-    const selectedInView = inViewBangumis.filter((bangumi) => selectedIds.has(bangumi.id));
-    const selectedOutOfView = selectedMapBangumiIds
-      .filter((id) => !inViewIds.has(id))
+    const selectedBangumis = selectedMapBangumiIds
       .map((id) => bangumis.find((bangumi) => bangumi.id === id))
       .filter((bangumi): bangumi is Bangumi => bangumi != null);
     const unselectedInView = inViewBangumis.filter((bangumi) => !selectedIds.has(bangumi.id));
 
-    return [...selectedInView, ...selectedOutOfView, ...unselectedInView].slice(0, MAX_ICONS);
+    return [...selectedBangumis, ...unselectedInView.slice(0, MAX_ICONS)];
   }, [bangumis, inViewBangumis, selectedMapBangumiIds]);
 
   const displayedBangumiIds = useMemo(
@@ -244,17 +241,12 @@ export default function MapTopBangumiIcons({
           const borderColor = b.color || theme.color12.val;
           const isSelected = selectedMapBangumiIds.includes(b.id);
 
-          if (visibleCount === 0) return null;
+          if (visibleCount === 0 && !isSelected) return null;
 
           return (
             <Pressable
               key={b.id}
-              onPress={() =>
-                (filter?.onToggleBangumi ?? toggleMapBangumi)(
-                  b.id,
-                  inViewBangumis.map((bangumi) => bangumi.id),
-                )
-              }
+              onPress={() => (filter?.onToggleBangumi ?? toggleMapBangumi)(b.id)}
               style={({ pressed }) => ({ opacity: pressed ? 0.3 : !hasMapBangumiFilter || isSelected ? 1 : 0.5 })}
             >
               <View
