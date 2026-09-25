@@ -85,6 +85,7 @@ const zh = {
   otherGroup: '其他分组',
   unnamedCollection: '未命名合辑',
   joinPilgrimagePlan: '加入巡礼计划',
+  alsoFavorite: '同时收藏',
   removeFromPilgrimagePlan: '从巡礼计划移除',
   addToPilgrimagePlan: '添加到巡礼计划',
   deselectAndRemoveLocation: '取消选中并移除巡礼点',

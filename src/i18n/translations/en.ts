@@ -88,6 +88,7 @@ const en = {
   otherGroup: 'Other',
   unnamedCollection: 'Unnamed collection',
   joinPilgrimagePlan: 'Add to pilgrimage plan',
+  alsoFavorite: 'Also add to favorites',
   removeFromPilgrimagePlan: 'Remove from pilgrimage plan',
   addToPilgrimagePlan: 'Add to pilgrimage plan',
   deselectAndRemoveLocation: 'Deselect and remove location',

@@ -90,6 +90,7 @@ const ja = {
   otherGroup: 'その他',
   unnamedCollection: '名称未設定コレクション',
   joinPilgrimagePlan: '巡礼プランに追加',
+  alsoFavorite: 'お気に入りにも追加',
   removeFromPilgrimagePlan: '巡礼プランから削除',
   addToPilgrimagePlan: '巡礼プランに追加',
   deselectAndRemoveLocation: '選択を解除してスポットを削除',

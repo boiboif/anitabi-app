@@ -1,5 +1,6 @@
 import { StrictButton as Button } from '@/components/strict-button';
 import type { Bangumi, Point } from '@/services/types';
+import { useFavoritePoints } from '@/store/use-favorite-points';
 import { usePlans } from '@/store/use-plans';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { Toast } from '@boiboif/react-native-toast';
@@ -69,8 +70,10 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
   const plans = usePlans((state) => state.plans);
   const createPlan = usePlans((state) => state.createPlan);
   const updatePointPlans = usePlans((state) => state.updatePointPlans);
+  const addFavorite = useFavoritePoints((state) => state.addFavorite);
   const [target, setTarget] = useState<{ point: Point; bangumi: Bangumi } | null>(null);
   const [selectedPlanIds, setSelectedPlanIds] = useState<string[]>([]);
+  const [alsoFavorite, setAlsoFavorite] = useState(true);
   const [newPlanTitle, setNewPlanTitle] = useState('');
 
   const open = useCallback((point: Point, bangumi: Bangumi) => {
@@ -80,6 +83,7 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
     setSelectedPlanIds(
       latestPlans.filter((plan) => plan.items.some((item) => item.key === pointKey)).map((plan) => plan.id),
     );
+    setAlsoFavorite(true);
     void pickerSheetRef.current?.present();
   }, []);
 
@@ -96,13 +100,14 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
       return;
     }
     updatePointPlans(target.point, target.bangumi, selectedPlanIds);
+    if (alsoFavorite && selectedPlanIds.length > 0) addFavorite(target.point, target.bangumi);
     void pickerSheetRef.current?.dismiss();
     Toast.show(
       selectedPlanIds.length > 0
         ? t('pilgrimagePlansUpdated', { defaultValue: '已更新巡礼计划' })
         : t('removedFromPilgrimagePlans', { defaultValue: '已从巡礼计划移除' }),
     );
-  }, [plans.length, selectedPlanIds, t, target, updatePointPlans]);
+  }, [addFavorite, alsoFavorite, plans.length, selectedPlanIds, t, target, updatePointPlans]);
 
   const openCreate = useCallback(() => {
     setNewPlanTitle('');
@@ -133,6 +138,24 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
         style={{ paddingTop: 26 }}
         footer={
           <View px="$4" pt="$2" pb="$4" bg="$color1">
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityLabel={t('alsoFavorite', { defaultValue: '同时收藏' })}
+              accessibilityState={{ checked: alsoFavorite }}
+              onPress={() => setAlsoFavorite((current) => !current)}
+              style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
+            >
+              <XStack minH={44} items="center" justify="space-between" mb="$2">
+                <Text fontSize="$body" color="$color12">
+                  {t('alsoFavorite', { defaultValue: '同时收藏' })}
+                </Text>
+                {alsoFavorite ? (
+                  <SquareCheckBig size={23} strokeWidth={2.5} color={theme.primary.val} />
+                ) : (
+                  <Square size={23} color="$color8" />
+                )}
+              </XStack>
+            </Pressable>
             <Button bg="$primary" color="white" onPress={submit}>
               {t('done', { defaultValue: '完成' })}
             </Button>
