@@ -1,13 +1,14 @@
+import PlanSortButton from '@/components/plan-sort-button';
 import { StrictButton as Button } from '@/components/strict-button';
 import type { Bangumi, Point } from '@/services/types';
 import { useFavoritePoints } from '@/store/use-favorite-points';
 import { usePlans } from '@/store/use-plans';
-import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { Toast } from '@boiboif/react-native-toast';
+import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { Plus, Square, SquareCheckBig, X } from '@tamagui/lucide-icons-2';
 import { createContext, type ReactNode, use, useCallback, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Pressable, ScrollView } from 'react-native';
 import { getTokens, Input, Text, useTheme, View, XStack, YStack } from 'tamagui';
 
 type PlanPickerContextValue = {
@@ -68,6 +69,8 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
   const pickerSheetRef = useRef<TrueSheet>(null);
   const createSheetRef = useRef<TrueSheet>(null);
   const plans = usePlans((state) => state.plans);
+  const planListSortOrder = usePlans((state) => state.planListSortOrder);
+  const togglePlanListSortOrder = usePlans((state) => state.togglePlanListSortOrder);
   const createPlan = usePlans((state) => state.createPlan);
   const updatePointPlans = usePlans((state) => state.updatePointPlans);
   const addFavorite = useFavoritePoints((state) => state.addFavorite);
@@ -75,6 +78,7 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
   const [selectedPlanIds, setSelectedPlanIds] = useState<string[]>([]);
   const [alsoFavorite, setAlsoFavorite] = useState(true);
   const [newPlanTitle, setNewPlanTitle] = useState('');
+  const [pickerFooterHeight, setPickerFooterHeight] = useState(0);
 
   const open = useCallback((point: Point, bangumi: Bangumi) => {
     const pointKey = `${bangumi.id}:${point.id}`;
@@ -124,20 +128,50 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
   }, [createPlan, newPlanTitle]);
 
   const contextValue = useMemo(() => ({ open }), [open]);
+  const sortedPlans = [...plans].sort((a, b) =>
+    planListSortOrder === 'desc' ? b.createdAt - a.createdAt : a.createdAt - b.createdAt,
+  );
 
   return (
     <PlanPickerContext.Provider value={contextValue}>
       {children}
       <TrueSheet
         ref={pickerSheetRef}
-        detents={[0.5, 0.9]}
+        detents={[0.6, 0.9]}
         scrollable
+        scrollableOptions={{ scrollingExpandsSheet: false }}
         backgroundColor={theme.color1.val}
         cornerRadius={getTokens().radius['4'].val}
         grabberOptions={{ color: theme.primary.val, adaptive: false, topMargin: 12 }}
-        style={{ paddingTop: 26 }}
+        headerStyle={{ paddingTop: 26 }}
+        header={
+          <YStack px="$4" pt="$3" pb="$2" gap="$3" bg="$color1">
+            <XStack items="center" justify="space-between">
+              <Text fontSize="$title" fontWeight="700" color="$color12">
+                {t('joinPilgrimagePlan', { defaultValue: '加入巡礼计划' })}
+              </Text>
+              <XStack items="center" gap="$1.5">
+                <PlanSortButton sortOrder={planListSortOrder} onPress={togglePlanListSortOrder} />
+                <Pressable onPress={openCreate} hitSlop={8} style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}>
+                  <XStack items="center" gap="$1">
+                    <Plus size={18} color={theme.primary.val} />
+                    <Text color="$primary" fontSize="$body">
+                      {t('newPlan', { defaultValue: '新建计划' })}
+                    </Text>
+                  </XStack>
+                </Pressable>
+              </XStack>
+            </XStack>
+          </YStack>
+        }
         footer={
-          <View px="$4" pt="$2" pb="$4" bg="$color1">
+          <View
+            px="$4"
+            pt="$2"
+            pb="$4"
+            bg="$color1"
+            onLayout={(event) => setPickerFooterHeight(event.nativeEvent.layout.height)}
+          >
             <Pressable
               accessibilityRole="checkbox"
               accessibilityLabel={t('alsoFavorite', { defaultValue: '加入同时收藏' })}
@@ -162,28 +196,15 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
           </View>
         }
       >
-        <YStack px="$4" pt="$3" pb="$2" gap="$3">
-          <XStack items="center" justify="space-between">
-            <Text fontSize="$title" fontWeight="700" color="$color12">
-              {t('joinPilgrimagePlan', { defaultValue: '加入巡礼计划' })}
-            </Text>
-            <Pressable onPress={openCreate} hitSlop={8} style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}>
-              <XStack items="center" gap="$1">
-                <Plus size={18} color={theme.primary.val} />
-                <Text color="$primary" fontSize="$body">
-                  {t('newPilgrimagePlan', { defaultValue: '新建巡礼计划' })}
-                </Text>
-              </XStack>
-            </Pressable>
-          </XStack>
-          {plans.length === 0 ? (
-            <View py="$6" items="center">
-              <Text color="$color11">{t('noPilgrimagePlansYet', { defaultValue: '还没有巡礼计划' })}</Text>
-            </View>
-          ) : (
-            <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <YStack px="$4" pt="$2" pb={pickerFooterHeight + 16}>
+            {plans.length === 0 ? (
+              <View py="$6" items="center">
+                <Text color="$color11">{t('noPilgrimagePlansYet', { defaultValue: '还没有巡礼计划' })}</Text>
+              </View>
+            ) : (
               <YStack overflow="hidden" rounded="$3" bg="$color2">
-                {plans.map((plan, index) => (
+                {sortedPlans.map((plan, index) => (
                   <View key={plan.id}>
                     {index > 0 ? <View ml="$3" bg="$color4" height={1} /> : null}
                     <PlanRow
@@ -195,9 +216,9 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
                   </View>
                 ))}
               </YStack>
-            </ScrollView>
-          )}
-        </YStack>
+            )}
+          </YStack>
+        </ScrollView>
       </TrueSheet>
 
       <TrueSheet
