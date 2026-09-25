@@ -4,8 +4,11 @@ import type { Bangumi, Point } from '@/services/types';
 import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
 import { type MapPointReference, useMapBrowse } from '@/store/use-map-browse';
 import { Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
+import { useDebounce } from 'ahooks';
 import { memo, useMemo } from 'react';
 import type { Bounds } from './map-container';
+
+const IMAGE_MARKER_UPDATE_DELAY_MS = 600;
 
 type Props = {
   bangumis: Bangumi[];
@@ -112,6 +115,7 @@ const PointImageLayer = memo(
           id: item.point.id,
           bangumiId: item.bangumi.id,
           iconImage: key,
+          sortKey: -item.point.geo[0],
         },
       });
     }
@@ -145,8 +149,10 @@ const PointImageLayer = memo(
               iconImage: ['get', 'iconImage'],
               iconSize: 0.4,
               iconAllowOverlap: true,
+              iconIgnorePlacement: true,
               iconAnchor: 'bottom',
               iconOffset: [0, -16],
+              symbolSortKey: ['get', 'sortKey'],
             }}
           />
         </ShapeSource>
@@ -176,11 +182,17 @@ export default function PointImageMarkers({
     openedBangumiDetailsId === undefined ? storedOpenedBangumiDetailsId : openedBangumiDetailsId;
   const activeSelectedBangumiIds = selectedBangumiIds ?? storedSelectedMapBangumiIds;
   const isFilterActive = activeOpenedBangumiDetailsId !== null || activeSelectedBangumiIds.length > 0;
+  const settledZoom = useDebounce(ignoreZoomThreshold ? 0 : zoom, { wait: IMAGE_MARKER_UPDATE_DELAY_MS });
+  const settledBounds = useDebounce(ignoreZoomThreshold ? null : bounds, { wait: IMAGE_MARKER_UPDATE_DELAY_MS });
+  const imageZoom = ignoreZoomThreshold ? zoom : settledZoom;
+  const imageBounds = ignoreZoomThreshold ? bounds : settledBounds;
 
   const zoomThreshold = isFilterActive
     ? FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE
     : MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE;
-  const belowZoomThreshold = !ignoreZoomThreshold && (zoom < zoomThreshold || !bounds);
+  const belowZoomThreshold = !ignoreZoomThreshold && (imageZoom <= zoomThreshold || !imageBounds);
+  // The website progressively reveals lower-priority screenshots as the map zooms in.
+  const minimumImagePriority = ignoreZoomThreshold ? 0 : 3 * 2 ** (19 - imageZoom);
 
   const candidates = useMemo(() => {
     if (belowZoomThreshold) return [];
@@ -193,6 +205,7 @@ export default function PointImageMarkers({
       for (const p of b.points) {
         if (!p.image) continue;
         if (p.geo[0] === 0 && p.geo[1] === 0) continue;
+        if (!ignoreZoomThreshold && p.priority < minimumImagePriority) continue;
         items.push({
           point: p,
           bangumi: b,
@@ -203,13 +216,13 @@ export default function PointImageMarkers({
     }
 
     return items;
-  }, [activeOpenedBangumiDetailsId, activeSelectedBangumiIds, bangumis, belowZoomThreshold]);
+  }, [activeOpenedBangumiDetailsId, activeSelectedBangumiIds, bangumis, belowZoomThreshold, ignoreZoomThreshold, minimumImagePriority]);
   const byLatitude = useMemo(
     () =>
       candidates.filter((item) => Number.isFinite(item.point.geo[0])).sort((a, b) => a.point.geo[0] - b.point.geo[0]),
     [candidates],
   );
-  const visible = belowZoomThreshold ? [] : getVisibleCandidates(candidates, byLatitude, bounds, selectedPoint);
+  const visible = belowZoomThreshold ? [] : getVisibleCandidates(candidates, byLatitude, imageBounds, selectedPoint);
 
   if (visible.length === 0) return null;
   return <PointImageLayer visible={visible} bangumis={bangumis} onPointSelect={onPointSelect} />;
