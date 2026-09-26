@@ -20,5 +20,5 @@ export const useMapBangumiFilter = create<MapBangumiFilterStore>((set) => ({
       };
     }),
 
-  clear: () => set({ selectedBangumiIds: [] }),
+  clear: () => set((state) => (state.selectedBangumiIds.length === 0 ? state : { selectedBangumiIds: [] })),
 }));

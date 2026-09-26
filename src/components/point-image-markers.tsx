@@ -186,10 +186,12 @@ export default function PointImageMarkers({
     openedBangumiDetailsId === undefined ? storedOpenedBangumiDetailsId : openedBangumiDetailsId;
   const activeSelectedBangumiIds = selectedBangumiIds ?? storedSelectedMapBangumiIds;
   const isFilterActive = activeOpenedBangumiDetailsId !== null || activeSelectedBangumiIds.length > 0;
-  const settledZoom = useDebounce(ignoreZoomThreshold ? 0 : zoom, { wait: IMAGE_MARKER_UPDATE_DELAY_MS });
-  const settledBounds = useDebounce(ignoreZoomThreshold ? null : bounds, { wait: IMAGE_MARKER_UPDATE_DELAY_MS });
-  const imageZoom = ignoreZoomThreshold ? zoom : settledZoom;
-  const imageBounds = ignoreZoomThreshold ? bounds : settledBounds;
+  // useDebounce depends on reference identity. Keep zoom and bounds in one stable
+  // snapshot so an update cannot combine a new zoom with an old viewport.
+  const viewport = useMemo(() => ({ zoom, bounds }), [zoom, bounds]);
+  const settledViewport = useDebounce(ignoreZoomThreshold ? null : viewport, { wait: IMAGE_MARKER_UPDATE_DELAY_MS });
+  const imageZoom = ignoreZoomThreshold ? zoom : (settledViewport?.zoom ?? zoom);
+  const imageBounds = ignoreZoomThreshold ? bounds : (settledViewport?.bounds ?? null);
 
   const zoomThreshold = isFilterActive
     ? FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE
@@ -201,17 +203,13 @@ export default function PointImageMarkers({
   const minimumImagePriority = ignoreZoomThreshold ? 0 : 3 * 2 ** (imagePriorityBaseZoom - imageZoom);
 
   const candidates = useMemo(() => {
-    if (belowZoomThreshold) return [];
+    // This index describes the dataset, not the current camera or filters.
+    // Reuse the same candidates when zoom, selection or viewport changes.
     const items: ImageMarkerCandidate[] = [];
-    const selectedIds = new Set(activeSelectedBangumiIds);
-
     for (const b of bangumis) {
-      if (activeOpenedBangumiDetailsId !== null && b.id !== activeOpenedBangumiDetailsId) continue;
-      if (activeOpenedBangumiDetailsId === null && selectedIds.size > 0 && !selectedIds.has(b.id)) continue;
       for (const p of b.points) {
         if (!p.image) continue;
         if (p.geo[0] === 0 && p.geo[1] === 0) continue;
-        if (!ignoreZoomThreshold && p.priority < minimumImagePriority) continue;
         items.push({
           point: p,
           bangumi: b,
@@ -220,15 +218,23 @@ export default function PointImageMarkers({
         });
       }
     }
-
     return items;
-  }, [activeOpenedBangumiDetailsId, activeSelectedBangumiIds, bangumis, belowZoomThreshold, ignoreZoomThreshold, minimumImagePriority]);
+  }, [bangumis]);
   const byLatitude = useMemo(
     () =>
       candidates.filter((item) => Number.isFinite(item.point.geo[0])).sort((a, b) => a.point.geo[0] - b.point.geo[0]),
     [candidates],
   );
-  const visible = belowZoomThreshold ? [] : getVisibleCandidates(candidates, byLatitude, imageBounds, selectedPoint);
+  // Match the website's order: query the viewport first, then apply sparsity to
+  // those points. Filtering preserves candidate references for PointImageLayer.
+  const inBounds = belowZoomThreshold ? [] : getVisibleCandidates(candidates, byLatitude, imageBounds, selectedPoint);
+  const selectedIds = new Set(activeSelectedBangumiIds);
+  const visible = inBounds.filter((item) => {
+    if (activeOpenedBangumiDetailsId !== null && item.bangumi.id !== activeOpenedBangumiDetailsId) return false;
+    if (activeOpenedBangumiDetailsId === null && selectedIds.size > 0 && !selectedIds.has(item.bangumi.id))
+      return false;
+    return ignoreZoomThreshold || !(item.point.priority < minimumImagePriority);
+  });
 
   if (visible.length === 0) return null;
   return <PointImageLayer visible={visible} bangumis={bangumis} onPointSelect={onPointSelect} />;
