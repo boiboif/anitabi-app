@@ -1,4 +1,14 @@
 const zh = {
+  closeImagePreview: '关闭图片预览',
+  imagePreviewPage: '第 {{current}} 张，共 {{total}} 张',
+  imagePreviewLoadFailed: '图片加载失败',
+  openImagePreview: '预览第 {{index}} 张图片',
+  imagePreviewDemo: '图片预览演示',
+  imagePreviewDemoInstructions:
+    '点击图片打开预览。双击或双指缩放，放大后拖动查看；左右滑动切图，原始尺寸下下拉关闭，单击退出。长按可验证回调。',
+  imagePreviewDemoSingle: '预览单张图片（淡入淡出）',
+  imagePreviewDemoError: '验证加载失败和重试',
+  imagePreviewDemoLongPress: '已触发图片长按',
   language: '语言',
   followSystem: '跟随系统',
   simplifiedChinese: '简体中文',
@@ -86,6 +96,7 @@ const zh = {
   unnamedCollection: '未命名合辑',
   joinPilgrimagePlan: '加入巡礼计划',
   alsoFavorite: '加入同时收藏',
+  favoriteImportedLocations: '导入同时收藏',
   removeFromPilgrimagePlan: '从巡礼计划移除',
   addToPilgrimagePlan: '添加到巡礼计划',
   deselectAndRemoveLocation: '取消选中并移除巡礼点',

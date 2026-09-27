@@ -351,10 +351,12 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
         </MarkerView>
       ) : selectedPointData ? (
         <MarkerView
+          key={`${selectedPointData.bangumi.id}:${selectedPointData.point.id}`}
           coordinate={[selectedPointData.point.geo[1], selectedPointData.point.geo[0]]}
           anchor={{ x: 0.5, y: 1 }}
           allowOverlap
           allowOverlapWithPuck
+          isSelected
         >
           <PopupCard
             point={selectedPointData.point}
