@@ -333,7 +333,7 @@ export default function FavoritesScreen() {
           </View>
         ) : resolvedFavorites.length === 0 ? (
           <YStack flex={1} pb="$20" items="center" justify="center" gap="$3" px="$6">
-            <Text fontSize="$subtitle" fontWeight="600" color="$color12">
+            <Text fontSize="$body" color="$color11">
               {t('noFavoriteLocationsYet', { defaultValue: '还没有收藏的巡礼点' })}
             </Text>
             <Button

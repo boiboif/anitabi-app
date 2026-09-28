@@ -91,7 +91,7 @@ const EmptyPlans = memo(function EmptyPlans({ onCreate }: EmptyPlansProps) {
   const { t } = useTranslation();
   return (
     <YStack flex={1} minH={360} items="center" justify="center" gap="$3">
-      <Text fontSize="$subtitle" fontWeight="600" color="$color12">
+      <Text fontSize="$body" color="$color11">
         {t('noPilgrimagePlansYet', { defaultValue: '还没有巡礼计划' })}
       </Text>
       <Button bg="$color3" color="$color12" icon={<Plus size={BLOCK_BUTTON_ICON_SIZE} />} onPress={onCreate}>
