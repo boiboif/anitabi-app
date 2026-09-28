@@ -1,7 +1,7 @@
 import ImagePreview, { type ImagePreviewBounds, type PreviewImage } from '@/components/image-preview';
 import { getPreviewContainerOrigin, type PreviewTouchCoordinates } from '@/utils/image-preview-source';
 import { Image, type ImageProps, type ImageSource } from 'expo-image';
-import { type ComponentProps, useEffect, useRef, useState } from 'react';
+import { memo, type ComponentProps, useEffect, useRef, useState } from 'react';
 import type { LayoutRectangle, StyleProp, View as NativeView, ViewStyle } from 'react-native';
 import { GestureDetector, Pressable, useTapGesture } from 'react-native-gesture-handler';
 import { View } from 'tamagui';
@@ -195,8 +195,11 @@ function PreviewableImageContent({
   );
 }
 
+// A card can change its outer interaction state without re-sending image props to the native view.
+const MemoizedPreviewableImageContent = memo(PreviewableImageContent);
+
 /** Reset measurements and pending callbacks when a recycled card changes image. */
 export default function PreviewableImage(props: PreviewableImageProps) {
   // Preview availability can change without changing the thumbnail identity.
-  return <PreviewableImageContent key={JSON.stringify([props.source.uri, props.recyclingKey])} {...props} />;
+  return <MemoizedPreviewableImageContent key={JSON.stringify([props.source.uri, props.recyclingKey])} {...props} />;
 }
