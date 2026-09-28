@@ -2,6 +2,8 @@
 
 感谢你愿意为 Anitabi App 贡献代码、文档或建议！提交前请先阅读本文件和 [README.md](README.md)。
 
+组件接入、回归验证、发版和官网维护资料统一从 [文档索引](docs/README.md) 查找。
+
 ## 开始之前
 
 请先搜索已有 Issue，避免重复提交。Bug 报告应尽量包含：
@@ -82,7 +84,14 @@ anitabi-app/
 ├── app.config.ts           # Expo 配置（scheme、插件、地图 token）
 ├── assets/                 # 图标、启动屏图片资源
 ├── docs/
-│   └── anitabi-api.md      # anitabi.cn API 数据格式文档
+│   ├── README.md           # 文档索引与维护约定
+│   ├── guide/              # 官网使用指南（en/、ja/ 为对应翻译）
+│   ├── development/        # 组件接入、实现说明与回归验证
+│   ├── maintenance/        # 官网维护资料
+│   ├── releases/           # 发版说明与更新清单
+│   ├── anitabi-api.md      # 公开的数据接口文档
+│   ├── .vitepress/         # 官网配置与主题
+│   └── public/             # 官网静态资源
 └── src/
     ├── tamagui.config.ts   # Tamagui 主题（primary: #FB7299）
     ├── app/                # Expo Router 文件路由
