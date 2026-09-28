@@ -43,18 +43,18 @@
 ## 截图
 
 <p align="center">
-  <img src="https://i0.hdslb.com/bfs/new_dyn/27f14bcd8532a28aa94b2c7e4befdfbf1519338.jpg" width="172" alt="首页地图1" />
-  <img src="https://i0.hdslb.com/bfs/new_dyn/bfde030847ba8abcd609ab61afebae671519338.jpg" width="172" alt="首页地图2" />
-  <img src="https://i0.hdslb.com/bfs/new_dyn/27d02376ce308b975fd2f9dee7514c251519338.jpg" width="172" alt="首页地图3" />
-  <img src="https://i0.hdslb.com/bfs/new_dyn/48470d9965423be5c3e99076708d203f1519338.jpg" width="172" alt="首页番剧详情" />
+  <img src="https://i0.hdslb.com/bfs/new_dyn/97e22595b8c228e4c30c056a2572afec1519338.jpg" width="172" alt="首页地图1" />
+  <img src="https://i0.hdslb.com/bfs/new_dyn/b3687a9d4eab02ed58034210f3112be31519338.jpg" width="172" alt="首页地图2" />
+  <img src="https://i0.hdslb.com/bfs/new_dyn/79bb05e933b4027b2b6e2b1dddb609141519338.jpg" width="172" alt="首页地图3" />
+  <img src="https://i0.hdslb.com/bfs/new_dyn/1af1aef8ccbf31c7925c3addddeff6f01519338.jpg" width="172" alt="首页番剧详情" />
   <img src="https://i0.hdslb.com/bfs/new_dyn/41922586277a7302e9828af7c7a27c8d1519338.jpg" width="172" alt="搜索1" />
-  <img src="https://i0.hdslb.com/bfs/new_dyn/6fd051ad87aa34fe31b294af191b47411519338.jpg" width="172" alt="搜索2" /> 
-  <img src="https://i0.hdslb.com/bfs/new_dyn/78fb71aa4c555227d2731e4166c3d9d51519338.jpg" width="172" alt="收藏1" />
-  <img src="https://i0.hdslb.com/bfs/new_dyn/364a53e928ebf646cccd2684962e482e1519338.jpg" width="172" alt="收藏2" />
-  <img src="https://i0.hdslb.com/bfs/new_dyn/2ded6575449c3c2cbd246598f68b90c51519338.jpg" width="172" alt="巡礼计划" />
-  <img src="http://i0.hdslb.com/bfs/new_dyn/4a0a2ce7f6e8895cb7e58288ba003ac11519338.jpg" width="172" alt="分享巡礼计划" />
+  <img src="https://i0.hdslb.com/bfs/new_dyn/b45bcce002dbe99e454bda39b2ebb0a61519338.jpg" width="172" alt="收藏1" />
+  <img src="https://i0.hdslb.com/bfs/new_dyn/fab9cdf3f0e45fad938e3c49fcf2fa0d1519338.jpg" width="172" alt="收藏2" />
+  <img src="https://i0.hdslb.com/bfs/new_dyn/9b03c9f653a5eeb731fe652ab61b950d1519338.jpg" width="172" alt="巡礼计划" />
+  <img src="https://i0.hdslb.com/bfs/new_dyn/f3c3ed72e4b91dcee45c3627244623b71519338.jpg" width="172" alt="巡礼计划地图" />
+  <img src="https://i0.hdslb.com/bfs/new_dyn/ab332faa3d3aba74f78848a6d8316e971519338.jpg" width="172" alt="分享巡礼计划" />
   <img src="https://i0.hdslb.com/bfs/new_dyn/77b0b9e7636e86d058771cc0bbdbd29e1519338.jpg" width="172" alt="巡礼点拍照1" />
-  <img src="https://i0.hdslb.com/bfs/new_dyn/09f173b924073edfc887e0897df334551519338.jpg" width="172" alt="我的" />
+  <img src="https://i0.hdslb.com/bfs/new_dyn/cabd750d0cc64470fd4e27b7013bc9bc1519338.jpg" width="172" alt="我的" />
 </p>
 
 ## 计划功能
