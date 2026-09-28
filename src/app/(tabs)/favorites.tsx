@@ -1,7 +1,9 @@
 import PointListCard from '@/components/point-list-card';
 import RemoveFavoriteButton from '@/components/remove-favorite-button';
+import { StrictButton as Button } from '@/components/strict-button';
 import { type FavoritePoint } from '@/lib/favorite-storage';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
+import { BLOCK_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useFavoritePoints } from '@/store/use-favorite-points';
@@ -9,11 +11,12 @@ import { useMapBrowse } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
 import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
 import { FlashList } from '@shopify/flash-list';
+import { MapPin } from '@tamagui/lucide-icons-2';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Platform, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Platform, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, View, XStack, YStack, getTokens, useTheme } from 'tamagui';
 
@@ -329,9 +332,19 @@ export default function FavoritesScreen() {
             <Text color="$color11">{t('loadingFavorites', { defaultValue: '加载收藏数据...' })}</Text>
           </View>
         ) : resolvedFavorites.length === 0 ? (
-          <View minH={240} items="center" justify="center" px="$6">
-            <Text color="$color11">{t('noFavoriteLocationsYet', { defaultValue: '还没有收藏的巡礼点' })}</Text>
-          </View>
+          <YStack flex={1} pb="$20" items="center" justify="center" gap="$3" px="$6">
+            <Text fontSize="$subtitle" fontWeight="600" color="$color12">
+              {t('noFavoriteLocationsYet', { defaultValue: '还没有收藏的巡礼点' })}
+            </Text>
+            <Button
+              icon={<MapPin size={BLOCK_BUTTON_ICON_SIZE} color="$primary" />}
+              chromeless
+              color="$primary"
+              onPress={() => router.navigate('/')}
+            >
+              {t('explorePilgrimageMap', { defaultValue: '前往巡礼地图探索' })}
+            </Button>
+          </YStack>
         ) : (
           <FlashList
             key={view}

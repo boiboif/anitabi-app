@@ -72,6 +72,7 @@ const ja = {
   recentlyFavorited: '最近のお気に入り',
   loadingFavorites: 'お気に入りを読み込み中...',
   noFavoriteLocationsYet: 'お気に入りのスポットはありません',
+  explorePilgrimageMap: '聖地巡礼マップを探索する',
   mapDataFailedToLoadShowingSavedFavoriteDetails:
     '地図データを読み込めないため、保存済みのお気に入り情報を表示しています',
   favoriteLocations: 'お気に入りスポット',

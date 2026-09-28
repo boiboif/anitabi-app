@@ -69,6 +69,7 @@ const zh = {
   recentlyFavorited: '最近收藏',
   loadingFavorites: '加载收藏数据...',
   noFavoriteLocationsYet: '还没有收藏的巡礼点',
+  explorePilgrimageMap: '前往巡礼地图探索',
   mapDataFailedToLoadShowingSavedFavoriteDetails: '地图数据加载失败，正在显示已保存的收藏信息',
   favoriteLocations: '收藏点位',
   thisWorkHasNoFavoriteLocations: '该番剧没有收藏的巡礼点',

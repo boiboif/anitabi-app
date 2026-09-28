@@ -1,16 +1,18 @@
+import { createFirstInstallDemoPlan } from '@/lib/demo-plan';
+import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import {
   clearPlans,
   getPlanListSortOrder,
   getPlans,
+  initializeDemoPlan,
   setPlanListSortOrder,
   setPlans,
   type ItineraryPlan,
   type PlanItem,
   type PlanListSortOrder,
 } from '@/lib/plan-storage';
-import type { Bangumi, Point } from '@/services/types';
-import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import i18n from '@/i18n';
+import type { Bangumi, Point } from '@/services/types';
 import { create } from 'zustand';
 
 function pointKey(bangumiId: number, pointId: string): string {
@@ -39,6 +41,7 @@ function makeItem(point: Point, bangumi: Bangumi): PlanItem {
 type PlansStore = {
   plans: ItineraryPlan[];
   planListSortOrder: PlanListSortOrder;
+  initializeFirstInstallDemo: () => Promise<void>;
   togglePlanListSortOrder: () => void;
   createPlan: (title: string, description?: string) => string;
   updatePlan: (id: string, patch: Pick<ItineraryPlan, 'title' | 'description'>) => void;
@@ -63,6 +66,15 @@ function save(next: ItineraryPlan[], set: (value: Partial<PlansStore>) => void) 
 export const usePlans = create<PlansStore>((set, get) => ({
   plans: initialPlans,
   planListSortOrder: getPlanListSortOrder(),
+  initializeFirstInstallDemo: async () => {
+    try {
+      const demoPlan = await createFirstInstallDemoPlan();
+      const seededPlan = initializeDemoPlan(demoPlan);
+      if (seededPlan) set({ plans: [seededPlan] });
+    } catch (error) {
+      console.warn('Could not determine installation status for demo plan:', error);
+    }
+  },
   togglePlanListSortOrder: () => {
     const next = get().planListSortOrder === 'desc' ? 'asc' : 'desc';
     setPlanListSortOrder(next);

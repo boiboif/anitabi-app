@@ -71,6 +71,7 @@ const en = {
   recentlyFavorited: 'Recently favorited',
   loadingFavorites: 'Loading favorites...',
   noFavoriteLocationsYet: 'No favorite locations yet',
+  explorePilgrimageMap: 'Explore the pilgrimage map',
   mapDataFailedToLoadShowingSavedFavoriteDetails: 'Map data failed to load. Showing saved favorite details.',
   favoriteLocations: 'Favorite locations',
   thisWorkHasNoFavoriteLocations: 'This work has no favorite locations',
