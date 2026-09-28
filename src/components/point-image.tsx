@@ -33,28 +33,30 @@ export default function PointImage({
   const { t } = useTranslation();
   const path = image || cover;
   const uri = path ? buildImageUrl(path, 'plan=h360') : undefined;
-  const source = typeof thumbnailSource === 'string' ? { uri: thumbnailSource } : thumbnailSource;
+  // Use one thumbnail both on the card and as the full-size preview's placeholder.
+  const source =
+    (typeof thumbnailSource === 'string' ? { uri: thumbnailSource } : thumbnailSource) ??
+    (uri ? { uri, cacheKey: uri } : undefined);
   const label = t(image ? 'previewLocationImage' : 'previewWorkCover', { title });
   const style = imageStyle ?? { width: '100%', height: '100%' };
 
   return (
     <View position="relative" overflow="hidden" bg="$color5" {...viewProps}>
-      {uri ? (
+      {source && path ? (
         previewEnabled ? (
           <PreviewableImage
-            source={source ?? { uri, cacheKey: uri }}
-            previewUri={buildImageUrl(path!)}
+            source={source}
+            previewUri={buildImageUrl(path)}
             accessibilityLabel={label}
             previewBorderRadius={previewBorderRadius}
             maxPressDistance={maxPressDistance}
             containerStyle={{ flex: 1 }}
-            placeholder={{ uri: buildImageUrl(path!, 'plan=h160') }}
             recyclingKey={recyclingKey ?? path}
             style={style}
           />
         ) : (
           <Image
-            source={source ?? { uri, cacheKey: uri }}
+            source={source}
             recyclingKey={recyclingKey ?? path}
             style={style}
             contentFit="cover"
