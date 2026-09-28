@@ -140,6 +140,8 @@ const enSidebar: DefaultTheme.Sidebar = [
 ];
 
 export default defineConfig({
+  // 仓库开发与维护资料不作为官网页面发布。
+  srcExclude: ['README.md', 'development/**', 'maintenance/**', 'releases/**'],
   base: siteBase,
   cleanUrls: true,
   lastUpdated: true,
