@@ -191,5 +191,6 @@ function PreviewableImageContent({
 
 /** Reset measurements and pending callbacks when a recycled card changes image. */
 export default function PreviewableImage(props: PreviewableImageProps) {
-  return <PreviewableImageContent key={JSON.stringify([props.source.uri, props.previewUri])} {...props} />;
+  // Preview availability can change without changing the thumbnail identity.
+  return <PreviewableImageContent key={JSON.stringify([props.source.uri, props.recyclingKey])} {...props} />;
 }

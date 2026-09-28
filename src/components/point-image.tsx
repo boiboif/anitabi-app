@@ -1,6 +1,6 @@
 import PreviewableImage from '@/components/previewable-image';
 import { buildImageUrl } from '@/services/handlers';
-import { Image, type ImageProps, type ImageSource } from 'expo-image';
+import { type ImageProps, type ImageSource } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { Text, View, YStack, type ViewProps } from 'tamagui';
 
@@ -43,27 +43,16 @@ export default function PointImage({
   return (
     <View position="relative" overflow="hidden" bg="$color5" {...viewProps}>
       {source && path ? (
-        previewEnabled ? (
-          <PreviewableImage
-            source={source}
-            previewUri={buildImageUrl(path)}
-            accessibilityLabel={label}
-            previewBorderRadius={previewBorderRadius}
-            maxPressDistance={maxPressDistance}
-            containerStyle={{ flex: 1 }}
-            recyclingKey={recyclingKey ?? path}
-            style={style}
-          />
-        ) : (
-          <Image
-            source={source}
-            recyclingKey={recyclingKey ?? path}
-            style={style}
-            contentFit="cover"
-            cachePolicy="memory-disk"
-            transition={0}
-          />
-        )
+        <PreviewableImage
+          source={source}
+          previewUri={previewEnabled ? buildImageUrl(path) : undefined}
+          accessibilityLabel={label}
+          previewBorderRadius={previewBorderRadius}
+          maxPressDistance={maxPressDistance}
+          containerStyle={{ flex: 1 }}
+          recyclingKey={recyclingKey ?? path}
+          style={style}
+        />
       ) : null}
       {!image ? (
         <YStack fullscreen pointerEvents="none" bg="rgba(0,0,0,0.7)" items="center" justify="center">

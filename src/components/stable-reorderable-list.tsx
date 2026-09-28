@@ -68,11 +68,9 @@ type StableReorderableListProps<T> = {
   style?: StyleProp<ViewStyle>;
 };
 
-type PositionedRowProps<T> = {
-  item: T;
+type SortableDragHandleProps = {
   itemKey: string;
   itemCount: number;
-  enabled: boolean;
   itemHeight: number;
   positions: SharedValue<PositionMap>;
   order: SharedValue<string[]>;
@@ -86,7 +84,6 @@ type PositionedRowProps<T> = {
   autoscrollSpeed: SharedValue<number>;
   viewportTop: SharedValue<number>;
   viewportHeight: SharedValue<number>;
-  renderItem: (params: StableReorderableListRenderItem<T>) => ReactElement;
   renderDragHandle: () => ReactElement;
   onReorder: (orderedKeys: string[]) => void;
   dragPreviewHeight: number;
@@ -145,11 +142,9 @@ function updateTargetIndex(
   targetIndex.value = clamp(Math.floor(previewCenter / itemHeight), 0, itemCount - 1);
 }
 
-function PositionedRowInner<T>({
-  item,
+function SortableDragHandleInner({
   itemKey,
   itemCount,
-  enabled,
   itemHeight,
   positions,
   order,
@@ -163,7 +158,6 @@ function PositionedRowInner<T>({
   autoscrollSpeed,
   viewportTop,
   viewportHeight,
-  renderItem,
   renderDragHandle,
   onReorder,
   dragPreviewHeight,
@@ -171,22 +165,15 @@ function PositionedRowInner<T>({
   autoscrollMaxSpeed,
   onDraggingChange,
   onPreviewChange,
-}: PositionedRowProps<T>) {
+}: SortableDragHandleProps) {
   // LegendList can recycle this component for another item while its gesture is
   // still active. Keep the key captured at touch-down independent from props.
   const gestureItemKey = useSharedValue<string | null>(null);
   const gestureWasActive = useSharedValue(false);
 
-  const animatedStyle = useAnimatedStyle(() => {
-    const isActive = activeKey.value === itemKey;
-    return {
-      opacity: isActive ? 0.55 : 1,
-    };
-  }, [itemKey]);
-
   const panConfig = useMemo<PanGestureConfig>(
     () => ({
-      enabled,
+      enabled: true,
       activateAfterLongPress: 180,
       onBegin: () => {
         'worklet';
@@ -284,7 +271,6 @@ function PositionedRowInner<T>({
       dragPreviewHeight,
       dragStartIndex,
       dragStartPreviewTop,
-      enabled,
       itemCount,
       itemHeight,
       itemKey,
@@ -305,22 +291,16 @@ function PositionedRowInner<T>({
 
   const gesture = usePanGesture(panConfig);
 
-  const dragHandle = enabled ? (
+  return (
     <GestureDetector gesture={gesture}>
       <Animated.View collapsable={false} style={styles.dragHandle}>
         {renderDragHandle()}
       </Animated.View>
     </GestureDetector>
-  ) : null;
-
-  return (
-    <Animated.View style={[styles.row, { height: itemHeight }, animatedStyle]}>
-      {renderItem({ item, dragHandle })}
-    </Animated.View>
   );
 }
 
-const PositionedRow = memo(PositionedRowInner) as typeof PositionedRowInner;
+const SortableDragHandle = memo(SortableDragHandleInner);
 
 export default function StableReorderableList<T>({
   data,
@@ -472,16 +452,11 @@ export default function StableReorderableList<T>({
 
   const renderRow = useCallback(
     ({ item }: LegendListRenderItemProps<T>) => {
-      if (!enabled) {
-        return <View style={[styles.row, { height: itemHeight }]}>{renderItem({ item, dragHandle: null })}</View>;
-      }
       const itemKey = keyExtractor(item);
-      return (
-        <PositionedRow
-          item={item}
+      const dragHandle = enabled ? (
+        <SortableDragHandle
           itemKey={itemKey}
           itemCount={data.length}
-          enabled={enabled}
           itemHeight={itemHeight}
           positions={positions}
           order={order}
@@ -495,7 +470,6 @@ export default function StableReorderableList<T>({
           autoscrollSpeed={autoscrollSpeed}
           viewportTop={viewportTop}
           viewportHeight={viewportHeight}
-          renderItem={renderItem}
           renderDragHandle={renderDragHandle}
           onReorder={onReorder}
           dragPreviewHeight={dragPreviewHeight}
@@ -504,6 +478,12 @@ export default function StableReorderableList<T>({
           onDraggingChange={handleDraggingChange}
           onPreviewChange={handlePreviewChange}
         />
+      ) : null;
+      // Keep the row and its image mounted when sorting changes; only the handle is conditional.
+      return (
+        <View style={[styles.row, { height: itemHeight, opacity: draggingKey === itemKey ? 0.55 : 1 }]}>
+          {renderItem({ item, dragHandle })}
+        </View>
       );
     },
     [
@@ -516,6 +496,7 @@ export default function StableReorderableList<T>({
       dragSessionKey,
       dragStartIndex,
       dragStartPreviewTop,
+      draggingKey,
       enabled,
       handleDraggingChange,
       handlePreviewChange,
@@ -542,7 +523,7 @@ export default function StableReorderableList<T>({
         data={data}
         renderItem={renderRow}
         keyExtractor={keyExtractor}
-        extraData={enabled}
+        extraData={draggingKey ?? enabled}
         recycleItems
         getFixedItemSize={getFixedItemSize}
         renderScrollComponent={renderScrollComponent}
