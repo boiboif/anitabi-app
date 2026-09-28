@@ -102,7 +102,7 @@ function PreviewPage({
         placeholderContentFit="contain"
         contentFit="contain"
         cachePolicy="memory-disk"
-        transition={120}
+        transition={0}
         accessibilityLabel={image.id}
         onLoadStart={() => onStatus('loading')}
         onLoad={(event) => {
