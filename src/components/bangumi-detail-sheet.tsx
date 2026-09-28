@@ -1,4 +1,5 @@
 import PointListCard from '@/components/point-list-card';
+import PreviewableImage from '@/components/previewable-image';
 import { getCategoryMessage, translateMessage } from '@/i18n/messages';
 import { getBangumiTitle } from '@/lib/localized-data';
 import { buildImageUrl } from '@/services/handlers';
@@ -8,11 +9,11 @@ import { useMapData } from '@/store/use-map-data';
 import { type DetentChangeEvent, TrueSheet } from '@lodev09/react-native-true-sheet';
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import dayjs from 'dayjs';
-import { Image } from 'expo-image';
 import { useIsFocused, useNavigation } from 'expo-router';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, Pressable } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { getTokens, Text, useTheme, View } from 'tamagui';
 
 const SECTION_HEADER_HEIGHT = 32;
@@ -347,6 +348,7 @@ function BangumiDetailSheet() {
     : '';
   const originalBangumiTitle =
     selectedBangumi?.title && selectedBangumi.title !== localizedBangumiTitle ? selectedBangumi.title : null;
+  const coverPreviewLabel = t('previewWorkCover', { title: localizedBangumiTitle });
   const {
     flashListRef,
     handleDetentChange,
@@ -575,6 +577,7 @@ function BangumiDetailSheet() {
   // Mount-to-present avoids TrueSheet's uncancellable lazy present() promise on route blur.
   if (!shouldRenderSheet) return null;
 
+  const coverUri = buildImageUrl(selectedBangumi?.cover ?? '');
   return (
     <TrueSheet
       key={selectedBangumi?.id}
@@ -592,7 +595,7 @@ function BangumiDetailSheet() {
       onDetentChange={handleDetentChange}
       style={{ paddingTop: 26 }}
     >
-      <View flex={1} onLayout={handleFlashListViewportLayout}>
+      <GestureHandlerRootView style={{ flexGrow: 1 }} onLayout={handleFlashListViewportLayout}>
         <View flex={1}>
           <FlashList
             ref={flashListRef}
@@ -610,13 +613,16 @@ function BangumiDetailSheet() {
             ListHeaderComponent={
               <>
                 <View px="$2" mb="$4" display="flex" flexDirection="row" rounded="$4" gap="$2.5">
-                  <Image
-                    source={buildImageUrl(selectedBangumi?.cover ?? '')}
+                  <PreviewableImage
+                    source={{ uri: coverUri }}
+                    previewUri={coverUri || undefined}
+                    previewBorderRadius={getTokens().radius['4'].val}
+                    accessibilityLabel={coverPreviewLabel}
                     style={{
                       width: 180,
                       height: 140,
                       borderRadius: getTokens().radius['4'].val,
-                      backgroundColor: selectedBangumi?.color || '$color9',
+                      backgroundColor: selectedBangumi?.color || theme.color9.val,
                     }}
                     contentFit="cover"
                   />
@@ -690,7 +696,7 @@ function BangumiDetailSheet() {
             />
           </View>
         ) : null}
-      </View>
+      </GestureHandlerRootView>
     </TrueSheet>
   );
 }

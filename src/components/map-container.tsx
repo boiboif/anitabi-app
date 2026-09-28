@@ -1,11 +1,13 @@
 import BangumiIcons from '@/components/bangumi-icons';
 import Map3DBuildings from '@/components/map-3d-buildings';
-import { MAP_STYLES } from '@/lib/map-styles';
 import MapMarkers from '@/components/map-markers';
 import PointImageMarkers from '@/components/point-image-markers';
 import PopupCard from '@/components/point-popup-card';
-import SelectedMapPointMarker from '@/components/selected-map-point-marker';
+import SelectedMapPointLayer from '@/components/selected-map-point-layer';
+import SelectedPlanMapPointLayer from '@/components/selected-plan-map-point-layer';
+import { MapMarkerSelectionContext } from '@/components/map-marker-selection';
 import { resolveLanguageTag } from '@/i18n';
+import { MAP_STYLES } from '@/lib/map-styles';
 import type { Bangumi } from '@/services/types';
 import { type MapPointReference, useMapBrowse } from '@/store/use-map-browse';
 import { Camera, Images, LocationPuck, Image as MapboxImage, MapState, MapView, MarkerView } from '@rnmapbox/maps';
@@ -261,111 +263,113 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   }, [bangumis, selectedBangumi]);
 
   return (
-    <MapView
-      style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
-      styleURL={MAP_STYLES[styleIndex].url}
-      localizeLabels={{ locale: mapLabelLocale }}
-      compassEnabled
-      compassPosition={{ top: insets.top + 100, right: 8 }}
-      scaleBarEnabled={true}
-      scaleBarPosition={scaleBarPosition ?? { right: 0, bottom: 8 }}
-      onCameraChanged={handleCameraChanged}
-      onDidFinishLoadingMap={handleMapReady}
-      onPress={isPlanMode ? onMapPress : clearSelectedMapPoint}
-    >
-      <Camera ref={setCameraRef} centerCoordinate={DEFAULT_COORDINATES} zoomLevel={DEFAULT_ZOOM} animationMode="none" />
-      <Images>
-        <MapboxImage name={LOCATION_PUCK_BEARING_IMAGE}>
-          <YStack width={44} height={44} items="center" collapsable={false}>
-            <Svg width={44} height={44} viewBox="0 0 44 44">
-              <Path
-                d="M22 3 L30.97 15.63 L13.03 15.63 Z"
-                fill={LOCATION_PUCK_COLOR}
-                stroke="#FFFFFF"
-                strokeLinejoin="miter"
-                strokeWidth={LOCATION_PUCK_BEARING_STROKE_WIDTH}
-              />
-              <Circle
-                cx={22}
-                cy={22}
-                r={10.75}
-                fill={LOCATION_PUCK_COLOR}
-                stroke="#FFFFFF"
-                strokeWidth={LOCATION_PUCK_CIRCLE_STROKE_WIDTH}
-              />
-            </Svg>
-          </YStack>
-        </MapboxImage>
-      </Images>
-      {locationPuckActive && (
-        <LocationPuck
-          key={`location-puck-${locationPuckRevision}`}
-          visible
-          bearingImage={LOCATION_PUCK_BEARING_IMAGE}
-          puckBearing="heading"
-          puckBearingEnabled
-          pulsing={{ isEnabled: true, color: LOCATION_PUCK_COLOR }}
+    <MapMarkerSelectionContext.Provider value={isPlanMode ? activeSelectedPoint : null}>
+      <MapView
+        style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
+        styleURL={MAP_STYLES[styleIndex].url}
+        localizeLabels={{ locale: mapLabelLocale }}
+        compassEnabled
+        compassPosition={{ top: insets.top + 100, right: 8 }}
+        scaleBarEnabled={true}
+        scaleBarPosition={scaleBarPosition ?? { right: 0, bottom: 8 }}
+        onCameraChanged={handleCameraChanged}
+        onDidFinishLoadingMap={handleMapReady}
+        onPress={isPlanMode ? onMapPress : clearSelectedMapPoint}
+      >
+        <Camera
+          ref={setCameraRef}
+          centerCoordinate={DEFAULT_COORDINATES}
+          zoomLevel={DEFAULT_ZOOM}
+          animationMode="none"
         />
-      )}
-      {show3DBuildings && <Map3DBuildings styleIndex={styleIndex} />}
-      <MapMarkers
-        bangumis={bangumis}
-        selectedBangumiIds={isPlanMode ? (selectedBangumiIds ?? []) : undefined}
-        openedBangumiDetailsId={isPlanMode ? null : undefined}
-        showAllPoints={isPlanMode}
-        selectedPoint={isPlanMode ? activeSelectedPoint : null}
-        maxVisualDiameter={maxPointMarkerDiameter}
-        onPointSelect={handlePointSelect}
-      />
-      {!isPlanMode && loadedStyleIndex === styleIndex && (
-        <BangumiIcons bangumis={bangumis} onIconPress={handleBangumiIconPress} />
-      )}
-      {showPointImageMarkers && (
-        <PointImageMarkers
+        <Images>
+          <MapboxImage name={LOCATION_PUCK_BEARING_IMAGE}>
+            <YStack width={44} height={44} items="center" collapsable={false}>
+              <Svg width={44} height={44} viewBox="0 0 44 44">
+                <Path
+                  d="M22 3 L30.97 15.63 L13.03 15.63 Z"
+                  fill={LOCATION_PUCK_COLOR}
+                  stroke="#FFFFFF"
+                  strokeLinejoin="miter"
+                  strokeWidth={LOCATION_PUCK_BEARING_STROKE_WIDTH}
+                />
+                <Circle
+                  cx={22}
+                  cy={22}
+                  r={10.75}
+                  fill={LOCATION_PUCK_COLOR}
+                  stroke="#FFFFFF"
+                  strokeWidth={LOCATION_PUCK_CIRCLE_STROKE_WIDTH}
+                />
+              </Svg>
+            </YStack>
+          </MapboxImage>
+        </Images>
+        {locationPuckActive && (
+          <LocationPuck
+            key={`location-puck-${locationPuckRevision}`}
+            visible
+            bearingImage={LOCATION_PUCK_BEARING_IMAGE}
+            puckBearing="heading"
+            puckBearingEnabled
+            pulsing={{ isEnabled: true, color: LOCATION_PUCK_COLOR }}
+          />
+        )}
+        {show3DBuildings && <Map3DBuildings styleIndex={styleIndex} />}
+        <MapMarkers
           bangumis={bangumis}
-          zoom={zoom}
-          bounds={bounds}
           selectedBangumiIds={isPlanMode ? (selectedBangumiIds ?? []) : undefined}
           openedBangumiDetailsId={isPlanMode ? null : undefined}
-          ignoreZoomThreshold={isPlanMode}
-          selectedPoint={isPlanMode ? activeSelectedPoint : null}
+          showAllPoints={isPlanMode}
+          maxVisualDiameter={maxPointMarkerDiameter}
           onPointSelect={handlePointSelect}
         />
-      )}
+        {!isPlanMode && loadedStyleIndex === styleIndex && (
+          <BangumiIcons bangumis={bangumis} onIconPress={handleBangumiIconPress} />
+        )}
+        {showPointImageMarkers && (
+          <PointImageMarkers
+            bangumis={bangumis}
+            zoom={zoom}
+            bounds={bounds}
+            selectedBangumiIds={isPlanMode ? (selectedBangumiIds ?? []) : undefined}
+            openedBangumiDetailsId={isPlanMode ? null : undefined}
+            ignoreZoomThreshold={isPlanMode}
+            onPointSelect={handlePointSelect}
+          />
+        )}
 
-      {isPlanMode && selectedPointData ? (
-        <MarkerView
-          key={`${selectedPointData.bangumi.id}:${selectedPointData.point.id}`}
-          coordinate={[selectedPointData.point.geo[1], selectedPointData.point.geo[0]]}
-          anchor={{ x: 0.5, y: 1 }}
-          allowOverlap
-          allowOverlapWithPuck
-          isSelected
-        >
-          <SelectedMapPointMarker
-            point={selectedPointData.point}
-            bangumi={selectedPointData.bangumi}
+        {isPlanMode ? (
+          <SelectedPlanMapPointLayer
+            selected={selectedPointData}
             showImage={showPointImageMarkers}
-            onPress={() => handlePointSelect(selectedPointData.point, selectedPointData.bangumi)}
+            onPress={handlePointSelect}
           />
-        </MarkerView>
-      ) : selectedPointData ? (
-        <MarkerView
-          key={`${selectedPointData.bangumi.id}:${selectedPointData.point.id}`}
-          coordinate={[selectedPointData.point.geo[1], selectedPointData.point.geo[0]]}
-          anchor={{ x: 0.5, y: 1 }}
-          allowOverlap
-          allowOverlapWithPuck
-          isSelected
-        >
-          <PopupCard
-            point={selectedPointData.point}
-            bangumi={selectedPointData.bangumi}
-            bangumiTitlePressEnabled={!isPlanMode}
+        ) : (
+          <SelectedMapPointLayer
+            selected={selectedPointData}
+            maxVisualDiameter={maxPointMarkerDiameter}
+            onPress={handlePointSelect}
           />
-        </MarkerView>
-      ) : null}
-    </MapView>
+        )}
+        {!isPlanMode && selectedPointData ? (
+          <MarkerView
+            key={`${selectedPointData.bangumi.id}:${selectedPointData.point.id}`}
+            coordinate={[selectedPointData.point.geo[1], selectedPointData.point.geo[0]]}
+            anchor={{ x: 0.5, y: 1 }}
+            allowOverlap
+            allowOverlapWithPuck
+            isSelected
+          >
+            <PopupCard
+              point={selectedPointData.point}
+              bangumi={selectedPointData.bangumi}
+              bangumiTitlePressEnabled={!isPlanMode}
+            />
+          </MarkerView>
+        ) : null}
+      </MapView>
+    </MapMarkerSelectionContext.Provider>
   );
 });
 

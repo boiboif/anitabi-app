@@ -1,11 +1,10 @@
 import FavoritePointButton from '@/components/favorite-point-button';
 import PointCardActions from '@/components/point-card-actions';
+import PointImage from '@/components/point-image';
 import { formatDuration } from '@/lib/formatDuration';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
-import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapBrowse } from '@/store/use-map-browse';
-import { Image } from 'expo-image';
 import { Linking, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { getTokens, Text, useTheme, View } from 'tamagui';
@@ -37,53 +36,19 @@ export default function PopupCard({ point, bangumi, bangumiTitlePressEnabled = t
   return (
     <View bg="$color2" rounded="$3" boxShadow="0 2px 8px rgba(0,0,0,0.4)" width={220}>
       {/* 图片 + EP / 时间覆盖层 */}
-      <View
-        style={{
-          borderRadius: innerRadius,
-          overflow: 'hidden',
-          position: 'relative',
-        }}
+      <PointImage
+        image={point.image}
+        cover={bangumi.cover}
+        title={pointTitle}
+        previewBorderRadius={innerRadius}
+        maxPressDistance={8}
+        rounded="$2"
+        height={((point.image ? 250 : 220) * 9) / 16}
+        imageStyle={{ width: point.image ? 250 : '100%', height: '100%', backgroundColor: theme.color9.val }}
       >
-        {point.image ? (
-          <Image
-            key={point.image}
-            source={{ uri: buildImageUrl(point.image, 'plan=h360') }}
-            placeholder={{ uri: buildImageUrl(point.image, 'plan=h160') }}
-            placeholderContentFit="cover"
-            transition={0}
-            style={{
-              width: 250,
-              aspectRatio: 16 / 9,
-              backgroundColor: theme.color9.val,
-            }}
-            contentFit="cover"
-            contentPosition="center"
-          />
-        ) : (
-          <View
-            style={{
-              width: 250,
-              maxWidth: '100%',
-              aspectRatio: 16 / 9,
-              position: 'relative',
-            }}
-          >
-            <Image
-              source={{ uri: buildImageUrl(bangumi.cover ?? '') }}
-              style={{ height: '100%', width: '100%' }}
-              contentFit="cover"
-              contentPosition="center"
-              transition={0}
-            />
-            <View position="absolute" l={0} r={0} t={0} b={0} bg="rgba(0,0,0,0.7)" justify="center" items="center">
-              <Text fontSize="$footnote" color="white">
-                {t('noImage', { defaultValue: '暂无截图' })}
-              </Text>
-            </View>
-          </View>
-        )}
         {epLabel && (
           <View
+            pointerEvents="none"
             position="absolute"
             l={0}
             b={0}
@@ -99,6 +64,7 @@ export default function PopupCard({ point, bangumi, bangumiTitlePressEnabled = t
         )}
         {timeLabel && (
           <View
+            pointerEvents="none"
             position="absolute"
             r={0}
             b={0}
@@ -113,7 +79,7 @@ export default function PopupCard({ point, bangumi, bangumiTitlePressEnabled = t
           </View>
         )}
         <FavoritePointButton point={point} bangumi={bangumi} overlay />
-      </View>
+      </PointImage>
 
       {/* 文字内容 */}
       <View px="$2" py="$1.5">

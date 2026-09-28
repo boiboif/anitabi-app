@@ -69,9 +69,7 @@ function getPointName(item: ResolvedFavorite, language: string): string {
 }
 
 function getImagePath(item: ResolvedFavorite): string | undefined {
-  return (
-    item.point?.image || item.favorite.snapshot.pointImage || item.bangumi?.cover || item.favorite.snapshot.bangumiCover
-  );
+  return item.point?.image || item.favorite.snapshot.pointImage;
 }
 
 function FavoriteCard({ item, onPress }: { item: ResolvedFavorite; onPress: () => void }) {
@@ -95,6 +93,7 @@ function FavoriteCard({ item, onPress }: { item: ResolvedFavorite; onPress: () =
           : t('locationUnavailable', { defaultValue: '点位已不可用' })
       }
       image={getImagePath(item)}
+      cover={item.bangumi?.cover || item.favorite.snapshot.bangumiCover}
       imageColor={item.bangumi?.color || item.favorite.snapshot.bangumiColor}
       disabled={!available}
       onPress={onPress}

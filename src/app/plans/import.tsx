@@ -9,8 +9,8 @@ import { usePlans } from '@/store/use-plans';
 import { AlertCircle, Check, FileDown, MapPinned, Square, SquareCheckBig } from '@tamagui/lucide-icons-2';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Pressable, ScrollView } from 'react-native';
 import { Spinner, Text, XStack, YStack, useTheme } from 'tamagui';
 
 function parseLinkData(data: string | undefined): { plan: SharedPlan | null; error: string | null } {

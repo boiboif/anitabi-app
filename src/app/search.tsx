@@ -1,4 +1,5 @@
 import PointListCard from '@/components/point-list-card';
+import PreviewableImage from '@/components/previewable-image';
 import SearchBox from '@/components/search-box';
 import { getCategoryMessage, translateMessage, type TranslationMessage } from '@/i18n/messages';
 import { getBangumiTitle } from '@/lib/localized-data';
@@ -9,7 +10,6 @@ import { useMapData } from '@/store/use-map-data';
 import { FlashList, FlashListRef } from '@shopify/flash-list';
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
-import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, Pressable } from 'react-native';
@@ -41,30 +41,34 @@ function BangumiCard({ bangumi, onPress }: { bangumi: Bangumi; onPress: () => vo
   const localizedTitle =
     getBangumiTitle(bangumi, i18n.resolvedLanguage) || t('unknownWork', { defaultValue: '未知作品' });
   const originalTitle = bangumi.title && bangumi.title !== localizedTitle ? bangumi.title : null;
+  const coverUri = buildImageUrl(bangumi.cover ?? '');
   return (
-    <Pressable onPress={onPress}>
-      <View
-        bg="$color2"
-        p="$2"
-        mb="$2"
-        display="flex"
-        flexDirection="row"
-        rounded="$4"
-        shadowColor="$shadowColor"
-        boxShadow="0 1px 4px $shadowColor"
-        gap="$2.5"
-      >
-        <Image
-          recyclingKey={String(bangumi.id)}
-          source={buildImageUrl(bangumi.cover ?? '')}
-          style={{
-            width: 100,
-            height: 100,
-            borderRadius: getTokens().radius['4'].val,
-            backgroundColor: bangumi.color || theme.color9.val,
-          }}
-          contentFit="cover"
-        />
+    <View
+      bg="$color2"
+      p="$2"
+      mb="$2"
+      display="flex"
+      flexDirection="row"
+      rounded="$4"
+      shadowColor="$shadowColor"
+      boxShadow="0 1px 4px $shadowColor"
+      gap="$2.5"
+    >
+      <PreviewableImage
+        recyclingKey={String(bangumi.id)}
+        source={{ uri: coverUri }}
+        previewUri={coverUri || undefined}
+        previewBorderRadius={getTokens().radius['4'].val}
+        accessibilityLabel={t('previewWorkCover', { title: localizedTitle })}
+        style={{
+          width: 100,
+          height: 100,
+          borderRadius: getTokens().radius['4'].val,
+          backgroundColor: bangumi.color || theme.color9.val,
+        }}
+        contentFit="cover"
+      />
+      <Pressable onPress={onPress} style={{ flex: 1 }}>
         <View flex={1}>
           {localizedTitle ? (
             <Text fontWeight="600" fontSize="$subtitle" color="$color12" pr="$8" numberOfLines={2}>
@@ -99,8 +103,9 @@ function BangumiCard({ bangumi, onPress }: { bangumi: Bangumi; onPress: () => vo
         {bangumi.cat?.trim() ? (
           <View
             position="absolute"
-            t="$2"
-            r="$2"
+            t={0}
+            r={0}
+            pointerEvents="none"
             px="$2"
             py="$1"
             rounded="$2"
@@ -111,8 +116,8 @@ function BangumiCard({ bangumi, onPress }: { bangumi: Bangumi; onPress: () => vo
             </Text>
           </View>
         ) : null}
-      </View>
-    </Pressable>
+      </Pressable>
+    </View>
   );
 }
 

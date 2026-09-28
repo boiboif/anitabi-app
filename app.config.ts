@@ -124,7 +124,7 @@ const config: ExpoConfig = {
       'expo-media-library',
       {
         photosPermission: '用于读取对比图相关照片',
-        savePhotosPermission: '用于将生成的巡礼对比图保存到相册',
+        savePhotosPermission: '用于将预览图片和巡礼对比图保存到相册',
         granularPermissions: [],
       },
     ],

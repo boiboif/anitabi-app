@@ -1,6 +1,9 @@
 /** Anitabi 官网在 zoom >= 13 时隐藏作品 icon 图层。 */
 export const MAP_ICON_ZOOM_THRESHOLD = 13;
 
+/** Ordinary marker layers stay below the selected point, including after asynchronous mounting. */
+export const SELECTED_MAP_POINT_LAYER_ID = 'selected-map-point';
+
 /** Anitabi 官网作品 icon 的 zoom -> 最低 priority（严格大于）映射。 */
 export const MAP_BANGUMI_ICON_PRIORITY_ZOOM_STOPS = [
   [0, 760_000],

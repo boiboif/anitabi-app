@@ -3,7 +3,7 @@ import { StrictButton as Button } from '@/components/strict-button';
 import { Image } from 'expo-image';
 import { Redirect, Stack } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, type View } from 'react-native';
+import { Pressable, ScrollView, type View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Text, YStack } from 'tamagui';
 
@@ -111,12 +111,6 @@ export default function ImagePreviewDemo() {
           initialIndex={session.initialIndex}
           getSourceBounds={session.transition ? (index) => bounds.current[session.images[index].id] ?? null : undefined}
           onClose={() => setSession(null)}
-          onLongPress={(_, index) =>
-            Alert.alert(
-              t('imagePreviewDemoLongPress'),
-              t('imagePreviewPage', { current: index + 1, total: session.images.length }),
-            )
-          }
         />
       ) : null}
     </>

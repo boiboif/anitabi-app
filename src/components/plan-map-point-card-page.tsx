@@ -1,9 +1,8 @@
 import type { PlanMapResolvedPoint } from '@/components/plan-map-point-types';
 import PointSequenceBadge from '@/components/point-sequence-badge';
+import PointImage from '@/components/point-image';
 import { formatDuration } from '@/lib/formatDuration';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
-import { buildImageUrl } from '@/services/handlers';
-import { Image } from 'expo-image';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getTokens, Text, View, XStack, YStack } from 'tamagui';
@@ -22,7 +21,6 @@ function PlanMapPointCardPage({ resolved, total }: { resolved: PlanMapResolvedPo
         ? point.ep
         : undefined;
   const timeLabel = typeof point.s === 'number' && point.s >= 0 ? formatDuration(point.s) : undefined;
-  const imagePath = point.image || bangumi.cover;
   const innerRadius = getTokens().radius['3'].val;
 
   return (
@@ -39,22 +37,21 @@ function PlanMapPointCardPage({ resolved, total }: { resolved: PlanMapResolvedPo
       </XStack>
 
       <XStack gap="$2" items="center">
-        <View width={190} aspectRatio={16 / 10} rounded="$3" overflow="hidden" bg="$color5">
-          {imagePath ? (
-            <Image
-              source={{ uri: buildImageUrl(imagePath, 'plan=h360') }}
-              placeholder={{ uri: buildImageUrl(imagePath, 'plan=h160') }}
-              recyclingKey={imagePath}
-              placeholderContentFit="cover"
-              cachePolicy="memory-disk"
-              contentFit="cover"
-              transition={0}
-              style={{ width: '100%', height: '100%' }}
-            />
-          ) : null}
-          <PointSequenceBadge sequenceNumber={planIndex + 1} />
+        <PointImage
+          image={point.image}
+          cover={bangumi.cover}
+          title={pointTitle}
+          previewBorderRadius={innerRadius}
+          width={190}
+          aspectRatio={16 / 10}
+          rounded="$3"
+        >
+          <YStack fullscreen pointerEvents="none">
+            <PointSequenceBadge sequenceNumber={planIndex + 1} />
+          </YStack>
           {epLabel ? (
             <View
+              pointerEvents="none"
               position="absolute"
               l={0}
               b={0}
@@ -70,6 +67,7 @@ function PlanMapPointCardPage({ resolved, total }: { resolved: PlanMapResolvedPo
           ) : null}
           {timeLabel ? (
             <View
+              pointerEvents="none"
               position="absolute"
               r={0}
               b={0}
@@ -83,7 +81,7 @@ function PlanMapPointCardPage({ resolved, total }: { resolved: PlanMapResolvedPo
               </Text>
             </View>
           ) : null}
-        </View>
+        </PointImage>
 
         <YStack flex={1} minW={0} self="stretch" justify="flex-start" gap="$0.5" pt="$0.5">
           <Text fontSize="$footnote" lineHeight={18} fontWeight="600" color="$primary" numberOfLines={1}>

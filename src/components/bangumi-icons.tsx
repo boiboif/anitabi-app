@@ -1,4 +1,8 @@
-import { MAP_BANGUMI_ICON_PRIORITY_ZOOM_STOPS, MAP_ICON_ZOOM_THRESHOLD } from '@/lib/constants';
+import {
+  MAP_BANGUMI_ICON_PRIORITY_ZOOM_STOPS,
+  MAP_ICON_ZOOM_THRESHOLD,
+  SELECTED_MAP_POINT_LAYER_ID,
+} from '@/lib/constants';
 import { getBangumiMapLabel } from '@/lib/localized-data';
 import { getBangumiIcons } from '@/services/api';
 import { baseUrl } from '@/services/handlers';
@@ -279,6 +283,7 @@ function BangumiIcons({ bangumis, onIconPress }: Props) {
       <ShapeSource id="bangumi-icons" shape={geojson} onPress={handlePress as any}>
         <SymbolLayer
           id="bangumi-icons-layer"
+          belowLayerID={SELECTED_MAP_POINT_LAYER_ID}
           filter={bangumiIconFilter}
           maxZoomLevel={MAP_ICON_ZOOM_THRESHOLD}
           style={{
