@@ -10,6 +10,8 @@ export type PreviewableImageProps = Omit<ImageProps, 'source' | 'contentFit' | '
   source: ImageSource & { uri: string };
   /** Full-size image URI. Omit for a non-interactive placeholder image. */
   previewUri?: string;
+  /** Lower-resolution fallback while the displayed thumbnail is still loading. */
+  previewFallbackUri?: string;
   contentFit?: 'cover' | 'contain';
   /** Layout of the measuring wrapper; `style` still belongs to the Image. */
   containerStyle?: StyleProp<ViewStyle>;
@@ -61,6 +63,7 @@ function TapPreviewTrigger({
 function PreviewableImageContent({
   source,
   previewUri,
+  previewFallbackUri,
   contentFit = 'cover',
   placeholderContentFit = contentFit,
   cachePolicy = 'memory-disk',
@@ -78,6 +81,7 @@ function PreviewableImageContent({
   const containerLayoutRef = useRef<LayoutRectangle | null>(null);
   const imageLayoutRef = useRef<LayoutRectangle | null>(null);
   const dimensionsRef = useRef<{ width: number; height: number } | null>(null);
+  const sourceLoadedRef = useRef(false);
   const boundsRef = useRef<ImagePreviewBounds | null>(null);
   const mountedRef = useRef(true);
   const openingRef = useRef(false);
@@ -123,7 +127,8 @@ function PreviewableImageContent({
     if (!previewUri || session || openingRef.current) return;
     openingRef.current = true;
     measureSource(() => {
-      setSession([{ id: previewUri, uri: previewUri, thumbnailUri: source.uri, ...dimensions }]);
+      const thumbnailUri = sourceLoadedRef.current ? source.uri : (previewFallbackUri ?? source.uri);
+      setSession([{ id: previewUri, uri: previewUri, thumbnailUri, ...dimensions }]);
     }, touch);
   };
 
@@ -150,6 +155,7 @@ function PreviewableImageContent({
       transition={transition}
       accessible={false}
       onLoad={(event) => {
+        sourceLoadedRef.current = true;
         const { width, height } = event.source;
         if (width > 0 && height > 0) dimensionsRef.current = { width, height };
         onLoad?.(event);

@@ -8,6 +8,8 @@ type Props = ViewProps & {
   image?: string;
   cover?: string;
   title: string;
+  /** Lists use h160; map cards use h360 with h160 while it loads. */
+  thumbnailSize?: 'h160' | 'h360';
   thumbnailSource?: string | (ImageSource & { uri: string });
   imageStyle?: ImageProps['style'];
   recyclingKey?: string;
@@ -21,6 +23,7 @@ export default function PointImage({
   image,
   cover,
   title,
+  thumbnailSize = 'h360',
   thumbnailSource,
   imageStyle,
   recyclingKey,
@@ -32,8 +35,9 @@ export default function PointImage({
 }: Props) {
   const { t } = useTranslation();
   const path = image || cover;
-  const uri = path ? buildImageUrl(path, 'plan=h360') : undefined;
-  // Use one thumbnail both on the card and as the full-size preview's placeholder.
+  const uri = path ? buildImageUrl(path, `plan=${thumbnailSize}`) : undefined;
+  const fallbackUri = path && thumbnailSize === 'h360' ? buildImageUrl(path, 'plan=h160') : undefined;
+  // The displayed thumbnail is also the preview placeholder after it has loaded.
   const source =
     (typeof thumbnailSource === 'string' ? { uri: thumbnailSource } : thumbnailSource) ??
     (uri ? { uri, cacheKey: uri } : undefined);
@@ -45,6 +49,8 @@ export default function PointImage({
       {source && path ? (
         <PreviewableImage
           source={source}
+          placeholder={fallbackUri ? { uri: fallbackUri } : undefined}
+          previewFallbackUri={fallbackUri}
           previewUri={previewEnabled ? buildImageUrl(path) : undefined}
           accessibilityLabel={label}
           previewBorderRadius={previewBorderRadius}
