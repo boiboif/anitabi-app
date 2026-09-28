@@ -93,6 +93,15 @@ type SortableDragHandleProps = {
   onPreviewChange: (itemKey: string | null) => void;
 };
 
+type StableRowProps<T> = {
+  item: T;
+  itemKey: string;
+  itemHeight: number;
+  activeKey: SharedValue<string | null>;
+  dragHandle: ReactNode;
+  renderItem: (params: StableReorderableListRenderItem<T>) => ReactElement;
+};
+
 function clamp(value: number, minimum: number, maximum: number): number {
   'worklet';
   return Math.min(Math.max(value, minimum), maximum);
@@ -302,6 +311,21 @@ function SortableDragHandleInner({
 
 const SortableDragHandle = memo(SortableDragHandleInner);
 
+function StableRow<T>({ item, itemKey, itemHeight, activeKey, dragHandle, renderItem }: StableRowProps<T>) {
+  const animatedStyle = useAnimatedStyle(
+    () => ({
+      opacity: activeKey.value === itemKey ? 0.55 : 1,
+    }),
+    [itemKey],
+  );
+
+  return (
+    <Animated.View style={[styles.row, { height: itemHeight }, animatedStyle]}>
+      {renderItem({ item, dragHandle })}
+    </Animated.View>
+  );
+}
+
 export default function StableReorderableList<T>({
   data,
   enabled,
@@ -479,11 +503,15 @@ export default function StableReorderableList<T>({
           onPreviewChange={handlePreviewChange}
         />
       ) : null;
-      // Keep the row and its image mounted when sorting changes; only the handle is conditional.
       return (
-        <View style={[styles.row, { height: itemHeight, opacity: draggingKey === itemKey ? 0.55 : 1 }]}>
-          {renderItem({ item, dragHandle })}
-        </View>
+        <StableRow
+          item={item}
+          itemKey={itemKey}
+          itemHeight={itemHeight}
+          activeKey={activeKey}
+          dragHandle={dragHandle}
+          renderItem={renderItem}
+        />
       );
     },
     [
@@ -496,7 +524,6 @@ export default function StableReorderableList<T>({
       dragSessionKey,
       dragStartIndex,
       dragStartPreviewTop,
-      draggingKey,
       enabled,
       handleDraggingChange,
       handlePreviewChange,
@@ -523,7 +550,7 @@ export default function StableReorderableList<T>({
         data={data}
         renderItem={renderRow}
         keyExtractor={keyExtractor}
-        extraData={draggingKey ?? enabled}
+        extraData={enabled}
         recycleItems
         getFixedItemSize={getFixedItemSize}
         renderScrollComponent={renderScrollComponent}
