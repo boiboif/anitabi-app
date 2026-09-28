@@ -75,6 +75,7 @@ function PreviewableImageContent({
   ...imageProps
 }: PreviewableImageProps) {
   const containerRef = useRef<NativeView>(null);
+  const containerLayoutRef = useRef<LayoutRectangle | null>(null);
   const imageLayoutRef = useRef<LayoutRectangle | null>(null);
   const dimensionsRef = useRef<{ width: number; height: number } | null>(null);
   const boundsRef = useRef<ImagePreviewBounds | null>(null);
@@ -91,32 +92,35 @@ function PreviewableImageContent({
 
   const measureSource = (onMeasured: () => void, touch?: PreviewTouchCoordinates) => {
     const origin = getPreviewContainerOrigin(touch);
-    const container = containerRef.current;
-    if (!container) {
-      openingRef.current = false;
-      return;
-    }
-    container.measureInWindow((x, y, width, height) => {
+    const finish = (x: number, y: number, width: number, height: number) => {
       openingRef.current = false;
       const layout = imageLayoutRef.current;
-      if (!mountedRef.current || !layout || width <= 0 || height <= 0 || layout.width <= 0 || layout.height <= 0)
-        return;
-      boundsRef.current = {
-        x: (origin?.x ?? x) + layout.x,
-        y: (origin?.y ?? y) + layout.y,
-        width: layout.width,
-        height: layout.height,
-        contentFit,
-        borderRadius: previewBorderRadius,
-        clip: { x: origin?.x ?? x, y: origin?.y ?? y, width, height },
-      };
+      if (!mountedRef.current) return;
+      boundsRef.current =
+        layout && width > 0 && height > 0 && layout.width > 0 && layout.height > 0
+          ? {
+              x: x + layout.x,
+              y: y + layout.y,
+              width: layout.width,
+              height: layout.height,
+              contentFit,
+              borderRadius: previewBorderRadius,
+              clip: { x, y, width, height },
+            }
+          : null;
       onMeasured();
-    });
+    };
+    const layout = containerLayoutRef.current;
+    // Physical touches already provide the current window origin, including
+    // native sheet/map offsets. Layout supplies size without another bridge trip.
+    if (origin && layout) finish(origin.x, origin.y, layout.width, layout.height);
+    else if (containerRef.current) containerRef.current.measureInWindow(finish);
+    else finish(0, 0, 0, 0);
   };
 
   const openPreview = (touch?: PreviewTouchCoordinates) => {
     const dimensions = dimensionsRef.current;
-    if (!previewUri || !dimensions || session || openingRef.current) return;
+    if (!previewUri || session || openingRef.current) return;
     openingRef.current = true;
     measureSource(() => {
       setSession([{ id: previewUri, uri: previewUri, thumbnailUri: source.uri, ...dimensions }]);
@@ -125,6 +129,9 @@ function PreviewableImageContent({
 
   const triggerProps = {
     ref: containerRef,
+    onLayout: (event) => {
+      containerLayoutRef.current = event.nativeEvent.layout;
+    },
     style: containerStyle,
     collapsable: false,
     accessible: !!previewUri || !!accessibilityLabel,

@@ -25,11 +25,13 @@ export type ImagePreviewBounds = Rect & {
 };
 
 export function getPreviewSourceGeometry(
-  image: { width: number; height: number },
+  image: { width?: number; height?: number },
   viewport: { width: number; height: number },
   source: ImagePreviewBounds | null | undefined,
 ) {
-  if (!source) return null;
+  // A not-yet-loaded thumbnail can still open the preview, using a fade until
+  // the original image supplies its aspect ratio.
+  if (!source || !image.width || !image.height) return null;
   const clip = source.clip ?? source;
   if (
     ![source.x, source.y, source.width, source.height, clip.x, clip.y, clip.width, clip.height].every(
