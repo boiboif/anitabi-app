@@ -37,6 +37,7 @@ try {
 
 const PLANS_KEY = 'itinerary-plans-v1';
 const PLAN_LIST_SORT_ORDER_KEY = 'itinerary-plan-list-sort-order-v1';
+const DEMO_PLAN_INITIALIZED_KEY = 'demo-plan-initialized-v1';
 
 export type PlanListSortOrder = 'asc' | 'desc';
 
@@ -77,6 +78,20 @@ export function setPlans(plans: ItineraryPlan[]): void {
   }
 }
 
+export function initializeDemoPlan(plan: ItineraryPlan | null): ItineraryPlan | null {
+  if (!storage) return null;
+  try {
+    if (storage.contains(DEMO_PLAN_INITIALIZED_KEY)) return null;
+    const shouldSeed = plan && !storage.contains(PLANS_KEY);
+    if (shouldSeed) storage.set(PLANS_KEY, JSON.stringify([plan]));
+    storage.set(DEMO_PLAN_INITIALIZED_KEY, true);
+    return shouldSeed ? plan : null;
+  } catch (error) {
+    console.warn('MMKV initializeDemoPlan failed:', error);
+    return null;
+  }
+}
+
 export function clearPlans(): void {
-  storage?.remove(PLANS_KEY);
+  setPlans([]);
 }

@@ -6,8 +6,9 @@ import i18n, { resolveLanguagePreference } from '@/i18n';
 import { AppUpdateManagerContext } from '@/hooks/use-app-update-manager';
 import { useAppUpdates } from '@/hooks/use-app-updates';
 import { Sentry, sentryNavigationIntegration } from '@/services/sentry';
-import { useMapData } from '@/store/use-map-data';
 import { useLanguagePreference } from '@/store/use-language-preference';
+import { useMapData } from '@/store/use-map-data';
+import { usePlans } from '@/store/use-plans';
 import { useThemePreference } from '@/store/use-theme-preference';
 import tamaguiConfig, { LightPageBackground } from '@/tamagui.config';
 import { Toast } from '@boiboif/react-native-toast';
@@ -77,6 +78,7 @@ function RootLayout() {
   const preference = useThemePreference((state) => state.preference);
   const theme = resolveTheme(colorScheme, preference);
   const initializeMapData = useMapData((state) => state.initialize);
+  const initializeFirstInstallDemo = usePlans((state) => state.initializeFirstInstallDemo);
   const navigationContainerRef = useNavigationContainerRef();
   const appUpdates = useAppUpdates();
 
@@ -92,6 +94,10 @@ function RootLayout() {
   useEffect(() => {
     void initializeMapData();
   }, [initializeMapData]);
+
+  useEffect(() => {
+    void initializeFirstInstallDemo();
+  }, [initializeFirstInstallDemo]);
 
   return (
     <SafeAreaProvider>
