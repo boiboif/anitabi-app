@@ -1,6 +1,25 @@
 import type { TranslationKey } from './zh';
 
 const en = {
+  closeImagePreview: 'Close image preview',
+  imagePreviewPage: 'Image {{current}} of {{total}}',
+  imagePreviewLoadFailed: 'Could not load image',
+  openImagePreview: 'Preview image {{index}}',
+  previewLocationImage: 'Preview location image: {{title}}',
+  previewWorkCover: 'Preview work cover: {{title}}',
+  imagePreviewDemo: 'Image preview demo',
+  imagePreviewDemoInstructions:
+    'Tap an image to open it. Double-tap or pinch to zoom, then drag to explore. Swipe sideways to change images, pull down at original size to close, or tap once to exit. Long-press to save or share the original image.',
+  imagePreviewDemoSingle: 'Preview one image (fade transition)',
+  imagePreviewDemoError: 'Test loading failure and retry',
+  imagePreviewSaveToPhotos: 'Save to Photos',
+  imagePreviewSaved: 'Image saved to Photos',
+  imagePreviewPreparingShare: 'Preparing to share…',
+  imagePreviewDownloadFailed: 'Could not download the original image. Check your connection and try again.',
+  imagePreviewUnsupportedFormat: 'Saving or sharing this image format is not supported yet.',
+  imagePreviewSaveFailed: 'Could not save the image. Please try again later.',
+  imagePreviewOpenSettings: 'Open Settings',
+  imagePreviewActionsUnavailableOnWeb: 'Please use the mobile app to save or share images.',
   language: 'Language',
   followSystem: 'Follow system',
   simplifiedChinese: 'Simplified Chinese',
@@ -89,6 +108,7 @@ const en = {
   unnamedCollection: 'Unnamed collection',
   joinPilgrimagePlan: 'Add to pilgrimage plan',
   alsoFavorite: 'Also add to favorites',
+  favoriteImportedLocations: 'Also add to favorites',
   removeFromPilgrimagePlan: 'Remove from pilgrimage plan',
   addToPilgrimagePlan: 'Add to pilgrimage plan',
   deselectAndRemoveLocation: 'Deselect and remove location',

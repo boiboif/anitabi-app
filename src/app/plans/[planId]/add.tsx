@@ -131,12 +131,8 @@ export default function AddPlanPointsScreen() {
               defaultValue: '收藏于 {{date}}',
               date: formatFavoriteTime(item.item.favorite.addedAt, i18n.resolvedLanguage ?? i18n.language),
             })}
-            image={
-              item.item.point.image ||
-              item.item.favorite.snapshot.pointImage ||
-              item.item.bangumi.cover ||
-              item.item.favorite.snapshot.bangumiCover
-            }
+            image={item.item.point.image || item.item.favorite.snapshot.pointImage}
+            cover={item.item.bangumi.cover || item.item.favorite.snapshot.bangumiCover}
             imageColor={item.item.bangumi.color || item.item.favorite.snapshot.bangumiColor}
             opacity={added ? 0.55 : 1}
             onPress={togglePoint}

@@ -1,6 +1,25 @@
 import type { TranslationKey } from './zh';
 
 const ja = {
+  closeImagePreview: '画像プレビューを閉じる',
+  imagePreviewPage: '{{total}} 枚中 {{current}} 枚目',
+  imagePreviewLoadFailed: '画像を読み込めませんでした',
+  openImagePreview: '{{index}} 枚目の画像をプレビュー',
+  previewLocationImage: 'スポットの画像をプレビュー：{{title}}',
+  previewWorkCover: '作品の表紙をプレビュー：{{title}}',
+  imagePreviewDemo: '画像プレビューデモ',
+  imagePreviewDemoInstructions:
+    '画像をタップして開きます。ダブルタップやピンチで拡大し、ドラッグで移動。左右にスワイプして切り替え、元の倍率で下にドラッグするか、タップして閉じます。長押しで元の画像を保存・共有できます。',
+  imagePreviewDemoSingle: '1 枚をプレビュー（フェード）',
+  imagePreviewDemoError: '読み込み失敗と再試行を確認',
+  imagePreviewSaveToPhotos: '写真に保存',
+  imagePreviewSaved: '画像を写真に保存しました',
+  imagePreviewPreparingShare: '共有を準備中…',
+  imagePreviewDownloadFailed: '元の画像をダウンロードできませんでした。接続を確認して再試行してください。',
+  imagePreviewUnsupportedFormat: 'この画像形式の保存・共有にはまだ対応していません。',
+  imagePreviewSaveFailed: '画像を保存できませんでした。しばらくしてから再試行してください。',
+  imagePreviewOpenSettings: '設定を開く',
+  imagePreviewActionsUnavailableOnWeb: '画像の保存・共有はモバイルアプリをご利用ください。',
   language: '言語',
   followSystem: 'システム設定に従う',
   simplifiedChinese: '簡体字中国語',
@@ -91,6 +110,7 @@ const ja = {
   unnamedCollection: '名称未設定コレクション',
   joinPilgrimagePlan: '巡礼プランに追加',
   alsoFavorite: 'お気に入りにも追加',
+  favoriteImportedLocations: '読み込みと同時にお気に入りに追加',
   removeFromPilgrimagePlan: '巡礼プランから削除',
   addToPilgrimagePlan: '巡礼プランに追加',
   deselectAndRemoveLocation: '選択を解除してスポットを削除',

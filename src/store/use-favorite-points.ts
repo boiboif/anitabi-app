@@ -32,6 +32,7 @@ type FavoritePointsStore = {
   favoritePoints: FavoritePoint[];
   favoriteKeys: Set<string>;
   addFavorite: (point: Point, bangumi: Bangumi) => void;
+  addFavorites: (entries: { point: Point; bangumi: Bangumi }[]) => void;
   removeFavorite: (key: string) => void;
   toggleFavorite: (point: Point, bangumi: Bangumi) => void;
   clearAllFavorites: () => void;
@@ -50,6 +51,23 @@ export const useFavoritePoints = create<FavoritePointsStore>((set, get) => ({
     const next = [favorite, ...get().favoritePoints];
     setFavoritePoints(next);
     set({ favoritePoints: next, favoriteKeys: new Set(next.map((item) => item.key)) });
+  },
+
+  /** 批量收藏：跳过已收藏项，只落盘一次 */
+  addFavorites: (entries) => {
+    const keys = new Set(get().favoriteKeys);
+    const added: FavoritePoint[] = [];
+    for (const { point, bangumi } of entries) {
+      const favorite = createFavoritePoint(point, bangumi);
+      if (keys.has(favorite.key)) continue;
+      keys.add(favorite.key);
+      added.push(favorite);
+    }
+    if (added.length === 0) return;
+
+    const next = [...added, ...get().favoritePoints];
+    setFavoritePoints(next);
+    set({ favoritePoints: next, favoriteKeys: keys });
   },
 
   removeFavorite: (key) => {

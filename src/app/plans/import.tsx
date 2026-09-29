@@ -2,14 +2,15 @@ import { StrictButton as Button } from '@/components/strict-button';
 import i18n from '@/i18n';
 import { decodeSharedPlan, resolveSharedPlan, type SharedPlan } from '@/lib/plan-sharing';
 import { BLOCK_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';
+import { useFavoritePoints } from '@/store/use-favorite-points';
 import { useMapData } from '@/store/use-map-data';
 import { usePlanImport } from '@/store/use-plan-import';
 import { usePlans } from '@/store/use-plans';
-import { AlertCircle, Check, FileDown, MapPinned } from '@tamagui/lucide-icons-2';
+import { AlertCircle, Check, FileDown, MapPinned, Square, SquareCheckBig } from '@tamagui/lucide-icons-2';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo } from 'react';
-import { ScrollView } from 'react-native';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Pressable, ScrollView } from 'react-native';
 import { Spinner, Text, XStack, YStack, useTheme } from 'tamagui';
 
 function parseLinkData(data: string | undefined): { plan: SharedPlan | null; error: string | null } {
@@ -35,6 +36,8 @@ export default function ImportPlanScreen() {
   const mapData = useMapData((state) => state.data);
   const progress = useMapData((state) => state.progress);
   const importPlan = usePlans((state) => state.importPlan);
+  const addFavorites = useFavoritePoints((state) => state.addFavorites);
+  const [alsoFavorite, setAlsoFavorite] = useState(true);
   const linkResult = useMemo(() => parseLinkData(packed), [packed]);
   const sharedPlan = linkResult.plan ?? pending;
   const resolved = useMemo(
@@ -50,6 +53,7 @@ export default function ImportPlanScreen() {
   const confirmImport = () => {
     if (!sharedPlan || !resolved || resolved.points.length === 0) return;
     const id = importPlan(sharedPlan.t, resolved.points);
+    if (alsoFavorite) addFavorites(resolved.points);
     clearImport();
     router.replace({ pathname: '/plans/[planId]', params: { planId: id } } as never);
   };
@@ -151,6 +155,24 @@ export default function ImportPlanScreen() {
             ) : null}
 
             <YStack gap="$2" pt="$2">
+              <Pressable
+                accessibilityRole="checkbox"
+                accessibilityLabel={t('favoriteImportedLocations', { defaultValue: '导入同时收藏' })}
+                accessibilityState={{ checked: alsoFavorite }}
+                onPress={() => setAlsoFavorite((current) => !current)}
+                style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
+              >
+                <XStack minH={44} px="$3" items="center" justify="space-between" rounded="$3" bg="$color2">
+                  <Text fontSize="$body" color="$color12">
+                    {t('favoriteImportedLocations', { defaultValue: '导入同时收藏' })}
+                  </Text>
+                  {alsoFavorite ? (
+                    <SquareCheckBig size={23} strokeWidth={2.5} color={theme.primary.val} />
+                  ) : (
+                    <Square size={23} color="$color8" />
+                  )}
+                </XStack>
+              </Pressable>
               <Button
                 bg="$primary"
                 color="white"

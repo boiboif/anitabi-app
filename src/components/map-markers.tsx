@@ -1,7 +1,13 @@
-import { MAP_POINT_PRIORITY_ALL_VISIBLE_ZOOM, MAP_POINT_PRIORITY_ZOOM_STOPS } from '@/lib/constants';
+import {
+  MAP_POINT_PRIORITY_ALL_VISIBLE_ZOOM,
+  MAP_POINT_PRIORITY_ZOOM_STOPS,
+  SELECTED_MAP_POINT_LAYER_ID,
+} from '@/lib/constants';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
-import { type MapPointReference, useMapBrowse } from '@/store/use-map-browse';
+import { useMapBrowse } from '@/store/use-map-browse';
+import { SelectableCircleLayer } from './map-marker-selection';
+import { getMapPointCircleStyle } from '@/utils/map-point-style';
 import { CircleLayer, ShapeSource } from '@rnmapbox/maps';
 import { ComponentProps, useCallback, useMemo } from 'react';
 
@@ -11,7 +17,6 @@ type Props = {
   selectedBangumiIds?: number[];
   openedBangumiDetailsId?: number | null;
   showAllPoints?: boolean;
-  selectedPoint?: MapPointReference | null;
   maxVisualDiameter?: number;
 };
 
@@ -20,13 +25,12 @@ type Props = {
 // GeoJSON 坐标顺序为 [lng, lat]
 // ---------------------------------------------------------------------------
 
-function toGeoJSON(bangumis: Bangumi[], selectedPoint?: MapPointReference | null): GeoJSON.FeatureCollection {
+function toGeoJSON(bangumis: Bangumi[]): GeoJSON.FeatureCollection {
   const features: GeoJSON.Feature[] = [];
 
   for (const b of bangumis) {
     for (const p of b.points) {
       if (p.geo[0] === 0 && p.geo[1] === 0) continue;
-      if (selectedPoint?.bangumiId === b.id && selectedPoint.pointId === p.id) continue;
 
       features.push({
         type: 'Feature',
@@ -62,7 +66,6 @@ export default function MapMarkers({
   selectedBangumiIds,
   openedBangumiDetailsId,
   showAllPoints = false,
-  selectedPoint,
   maxVisualDiameter,
 }: Props) {
   const storedOpenedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
@@ -72,7 +75,7 @@ export default function MapMarkers({
   const activeSelectedBangumiIds = selectedBangumiIds ?? storedSelectedMapBangumiIds;
 
   // 始终用完整数据生成 GeoJSON，筛选通过 filter 表达式实现
-  const geoJSON = useMemo(() => toGeoJSON(bangumis, selectedPoint), [bangumis, selectedPoint]);
+  const geoJSON = useMemo(() => toGeoJSON(bangumis), [bangumis]);
 
   const pointFilter: ComponentProps<typeof CircleLayer>['filter'] = useMemo(() => {
     if (activeOpenedBangumiDetailsId !== null) {
@@ -112,44 +115,17 @@ export default function MapMarkers({
     [bangumis, onPointSelect],
   );
 
-  const circleStyle = useMemo((): ComponentProps<typeof CircleLayer>['style'] => {
-    // Mapbox draws the stroke outside the radius, so the original maximum diameter is 2 * (16 + 6) = 44.
-    // Keep zoom as the top-level interpolation input; cap its stops instead of wrapping it in a min expression.
-    const radiusCap = maxVisualDiameter === undefined ? Infinity : (maxVisualDiameter * 16) / 44;
-    const strokeCap = maxVisualDiameter === undefined ? Infinity : (maxVisualDiameter * 6) / 44;
-    return {
-      circleSortKey: 90_001,
-      circleColor: ['get', 'color'],
-      circleRadius: [
-        'interpolate',
-        ['exponential', 1.75],
-        ['zoom'],
-        12,
-        Math.min(4, radiusCap),
-        18,
-        Math.min(8, radiusCap),
-        22,
-        Math.min(16, radiusCap),
-      ],
-      circleStrokeWidth: [
-        'interpolate',
-        ['exponential', 1.75],
-        ['zoom'],
-        12,
-        Math.min(1.5, strokeCap),
-        18,
-        Math.min(3, strokeCap),
-        22,
-        Math.min(6, strokeCap),
-      ],
-      circleStrokeColor: '#ffffff',
-    };
-  }, [maxVisualDiameter]);
+  const circleStyle = useMemo(() => getMapPointCircleStyle(maxVisualDiameter), [maxVisualDiameter]);
 
   return (
     <>
       <ShapeSource id="anitabi-points" shape={geoJSON} onPress={handlePress}>
-        <CircleLayer id="points" filter={pointFilter} style={circleStyle} />
+        <SelectableCircleLayer
+          id="points"
+          belowLayerID={SELECTED_MAP_POINT_LAYER_ID}
+          filter={pointFilter}
+          style={circleStyle}
+        />
       </ShapeSource>
     </>
   );

@@ -1,11 +1,12 @@
 import FavoritePointButton from '@/components/favorite-point-button';
 import PointCardActions from '@/components/point-card-actions';
 import PointSequenceBadge from '@/components/point-sequence-badge';
+import PointImage from '@/components/point-image';
 import { formatDuration } from '@/lib/formatDuration';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
-import { Image, type ImageProps } from 'expo-image';
+import type { ImageSource } from 'expo-image';
 import { useMemo, type ReactNode } from 'react';
 import { Pressable, type AccessibilityState } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -28,10 +29,14 @@ type Props = {
   description?: string;
   /** 卡片底部左侧的分组、收藏时间等辅助信息。 */
   meta?: string;
-  /** 自定义图片路径，未传入时使用巡礼点图片或番剧封面。 */
+  /** 自定义截图路径，未传入时使用巡礼点截图。 */
   image?: string;
+  /** 无截图时展示的封面，可用于收藏或计划快照。 */
+  cover?: string;
+  /** 排序过程中禁用图片预览，默认启用。 */
+  previewEnabled?: boolean;
   /** 已解析的图片源；排序浮层可与列表项复用同一个 source 和 cacheKey。 */
-  imageSource?: ImageProps['source'];
+  imageSource?: string | (ImageSource & { uri: string });
   /** 虚拟列表回收标识；默认使用图片路径，变化时清除上一条目的图片内容。 */
   imageRecyclingKey?: string;
   /** 图片加载前或缺失时使用的背景色。 */
@@ -87,6 +92,8 @@ export default function PointListCard({
   description,
   meta,
   image,
+  cover,
+  previewEnabled = true,
   imageSource,
   imageRecyclingKey,
   imageColor,
@@ -116,7 +123,9 @@ export default function PointListCard({
   const resolvedTitle =
     (title ?? (point ? getPointTitle(point, i18n.resolvedLanguage) : '')) ||
     t('unnamedLocation', { defaultValue: '未命名点位' });
-  const imagePath = image ?? point?.image ?? bangumi?.cover;
+  const screenshotPath = image || point?.image;
+  const coverPath = cover || bangumi?.cover;
+  const imagePath = screenshotPath || coverPath;
   const resolvedImageSource = useMemo(() => {
     if (imageSource) return imageSource;
     if (!imagePath) return undefined;
@@ -155,56 +164,66 @@ export default function PointListCard({
     >
       <XStack height={height}>
         {leading}
-        <Pressable
-          accessibilityRole={onPress ? 'button' : undefined}
-          accessibilityLabel={accessibilityLabel}
-          accessibilityState={accessibilityState}
-          disabled={disabled}
-          onPress={onPress}
-          style={{ flex: 1 }}
-        >
-          <XStack height={height} gap="$2">
-            <View width={imageWidth} height={height} overflow="hidden">
-              <Image
-                source={resolvedImageSource}
-                recyclingKey={imageRecyclingKey ?? imagePath}
-                style={imageStyle}
-                contentFit="cover"
-                cachePolicy="memory-disk"
-              />
-              {typeof sequenceNumber === 'number' ? <PointSequenceBadge sequenceNumber={sequenceNumber} /> : null}
-              {showMediaLabels && epLabel ? (
-                <View
-                  position="absolute"
-                  l={0}
-                  b={0}
-                  bg="rgba(0,0,0,0.55)"
-                  px="$1.5"
-                  py="$0.5"
-                  style={{ borderTopRightRadius: getTokens().radius['2'].val }}
-                >
-                  <Text fontSize="$caption" fontWeight="700" color="white">
-                    {epLabel}
-                  </Text>
-                </View>
-              ) : null}
-              {showMediaLabels && timeLabel ? (
-                <View
-                  position="absolute"
-                  r={0}
-                  b={0}
-                  bg="rgba(0,0,0,0.55)"
-                  px="$1.5"
-                  py="$0.5"
-                  style={{ borderTopLeftRadius: getTokens().radius['2'].val }}
-                >
-                  <Text fontSize="$caption" color="white">
-                    {timeLabel}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-
+        <XStack flex={1} height={height} gap="$2">
+          <PointImage
+            image={screenshotPath}
+            cover={coverPath}
+            title={resolvedTitle}
+            thumbnailSource={resolvedImageSource}
+            recyclingKey={imageRecyclingKey ?? imagePath}
+            imageStyle={imageStyle}
+            width={imageWidth}
+            height={height}
+            rounded="$4"
+            previewBorderRadius={getTokens().radius['4'].val}
+            previewEnabled={previewEnabled}
+          >
+            {typeof sequenceNumber === 'number' ? (
+              <YStack fullscreen pointerEvents="none">
+                <PointSequenceBadge sequenceNumber={sequenceNumber} />
+              </YStack>
+            ) : null}
+            {showMediaLabels && epLabel ? (
+              <View
+                pointerEvents="none"
+                position="absolute"
+                l={0}
+                b={0}
+                bg="rgba(0,0,0,0.55)"
+                px="$1.5"
+                py="$0.5"
+                style={{ borderTopRightRadius: getTokens().radius['2'].val }}
+              >
+                <Text fontSize="$caption" fontWeight="700" color="white">
+                  {epLabel}
+                </Text>
+              </View>
+            ) : null}
+            {showMediaLabels && timeLabel ? (
+              <View
+                pointerEvents="none"
+                position="absolute"
+                r={0}
+                b={0}
+                bg="rgba(0,0,0,0.55)"
+                px="$1.5"
+                py="$0.5"
+                style={{ borderTopLeftRadius: getTokens().radius['2'].val }}
+              >
+                <Text fontSize="$caption" color="white">
+                  {timeLabel}
+                </Text>
+              </View>
+            ) : null}
+          </PointImage>
+          <Pressable
+            accessibilityRole={onPress ? 'button' : undefined}
+            accessibilityLabel={accessibilityLabel}
+            accessibilityState={accessibilityState}
+            disabled={disabled}
+            onPress={onPress}
+            style={{ flex: 1 }}
+          >
             <YStack flex={1} px="$2" py="$1" pl="$0" pr={topRightAction ? 44 : '$2'} justify="space-between">
               <YStack>
                 <XStack height={30} items="center" gap="$1">
@@ -244,8 +263,8 @@ export default function PointListCard({
                 ) : null}
               </XStack>
             </YStack>
-          </XStack>
-        </Pressable>
+          </Pressable>
+        </XStack>
         {trailing}
       </XStack>
       {topRightAction ? (

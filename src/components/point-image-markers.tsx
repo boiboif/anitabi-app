@@ -2,15 +2,17 @@ import {
   FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE,
   MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE,
   MAP_IMAGE_PRIORITY_BASE_ZOOM_OFFSET,
+  SELECTED_MAP_POINT_LAYER_ID,
 } from '@/lib/constants';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
-import { type MapPointReference, useMapBrowse } from '@/store/use-map-browse';
-import { Images, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
+import { useMapBrowse } from '@/store/use-map-browse';
+import { Images, ShapeSource } from '@rnmapbox/maps';
 import { useDebounce } from 'ahooks';
 import { memo, useMemo } from 'react';
 import type { Bounds } from './map-container';
+import { SelectableSymbolLayer } from './map-marker-selection';
 
 const IMAGE_MARKER_UPDATE_DELAY_MS = 600;
 
@@ -22,7 +24,6 @@ type Props = {
   selectedBangumiIds?: number[];
   openedBangumiDetailsId?: number | null;
   ignoreZoomThreshold?: boolean;
-  selectedPoint?: MapPointReference | null;
 };
 
 type ImageMarkerCandidate = {
@@ -44,10 +45,6 @@ function isInBounds(geo: [number, number], bounds: Bounds): boolean {
   const [swLng, swLat] = bounds.sw;
   const [neLng, neLat] = bounds.ne;
   return lat >= swLat && lat <= neLat && lng >= swLng && lng <= neLng;
-}
-
-function isNotSelected(item: ImageMarkerCandidate, selectedPoint?: MapPointReference | null): boolean {
-  return selectedPoint?.bangumiId !== item.bangumi.id || selectedPoint.pointId !== item.point.id;
 }
 
 function firstLatitudeAtLeast(items: ImageMarkerCandidate[], latitude: number): number {
@@ -76,27 +73,26 @@ function getVisibleCandidates(
   candidates: ImageMarkerCandidate[],
   byLatitude: ImageMarkerCandidate[],
   bounds: Bounds | null,
-  selectedPoint?: MapPointReference | null,
 ): ImageMarkerCandidate[] {
-  if (!bounds) return selectedPoint ? candidates.filter((item) => isNotSelected(item, selectedPoint)) : candidates;
+  if (!bounds) return candidates;
   const south = bounds.sw[1];
   const north = bounds.ne[1];
   if (south > north) return [];
 
   // Keep the original full-scan path for unusual bounds and wide viewports.
   if (!Number.isFinite(south) || !Number.isFinite(north)) {
-    return candidates.filter((item) => isNotSelected(item, selectedPoint) && isInBounds(item.point.geo, bounds));
+    return candidates.filter((item) => isInBounds(item.point.geo, bounds));
   }
   const start = firstLatitudeAtLeast(byLatitude, south);
   const end = firstLatitudeAbove(byLatitude, north);
   if (end - start >= candidates.length / 2) {
-    return candidates.filter((item) => isNotSelected(item, selectedPoint) && isInBounds(item.point.geo, bounds));
+    return candidates.filter((item) => isInBounds(item.point.geo, bounds));
   }
 
   const visible: ImageMarkerCandidate[] = [];
   for (let index = start; index < end; index++) {
     const item = byLatitude[index];
-    if (isNotSelected(item, selectedPoint) && isInBounds(item.point.geo, bounds)) visible.push(item);
+    if (isInBounds(item.point.geo, bounds)) visible.push(item);
   }
   // Symbol order and duplicate image keys must match the original data order.
   return visible.sort((a, b) => a.order - b.order);
@@ -147,8 +143,9 @@ const PointImageLayer = memo(
       <>
         <Images images={imagesMap} />
         <ShapeSource id="point-images-source" shape={geojson} onPress={handlePress}>
-          <SymbolLayer
+          <SelectableSymbolLayer
             id="point-images-layer"
+            belowLayerID={SELECTED_MAP_POINT_LAYER_ID}
             style={{
               iconImage: ['get', 'iconImage'],
               iconSize: 0.4,
@@ -178,7 +175,6 @@ export default function PointImageMarkers({
   selectedBangumiIds,
   openedBangumiDetailsId,
   ignoreZoomThreshold = false,
-  selectedPoint,
 }: Props) {
   const storedOpenedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const storedSelectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
@@ -227,14 +223,26 @@ export default function PointImageMarkers({
   );
   // Match the website's order: query the viewport first, then apply sparsity to
   // those points. Filtering preserves candidate references for PointImageLayer.
-  const inBounds = belowZoomThreshold ? [] : getVisibleCandidates(candidates, byLatitude, imageBounds, selectedPoint);
-  const selectedIds = new Set(activeSelectedBangumiIds);
-  const visible = inBounds.filter((item) => {
-    if (activeOpenedBangumiDetailsId !== null && item.bangumi.id !== activeOpenedBangumiDetailsId) return false;
-    if (activeOpenedBangumiDetailsId === null && selectedIds.size > 0 && !selectedIds.has(item.bangumi.id))
-      return false;
-    return ignoreZoomThreshold || !(item.point.priority < minimumImagePriority);
-  });
+  // Selection must not rerun the viewport search or invalidate the source payload.
+  const visible = useMemo(() => {
+    const inBounds = belowZoomThreshold ? [] : getVisibleCandidates(candidates, byLatitude, imageBounds);
+    const selectedIds = new Set(activeSelectedBangumiIds);
+    return inBounds.filter((item) => {
+      if (activeOpenedBangumiDetailsId !== null && item.bangumi.id !== activeOpenedBangumiDetailsId) return false;
+      if (activeOpenedBangumiDetailsId === null && selectedIds.size > 0 && !selectedIds.has(item.bangumi.id))
+        return false;
+      return ignoreZoomThreshold || !(item.point.priority < minimumImagePriority);
+    });
+  }, [
+    belowZoomThreshold,
+    candidates,
+    byLatitude,
+    imageBounds,
+    activeSelectedBangumiIds,
+    activeOpenedBangumiDetailsId,
+    ignoreZoomThreshold,
+    minimumImagePriority,
+  ]);
 
   if (visible.length === 0) return null;
   return <PointImageLayer visible={visible} bangumis={bangumis} onPointSelect={onPointSelect} />;

@@ -107,6 +107,8 @@ function DraggablePointRow({
       subtitle={bangumi ? getBangumiTitle(bangumi, i18n.resolvedLanguage) : item.snapshot.bangumiName}
       description={point?.mark || item.snapshot.pointMark}
       image={point?.image || item.snapshot.pointImage}
+      cover={bangumi?.cover || item.snapshot.bangumiCover}
+      previewEnabled={!sorting}
       imageSource={resolved.imageSource}
       imageRecyclingKey={resolved.id}
       imageColor={bangumi?.color || item.snapshot.bangumiColor}
@@ -189,7 +191,7 @@ export default function PlanDetailScreen() {
         pointsByBangumiId.set(item.bangumiId, pointById);
       }
       const point = pointById?.get(item.pointId);
-      const imagePath = point?.image || item.snapshot.pointImage;
+      const imagePath = point?.image || item.snapshot.pointImage || bangumi?.cover || item.snapshot.bangumiCover;
       const imageUri = imagePath ? buildImageUrl(imagePath, 'plan=h160') : undefined;
       return {
         id: item.key,
@@ -280,6 +282,8 @@ export default function PlanDetailScreen() {
           title={point ? getPointTitle(point, i18n.resolvedLanguage) : item.snapshot.pointName}
           subtitle={bangumi ? getBangumiTitle(bangumi, i18n.resolvedLanguage) : item.snapshot.bangumiName}
           image={point?.image || item.snapshot.pointImage}
+          cover={bangumi?.cover || item.snapshot.bangumiCover}
+          previewEnabled={false}
           imageSource={resolved.imageSource}
           imageColor={bangumi?.color || item.snapshot.bangumiColor}
           sequenceNumber={resolved.sequenceNumber}
