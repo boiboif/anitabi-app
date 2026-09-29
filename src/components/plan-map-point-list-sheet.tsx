@@ -7,6 +7,7 @@ import { Check, ListTodo } from '@tamagui/lucide-icons-2';
 import { forwardRef, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type NativeScrollEvent, type NativeSyntheticEvent, Pressable, type ScrollView } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Svg, { Circle } from 'react-native-svg';
 import { Text, useTheme, useThemeName, View, XStack, YStack } from 'tamagui';
 import { useStore } from 'zustand';
@@ -498,39 +499,41 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
         </View>
       }
     >
-      <LegendList
-        ref={listRef}
-        data={visiblePoints}
-        recycleItems
-        alwaysRender={pinnedPointKeys}
-        keyExtractor={(resolved) => resolved.item.key}
-        renderItem={renderPoint}
-        getFixedItemSize={getPlanPointRowSize}
-        onContentSizeChange={(_, height) => {
-          if (height <= 0) return;
-          contentReadyRef.current = true;
-          if (!openingPositionReadyRef.current && !sheetPresentedRef.current) scrollToSelectedNative(false);
-          if (sheetPresentedRef.current && pendingScrollRef.current) scrollToSelected();
-          else scrollDuringPresentation();
-        }}
-        onReady={handleListReady}
-        onScroll={handleScroll}
-        onScrollBeginDrag={handleScrollBeginDrag}
-        onScrollEndDrag={handleScrollEndDrag}
-        onMomentumScrollBegin={handleMomentumScrollBegin}
-        onMomentumScrollEnd={handleMomentumScrollEnd}
-        scrollEventThrottle={16}
-        ListEmptyComponent={
-          <YStack minH={180} items="center" justify="center" px="$4">
-            <Text color="$color11">
-              {showIncompleteOnly
-                ? t('noIncompleteLocations', { defaultValue: '没有未完成点位' })
-                : t('noLocationsInThisPlanYet', { defaultValue: '计划里还没有点位' })}
-            </Text>
-          </YStack>
-        }
-        contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 4, paddingBottom: 28 }}
-      />
+      <GestureHandlerRootView style={{ flexGrow: 1 }}>
+        <LegendList
+          ref={listRef}
+          data={visiblePoints}
+          recycleItems
+          alwaysRender={pinnedPointKeys}
+          keyExtractor={(resolved) => resolved.item.key}
+          renderItem={renderPoint}
+          getFixedItemSize={getPlanPointRowSize}
+          onContentSizeChange={(_, height) => {
+            if (height <= 0) return;
+            contentReadyRef.current = true;
+            if (!openingPositionReadyRef.current && !sheetPresentedRef.current) scrollToSelectedNative(false);
+            if (sheetPresentedRef.current && pendingScrollRef.current) scrollToSelected();
+            else scrollDuringPresentation();
+          }}
+          onReady={handleListReady}
+          onScroll={handleScroll}
+          onScrollBeginDrag={handleScrollBeginDrag}
+          onScrollEndDrag={handleScrollEndDrag}
+          onMomentumScrollBegin={handleMomentumScrollBegin}
+          onMomentumScrollEnd={handleMomentumScrollEnd}
+          scrollEventThrottle={16}
+          ListEmptyComponent={
+            <YStack minH={180} items="center" justify="center" px="$4">
+              <Text color="$color11">
+                {showIncompleteOnly
+                  ? t('noIncompleteLocations', { defaultValue: '没有未完成点位' })
+                  : t('noLocationsInThisPlanYet', { defaultValue: '计划里还没有点位' })}
+              </Text>
+            </YStack>
+          }
+          contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 4, paddingBottom: 28 }}
+        />
+      </GestureHandlerRootView>
     </TrueSheet>
   );
 });

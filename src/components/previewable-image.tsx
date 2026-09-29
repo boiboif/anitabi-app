@@ -1,7 +1,7 @@
 import ImagePreview, { type ImagePreviewBounds, type PreviewImage } from '@/components/image-preview';
 import { getPreviewContainerOrigin, type PreviewTouchCoordinates } from '@/utils/image-preview-source';
 import { Image, type ImageProps, type ImageSource } from 'expo-image';
-import { type ComponentProps, useEffect, useRef, useState } from 'react';
+import { memo, type ComponentProps, useEffect, useRef, useState } from 'react';
 import type { LayoutRectangle, StyleProp, View as NativeView, ViewStyle } from 'react-native';
 import { GestureDetector, Pressable, useTapGesture } from 'react-native-gesture-handler';
 import { View } from 'tamagui';
@@ -10,6 +10,8 @@ export type PreviewableImageProps = Omit<ImageProps, 'source' | 'contentFit' | '
   source: ImageSource & { uri: string };
   /** Full-size image URI. Omit for a non-interactive placeholder image. */
   previewUri?: string;
+  /** Lower-resolution fallback while the displayed thumbnail is still loading. */
+  previewFallbackUri?: string;
   contentFit?: 'cover' | 'contain';
   /** Layout of the measuring wrapper; `style` still belongs to the Image. */
   containerStyle?: StyleProp<ViewStyle>;
@@ -61,6 +63,7 @@ function TapPreviewTrigger({
 function PreviewableImageContent({
   source,
   previewUri,
+  previewFallbackUri,
   contentFit = 'cover',
   placeholderContentFit = contentFit,
   cachePolicy = 'memory-disk',
@@ -75,8 +78,10 @@ function PreviewableImageContent({
   ...imageProps
 }: PreviewableImageProps) {
   const containerRef = useRef<NativeView>(null);
+  const containerLayoutRef = useRef<LayoutRectangle | null>(null);
   const imageLayoutRef = useRef<LayoutRectangle | null>(null);
   const dimensionsRef = useRef<{ width: number; height: number } | null>(null);
+  const sourceLoadedRef = useRef(false);
   const boundsRef = useRef<ImagePreviewBounds | null>(null);
   const mountedRef = useRef(true);
   const openingRef = useRef(false);
@@ -91,40 +96,47 @@ function PreviewableImageContent({
 
   const measureSource = (onMeasured: () => void, touch?: PreviewTouchCoordinates) => {
     const origin = getPreviewContainerOrigin(touch);
-    const container = containerRef.current;
-    if (!container) {
-      openingRef.current = false;
-      return;
-    }
-    container.measureInWindow((x, y, width, height) => {
+    const finish = (x: number, y: number, width: number, height: number) => {
       openingRef.current = false;
       const layout = imageLayoutRef.current;
-      if (!mountedRef.current || !layout || width <= 0 || height <= 0 || layout.width <= 0 || layout.height <= 0)
-        return;
-      boundsRef.current = {
-        x: (origin?.x ?? x) + layout.x,
-        y: (origin?.y ?? y) + layout.y,
-        width: layout.width,
-        height: layout.height,
-        contentFit,
-        borderRadius: previewBorderRadius,
-        clip: { x: origin?.x ?? x, y: origin?.y ?? y, width, height },
-      };
+      if (!mountedRef.current) return;
+      boundsRef.current =
+        layout && width > 0 && height > 0 && layout.width > 0 && layout.height > 0
+          ? {
+              x: x + layout.x,
+              y: y + layout.y,
+              width: layout.width,
+              height: layout.height,
+              contentFit,
+              borderRadius: previewBorderRadius,
+              clip: { x, y, width, height },
+            }
+          : null;
       onMeasured();
-    });
+    };
+    const layout = containerLayoutRef.current;
+    // Physical touches already provide the current window origin, including
+    // native sheet/map offsets. Layout supplies size without another bridge trip.
+    if (origin && layout) finish(origin.x, origin.y, layout.width, layout.height);
+    else if (containerRef.current) containerRef.current.measureInWindow(finish);
+    else finish(0, 0, 0, 0);
   };
 
   const openPreview = (touch?: PreviewTouchCoordinates) => {
     const dimensions = dimensionsRef.current;
-    if (!previewUri || !dimensions || session || openingRef.current) return;
+    if (!previewUri || session || openingRef.current) return;
     openingRef.current = true;
     measureSource(() => {
-      setSession([{ id: previewUri, uri: previewUri, thumbnailUri: source.uri, ...dimensions }]);
+      const thumbnailUri = sourceLoadedRef.current ? source.uri : (previewFallbackUri ?? source.uri);
+      setSession([{ id: previewUri, uri: previewUri, thumbnailUri, ...dimensions }]);
     }, touch);
   };
 
   const triggerProps = {
     ref: containerRef,
+    onLayout: (event) => {
+      containerLayoutRef.current = event.nativeEvent.layout;
+    },
     style: containerStyle,
     collapsable: false,
     accessible: !!previewUri || !!accessibilityLabel,
@@ -143,6 +155,7 @@ function PreviewableImageContent({
       transition={transition}
       accessible={false}
       onLoad={(event) => {
+        sourceLoadedRef.current = true;
         const { width, height } = event.source;
         if (width > 0 && height > 0) dimensionsRef.current = { width, height };
         onLoad?.(event);
@@ -182,7 +195,11 @@ function PreviewableImageContent({
   );
 }
 
+// A card can change its outer interaction state without re-sending image props to the native view.
+const MemoizedPreviewableImageContent = memo(PreviewableImageContent);
+
 /** Reset measurements and pending callbacks when a recycled card changes image. */
 export default function PreviewableImage(props: PreviewableImageProps) {
-  return <PreviewableImageContent key={JSON.stringify([props.source.uri, props.previewUri])} {...props} />;
+  // Preview availability can change without changing the thumbnail identity.
+  return <MemoizedPreviewableImageContent key={JSON.stringify([props.source.uri, props.recyclingKey])} {...props} />;
 }

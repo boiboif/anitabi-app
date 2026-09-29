@@ -5,11 +5,17 @@ import { getPreviewSourceGeometry, type ImagePreviewBounds } from '@/utils/image
 import { X } from '@tamagui/lucide-icons-2';
 import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, useWindowDimensions } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, { type SharedValue, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, {
+  type SharedValue,
+  useAnimatedReaction,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN, scheduleOnUI } from 'react-native-worklets';
 import { fitContainer } from 'react-native-zoom-toolkit';
@@ -19,8 +25,8 @@ export type PreviewImage = {
   id: string;
   uri: string;
   thumbnailUri?: string;
-  width: number;
-  height: number;
+  width?: number;
+  height?: number;
 };
 
 export type { ImagePreviewBounds } from '@/utils/image-preview-source';
@@ -55,6 +61,7 @@ function PreviewPage({
   viewport,
   retry,
   onStatus,
+  onDimensions,
   active,
   isClosing,
   galleryTransform,
@@ -64,12 +71,13 @@ function PreviewPage({
   viewport: { width: number; height: number };
   retry: number;
   onStatus: (status: 'loading' | 'loaded' | 'error') => void;
+  onDimensions: (size: { width: number; height: number }) => void;
   active: boolean;
   isClosing: SharedValue<boolean>;
   galleryTransform: SharedValue<ImageTransform>;
   closingTransform: SharedValue<ImageTransform>;
 }) {
-  const size = fitContainer(image.width / image.height, viewport);
+  const size = image.width && image.height ? fitContainer(image.width / image.height, viewport) : viewport;
   const imageStyle = useAnimatedStyle(() => {
     const closing = isClosing.get();
     const current = galleryTransform.get();
@@ -94,10 +102,13 @@ function PreviewPage({
         placeholderContentFit="contain"
         contentFit="contain"
         cachePolicy="memory-disk"
-        transition={120}
+        transition={0}
         accessibilityLabel={image.id}
         onLoadStart={() => onStatus('loading')}
-        onLoad={() => onStatus('loaded')}
+        onLoad={(event) => {
+          onDimensions(event.source);
+          onStatus('loaded');
+        }}
         onError={() => onStatus('error')}
         style={size}
       />
@@ -120,13 +131,21 @@ function PreviewSession({
   const startIndex = Math.max(0, Math.min(Math.trunc(initialIndex) || 0, images.length - 1));
   const [index, setIndex] = useState(startIndex);
   const [viewport, setViewport] = useState({ width: window.width, height: window.height });
+  const [shown, setShown] = useState(false);
   const [statuses, setStatuses] = useState<Record<string, 'loading' | 'loaded' | 'error'>>({});
   const [retries, setRetries] = useState<Record<string, number>>({});
+  const [loadedDimensions, setLoadedDimensions] = useState<Record<string, { width: number; height: number }>>({});
+  const resolvedImages = images.map((image) =>
+    image.width && image.height ? image : { ...image, ...loadedDimensions[image.id] },
+  );
   const [closing, setClosing] = useState(false);
   const galleryRef = useRef<PreviewGalleryRef>(null);
-  const startedRef = useRef(false);
   const closingRef = useRef(false);
+  const closeFrameRef = useRef<number | null>(null);
   const progress = useSharedValue(0);
+  const sourceReady = useSharedValue(false);
+  const galleryReady = useSharedValue(false);
+  const transitionStarted = useSharedValue(false);
   const pull = useSharedValue(0);
   const closeRequested = useSharedValue(false);
   const sourceTransform = useSharedValue({ x: 0, y: 0, scale: 1 });
@@ -139,20 +158,44 @@ function PreviewSession({
   const activeImage = images[index];
   const status = statuses[activeImage.id] ?? 'loading';
 
-  const updateSourceTransform = (nextIndex: number, size: typeof viewport) => {
-    const geometry = getPreviewSourceGeometry(images[nextIndex], size, getSourceBounds?.(nextIndex));
-    if (!geometry) {
-      useSourceTransition.set(false);
-      sourceClip.set(null);
-      return;
-    }
-    sourceTransform.set(geometry.transform);
-    sourceClip.set(geometry.clip);
-    useSourceTransition.set(true);
-  };
+  // Shared by initialization's effect and dismissal; keep the effect dependency stable.
+  const updateSourceTransform = useCallback(
+    (nextIndex: number, size: typeof viewport) => {
+      const geometry = getPreviewSourceGeometry(resolvedImages[nextIndex], size, getSourceBounds?.(nextIndex));
+      if (!geometry) {
+        useSourceTransition.set(false);
+        sourceClip.set(null);
+        return;
+      }
+      sourceTransform.set(geometry.transform);
+      sourceClip.set(geometry.clip);
+      useSourceTransition.set(true);
+    },
+    [resolvedImages, getSourceBounds, useSourceTransition, sourceClip, sourceTransform],
+  );
+
+  useEffect(() => {
+    if (!shown || transitionStarted.get()) return;
+    updateSourceTransform(startIndex, viewport);
+    sourceReady.set(true);
+  }, [shown, startIndex, viewport, updateSourceTransform, sourceReady, transitionStarted]);
+
+  useAnimatedReaction(
+    () => sourceReady.get() && galleryReady.get(),
+    (ready) => {
+      if (!ready || transitionStarted.get() || isClosing.get()) return;
+      transitionStarted.set(true);
+      progress.set(withTiming(1, { duration: TRANSITION_DURATION }));
+    },
+  );
 
   const close = (releasedPull?: number) => {
     if (closingRef.current) return;
+    if (!transitionStarted.get()) {
+      closingRef.current = true;
+      onClose();
+      return;
+    }
     if (actions.dismissMenu()) return;
     actions.cancel();
     closingRef.current = true;
@@ -180,9 +223,25 @@ function PreviewSession({
       if (toSource) closingTransform.set(withTiming(target, { duration: TRANSITION_DURATION }));
       progress.set(
         withTiming(0, { duration: TRANSITION_DURATION }, (finished) => {
-          if (finished) scheduleOnRN(onClose);
+          if (finished) scheduleOnRN(finishClose);
         }),
       );
+    });
+  };
+  useEffect(
+    () => () => {
+      if (closeFrameRef.current !== null) cancelAnimationFrame(closeFrameRef.current);
+    },
+    [],
+  );
+
+  const finishClose = () => {
+    // Let the final animated layout reach a frame before removing the native Modal.
+    closeFrameRef.current = requestAnimationFrame(() => {
+      closeFrameRef.current = requestAnimationFrame(() => {
+        closeFrameRef.current = null;
+        onClose();
+      });
     });
   };
 
@@ -200,7 +259,15 @@ function PreviewSession({
     const amount = !closing && useSourceTransition.get() ? 1 - progress.get() : 0;
     return {
       flex: 1,
-      opacity: closing ? (closingToSource.get() ? 1 : progress.get()) : useSourceTransition.get() ? 1 : progress.get(),
+      opacity: !transitionStarted.get()
+        ? 0
+        : closing
+          ? closingToSource.get()
+            ? 1
+            : progress.get()
+          : useSourceTransition.get()
+            ? 1
+            : progress.get(),
       transform: [
         { translateX: sourceTransform.get().x * amount },
         { translateY: sourceTransform.get().y * amount },
@@ -248,6 +315,7 @@ function PreviewSession({
       animationType="none"
       statusBarTranslucent
       navigationBarTranslucent
+      onShow={() => setShown(true)}
       onRequestClose={() => close()}
     >
       <StatusBar style="light" />
@@ -259,66 +327,76 @@ function PreviewSession({
           setViewport((previous) =>
             previous.width === width && previous.height === height ? previous : { width, height },
           );
-          if (startedRef.current) return;
-          startedRef.current = true;
-          updateSourceTransform(startIndex, { width, height });
-          progress.set(withTiming(1, { duration: TRANSITION_DURATION }));
         }}
       >
         <Animated.View pointerEvents="none" style={backgroundStyle} />
         <Animated.View pointerEvents={closing || actions.menuOpen ? 'none' : 'auto'} style={clipStyle}>
           <Animated.View style={clipContentStyle}>
             <Animated.View style={galleryStyle}>
-              <PreviewGallery
-                ref={galleryRef}
-                data={images}
-                initialIndex={startIndex}
-                keyExtractor={(image) => image.id}
-                viewport={viewport}
-                isClosing={isClosing}
-                onTap={() => close()}
-                onIndexChange={(nextIndex) => {
-                  if (closingRef.current) return;
-                  setIndex(nextIndex);
-                  onIndexChange?.(nextIndex);
-                }}
-                onUpdate={({ translateX, translateY, scale }) => {
-                  'worklet';
-                  galleryTransform.set({ x: translateX, y: translateY, scale });
-                }}
-                onLongPress={(nextIndex) => {
-                  if (closingRef.current) return;
-                  if (onLongPress) onLongPress(images[nextIndex], nextIndex);
-                  else actions.openMenu(images[nextIndex]);
-                }}
-                onVerticalPull={({ translateY, released, velocityY }) => {
-                  'worklet';
-                  if (closeRequested.get()) return;
-                  pull.set(translateY);
-                  if (!released) return;
-                  if (translateY > Math.min(140, viewport.height * 0.18) || (translateY > 40 && velocityY > 900)) {
-                    closeRequested.set(true);
-                    scheduleOnRN(close, translateY);
-                    return true;
-                  }
-                }}
-                renderItem={(image, pageIndex) => (
-                  <PreviewPage
-                    image={image}
-                    viewport={viewport}
-                    retry={retries[image.id] ?? 0}
-                    active={pageIndex === index}
-                    isClosing={isClosing}
-                    galleryTransform={galleryTransform}
-                    closingTransform={closingTransform}
-                    onStatus={(nextStatus) =>
-                      setStatuses((previous) =>
-                        previous[image.id] === nextStatus ? previous : { ...previous, [image.id]: nextStatus },
-                      )
+              {shown ? (
+                <PreviewGallery
+                  ref={galleryRef}
+                  data={resolvedImages}
+                  initialIndex={startIndex}
+                  keyExtractor={(image) => image.id}
+                  viewport={viewport}
+                  isClosing={isClosing}
+                  onTap={() => close()}
+                  onIndexChange={(nextIndex) => {
+                    if (closingRef.current) return;
+                    setIndex(nextIndex);
+                    onIndexChange?.(nextIndex);
+                  }}
+                  onUpdate={({ translateX, translateY, scale, containerSize, childSize }) => {
+                    'worklet';
+                    galleryTransform.set({ x: translateX, y: translateY, scale });
+                    if (!transitionStarted.get())
+                      galleryReady.set(
+                        Math.abs(containerSize.width - viewport.width) < 1 &&
+                          Math.abs(containerSize.height - viewport.height) < 1 &&
+                          childSize.width > 1 &&
+                          childSize.height > 1,
+                      );
+                  }}
+                  onLongPress={(nextIndex) => {
+                    if (closingRef.current) return;
+                    if (onLongPress) onLongPress(images[nextIndex], nextIndex);
+                    else actions.openMenu(images[nextIndex]);
+                  }}
+                  onVerticalPull={({ translateY, released, velocityY }) => {
+                    'worklet';
+                    if (closeRequested.get()) return;
+                    pull.set(translateY);
+                    if (!released) return;
+                    if (translateY > Math.min(140, viewport.height * 0.18) || (translateY > 40 && velocityY > 900)) {
+                      closeRequested.set(true);
+                      scheduleOnRN(close, translateY);
+                      return true;
                     }
-                  />
-                )}
-              />
+                  }}
+                  renderItem={(image, pageIndex) => (
+                    <PreviewPage
+                      image={image}
+                      viewport={viewport}
+                      retry={retries[image.id] ?? 0}
+                      active={pageIndex === index}
+                      isClosing={isClosing}
+                      galleryTransform={galleryTransform}
+                      closingTransform={closingTransform}
+                      onDimensions={({ width, height }) => {
+                        if (image.width && image.height) return;
+                        if (width > 0 && height > 0)
+                          setLoadedDimensions((previous) => ({ ...previous, [image.id]: { width, height } }));
+                      }}
+                      onStatus={(nextStatus) =>
+                        setStatuses((previous) =>
+                          previous[image.id] === nextStatus ? previous : { ...previous, [image.id]: nextStatus },
+                        )
+                      }
+                    />
+                  )}
+                />
+              ) : null}
             </Animated.View>
           </Animated.View>
         </Animated.View>

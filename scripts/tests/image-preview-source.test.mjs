@@ -5,6 +5,14 @@ import { getPreviewContainerOrigin, getPreviewSourceGeometry } from '../../src/u
 const viewport = { width: 400, height: 800 };
 const landscape = { width: 1600, height: 900 };
 
+test('unknown image dimensions use a fade until loading supplies the real aspect ratio', () => {
+  const source = { x: 20, y: 100, width: 100, height: 100, contentFit: 'cover' };
+  for (const image of [{}, { width: 1600 }, { height: 900 }, { width: 0, height: 0 }]) {
+    assert.equal(getPreviewSourceGeometry(image, viewport, source), null);
+  }
+  assert.ok(getPreviewSourceGeometry(landscape, viewport, source));
+});
+
 test('sheet touch coordinates locate the source independently of its Fabric position', () => {
   // The image is 26px below a sheet starting at y=200, rather than y=26 on screen.
   const origin = getPreviewContainerOrigin({ pageX: 58, pageY: 276, locationX: 50, locationY: 50 });

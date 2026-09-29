@@ -4,7 +4,6 @@ import PointSequenceBadge from '@/components/point-sequence-badge';
 import PointImage from '@/components/point-image';
 import { formatDuration } from '@/lib/formatDuration';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
-import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import type { ImageSource } from 'expo-image';
 import { useMemo, type ReactNode } from 'react';
@@ -126,12 +125,6 @@ export default function PointListCard({
   const screenshotPath = image || point?.image;
   const coverPath = cover || bangumi?.cover;
   const imagePath = screenshotPath || coverPath;
-  const resolvedImageSource = useMemo(() => {
-    if (imageSource) return imageSource;
-    if (!imagePath) return undefined;
-    const uri = buildImageUrl(imagePath, 'plan=h160');
-    return { uri, cacheKey: uri };
-  }, [imagePath, imageSource]);
   const imageStyle = useMemo(
     () => ({
       width: imageWidth,
@@ -169,7 +162,8 @@ export default function PointListCard({
             image={screenshotPath}
             cover={coverPath}
             title={resolvedTitle}
-            thumbnailSource={resolvedImageSource}
+            thumbnailSize="h160"
+            thumbnailSource={imageSource}
             recyclingKey={imageRecyclingKey ?? imagePath}
             imageStyle={imageStyle}
             width={imageWidth}

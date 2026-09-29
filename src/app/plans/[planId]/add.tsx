@@ -1,13 +1,15 @@
 import PointListCard from '@/components/point-list-card';
+import { StrictButton as Button } from '@/components/strict-button';
 import { type FavoritePoint } from '@/lib/favorite-storage';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
+import { BLOCK_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';
 import type { Bangumi, Point } from '@/services/types';
 import { useFavoritePoints } from '@/store/use-favorite-points';
 import { useMapData } from '@/store/use-map-data';
 import { usePlans } from '@/store/use-plans';
 import { FlashList } from '@shopify/flash-list';
-import { Check, Plus } from '@tamagui/lucide-icons-2';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Check, MapPin, Plus } from '@tamagui/lucide-icons-2';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo } from 'react';
 import { Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -48,6 +50,7 @@ function formatFavoriteTime(timestamp: number, language: string): string {
 export default function AddPlanPointsScreen() {
   const { t, i18n } = useTranslation();
   const { planId } = useLocalSearchParams<{ planId: string }>();
+  const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const favorites = useFavoritePoints((state) => state.favoritePoints);
@@ -174,10 +177,27 @@ export default function AddPlanPointsScreen() {
     <>
       <Stack.Screen options={{ title: t('addLocations', { defaultValue: '添加巡礼点' }) }} />
       {available.length === 0 ? (
-        <YStack flex={1} minH={260} items="center" justify="center" bg="$background" px="$4" pb={insets.bottom + 24}>
-          <Text color="$color11">
+        <YStack
+          flex={1}
+          minH={260}
+          items="center"
+          justify="center"
+          gap="$3"
+          bg="$background"
+          px="$4"
+          pb={insets.bottom + 24}
+        >
+          <Text fontSize="$body" color="$color11">
             {t('noFavoriteLocationsAvailableToAdd', { defaultValue: '暂无可添加的收藏点位' })}
           </Text>
+          <Button
+            icon={<MapPin size={BLOCK_BUTTON_ICON_SIZE} color="$primary" />}
+            chromeless
+            color="$primary"
+            onPress={() => router.dismissTo('/')}
+          >
+            {t('explorePilgrimageMap', { defaultValue: '前往巡礼地图探索' })}
+          </Button>
         </YStack>
       ) : (
         <FlashList
