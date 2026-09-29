@@ -340,11 +340,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
         )}
 
         {isPlanMode ? (
-          <SelectedPlanMapPointLayer
-            selected={selectedPointData}
-            showImage={showPointImageMarkers}
-            onPress={handlePointSelect}
-          />
+          <SelectedPlanMapPointLayer selected={selectedPointData} showImage={showPointImageMarkers} />
         ) : (
           <SelectedMapPointLayer
             selected={selectedPointData}

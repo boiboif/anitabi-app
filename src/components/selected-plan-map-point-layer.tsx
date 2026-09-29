@@ -12,10 +12,9 @@ const IMAGE_ID = 'selected-plan-point-artwork';
 type Props = {
   selected: SelectedMapPointData | null;
   showImage: boolean;
-  onPress: (point: SelectedMapPointData['point'], bangumi: SelectedMapPointData['bangumi']) => void;
 };
 
-export default function SelectedPlanMapPointLayer({ selected, showImage, onPress }: Props) {
+export default function SelectedPlanMapPointLayer({ selected, showImage }: Props) {
   const imageRef = useRef<ComponentRef<typeof MapboxImage>>(null);
   const frameRef = useRef<number | null>(null);
   const theme = useTheme();
@@ -58,13 +57,8 @@ export default function SelectedPlanMapPointLayer({ selected, showImage, onPress
           </MapboxImage>
         </Images>
       ) : null}
-      <ShapeSource
-        id="selected-map-point-source"
-        shape={shape}
-        onPress={() => {
-          if (selected) onPress(selected.point, selected.bangumi);
-        }}
-      >
+      {/* The underlying image or circle source handles taps, including taps on this selected marker. */}
+      <ShapeSource id="selected-map-point-source" shape={shape}>
         <SymbolLayer
           id={SELECTED_MAP_POINT_LAYER_ID}
           style={{
