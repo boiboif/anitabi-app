@@ -21,6 +21,8 @@ type MapBrowseState = {
   openedBangumiDetailsId: number | null;
   /** 当前在地图上展示弹窗的巡礼点。 */
   selectedMapPoint: MapPointReference | null;
+  /** 保留最近一次弹窗点位，使隐藏后的卡片无需重新挂载。 */
+  lastPopupMapPoint: MapPointReference | null;
   /** 等待首页地图执行的相机动作。 */
   mapCameraRequest: MapCameraRequest | null;
 
@@ -52,6 +54,7 @@ function createMapCameraRequest(point: MapPointReference, source: MapCameraReque
 export const useMapBrowse = create<MapBrowseState>((set) => ({
   openedBangumiDetailsId: null,
   selectedMapPoint: null,
+  lastPopupMapPoint: null,
   mapCameraRequest: null,
 
   openBangumiDetails: (bangumiId) =>
@@ -61,6 +64,7 @@ export const useMapBrowse = create<MapBrowseState>((set) => ({
   selectMapPoint: (point) =>
     set({
       selectedMapPoint: point,
+      lastPopupMapPoint: point,
       mapCameraRequest: null,
     }),
 
@@ -68,6 +72,7 @@ export const useMapBrowse = create<MapBrowseState>((set) => ({
     set({
       openedBangumiDetailsId: null,
       selectedMapPoint: point,
+      lastPopupMapPoint: point,
       mapCameraRequest: createMapCameraRequest(point, 'map-control'),
     }),
 
@@ -75,12 +80,14 @@ export const useMapBrowse = create<MapBrowseState>((set) => ({
     set({
       openedBangumiDetailsId: null,
       selectedMapPoint: point,
+      lastPopupMapPoint: point,
       mapCameraRequest: createMapCameraRequest(point, 'external-list'),
     }),
 
   focusPointFromBangumiDetails: (point) =>
     set({
       selectedMapPoint: point,
+      lastPopupMapPoint: point,
       mapCameraRequest: createMapCameraRequest(point, 'bangumi-detail-sheet'),
     }),
 

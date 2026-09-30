@@ -2,10 +2,10 @@ import BangumiIcons from '@/components/map/bangumi-icons';
 import { MapMarkerSelectionContext } from '@/components/map/map-marker-selection';
 import MapMarkers from '@/components/map/map-markers';
 import {
-  SelectedMapPointLayer,
-  SelectedPlanMapPointLayer,
   getSelectedPlanMarkerKey,
   type MarkerHitRect,
+  SelectedMapPointLayer,
+  SelectedPlanMapPointLayer,
 } from '@/components/map/map-selected-point-layers';
 import PointImageMarkers from '@/components/map/point-image-markers';
 import PopupCard from '@/components/map/point-popup-card';
@@ -128,6 +128,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   const navigation = useNavigation();
   const storedOpenedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const storedSelectedMapPoint = useMapBrowse((state) => state.selectedMapPoint);
+  const lastPopupMapPoint = useMapBrowse((state) => state.lastPopupMapPoint);
   const openBangumiDetails = useMapBrowse((state) => state.openBangumiDetails);
   const selectMapPoint = useMapBrowse((state) => state.selectMapPoint);
   const clearSelectedMapPoint = useMapBrowse((state) => state.clearSelectedMapPoint);
@@ -143,6 +144,16 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     const point = bangumi?.points.find((item) => item.id === activeSelectedPoint.pointId);
     return bangumi && point ? { bangumi, point } : null;
   }, [activeSelectedPoint, bangumis]);
+  const popupPointData = useMemo(() => {
+    if (selectedPointData || !lastPopupMapPoint) return selectedPointData;
+    const bangumi = bangumis.find((item) => item.id === lastPopupMapPoint.bangumiId);
+    const point = bangumi?.points.find((item) => item.id === lastPopupMapPoint.pointId);
+    return bangumi && point ? { bangumi, point } : null;
+  }, [bangumis, lastPopupMapPoint, selectedPointData]);
+  const selectedPopupPositionKey = selectedPointData
+    ? `${selectedPointData.bangumi.id}:${selectedPointData.point.id}:${selectedPointData.point.geo.join(',')}`
+    : null;
+  const [positionedPopupKey, setPositionedPopupKey] = useState<string | null>(null);
 
   const cameraRef = useRef<Camera>(null);
   const mapViewRef = useRef<MapView>(null);
@@ -157,6 +168,45 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   useEffect(() => {
     selectedMarkerKeyRef.current = selectedMarkerKey;
   }, [selectedMarkerKey]);
+
+  useEffect(() => {
+    if (
+      isPlanMode ||
+      !selectedPointData ||
+      !selectedPopupPositionKey ||
+      positionedPopupKey === selectedPopupPositionKey
+    )
+      return;
+
+    let cancelled = false;
+    let frame: number | null = null;
+    const revealAfterNativePosition = () => {
+      if (cancelled) return;
+      frame = requestAnimationFrame(() => {
+        frame = requestAnimationFrame(() => {
+          frame = null;
+          if (!cancelled) setPositionedPopupKey(selectedPopupPositionKey);
+        });
+      });
+    };
+
+    // Keep the reused annotation hidden until its new coordinate has crossed the native map boundary.
+    const map = mapViewRef.current;
+    if (map) {
+      void map
+        .getPointInView([selectedPointData.point.geo[1], selectedPointData.point.geo[0]])
+        .then(revealAfterNativePosition, revealAfterNativePosition);
+    } else {
+      revealAfterNativePosition();
+    }
+
+    return () => {
+      cancelled = true;
+      if (frame !== null) cancelAnimationFrame(frame);
+    };
+  }, [isPlanMode, positionedPopupKey, selectedPointData, selectedPopupPositionKey]);
+
+  const isPopupVisible = !!selectedPointData && positionedPopupKey === selectedPopupPositionKey;
 
   // 合并本地 cameraRef 与外部转发 ref
   const setCameraRef = useCallback(
@@ -464,20 +514,25 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
             onPress={handlePointSelect}
           />
         )}
-        {!isPlanMode && selectedPointData ? (
+        {!isPlanMode && popupPointData ? (
           <MarkerView
-            key={`${selectedPointData.bangumi.id}:${selectedPointData.point.id}`}
-            coordinate={[selectedPointData.point.geo[1], selectedPointData.point.geo[0]]}
+            coordinate={[popupPointData.point.geo[1], popupPointData.point.geo[0]]}
             anchor={{ x: 0.5, y: 1 }}
             allowOverlap
             allowOverlapWithPuck
-            isSelected
+            isSelected={isPopupVisible}
+            pointerEvents={isPopupVisible ? 'auto' : 'none'}
           >
-            <PopupCard
-              point={selectedPointData.point}
-              bangumi={selectedPointData.bangumi}
-              bangumiTitlePressEnabled={!isPlanMode}
-            />
+            {/* Android mounts the marker content in Mapbox's annotation tree, so hide the content itself. */}
+            <YStack
+              collapsable={false}
+              opacity={isPopupVisible ? 1 : 0}
+              pointerEvents={isPopupVisible ? 'auto' : 'none'}
+              accessibilityElementsHidden={!isPopupVisible}
+              importantForAccessibility={isPopupVisible ? 'auto' : 'no-hide-descendants'}
+            >
+              <PopupCard point={popupPointData.point} bangumi={popupPointData.bangumi} />
+            </YStack>
           </MarkerView>
         ) : null}
       </MapView>
