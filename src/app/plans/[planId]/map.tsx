@@ -36,6 +36,7 @@ type CameraState = {
 
 const POINT_CAMERA_TOP_PADDING = 110;
 const POINT_CAMERA_BOTTOM_PADDING = 24;
+const PAN_ONLY_ZOOM_THRESHOLD = 17;
 
 function findPoint(bangumis: Bangumi[], reference: MapPointReference | null): Point | null {
   if (!reference) return null;
@@ -78,6 +79,7 @@ export default function PlanMapScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const cameraRef = useRef<Camera>(null);
+  const currentZoomRef = useRef<number | null>(null);
   const pointListSheetRef = useRef<TrueSheet>(null);
   const { handleLocate, isLocating, isLocationPuckActive, locationPuckRevision } = useMapLocate(cameraRef);
   const initialCameraApplied = useRef(false);
@@ -223,12 +225,14 @@ export default function PlanMapScreen() {
   }, [bangumis, bottomOverlayHeight, initialPointReference, insets.top, isMapReady]);
 
   const moveCameraToPoint = useCallback(
-    (resolved: PlanMapResolvedPoint) => {
+    (resolved: PlanMapResolvedPoint, preserveZoomOnMapTap = false) => {
+      const keepCurrentZoom =
+        preserveZoomOnMapTap && currentZoomRef.current !== null && currentZoomRef.current >= PAN_ONLY_ZOOM_THRESHOLD;
       cameraRef.current?.setCamera({
         centerCoordinate: [resolved.point.geo[1], resolved.point.geo[0]],
-        zoomLevel: getPointFlyToZoom(resolved.point.density),
-        animationMode: 'flyTo',
-        animationDuration: 1000,
+        zoomLevel: keepCurrentZoom ? undefined : getPointFlyToZoom(resolved.point.density),
+        animationMode: keepCurrentZoom ? 'easeTo' : 'flyTo',
+        animationDuration: keepCurrentZoom ? 500 : 1000,
         padding: {
           paddingTop: insets.top + POINT_CAMERA_TOP_PADDING,
           paddingRight: 0,
@@ -242,12 +246,12 @@ export default function PlanMapScreen() {
   );
 
   const focusPoint = useCallback(
-    (resolved: PlanMapResolvedPoint) => {
+    (resolved: PlanMapResolvedPoint, preserveZoomOnMapTap = false) => {
       if (selectedBangumiIds.length > 0 && !selectedBangumiIds.includes(resolved.bangumi.id)) {
         setSelectedBangumiIds([]);
       }
       setSelectedPoint({ bangumiId: resolved.bangumi.id, pointId: resolved.point.id });
-      moveCameraToPoint(resolved);
+      moveCameraToPoint(resolved, preserveZoomOnMapTap);
     },
     [moveCameraToPoint, selectedBangumiIds],
   );
@@ -269,7 +273,7 @@ export default function PlanMapScreen() {
       const resolved = resolvedPlanPoints.find(
         (candidate) => candidate.bangumi.id === reference.bangumiId && candidate.point.id === reference.pointId,
       );
-      if (resolved) focusPoint(resolved);
+      if (resolved) focusPoint(resolved, true);
     },
     [focusPoint, resolvedPlanPoints],
   );
@@ -324,6 +328,9 @@ export default function PlanMapScreen() {
             maxPointMarkerDiameter={SELECTED_MAP_POINT_DOT_DIAMETER - 2}
             onPointSelect={handlePointSelect}
             onCameraChange={setCameraState}
+            onZoomChange={(zoom) => {
+              currentZoomRef.current = zoom;
+            }}
           />
 
           <YStack position="absolute" l="$0" r="$0" t={insets.top} z={20} pointerEvents="box-none">

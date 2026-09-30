@@ -1,11 +1,11 @@
 import BangumiIcons from '@/components/bangumi-icons';
 import Map3DBuildings from '@/components/map-3d-buildings';
+import { MapMarkerSelectionContext } from '@/components/map-marker-selection';
 import MapMarkers from '@/components/map-markers';
 import PointImageMarkers from '@/components/point-image-markers';
 import PopupCard from '@/components/point-popup-card';
 import SelectedMapPointLayer from '@/components/selected-map-point-layer';
 import SelectedPlanMapPointLayer from '@/components/selected-plan-map-point-layer';
-import { MapMarkerSelectionContext } from '@/components/map-marker-selection';
 import { resolveLanguageTag } from '@/i18n';
 import { MAP_STYLES } from '@/lib/map-styles';
 import type { Bangumi } from '@/services/types';
@@ -30,6 +30,8 @@ type Props = {
   showPointImageMarkers: boolean;
   /** Reports the viewport after camera events stop for 250ms. */
   onCameraChange?: (state: { zoom: number; bounds: { ne: [number, number]; sw: [number, number] } | null }) => void;
+  /** Reports zoom immediately so point selection can use the current camera state. */
+  onZoomChange?: (zoom: number) => void;
   onMapReady?: () => void;
   mode?: 'browse' | 'plan';
   selectedPoint?: MapPointReference | null;
@@ -58,6 +60,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     show3DBuildings,
     showPointImageMarkers,
     onCameraChange,
+    onZoomChange,
     onMapReady,
     mode = 'browse',
     selectedPoint,
@@ -194,9 +197,11 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
         return;
       }
       // MapIdle also waits for tile rendering; camera debounce works while tiles are still loading.
-      reportCameraChange(updateCameraState(state));
+      const next = updateCameraState(state);
+      onZoomChange?.(next.zoom);
+      reportCameraChange(next);
     },
-    [navigation, reportCameraChange, styleIndex, updateCameraState],
+    [navigation, onZoomChange, reportCameraChange, styleIndex, updateCameraState],
   );
 
   const handlePointSelect = useCallback(
