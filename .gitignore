@@ -33,6 +33,9 @@ yarn-error.*
 .DS_Store
 *.pem
 
+# local IDE state
+/.idea/
+
 # local env files
 .env*.local
 
