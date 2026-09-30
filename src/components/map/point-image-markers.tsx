@@ -8,6 +8,7 @@ import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
 import { useMapBrowse } from '@/store/use-map-browse';
+import { getStableMapImageSortKeys } from '@/utils/map-image-sort';
 import { Images, ShapeSource } from '@rnmapbox/maps';
 import { useDebounce } from 'ahooks';
 import { memo, useMemo } from 'react';
@@ -33,10 +34,17 @@ type ImageMarkerCandidate = {
   order: number;
 };
 
+type ImageMarkerIndex = {
+  candidates: ImageMarkerCandidate[];
+  byLatitude: ImageMarkerCandidate[];
+  stableSortKeys: Uint32Array;
+};
+
 type LayerProps = {
   visible: ImageMarkerCandidate[];
   bangumis: Bangumi[];
   onPointSelect?: Props['onPointSelect'];
+  stableSortKeys: Uint32Array;
 };
 
 /** 判断点位是否在可视区域内 */
@@ -98,12 +106,40 @@ function getVisibleCandidates(
   return visible.sort((a, b) => a.order - b.order);
 }
 
+const imageMarkerIndexCache = new WeakMap<Bangumi[], ImageMarkerIndex>();
+
+function getImageMarkerIndex(bangumis: Bangumi[]): ImageMarkerIndex {
+  const cached = imageMarkerIndexCache.get(bangumis);
+  if (cached) return cached;
+
+  const candidates: ImageMarkerCandidate[] = [];
+  for (const bangumi of bangumis) {
+    for (const point of bangumi.points) {
+      if (!point.image || (point.geo[0] === 0 && point.geo[1] === 0)) continue;
+      candidates.push({
+        point,
+        bangumi,
+        imageUrl: buildImageUrl(point.image, 'plan=h160'),
+        order: candidates.length,
+      });
+    }
+  }
+
+  const byLatitude = candidates
+    .filter((item) => Number.isFinite(item.point.geo[0]))
+    .sort((a, b) => a.point.geo[0] - b.point.geo[0] || a.order - b.order);
+  const index = { candidates, byLatitude, stableSortKeys: getStableMapImageSortKeys(byLatitude, candidates.length) };
+  imageMarkerIndexCache.set(bangumis, index);
+  return index;
+}
+
 const PointImageLayer = memo(
-  function PointImageLayer({ visible, bangumis, onPointSelect }: LayerProps) {
+  function PointImageLayer({ visible, bangumis, onPointSelect, stableSortKeys }: LayerProps) {
     const imagesMap: Record<string, { uri: string }> = {};
     const features: GeoJSON.Feature[] = [];
     for (const item of visible) {
       const key = `point_img_${item.point.id}`;
+      const stableSortKey = stableSortKeys[item.order];
       imagesMap[key] = { uri: item.imageUrl };
       features.push({
         type: 'Feature',
@@ -115,7 +151,7 @@ const PointImageLayer = memo(
           id: item.point.id,
           bangumiId: item.bangumi.id,
           iconImage: key,
-          sortKey: -item.point.geo[0],
+          sortKey: stableSortKey ? stableSortKey - 1 : -item.point.geo[0],
         },
       });
     }
@@ -163,6 +199,7 @@ const PointImageLayer = memo(
   (previous, next) =>
     previous.bangumis === next.bangumis &&
     previous.onPointSelect === next.onPointSelect &&
+    previous.stableSortKeys === next.stableSortKeys &&
     previous.visible.length === next.visible.length &&
     previous.visible.every((item, index) => item === next.visible[index]),
 );
@@ -198,29 +235,8 @@ export default function PointImageMarkers({
   const belowZoomThreshold = !ignoreZoomThreshold && (imageZoom < zoomThreshold || !imageBounds);
   const minimumImagePriority = ignoreZoomThreshold ? 0 : 3 * 2 ** (imagePriorityBaseZoom - imageZoom);
 
-  const candidates = useMemo(() => {
-    // This index describes the dataset, not the current camera or filters.
-    // Reuse the same candidates when zoom, selection or viewport changes.
-    const items: ImageMarkerCandidate[] = [];
-    for (const b of bangumis) {
-      for (const p of b.points) {
-        if (!p.image) continue;
-        if (p.geo[0] === 0 && p.geo[1] === 0) continue;
-        items.push({
-          point: p,
-          bangumi: b,
-          imageUrl: buildImageUrl(p.image, 'plan=h160'),
-          order: items.length,
-        });
-      }
-    }
-    return items;
-  }, [bangumis]);
-  const byLatitude = useMemo(
-    () =>
-      candidates.filter((item) => Number.isFinite(item.point.geo[0])).sort((a, b) => a.point.geo[0] - b.point.geo[0]),
-    [candidates],
-  );
+  // Cache by dataset identity so zoom, filtering and marker toggles reuse one index.
+  const { candidates, byLatitude, stableSortKeys } = useMemo(() => getImageMarkerIndex(bangumis), [bangumis]);
   // Match the website's order: query the viewport first, then apply sparsity to
   // those points. Filtering preserves candidate references for PointImageLayer.
   // Selection must not rerun the viewport search or invalidate the source payload.
@@ -245,5 +261,12 @@ export default function PointImageMarkers({
   ]);
 
   if (visible.length === 0) return null;
-  return <PointImageLayer visible={visible} bangumis={bangumis} onPointSelect={onPointSelect} />;
+  return (
+    <PointImageLayer
+      visible={visible}
+      bangumis={bangumis}
+      onPointSelect={onPointSelect}
+      stableSortKeys={stableSortKeys}
+    />
+  );
 }

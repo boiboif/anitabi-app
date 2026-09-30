@@ -1,14 +1,13 @@
 import PointListCard from '@/components/point/point-list-card';
 import RemoveFavoriteButton from '@/components/point/remove-favorite-button';
 import { StrictButton as Button } from '@/components/ui/strict-button';
-import { type FavoritePoint } from '@/lib/favorite-storage';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { BLOCK_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';
 import { buildImageUrl } from '@/services/handlers';
-import type { Bangumi, Point } from '@/services/types';
 import { useFavoritePoints } from '@/store/use-favorite-points';
 import { useMapBrowse } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
+import { resolveFavoritePoints, type ResolvedFavoritePoint } from '@/utils/resolve-favorite-points';
 import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
 import { FlashList } from '@shopify/flash-list';
 import { MapPin } from '@tamagui/lucide-icons-2';
@@ -22,11 +21,7 @@ import { Text, View, XStack, YStack, getTokens, useTheme } from 'tamagui';
 
 type FavoriteView = 'bangumi' | 'history';
 
-type ResolvedFavorite = {
-  favorite: FavoritePoint;
-  bangumi?: Bangumi;
-  point?: Point;
-};
+type ResolvedFavorite = ResolvedFavoritePoint;
 
 type BangumiGroup = {
   id: number;
@@ -156,24 +151,9 @@ export default function FavoritesScreen() {
   };
 
   const resolvedFavorites = useMemo(() => {
-    const remaining = new Map(favoritePoints.map((item) => [item.key, item]));
-    const resolved: ResolvedFavorite[] = [];
-
-    for (const bangumi of data?.data.bangumis ?? []) {
-      for (const point of bangumi.points) {
-        const key = `${bangumi.id}:${point.id}`;
-        const favorite = remaining.get(key);
-        if (!favorite) continue;
-        resolved.push({ favorite, bangumi, point });
-        remaining.delete(key);
-      }
-    }
-
-    for (const favorite of remaining.values()) {
-      resolved.push({ favorite });
-    }
-
-    return resolved.sort((a, b) => b.favorite.addedAt - a.favorite.addedAt);
+    return resolveFavoritePoints(favoritePoints, data?.data.bangumis ?? []).sort(
+      (a, b) => b.favorite.addedAt - a.favorite.addedAt,
+    );
   }, [data, favoritePoints]);
 
   const bangumiGroups = useMemo(() => {

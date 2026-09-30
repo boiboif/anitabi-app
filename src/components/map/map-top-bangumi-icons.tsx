@@ -31,8 +31,11 @@ function isWithinBounds(lat: number, lng: number, bounds: { ne: [number, number]
 }
 
 function countVisiblePoints(points: Bangumi['points'], bounds: { ne: [number, number]; sw: [number, number] }): number {
-  if (!points) return 0;
-  return points.filter((p) => isWithinBounds(p.geo[0], p.geo[1], bounds)).length;
+  let count = 0;
+  for (const point of points ?? []) {
+    if (isWithinBounds(point.geo[0], point.geo[1], bounds)) count++;
+  }
+  return count;
 }
 
 // ===========================================================================
@@ -77,22 +80,22 @@ export default function MapTopBangumiIcons({
     [bangumis, openedBangumiDetailsId, showOpenedBangumiDetails],
   );
 
-  const inViewBangumis = useMemo(() => {
-    if (!bounds) return alwaysVisible ? bangumis : [];
-    if (!alwaysVisible && zoom < MAP_ICON_ZOOM_THRESHOLD) return [];
+  const { inViewBangumis, visibleCounts } = useMemo(() => {
+    const visibleCounts = new Map<number, number>();
+    if (selectedBangumi) return { inViewBangumis: [], visibleCounts };
+    if (!bounds) return { inViewBangumis: alwaysVisible ? bangumis : [], visibleCounts };
+    if (!alwaysVisible && zoom < MAP_ICON_ZOOM_THRESHOLD) return { inViewBangumis: [], visibleCounts };
 
-    const inView = bangumis.filter((b) => {
-      return b.points?.some((p) => isWithinBounds(p.geo[0], p.geo[1], bounds)) ?? false;
-    });
-
-    return inView
-      .map((b) => ({
-        bangumi: b,
-        visibleCount: b.points?.filter((p) => isWithinBounds(p.geo[0], p.geo[1], bounds)).length ?? 0,
-      }))
-      .sort((a, b) => b.visibleCount - a.visibleCount)
-      .map((entry) => entry.bangumi);
-  }, [alwaysVisible, bangumis, bounds, zoom]);
+    const inView: { bangumi: Bangumi; visibleCount: number }[] = [];
+    for (const bangumi of bangumis) {
+      const visibleCount = countVisiblePoints(bangumi.points, bounds);
+      if (visibleCount === 0) continue;
+      visibleCounts.set(bangumi.id, visibleCount);
+      inView.push({ bangumi, visibleCount });
+    }
+    inView.sort((a, b) => b.visibleCount - a.visibleCount);
+    return { inViewBangumis: inView.map((entry) => entry.bangumi), visibleCounts };
+  }, [alwaysVisible, bangumis, bounds, selectedBangumi, zoom]);
 
   const displayedBangumis = useMemo(() => {
     const selectedIds = new Set(selectedMapBangumiIds);
@@ -241,9 +244,14 @@ export default function MapTopBangumiIcons({
         contentContainerStyle={{ gap: 8, paddingHorizontal: 14, height: 32 }}
       >
         {displayedBangumis.map((b) => {
-          const visibleCount = bounds ? countVisiblePoints(b.points, bounds) : 0;
-          const borderColor = b.color || theme.color12.val;
           const isSelected = selectedMapBangumiIds.includes(b.id);
+          const visibleCount = bounds
+            ? (visibleCounts.get(b.id) ??
+              (isSelected && !alwaysVisible && zoom < MAP_ICON_ZOOM_THRESHOLD
+                ? countVisiblePoints(b.points, bounds)
+                : 0))
+            : 0;
+          const borderColor = b.color || theme.color12.val;
 
           if (visibleCount === 0 && !isSelected) return null;
 

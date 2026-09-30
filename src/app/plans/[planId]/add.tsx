@@ -7,6 +7,7 @@ import type { Bangumi, Point } from '@/services/types';
 import { useFavoritePoints } from '@/store/use-favorite-points';
 import { useMapData } from '@/store/use-map-data';
 import { usePlans } from '@/store/use-plans';
+import { resolveFavoritePoints } from '@/utils/resolve-favorite-points';
 import { FlashList } from '@shopify/flash-list';
 import { Check, MapPin, Plus } from '@tamagui/lucide-icons-2';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
@@ -61,13 +62,13 @@ export default function AddPlanPointsScreen() {
   const existingKeys = useMemo(() => new Set(plan?.items.map((item) => item.key)), [plan]);
 
   const available = useMemo<AvailableFavorite[]>(() => {
-    const result: AvailableFavorite[] = [];
-    for (const favorite of favorites) {
-      const bangumi = data?.data.bangumis.find((item) => item.id === favorite.bangumiId);
-      const point = bangumi?.points.find((item) => item.id === favorite.pointId);
-      if (bangumi && point) result.push({ favorite, point, bangumi });
-    }
-    return result.sort((a, b) => b.favorite.addedAt - a.favorite.addedAt);
+    const resolvedByKey = new Map(
+      resolveFavoritePoints(favorites, data?.data.bangumis ?? []).map((item) => [item.favorite.key, item]),
+    );
+    return favorites
+      .map((favorite) => resolvedByKey.get(favorite.key))
+      .filter((item): item is AvailableFavorite => item?.bangumi != null && item.point != null)
+      .sort((a, b) => b.favorite.addedAt - a.favorite.addedAt);
   }, [data, favorites]);
 
   const groupedAvailable = useMemo(() => {

@@ -121,23 +121,40 @@ export default function PlanMapScreen() {
   }, [bangumiId, pointId]);
   const [selectedPoint, setSelectedPoint] = useState<MapPointReference | null>(initialPointReference);
 
+  const bangumiById = useMemo(
+    () => new Map(data?.data.bangumis.map((bangumi, index) => [bangumi.id, { bangumi, index }] as const)),
+    [data],
+  );
+  const planPointMembership = useMemo(
+    () =>
+      JSON.stringify(
+        (plan?.items.map((item) => [item.bangumiId, item.pointId] as const) ?? []).sort(
+          (a, b) => a[0] - b[0] || a[1].localeCompare(b[1]),
+        ),
+      ),
+    [plan?.items],
+  );
   const bangumis = useMemo<Bangumi[]>(() => {
-    if (!plan || !data) return [];
+    if (!data) return [];
 
     const pointIdsByBangumi = new Map<number, Set<string>>();
-    for (const item of plan.items) {
-      const pointIds = pointIdsByBangumi.get(item.bangumiId) ?? new Set<string>();
-      pointIds.add(item.pointId);
-      pointIdsByBangumi.set(item.bangumiId, pointIds);
+    for (const [bangumiId, pointId] of JSON.parse(planPointMembership) as [number, string][]) {
+      const pointIds = pointIdsByBangumi.get(bangumiId) ?? new Set<string>();
+      pointIds.add(pointId);
+      pointIdsByBangumi.set(bangumiId, pointIds);
     }
 
-    return data.data.bangumis.flatMap((bangumi) => {
-      const pointIds = pointIdsByBangumi.get(bangumi.id);
-      if (!pointIds) return [];
+    return Array.from(pointIdsByBangumi, ([id, pointIds]) => {
+      const entry = bangumiById.get(id);
+      if (!entry) return null;
+      const { bangumi, index } = entry;
       const points = bangumi.points.filter((point) => pointIds.has(point.id));
-      return points.length > 0 ? [{ ...bangumi, points }] : [];
-    });
-  }, [data, plan]);
+      return points.length > 0 ? { bangumi: { ...bangumi, points }, index } : null;
+    })
+      .filter((entry): entry is { bangumi: Bangumi; index: number } => entry != null)
+      .sort((a, b) => a.index - b.index)
+      .map((entry) => entry.bangumi);
+  }, [bangumiById, data, planPointMembership]);
 
   const resolvedPlanPoints = useMemo<PlanMapResolvedPoint[]>(() => {
     if (!plan) return [];
