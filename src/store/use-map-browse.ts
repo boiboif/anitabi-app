@@ -12,8 +12,8 @@ export type MapPointReference = {
  */
 type MapCameraRequest = MapPointReference & {
   id: number;
-  /** 地图、列表和番剧详情抽屉的点选来源。 */
-  source: 'map-point-selection' | 'map-control' | 'external-list' | 'bangumi-detail-sheet';
+  /** 地图控件、列表和番剧详情抽屉的点选来源。 */
+  source: 'map-control' | 'external-list' | 'bangumi-detail-sheet';
 };
 
 type MapBrowseState = {
@@ -61,7 +61,7 @@ export const useMapBrowse = create<MapBrowseState>((set) => ({
   selectMapPoint: (point) =>
     set({
       selectedMapPoint: point,
-      mapCameraRequest: createMapCameraRequest(point, 'map-point-selection'),
+      mapCameraRequest: null,
     }),
 
   focusPointFromMapControl: (point) =>

@@ -101,11 +101,6 @@ export default function HomeScreen() {
 
     if (!isCameraReady || !camera) return;
 
-    if (request.source === 'map-point-selection') {
-      completeMapCameraRequest(request.id);
-      return;
-    }
-
     const { density } = point;
     const [lat, lng] = point.geo;
 
