@@ -1,7 +1,7 @@
 import type { ExpoConfig } from 'expo/config';
 import appPackage from './package.json';
 
-const appVersion = '0.5.0';
+const appVersion = '0.5.1';
 const openSourceLicensePrimaryPackages = Object.keys(appPackage.dependencies).sort();
 const nativeAppVersion = process.env.APP_NATIVE_VERSION || appVersion;
 const updateChannel = process.env.EXPO_UPDATE_CHANNEL || 'development';
