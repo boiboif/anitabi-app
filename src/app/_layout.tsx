@@ -1,6 +1,6 @@
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
+import { AnimatedSplashOverlay } from '@/components/ui/animated-icon';
 import { AppUpdateOverlay } from '@/components/app-update-overlay';
-import PlanPickerProvider from '@/components/plan-picker-provider';
+import PlanPickerProvider from '@/components/plan/plan-picker-provider';
 import '@/global.css';
 import i18n, { resolveLanguagePreference } from '@/i18n';
 import { AppUpdateManagerContext } from '@/hooks/use-app-update-manager';

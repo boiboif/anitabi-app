@@ -1,6 +1,6 @@
-import { StrictButton as Button } from '@/components/strict-button';
-import PreviewGallery, { type PreviewGalleryRef } from '@/components/image-preview-gallery';
-import { useImagePreviewActions } from '@/components/use-image-preview-actions';
+import { StrictButton as Button } from '@/components/ui/strict-button';
+import PreviewGallery, { type PreviewGalleryRef } from '@/components/image-preview/image-preview-gallery';
+import { useImagePreviewActions } from '@/components/image-preview/use-image-preview-actions';
 import { getPreviewSourceGeometry, type ImagePreviewBounds } from '@/utils/image-preview-source';
 import { X } from '@tamagui/lucide-icons-2';
 import { Image } from 'expo-image';

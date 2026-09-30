@@ -1,4 +1,4 @@
-import { StrictButton as Button } from '@/components/strict-button';
+import { StrictButton as Button } from '@/components/ui/strict-button';
 import { useOpenSourceLibraries } from '@/hooks/use-open-source-libraries';
 import { getCurrentAppDisplayVersion } from '@/services/app-update';
 import { MaxContentWidth } from '@/tamagui.config';

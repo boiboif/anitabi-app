@@ -1,5 +1,5 @@
-import ImagePreview, { type ImagePreviewBounds, type PreviewImage } from '@/components/image-preview';
-import { StrictButton as Button } from '@/components/strict-button';
+import ImagePreview, { type ImagePreviewBounds, type PreviewImage } from '@/components/image-preview/image-preview';
+import { StrictButton as Button } from '@/components/ui/strict-button';
 import { Image } from 'expo-image';
 import { Redirect, Stack } from 'expo-router';
 import { useRef, useState } from 'react';

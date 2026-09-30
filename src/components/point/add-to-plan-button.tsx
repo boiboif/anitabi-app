@@ -1,4 +1,4 @@
-import { usePlanPicker } from '@/components/plan-picker-provider';
+import { usePlanPicker } from '@/components/plan/plan-picker-provider';
 import type { Bangumi, Point } from '@/services/types';
 import { ListPlus } from '@tamagui/lucide-icons-2';
 import type { GestureResponderEvent } from 'react-native';

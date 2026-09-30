@@ -1,5 +1,5 @@
-import PlanSortButton from '@/components/plan-sort-button';
-import { StrictButton as Button } from '@/components/strict-button';
+import PlanSortButton from '@/components/plan/plan-sort-button';
+import { StrictButton as Button } from '@/components/ui/strict-button';
 import type { Bangumi, Point } from '@/services/types';
 import { useFavoritePoints } from '@/store/use-favorite-points';
 import { usePlans } from '@/store/use-plans';

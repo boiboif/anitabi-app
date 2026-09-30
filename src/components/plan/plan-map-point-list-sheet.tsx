@@ -1,5 +1,5 @@
-import type { PlanMapResolvedPoint } from '@/components/plan-map-point-types';
-import PointListCard from '@/components/point-list-card';
+import type { PlanMapResolvedPoint } from '@/components/plan/plan-map-point-types';
+import PointListCard from '@/components/point/point-list-card';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { LegendList, type LegendListRef } from '@legendapp/list/react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';

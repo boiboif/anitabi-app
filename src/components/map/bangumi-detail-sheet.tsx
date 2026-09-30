@@ -1,5 +1,5 @@
-import PointListCard from '@/components/point-list-card';
-import PreviewableImage from '@/components/previewable-image';
+import PointListCard from '@/components/point/point-list-card';
+import PreviewableImage from '@/components/image-preview/previewable-image';
 import { getCategoryMessage, translateMessage } from '@/i18n/messages';
 import { getBangumiTitle } from '@/lib/localized-data';
 import { buildImageUrl } from '@/services/handlers';

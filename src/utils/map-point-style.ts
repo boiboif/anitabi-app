@@ -1,5 +1,18 @@
-import type { CircleLayer } from '@rnmapbox/maps';
+import type { CircleLayer, SymbolLayer } from '@rnmapbox/maps';
 import type { ComponentProps } from 'react';
+
+type MapPointLayerFilter = ComponentProps<typeof SymbolLayer>['filter'];
+
+/** Exclude the selected feature from both native rendering and source hit testing. */
+export function getUnselectedMapPointFilter(
+  filter: MapPointLayerFilter,
+  bangumiId?: number,
+  pointId?: string,
+): MapPointLayerFilter {
+  if (bangumiId === undefined || pointId === undefined) return filter;
+  const unselected = ['any', ['!=', ['get', 'bangumiId'], bangumiId], ['!=', ['get', 'id'], pointId]] as const;
+  return filter ? ['all', filter, unselected] : unselected;
+}
 
 /** Shared native zoom expressions keep the selected overlay exactly aligned with its underlying dot. */
 export function getMapPointCircleStyle(maxVisualDiameter?: number): ComponentProps<typeof CircleLayer>['style'] {

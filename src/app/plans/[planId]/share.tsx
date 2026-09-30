@@ -1,5 +1,5 @@
-import { PlanShareCard, type PlanShareCardPoint } from '@/components/plan-share-card';
-import { StrictButton as Button } from '@/components/strict-button';
+import { PlanShareCard, type PlanShareCardPoint } from '@/components/plan/plan-share-card';
+import { StrictButton as Button } from '@/components/ui/strict-button';
 import { sharePlanFile, sharePlanImage } from '@/lib/plan-share-files';
 import { createPlanShareBundle } from '@/lib/plan-sharing';
 import { BLOCK_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';

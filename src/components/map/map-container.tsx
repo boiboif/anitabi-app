@@ -1,16 +1,29 @@
-import BangumiIcons from '@/components/bangumi-icons';
-import Map3DBuildings from '@/components/map-3d-buildings';
-import { MapMarkerSelectionContext } from '@/components/map-marker-selection';
-import MapMarkers from '@/components/map-markers';
-import PointImageMarkers from '@/components/point-image-markers';
-import PopupCard from '@/components/point-popup-card';
-import SelectedMapPointLayer from '@/components/selected-map-point-layer';
-import SelectedPlanMapPointLayer from '@/components/selected-plan-map-point-layer';
+import BangumiIcons from '@/components/map/bangumi-icons';
+import { MapMarkerSelectionContext } from '@/components/map/map-marker-selection';
+import MapMarkers from '@/components/map/map-markers';
+import {
+  SelectedMapPointLayer,
+  SelectedPlanMapPointLayer,
+  getSelectedPlanMarkerKey,
+  type MarkerHitRect,
+} from '@/components/map/map-selected-point-layers';
+import PointImageMarkers from '@/components/map/point-image-markers';
+import PopupCard from '@/components/map/point-popup-card';
 import { resolveLanguageTag } from '@/i18n';
+import { MAP_COMPASS_TOP_OFFSET } from '@/lib/constants';
 import { MAP_STYLES } from '@/lib/map-styles';
 import type { Bangumi } from '@/services/types';
 import { type MapPointReference, useMapBrowse } from '@/store/use-map-browse';
-import { Camera, Images, LocationPuck, Image as MapboxImage, MapState, MapView, MarkerView } from '@rnmapbox/maps';
+import {
+  Camera,
+  FillExtrusionLayer,
+  Images,
+  LocationPuck,
+  Image as MapboxImage,
+  MapState,
+  MapView,
+  MarkerView,
+} from '@rnmapbox/maps';
 import { useDebounceFn } from 'ahooks';
 import { useFocusEffect, useNavigation } from 'expo-router';
 import { type ComponentProps, forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -30,8 +43,8 @@ type Props = {
   showPointImageMarkers: boolean;
   /** Reports the viewport after camera events stop for 250ms. */
   onCameraChange?: (state: { zoom: number; bounds: { ne: [number, number]; sw: [number, number] } | null }) => void;
-  /** Reports zoom immediately so point selection can use the current camera state. */
-  onZoomChange?: (zoom: number) => void;
+  /** Reports the viewport immediately so point selection can use the current camera state. */
+  onViewportChange?: (state: { zoom: number; bounds: { ne: [number, number]; sw: [number, number] } | null }) => void;
   onMapReady?: () => void;
   mode?: 'browse' | 'plan';
   selectedPoint?: MapPointReference | null;
@@ -51,6 +64,36 @@ const LOCATION_PUCK_BEARING_IMAGE = 'location-puck-bearing';
 const LOCATION_PUCK_COLOR = '#1677FF';
 const LOCATION_PUCK_BEARING_STROKE_WIDTH = 1.5;
 const LOCATION_PUCK_CIRCLE_STROKE_WIDTH = 2;
+const BUILDING_COLORS: Partial<Record<(typeof MAP_STYLES)[number]['key'], string>> = {
+  dark: '#545B63',
+  satellite: '#C9C2B8',
+};
+
+function Map3DBuildings({ styleIndex }: { styleIndex: number }) {
+  const mapStyle = MAP_STYLES[styleIndex];
+  const color = BUILDING_COLORS[mapStyle.key] ?? '#C8C2BB';
+
+  return (
+    <FillExtrusionLayer
+      key={`3d-buildings-${mapStyle.key}`}
+      id="anitabi-3d-buildings"
+      sourceID="composite"
+      sourceLayerID="building"
+      aboveLayerID="building"
+      minZoomLevel={15}
+      maxZoomLevel={24}
+      filter={['==', ['get', 'extrude'], 'true']}
+      style={{
+        fillExtrusionColor: color,
+        fillExtrusionOpacity: 0.82,
+        fillExtrusionHeight: ['get', 'height'],
+        fillExtrusionBase: ['get', 'min_height'],
+        fillExtrusionVerticalScale: ['interpolate', ['linear'], ['zoom'], 15, 0, 15.5, 1],
+        fillExtrusionVerticalGradient: true,
+      }}
+    />
+  );
+}
 
 const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   {
@@ -60,7 +103,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     show3DBuildings,
     showPointImageMarkers,
     onCameraChange,
-    onZoomChange,
+    onViewportChange,
     onMapReady,
     mode = 'browse',
     selectedPoint,
@@ -102,8 +145,18 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   }, [activeSelectedPoint, bangumis]);
 
   const cameraRef = useRef<Camera>(null);
+  const mapViewRef = useRef<MapView>(null);
+  const selectedHitRectsRef = useRef<{ key: string; rects: MarkerHitRect[] } | null>(null);
+  const selectedMarkerKey = selectedPointData
+    ? getSelectedPlanMarkerKey(selectedPointData.bangumi.id, selectedPointData.point.id, showPointImageMarkers)
+    : null;
+  const selectedMarkerKeyRef = useRef(selectedMarkerKey);
   const hasFocusedMapRef = useRef(false);
   const ignoreNextFocusCameraEventRef = useRef(false);
+
+  useEffect(() => {
+    selectedMarkerKeyRef.current = selectedMarkerKey;
+  }, [selectedMarkerKey]);
 
   // 合并本地 cameraRef 与外部转发 ref
   const setCameraRef = useCallback(
@@ -198,19 +251,70 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
       }
       // MapIdle also waits for tile rendering; camera debounce works while tiles are still loading.
       const next = updateCameraState(state);
-      onZoomChange?.(next.zoom);
+      onViewportChange?.(next);
       reportCameraChange(next);
     },
-    [navigation, onZoomChange, reportCameraChange, styleIndex, updateCameraState],
+    [navigation, onViewportChange, reportCameraChange, styleIndex, updateCameraState],
+  );
+
+  const getSelectedArtworkPress = useCallback(
+    async (screenPoint: { x: number; y: number }): Promise<MapPointReference | null> => {
+      const selected = selectedPointData;
+      const hitRects = selectedHitRectsRef.current;
+      const map = mapViewRef.current;
+      if (!isPlanMode || !selected || !selectedMarkerKey || hitRects?.key !== selectedMarkerKey || !map) return null;
+
+      try {
+        // Project on each press so camera movement cannot leave the selected artwork's hit area behind.
+        const [anchorX, anchorY] = await map.getPointInView([selected.point.geo[1], selected.point.geo[0]]);
+        if (selectedMarkerKeyRef.current !== selectedMarkerKey) return null;
+        if (
+          hitRects.rects.some(
+            ({ left, top, right, bottom }) =>
+              screenPoint.x >= anchorX + left &&
+              screenPoint.x <= anchorX + right &&
+              screenPoint.y >= anchorY + top &&
+              screenPoint.y <= anchorY + bottom,
+          )
+        ) {
+          return { bangumiId: selected.bangumi.id, pointId: selected.point.id };
+        }
+      } catch {
+        // The map can unmount while a native screen projection is pending.
+      }
+      return null;
+    },
+    [isPlanMode, selectedMarkerKey, selectedPointData],
   );
 
   const handlePointSelect = useCallback(
-    (point: Bangumi['points'][number], bangumi: Bangumi) => {
+    (point: Bangumi['points'][number], bangumi: Bangumi, screenPoint?: { x: number; y: number }) => {
       const reference = { bangumiId: bangumi.id, pointId: point.id };
-      if (isPlanMode) onPointSelect?.(reference);
-      else selectMapPoint(reference);
+      if (!isPlanMode) {
+        selectMapPoint(reference);
+        return;
+      }
+      if (!screenPoint) {
+        onPointSelect?.(reference);
+        return;
+      }
+      void getSelectedArtworkPress(screenPoint).then((selectedPress) => {
+        onPointSelect?.(selectedPress ?? reference);
+      });
     },
-    [isPlanMode, onPointSelect, selectMapPoint],
+    [getSelectedArtworkPress, isPlanMode, onPointSelect, selectMapPoint],
+  );
+
+  const handlePlanMapPress = useCallback(
+    (event: GeoJSON.Feature<GeoJSON.Point, { screenPointX: number; screenPointY: number }>) => {
+      void getSelectedArtworkPress({ x: event.properties.screenPointX, y: event.properties.screenPointY }).then(
+        (selectedPress) => {
+          if (selectedPress) onPointSelect?.(selectedPress);
+          else onMapPress?.();
+        },
+      );
+    },
+    [getSelectedArtworkPress, onMapPress, onPointSelect],
   );
 
   const handleBangumiIconPress = useCallback(
@@ -270,16 +374,17 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   return (
     <MapMarkerSelectionContext.Provider value={isPlanMode ? activeSelectedPoint : null}>
       <MapView
+        ref={mapViewRef}
         style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
         styleURL={MAP_STYLES[styleIndex].url}
         localizeLabels={{ locale: mapLabelLocale }}
         compassEnabled
-        compassPosition={{ top: insets.top + 100, right: 8 }}
+        compassPosition={{ top: insets.top + MAP_COMPASS_TOP_OFFSET, right: 8 }}
         scaleBarEnabled={true}
         scaleBarPosition={scaleBarPosition ?? { right: 0, bottom: 8 }}
         onCameraChanged={handleCameraChanged}
         onDidFinishLoadingMap={handleMapReady}
-        onPress={isPlanMode ? onMapPress : clearSelectedMapPoint}
+        onPress={isPlanMode ? handlePlanMapPress : clearSelectedMapPoint}
       >
         <Camera
           ref={setCameraRef}
@@ -345,7 +450,13 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
         )}
 
         {isPlanMode ? (
-          <SelectedPlanMapPointLayer selected={selectedPointData} showImage={showPointImageMarkers} />
+          <SelectedPlanMapPointLayer
+            selected={selectedPointData}
+            showImage={showPointImageMarkers}
+            onHitRectsChange={(key, rects) => {
+              selectedHitRectsRef.current = { key, rects };
+            }}
+          />
         ) : (
           <SelectedMapPointLayer
             selected={selectedPointData}

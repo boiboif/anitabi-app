@@ -1,4 +1,4 @@
-import PreviewableImage from '@/components/previewable-image';
+import PreviewableImage from '@/components/image-preview/previewable-image';
 import { buildImageUrl } from '@/services/handlers';
 import { type ImageProps, type ImageSource } from 'expo-image';
 import { useMemo } from 'react';

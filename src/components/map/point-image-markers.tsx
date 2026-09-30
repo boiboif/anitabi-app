@@ -20,7 +20,7 @@ type Props = {
   bangumis: Bangumi[];
   zoom: number;
   bounds: Bounds | null;
-  onPointSelect?: (point: Point, bangumi: Bangumi) => void;
+  onPointSelect?: (point: Point, bangumi: Bangumi, screenPoint: { x: number; y: number }) => void;
   selectedBangumiIds?: number[];
   openedBangumiDetailsId?: number | null;
   ignoreZoomThreshold?: boolean;
@@ -121,7 +121,7 @@ const PointImageLayer = memo(
     }
     const geojson = { type: 'FeatureCollection', features } as GeoJSON.FeatureCollection;
 
-    const handlePress = (e: { features: GeoJSON.Feature[] }) => {
+    const handlePress = (e: { features: GeoJSON.Feature[]; point: { x: number; y: number } }) => {
       const feature = e.features?.[0];
       if (!feature?.properties) return;
       const pointId = feature.properties.id as string | undefined;
@@ -132,7 +132,7 @@ const PointImageLayer = memo(
         if (b.id !== bangumiId) continue;
         for (const p of b.points) {
           if (p.id === pointId) {
-            onPointSelect?.(p, b);
+            onPointSelect?.(p, b, e.point);
             return;
           }
         }
@@ -142,7 +142,7 @@ const PointImageLayer = memo(
     return (
       <>
         <Images images={imagesMap} />
-        <ShapeSource id="point-images-source" shape={geojson} onPress={handlePress}>
+        <ShapeSource id="point-images-source" shape={geojson} onPress={handlePress} hitbox={{ width: 0, height: 0 }}>
           <SelectableSymbolLayer
             id="point-images-layer"
             belowLayerID={SELECTED_MAP_POINT_LAYER_ID}

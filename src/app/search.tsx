@@ -1,6 +1,6 @@
-import PointListCard from '@/components/point-list-card';
-import PreviewableImage from '@/components/previewable-image';
-import SearchBox from '@/components/search-box';
+import PointListCard from '@/components/point/point-list-card';
+import PreviewableImage from '@/components/image-preview/previewable-image';
+import SearchBox from '@/components/ui/search-box';
 import { getCategoryMessage, translateMessage, type TranslationMessage } from '@/i18n/messages';
 import { getBangumiTitle } from '@/lib/localized-data';
 import { buildImageUrl } from '@/services/handlers';

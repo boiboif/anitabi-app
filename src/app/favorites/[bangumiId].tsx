@@ -1,5 +1,5 @@
-import PointListCard from '@/components/point-list-card';
-import RemoveFavoriteButton from '@/components/remove-favorite-button';
+import PointListCard from '@/components/point/point-list-card';
+import RemoveFavoriteButton from '@/components/point/remove-favorite-button';
 import { type FavoritePoint } from '@/lib/favorite-storage';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import type { Bangumi, Point } from '@/services/types';

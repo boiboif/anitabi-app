@@ -1,4 +1,4 @@
-import { StrictButton as Button } from '@/components/strict-button';
+import { StrictButton as Button } from '@/components/ui/strict-button';
 import type { AppUpdateManager } from '@/hooks/use-app-updates';
 import { getBinaryUpdateDisplayVersion, getCurrentAppDisplayVersion, isMandatoryUpdate } from '@/services/app-update';
 import { useTranslation } from 'react-i18next';

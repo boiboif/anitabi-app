@@ -1,4 +1,4 @@
-import { StrictButton as Button } from '@/components/strict-button';
+import { StrictButton as Button } from '@/components/ui/strict-button';
 import i18n from '@/i18n';
 import { decodeSharedPlan, resolveSharedPlan, type SharedPlan } from '@/lib/plan-sharing';
 import { BLOCK_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';

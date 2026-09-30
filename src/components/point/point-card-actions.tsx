@@ -1,6 +1,6 @@
-import AddToPlanButton from '@/components/add-to-plan-button';
-import ComparisonCameraButton from '@/components/comparison-camera-button';
-import GoogleMapsNavigationButton from '@/components/google-maps-navigation-button';
+import AddToPlanButton from '@/components/point/add-to-plan-button';
+import ComparisonCameraButton from '@/components/comparison-camera/comparison-camera-button';
+import GoogleMapsNavigationButton from '@/components/point/google-maps-navigation-button';
 import type { Bangumi, Point } from '@/services/types';
 import { XStack } from 'tamagui';
 

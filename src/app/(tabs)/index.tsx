@@ -1,32 +1,45 @@
-import BangumiDetailSheet from '@/components/bangumi-detail-sheet';
-import Building3DSwitch from '@/components/building-3d-switch';
-import LayerSwitch from '@/components/layer-switch';
-import LoadingBadge from '@/components/loading-badge';
-import LocateButton from '@/components/locate-button';
-import MapContainer from '@/components/map-container';
-import MapTopBangumiIcons from '@/components/map-top-bangumi-icons';
-import PointImageMarkerSwitch from '@/components/point-image-marker-switch';
-import RandomPointButton from '@/components/random-point-button';
-import SearchBox from '@/components/search-box';
+import BangumiDetailSheet from '@/components/map/bangumi-detail-sheet';
+import Building3DSwitch from '@/components/map/building-3d-switch';
+import LayerSwitch from '@/components/map/layer-switch';
+import LoadingBadge from '@/components/map/loading-badge';
+import LocateButton from '@/components/map/locate-button';
+import MapContainer from '@/components/map/map-container';
+import MapTopBangumiIcons from '@/components/map/map-top-bangumi-icons';
+import PointImageMarkerSwitch from '@/components/map/point-image-marker-switch';
+import SearchBox from '@/components/ui/search-box';
 import { useMapLocate } from '@/hooks/use-map-locate';
 import { useThemedMapStyle } from '@/hooks/use-themed-map-style';
-import { FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE } from '@/lib/constants';
+import { FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE, MAP_TOP_CONTROLS_TOP_OFFSET } from '@/lib/constants';
 import { getPointFlyToZoom } from '@/lib/map-camera';
 import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
 import { useMapBrowse } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
 import type { Camera } from '@rnmapbox/maps';
+import { Dices } from '@tamagui/lucide-icons-2';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, StyleSheet } from 'react-native';
+import { Alert, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { View, YStack } from 'tamagui';
+import { useTheme, View, YStack } from 'tamagui';
 
 type CameraState = {
   zoom: number;
   bounds: { ne: [number, number]; sw: [number, number] } | null;
 };
+
+function RandomPointButton({ onPress }: { onPress: () => void }) {
+  const theme = useTheme();
+  return (
+    <TouchableOpacity
+      style={[styles.randomButton, { backgroundColor: theme.color1.val }]}
+      activeOpacity={0.7}
+      onPress={onPress}
+    >
+      <Dices size={24} color="$color11" />
+    </TouchableOpacity>
+  );
+}
 
 export default function HomeScreen() {
   const { t } = useTranslation();
@@ -145,7 +158,15 @@ export default function HomeScreen() {
         onCameraChange={handleCameraChange}
       />
 
-      <View position="absolute" l="$0" r="$0" t={insets.top === 0 ? '$2' : insets.top} pt="$2" z={0}>
+      <View
+        position="absolute"
+        l="$0"
+        r="$0"
+        t={insets.top === 0 ? '$2' : insets.top}
+        pt="$2"
+        z={0}
+        pointerEvents="box-none"
+      >
         <View mx="$3">
           <SearchBox
             onPress={() => {
@@ -169,7 +190,7 @@ export default function HomeScreen() {
         </>
       )}
 
-      <YStack r="$2" p="$1.5" position="absolute" t={200} z={20} gap="$3">
+      <YStack r="$2" p="$1.5" position="absolute" t={insets.top + MAP_TOP_CONTROLS_TOP_OFFSET} z={20} gap="$3">
         {!selectedBangumi && <LayerSwitch styleIndex={styleIndex} onChange={setStyleIndex} />}
         <Building3DSwitch enabled={show3DBuildings} onChange={handle3DBuildingsChange} />
         {cameraState.zoom >= FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE && (
@@ -185,5 +206,13 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  randomButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 0 4px 0 rgba(0, 0, 0, 0.2)',
   },
 });

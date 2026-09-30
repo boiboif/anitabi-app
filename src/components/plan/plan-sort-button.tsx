@@ -1,4 +1,4 @@
-import { StrictButton as Button } from '@/components/strict-button';
+import { StrictButton as Button } from '@/components/ui/strict-button';
 import type { PlanListSortOrder } from '@/lib/plan-storage';
 import { ICON_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';
 import { ArrowDownWideNarrow, ArrowUpNarrowWide } from '@tamagui/lucide-icons-2';

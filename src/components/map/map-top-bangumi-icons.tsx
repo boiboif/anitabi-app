@@ -7,7 +7,7 @@ import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
 import { useMapBrowse } from '@/store/use-map-browse';
 import { X } from '@tamagui/lucide-icons-2';
 import { Image } from 'expo-image';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { GetThemeValueForKey, Text, useTheme, View } from 'tamagui';
@@ -62,6 +62,7 @@ export default function MapTopBangumiIcons({
 }: Props) {
   const { t, i18n } = useTranslation();
   const scrollViewRef = useRef<ScrollView>(null);
+  const [contentWidth, setContentWidth] = useState<number | null>(null);
   const theme = useTheme();
   const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const closeBangumiDetails = useMapBrowse((state) => state.closeBangumiDetails);
@@ -125,8 +126,9 @@ export default function MapTopBangumiIcons({
     const visibleCount = bounds ? countVisiblePoints(b.points, bounds) : 0;
 
     return (
-      <View py="$3">
+      <View py="$3" pointerEvents="box-none">
         <View
+          pointerEvents="box-none"
           style={{
             flexDirection: 'row',
             height: 32,
@@ -229,11 +231,13 @@ export default function MapTopBangumiIcons({
   if (displayedBangumis.length === 0) return null;
 
   return (
-    <View py="$3">
+    <View py="$3" pointerEvents="box-none">
       <ScrollView
         ref={scrollViewRef}
         horizontal
         showsHorizontalScrollIndicator={false}
+        onContentSizeChange={(width) => setContentWidth(width)}
+        style={{ width: contentWidth ?? '100%', maxWidth: '100%' }}
         contentContainerStyle={{ gap: 8, paddingHorizontal: 14, height: 32 }}
       >
         {displayedBangumis.map((b) => {

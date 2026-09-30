@@ -1,6 +1,6 @@
-import PointListCard from '@/components/point-list-card';
-import RemoveFavoriteButton from '@/components/remove-favorite-button';
-import { StrictButton as Button } from '@/components/strict-button';
+import PointListCard from '@/components/point/point-list-card';
+import RemoveFavoriteButton from '@/components/point/remove-favorite-button';
+import { StrictButton as Button } from '@/components/ui/strict-button';
 import { type FavoritePoint } from '@/lib/favorite-storage';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { BLOCK_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';

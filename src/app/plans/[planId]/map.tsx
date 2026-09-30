@@ -1,19 +1,20 @@
-import Building3DSwitch from '@/components/building-3d-switch';
-import LayerSwitch from '@/components/layer-switch';
-import LoadingBadge from '@/components/loading-badge';
-import LocateButton from '@/components/locate-button';
-import MapContainer from '@/components/map-container';
-import MapTopBangumiIcons from '@/components/map-top-bangumi-icons';
+import Building3DSwitch from '@/components/map/building-3d-switch';
+import LayerSwitch from '@/components/map/layer-switch';
+import LoadingBadge from '@/components/map/loading-badge';
+import LocateButton from '@/components/map/locate-button';
+import MapContainer from '@/components/map/map-container';
+import MapTopBangumiIcons from '@/components/map/map-top-bangumi-icons';
+import PointImageMarkerSwitch from '@/components/map/point-image-marker-switch';
 import PlanMapPointCard, {
   PLAN_MAP_POINT_CARD_BOTTOM_OFFSET,
   PLAN_MAP_POINT_CARD_FALLBACK_HEIGHT,
-} from '@/components/plan-map-point-card';
-import PlanMapPointListSheet from '@/components/plan-map-point-list-sheet';
-import type { PlanMapResolvedPoint } from '@/components/plan-map-point-types';
-import PointImageMarkerSwitch from '@/components/point-image-marker-switch';
-import { StrictButton as Button } from '@/components/strict-button';
+} from '@/components/plan/plan-map-point-card';
+import PlanMapPointListSheet from '@/components/plan/plan-map-point-list-sheet';
+import type { PlanMapResolvedPoint } from '@/components/plan/plan-map-point-types';
+import { StrictButton as Button } from '@/components/ui/strict-button';
 import { useMapLocate } from '@/hooks/use-map-locate';
 import { useThemedMapStyle } from '@/hooks/use-themed-map-style';
+import { MAP_TOP_CONTROLS_TOP_OFFSET } from '@/lib/constants';
 import { getPointFlyToZoom } from '@/lib/map-camera';
 import { ICON_BUTTON_ICON_SIZE, SELECTED_MAP_POINT_DOT_DIAMETER } from '@/lib/ui-sizes';
 import type { Bangumi, Point } from '@/services/types';
@@ -36,7 +37,10 @@ type CameraState = {
 
 const POINT_CAMERA_TOP_PADDING = 110;
 const POINT_CAMERA_BOTTOM_PADDING = 24;
-const PAN_ONLY_ZOOM_THRESHOLD = 17;
+const MAP_TAP_PAN_ONLY_ZOOM_THRESHOLD = 17;
+const CARD_LIST_KEEP_ZOOM_THRESHOLD = 18;
+const KEEP_ZOOM_VIEWPORT_MARGIN_RATIO = 0.5;
+type PointFocusSource = 'map-tap' | 'card-list' | 'refocus';
 
 function findPoint(bangumis: Bangumi[], reference: MapPointReference | null): Point | null {
   if (!reference) return null;
@@ -44,6 +48,22 @@ function findPoint(bangumis: Bangumi[], reference: MapPointReference | null): Po
     bangumis
       .find((bangumi) => bangumi.id === reference.bangumiId)
       ?.points.find((point) => point.id === reference.pointId) ?? null
+  );
+}
+
+function isPointNearViewport(point: Point, bounds: CameraState['bounds']): boolean {
+  if (!bounds) return false;
+  const [latitude, longitude] = point.geo;
+  const [west, south] = bounds.sw;
+  const [east, north] = bounds.ne;
+  const longitudeSpan = east < west ? east + 360 - west : east - west;
+  const latitudeMargin = (north - south) * KEEP_ZOOM_VIEWPORT_MARGIN_RATIO;
+  const longitudeMargin = longitudeSpan * KEEP_ZOOM_VIEWPORT_MARGIN_RATIO;
+  const longitudeFromExpandedWest = (((longitude - west + longitudeMargin) % 360) + 360) % 360;
+  return (
+    latitude >= south - latitudeMargin &&
+    latitude <= north + latitudeMargin &&
+    (longitudeSpan + 2 * longitudeMargin >= 360 || longitudeFromExpandedWest <= longitudeSpan + 2 * longitudeMargin)
   );
 }
 
@@ -79,7 +99,7 @@ export default function PlanMapScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const cameraRef = useRef<Camera>(null);
-  const currentZoomRef = useRef<number | null>(null);
+  const currentViewportRef = useRef<CameraState | null>(null);
   const pointListSheetRef = useRef<TrueSheet>(null);
   const { handleLocate, isLocating, isLocationPuckActive, locationPuckRevision } = useMapLocate(cameraRef);
   const initialCameraApplied = useRef(false);
@@ -225,14 +245,20 @@ export default function PlanMapScreen() {
   }, [bangumis, bottomOverlayHeight, initialPointReference, insets.top, isMapReady]);
 
   const moveCameraToPoint = useCallback(
-    (resolved: PlanMapResolvedPoint, preserveZoomOnMapTap = false) => {
-      const keepCurrentZoom =
-        preserveZoomOnMapTap && currentZoomRef.current !== null && currentZoomRef.current >= PAN_ONLY_ZOOM_THRESHOLD;
+    (resolved: PlanMapResolvedPoint, source: PointFocusSource = 'refocus') => {
+      const viewport = currentViewportRef.current;
+      const currentZoom = viewport?.zoom ?? null;
+      const panOnly = source === 'map-tap' && currentZoom !== null && currentZoom >= MAP_TAP_PAN_ONLY_ZOOM_THRESHOLD;
+      const keepZoomForFlyTo =
+        source === 'card-list' &&
+        currentZoom !== null &&
+        currentZoom >= CARD_LIST_KEEP_ZOOM_THRESHOLD &&
+        isPointNearViewport(resolved.point, viewport?.bounds ?? null);
       cameraRef.current?.setCamera({
         centerCoordinate: [resolved.point.geo[1], resolved.point.geo[0]],
-        zoomLevel: keepCurrentZoom ? undefined : getPointFlyToZoom(resolved.point.density),
-        animationMode: keepCurrentZoom ? 'easeTo' : 'flyTo',
-        animationDuration: keepCurrentZoom ? 500 : 1000,
+        zoomLevel: panOnly ? undefined : keepZoomForFlyTo ? currentZoom : getPointFlyToZoom(resolved.point.density),
+        animationMode: source === 'map-tap' ? 'easeTo' : 'flyTo',
+        animationDuration: 1000,
         padding: {
           paddingTop: insets.top + POINT_CAMERA_TOP_PADDING,
           paddingRight: 0,
@@ -246,12 +272,16 @@ export default function PlanMapScreen() {
   );
 
   const focusPoint = useCallback(
-    (resolved: PlanMapResolvedPoint, preserveZoomOnMapTap = false) => {
+    (resolved: PlanMapResolvedPoint, source: PointFocusSource = 'card-list') => {
       if (selectedBangumiIds.length > 0 && !selectedBangumiIds.includes(resolved.bangumi.id)) {
         setSelectedBangumiIds([]);
       }
-      setSelectedPoint({ bangumiId: resolved.bangumi.id, pointId: resolved.point.id });
-      moveCameraToPoint(resolved, preserveZoomOnMapTap);
+      setSelectedPoint((current) =>
+        current?.bangumiId === resolved.bangumi.id && current.pointId === resolved.point.id
+          ? current
+          : { bangumiId: resolved.bangumi.id, pointId: resolved.point.id },
+      );
+      moveCameraToPoint(resolved, source);
     },
     [moveCameraToPoint, selectedBangumiIds],
   );
@@ -273,7 +303,7 @@ export default function PlanMapScreen() {
       const resolved = resolvedPlanPoints.find(
         (candidate) => candidate.bangumi.id === reference.bangumiId && candidate.point.id === reference.pointId,
       );
-      if (resolved) focusPoint(resolved, true);
+      if (resolved) focusPoint(resolved, 'map-tap');
     },
     [focusPoint, resolvedPlanPoints],
   );
@@ -328,8 +358,8 @@ export default function PlanMapScreen() {
             maxPointMarkerDiameter={SELECTED_MAP_POINT_DOT_DIAMETER - 2}
             onPointSelect={handlePointSelect}
             onCameraChange={setCameraState}
-            onZoomChange={(zoom) => {
-              currentZoomRef.current = zoom;
+            onViewportChange={(viewport) => {
+              currentViewportRef.current = viewport;
             }}
           />
 
@@ -360,7 +390,7 @@ export default function PlanMapScreen() {
             />
           </YStack>
 
-          <YStack r="$2" p="$1.5" position="absolute" t={200} z={20} gap="$3">
+          <YStack r="$2" p="$1.5" position="absolute" t={insets.top + MAP_TOP_CONTROLS_TOP_OFFSET} z={20} gap="$3">
             <LayerSwitch styleIndex={styleIndex} onChange={setStyleIndex} />
             <Building3DSwitch enabled={show3DBuildings} onChange={handle3DBuildingsChange} />
             <PointImageMarkerSwitch visible={showPointImageMarkers} onChange={setShowPointImageMarkers} />

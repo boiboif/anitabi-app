@@ -1,4 +1,4 @@
-import { StrictButton as Button } from '@/components/strict-button';
+import { StrictButton as Button } from '@/components/ui/strict-button';
 import { usePlans } from '@/store/use-plans';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';

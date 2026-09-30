@@ -1,7 +1,7 @@
-import { ActionSheet, type ActionSheetRef } from '@/components/action-sheet';
-import PointListCard from '@/components/point-list-card';
-import StableReorderableList, { type StableReorderableListRenderItem } from '@/components/stable-reorderable-list';
-import { StrictButton as Button } from '@/components/strict-button';
+import { ActionSheet, type ActionSheetRef } from '@/components/ui/action-sheet';
+import PointListCard from '@/components/point/point-list-card';
+import StableReorderableList, { type StableReorderableListRenderItem } from '@/components/ui/stable-reorderable-list';
+import { StrictButton as Button } from '@/components/ui/strict-button';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { sharePlanFile } from '@/lib/plan-share-files';
 import { createPlanShareBundle } from '@/lib/plan-sharing';

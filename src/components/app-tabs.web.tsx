@@ -4,7 +4,7 @@ import { Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Text, View, useTheme } from 'tamagui';
 
-import { ExternalLink } from './external-link';
+import { ExternalLink } from './ui/external-link';
 
 export default function AppTabs() {
   const { t } = useTranslation();

@@ -1,4 +1,4 @@
-import { StrictButton as Button } from '@/components/strict-button';
+import { StrictButton as Button } from '@/components/ui/strict-button';
 import { BLOCK_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';
 import { usePlans } from '@/store/use-plans';
 import { Check } from '@tamagui/lucide-icons-2';

@@ -1,4 +1,4 @@
-import { StrictButton as Button } from '@/components/strict-button';
+import { StrictButton as Button } from '@/components/ui/strict-button';
 import { useOpenSourceLibraries } from '@/hooks/use-open-source-libraries';
 import { MaxContentWidth } from '@/tamagui.config';
 import * as Linking from 'expo-linking';

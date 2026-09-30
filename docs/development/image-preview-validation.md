@@ -66,9 +66,9 @@ adb shell am start -a android.intent.action.VIEW -d "anitabiapp-dev://image-prev
 
 ### 业务图片入口
 
-`src/components/point-image.tsx` 封装巡礼点的截图/封面选择、缺图提示、缩略图 URL 与原图预览。调用方传入 `image`、`cover`、`title` 和布局属性；可以通过 `children` 添加序号、集数等覆盖层，排序时设置 `previewEnabled={false}`。普通列表无需自行拼接预览地址或编写缺图分支。
+`src/components/point/point-image.tsx` 封装巡礼点的截图/封面选择、缺图提示、缩略图 URL 与原图预览。调用方传入 `image`、`cover`、`title` 和布局属性；可以通过 `children` 添加序号、集数等覆盖层，排序时设置 `previewEnabled={false}`。普通列表无需自行拼接预览地址或编写缺图分支。
 
-`src/components/previewable-image.tsx` 提供 `PreviewableImage`，供 `PointImage` 和番剧封面复用。调用方无需自行包装手势、维护测量 ref 或渲染预览弹窗。
+`src/components/image-preview/previewable-image.tsx` 提供 `PreviewableImage`，供 `PointImage` 和番剧封面复用。调用方无需自行包装手势、维护测量 ref 或渲染预览弹窗。
 
 ```tsx
 <PreviewableImage
@@ -89,7 +89,7 @@ adb shell am start -a android.intent.action.VIEW -d "anitabiapp-dev://image-prev
 
 ### 全屏预览
 
-`src/components/image-preview.tsx` 导出 `ImagePreview`、`PreviewImage`、`ImagePreviewBounds` 和 `ImagePreviewProps`。
+`src/components/image-preview/image-preview.tsx` 导出 `ImagePreview`、`PreviewImage`、`ImagePreviewBounds` 和 `ImagePreviewProps`。
 
 - `images`：每项包含唯一 `id`、大图 `uri`，以及可选的 `thumbnailUri`、原始 `width` / `height`（正数）。未知尺寸时淡入，加载原图后补齐尺寸。
 - `visible`、`initialIndex`、`onClose`：控制显示、初始图片和关闭。收到 `onClose` 后调用方关闭组件。

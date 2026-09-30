@@ -1,7 +1,7 @@
-import { ActionSheet, type ActionSheetRef } from '@/components/action-sheet';
-import PlanListCard from '@/components/plan-list-card';
-import PlanSortButton from '@/components/plan-sort-button';
-import { StrictButton as Button } from '@/components/strict-button';
+import { ActionSheet, type ActionSheetRef } from '@/components/ui/action-sheet';
+import PlanListCard from '@/components/plan/plan-list-card';
+import PlanSortButton from '@/components/plan/plan-sort-button';
+import { StrictButton as Button } from '@/components/ui/strict-button';
 import { usePlanImportActions } from '@/hooks/use-plan-import-actions';
 import { sharePlanFile } from '@/lib/plan-share-files';
 import { createPlanShareBundle } from '@/lib/plan-sharing';

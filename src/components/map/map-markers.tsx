@@ -13,7 +13,7 @@ import { ComponentProps, useCallback, useMemo } from 'react';
 
 type Props = {
   bangumis: Bangumi[];
-  onPointSelect?: (point: Point, bangumi: Bangumi) => void;
+  onPointSelect?: (point: Point, bangumi: Bangumi, screenPoint: { x: number; y: number }) => void;
   selectedBangumiIds?: number[];
   openedBangumiDetailsId?: number | null;
   showAllPoints?: boolean;
@@ -95,7 +95,7 @@ export default function MapMarkers({
 
   /** 点击圆点标记 → 查找完整点/番数据 → 弹出详情 */
   const handlePress = useCallback(
-    (e: { features: GeoJSON.Feature[] }) => {
+    (e: { features: GeoJSON.Feature[]; point: { x: number; y: number } }) => {
       const feature = e.features?.[0];
       if (!feature?.properties) return;
       const pointId = feature.properties.id as string | undefined;
@@ -106,7 +106,7 @@ export default function MapMarkers({
         if (b.id !== bangumiId) continue;
         for (const p of b.points) {
           if (p.id === pointId) {
-            onPointSelect?.(p, b);
+            onPointSelect?.(p, b, e.point);
             return;
           }
         }

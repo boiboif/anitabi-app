@@ -1,7 +1,7 @@
-import FavoritePointButton from '@/components/favorite-point-button';
-import PointCardActions from '@/components/point-card-actions';
-import PointSequenceBadge from '@/components/point-sequence-badge';
-import PointImage from '@/components/point-image';
+import FavoritePointButton from '@/components/point/favorite-point-button';
+import PointCardActions from '@/components/point/point-card-actions';
+import PointSequenceBadge from '@/components/point/point-sequence-badge';
+import PointImage from '@/components/point/point-image';
 import { formatDuration } from '@/lib/formatDuration';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import type { Bangumi, Point } from '@/services/types';

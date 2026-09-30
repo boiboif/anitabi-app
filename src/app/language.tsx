@@ -1,5 +1,5 @@
-import { SettingCell } from '@/components/setting-cell';
-import { SettingsSection } from '@/components/settings-section';
+import { SettingCell } from '@/components/ui/settings/setting-cell';
+import { SettingsSection } from '@/components/ui/settings/settings-section';
 import { translateMessage, type TranslationMessage } from '@/i18n/messages';
 import type { LanguagePreference } from '@/lib/storage';
 import { useLanguagePreference } from '@/store/use-language-preference';

@@ -1,5 +1,5 @@
-import { SettingCell } from '@/components/setting-cell';
-import { SettingsSection } from '@/components/settings-section';
+import { SettingCell } from '@/components/ui/settings/setting-cell';
+import { SettingsSection } from '@/components/ui/settings/settings-section';
 import { clearAppCache } from '@/lib/app-cache';
 import { getCurrentAppDisplayVersion } from '@/services/app-update';
 import { BottomTabInset, MaxContentWidth, TopLevelPageTopPadding } from '@/tamagui.config';

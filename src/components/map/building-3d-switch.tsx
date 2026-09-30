@@ -1,4 +1,4 @@
-import { StrictButton as Button } from '@/components/strict-button';
+import { StrictButton as Button } from '@/components/ui/strict-button';
 import { Building2 } from '@tamagui/lucide-icons-2';
 import { useTranslation } from 'react-i18next';
 import { Text, YStack } from 'tamagui';

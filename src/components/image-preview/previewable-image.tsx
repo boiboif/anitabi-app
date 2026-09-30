@@ -1,4 +1,4 @@
-import ImagePreview, { type ImagePreviewBounds, type PreviewImage } from '@/components/image-preview';
+import ImagePreview, { type ImagePreviewBounds, type PreviewImage } from '@/components/image-preview/image-preview';
 import { getPreviewContainerOrigin, type PreviewTouchCoordinates } from '@/utils/image-preview-source';
 import { Image, type ImageProps, type ImageSource } from 'expo-image';
 import { memo, type ComponentProps, useEffect, useRef, useState } from 'react';
