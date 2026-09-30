@@ -15,6 +15,7 @@ import * as Linking from 'expo-linking';
 import * as Updates from 'expo-updates';
 import { AppState, Platform } from 'react-native';
 import { createMMKV } from 'react-native-mmkv';
+import type { ReleaseNoteEntry } from '@/services/release-notes';
 
 export type BinaryUpdate = {
   version: string;
@@ -22,6 +23,7 @@ export type BinaryUpdate = {
   buildNumber?: number;
   title?: string;
   releaseNotes?: string;
+  releaseNotesHistory?: ReleaseNoteEntry[];
   apkUrl: string;
   releaseUrl?: string;
   mandatory?: boolean;

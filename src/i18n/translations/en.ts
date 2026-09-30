@@ -291,6 +291,8 @@ const en = {
   newVersionVVersion: 'New version: v{{version}}',
   currentVersionVVersion: 'Current version: v{{version}}',
   releaseNotes: 'Release notes',
+  majorReleaseVersion: 'Major update · v{{version}}',
+  releaseVersion: 'v{{version}}',
   downloadingInstaller: 'Downloading installer',
   downloadPaused: 'Download paused',
   waitingToDownload: 'Waiting to download',

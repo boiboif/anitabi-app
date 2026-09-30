@@ -280,6 +280,8 @@ const zh = {
   newVersionVVersion: '新版本：v{{version}}',
   currentVersionVVersion: '当前版本：v{{version}}',
   releaseNotes: '更新信息',
+  majorReleaseVersion: '重点更新 · v{{version}}',
+  releaseVersion: 'v{{version}}',
   downloadingInstaller: '正在下载安装包',
   downloadPaused: '下载已暂停',
   waitingToDownload: '等待下载',

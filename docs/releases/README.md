@@ -1,5 +1,7 @@
 # GitHub Actions 发版与更新
 
+需要让 Codex 协助准备并发布版本时，可复制[发版请求模板](./发版请求模板.md)，先审核文案，再单独授权发布。
+
 本项目使用 GitHub Actions 构建 Android APK，使用 EAS Update 发布热更新。Android APK 不需要上传应用商店，用户从 GitHub Release 下载或由应用内整包更新流程安装。
 
 ## 首次配置
@@ -59,6 +61,26 @@ git tag -a v0.4.0 -F release-notes/v0.4.0.md
 git push origin v0.4.0
 ```
 
+### 分版本更新内容与重点更新
+
+正式版每次只需在 `release-notes/v<version>-app.txt` 中写**本次版本**的简短更新内容。`release-notes/v<version>.md` 继续用于 GitHub Release 的完整说明。如需将某次发布作为重点更新，在同一个提交中增加 `release-notes/v<version>.meta.json`：
+
+```json
+{
+  "importance": "major"
+}
+```
+
+没有元数据文件时默认为 `normal`；也可以显式写 `"importance": "normal"`。这个标记由发版者决定，与版本号的 major/minor 数字无关，也不影响 `mandatory`、最低支持版本等强制更新规则。推送 tag 和手动运行 Actions 都读取提交中的元数据文件，因此发版前必须先提交文案和元数据。
+
+生成清单时，脚本收集目标版本及以前的正式版 `-app.txt`，写入 `releaseNotesHistory`。新版客户端按已安装的原生版本筛选：弹窗只显示本次版本，以及用户尚未安装的最近一次重大更新；如果本次版本本身是重大更新，就只显示本次版本。其他历史版本不会自动堆进弹窗。旧客户端只读取 `releaseNotes`，无法按当前版本筛选；这个字段默认只放本次版本的 App 短文案。
+
+例如最新版为 v1.2.1，v1.1.0 与 v1.2.0 都标为重大更新，且这些已安装版本都包含新版弹窗逻辑：v1.1.0 用户先看到 v1.2.0 的重大更新，再看到 v1.2.1 的本次更新；v1.2.0 用户只看到 v1.2.1。已安装的重大更新不会重复展示。
+
+如果某次发版确实需要向仍在使用旧客户端的人介绍跨版本的重要变化，可单独提交 `release-notes/v<version>-upgrade.txt`。它应包含本次版本的变化及人工挑选的旧版重点，会覆盖旧客户端读取的 `releaseNotes`；发布前需完整审核，不自动拼接历史版本。它不影响新版客户端使用的 `releaseNotesHistory`。首次启用前可为需要回顾的历史正式版补充 `-app.txt` 和 `.meta.json`，不要仅凭版本号推断其重要性。
+
+预览版与正式版分开；当前预览版清单只收录本次预览发布的说明。预览版可提前提交 `release-notes/v1.2.0-preview-app.txt`、`release-notes/v1.2.0-preview.meta.json` 和可选的 `release-notes/v1.2.0-preview-upgrade.txt`，适用于这个基础版本的各次预览发布；若需要为特定预览构建单独撰写，可使用最终 tag 命名的文件，例如 `v1.2.0-preview.2-app.txt`、`v1.2.0-preview.2.meta.json` 和 `v1.2.0-preview.2-upgrade.txt`，优先级更高。
+
 Release 会同时上传 APK 的 `.sha256` 校验文件，可用于验证下载完整性。preview 推送 `v<version>-preview` 后，工作流仍会自动计算 `preview.N` 后缀并创建对应的 Release。`mandatory`、`min_supported_version` 等仅在手动 dispatch 时可设置；tag 触发的发版默认非强制，需要强制更新时使用手动 dispatch。iOS 产物为未签名 IPA（`*-unsigned.ipa`），不能直接安装到设备，仅供侧载签名或存档；面向用户的步骤见 [iOS 侧载安装指南](../guide/ios-sideloading.md)。`Android Release` 工作流保留为仅手动触发的 Android-only 快速兜底；tag 触发统一走 `Mobile Release`，避免同一版本被两个入口重复构建。
 
 production 发版流程如下：
@@ -81,7 +103,7 @@ production 始终使用精确 tag `v<version>`，例如 `v0.0.1`。如果同名 
 yarn release:manifest --from-github --version 0.0.2 --build-number 1002
 ```
 
-脚本会读取对应的 `v<version>` GitHub Release，自动获取标题、Release Notes 和 APK 下载地址，然后生成 `docs/releases/latest.json`。如需与 GitHub Release 区分应用内文案，可同时传入 `--notes-file release-notes/v<version>-app.txt`；这只覆盖清单中的 `releaseNotes` 字段。
+脚本会读取对应的 `v<version>` GitHub Release，自动获取标题、Release Notes 和 APK 下载地址，然后生成 `docs/releases/latest.json`。如需与 GitHub Release 区分应用内文案，可同时传入 `--notes-file release-notes/v<version>-app.txt`；它作为本次版本的简短内容进入 `releaseNotesHistory`，同时默认作为旧客户端的 `releaseNotes`。如存在对应的 `-upgrade.txt`，旧客户端改为显示经过审核的跨版本摘要。
 
 也可以在 GitHub Release 创建前手动提供更新说明：
 

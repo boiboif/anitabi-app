@@ -6,6 +6,7 @@ const path = require('path');
 
 const projectRoot = path.join(__dirname, '..');
 const defaultOutputPath = path.join(projectRoot, 'docs', 'releases', 'latest.json');
+const releaseNotesDirectory = path.join(projectRoot, 'release-notes');
 
 function printHelp() {
   console.log(`Generate the GitHub APK update manifest.
@@ -22,6 +23,7 @@ Options:
   --title <text>                    Dialog title
   --notes <text>                    In-app release notes text (overrides GitHub body)
   --notes-file <path>               Read in-app notes from a UTF-8 file (overrides GitHub body)
+  --validate-notes                  Validate release note metadata without creating a manifest
   --from-github                     Read title, notes and APK asset from GitHub Release
   --repo <owner/name>               GitHub repository; defaults to GH_REPO or git origin
   --asset-name <filename.apk>       APK asset name
@@ -35,7 +37,7 @@ Options:
 }
 
 function parseArgs(argv) {
-  const options = { mandatory: false, fromGithub: false, dryRun: false };
+  const options = { mandatory: false, fromGithub: false, dryRun: false, validateNotes: false };
   const valueOptions = new Set([
     'version',
     'build-number',
@@ -58,6 +60,7 @@ function parseArgs(argv) {
     if (name === 'mandatory') options.mandatory = true;
     else if (name === 'from-github') options.fromGithub = true;
     else if (name === 'dry-run') options.dryRun = true;
+    else if (name === 'validate-notes') options.validateNotes = true;
     else if (name === 'help') options.help = true;
     else if (valueOptions.has(name)) {
       const value = argv[index + 1];
@@ -161,6 +164,71 @@ function readReleaseFromGithub(tag, repo, preferredAssetName) {
   };
 }
 
+function compareVersions(left, right) {
+  const leftParts = left.split('.').map(Number);
+  const rightParts = right.split('.').map(Number);
+  for (let index = 0; index < 3; index += 1) {
+    if (leftParts[index] !== rightParts[index]) return leftParts[index] - rightParts[index];
+  }
+  return 0;
+}
+
+function readImportance(tag) {
+  const exactPath = path.join(releaseNotesDirectory, `${tag}.meta.json`);
+  const previewPath = path.join(releaseNotesDirectory, `${tag.replace(/-preview\.\d+$/, '-preview')}.meta.json`);
+  const metadataPath = fs.existsSync(exactPath) ? exactPath : previewPath;
+  if (!fs.existsSync(metadataPath)) return 'normal';
+  const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+  if (metadata?.importance !== 'major' && metadata?.importance !== 'normal') {
+    throw new Error(`${metadataPath}: importance must be "major" or "normal"`);
+  }
+  return metadata.importance;
+}
+
+function buildReleaseNotesHistory(tag, version, currentNotes, buildNumber) {
+  const currentEntry = {
+    version,
+    displayVersion: tag.replace(/^v/, ''),
+    notes: currentNotes,
+    importance: readImportance(tag),
+  };
+  if (buildNumber) currentEntry.buildNumber = Number(buildNumber);
+
+  // Preview build numbers and tags have a separate lifecycle from production.
+  if (tag !== `v${version}`) return [currentEntry];
+
+  const previousEntries = fs.existsSync(releaseNotesDirectory)
+    ? fs
+        .readdirSync(releaseNotesDirectory)
+        .filter((name) => /^v\d+\.\d+\.\d+-app\.txt$/.test(name))
+        .map((name) => {
+          const entryVersion = name.slice(1, -'-app.txt'.length);
+          if (compareVersions(entryVersion, version) >= 0) return null;
+          const notes = fs.readFileSync(path.join(releaseNotesDirectory, name), 'utf8').trim();
+          if (!notes) throw new Error(`${name} is empty`);
+          return {
+            version: entryVersion,
+            displayVersion: entryVersion,
+            notes,
+            importance: readImportance(`v${entryVersion}`),
+          };
+        })
+        .filter(Boolean)
+    : [];
+
+  return [...previousEntries, currentEntry].sort((left, right) => compareVersions(left.version, right.version));
+}
+
+function readLegacyReleaseNotes(tag, currentNotes) {
+  const exactPath = path.join(releaseNotesDirectory, `${tag}-upgrade.txt`);
+  const previewPath = path.join(releaseNotesDirectory, `${tag.replace(/-preview\.\d+$/, '-preview')}-upgrade.txt`);
+  const notesPath = fs.existsSync(exactPath) ? exactPath : previewPath;
+  if (!fs.existsSync(notesPath)) return currentNotes;
+  const notes = fs.readFileSync(notesPath, 'utf8').trim();
+  if (!notes) throw new Error(`${notesPath} is empty`);
+  return notes;
+}
+
 function buildManifest(options) {
   const version = options.version ?? readAppVersion();
   assertVersion(version, '--version');
@@ -200,11 +268,13 @@ function buildManifest(options) {
     };
   }
 
+  const releaseNotesHistory = buildReleaseNotesHistory(tag, version, releaseData.releaseNotes, options.buildNumber);
   const manifest = {
     version,
     displayVersion: tag.replace(/^v/, ''),
     title: options.title ?? releaseData.title,
-    releaseNotes: releaseData.releaseNotes,
+    releaseNotes: readLegacyReleaseNotes(tag, releaseData.releaseNotes),
+    releaseNotesHistory,
     apkUrl: releaseData.apkUrl,
     releaseUrl: releaseData.releaseUrl,
     mandatory: options.mandatory,
@@ -224,6 +294,23 @@ function main() {
     const options = parseArgs(process.argv.slice(2));
     if (options.help) {
       printHelp();
+      return;
+    }
+
+    if (options.validateNotes) {
+      const version = options.version ?? readAppVersion();
+      assertVersion(version, '--version');
+      const tag = options.tag ?? `v${version}`;
+      const exactNotesPath = path.join(releaseNotesDirectory, `${tag}-app.txt`);
+      const previewNotesPath = path.join(releaseNotesDirectory, `${tag.replace(/-preview\.\d+$/, '-preview')}-app.txt`);
+      const appNotesPath = fs.existsSync(exactNotesPath) ? exactNotesPath : previewNotesPath;
+      const notes = fs.existsSync(appNotesPath)
+        ? fs.readFileSync(appNotesPath, 'utf8').trim()
+        : 'Release notes fallback';
+      if (!notes) throw new Error(`${appNotesPath} is empty`);
+      buildReleaseNotesHistory(tag, version, notes);
+      readLegacyReleaseNotes(tag, notes);
+      console.log(`[release:manifest] Release note metadata is valid for ${tag}`);
       return;
     }
 

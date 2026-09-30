@@ -292,6 +292,8 @@ const ja = {
   newVersionVVersion: '新バージョン：v{{version}}',
   currentVersionVVersion: '現在のバージョン：v{{version}}',
   releaseNotes: '更新情報',
+  majorReleaseVersion: '注目の更新 · v{{version}}',
+  releaseVersion: 'v{{version}}',
   downloadingInstaller: 'インストーラーをダウンロード中',
   downloadPaused: 'ダウンロード一時停止中',
   waitingToDownload: 'ダウンロード待機中',

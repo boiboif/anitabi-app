@@ -197,6 +197,10 @@ jobs:
           echo "TAG=$tag" >> "$GITHUB_ENV"
           echo "Using GitHub Release tag=$tag, Android versionName=$native_app_version"
 
+      - name: Validate release note metadata
+        shell: bash
+        run: node scripts/generate-release-manifest.cjs --version "$APP_VERSION" --tag "$TAG" --validate-notes
+
       - name: Restore Android signing key
         shell: bash
         run: |
@@ -292,6 +296,7 @@ jobs:
         run: |
           manifest_args=(yarn release:manifest --version "$APP_VERSION" --tag "$TAG" --build-number "$ANDROID_VERSION_CODE" --from-github --asset-name "$ASSET_NAME" --output "$MANIFEST_PATH")
           app_notes_file="release-notes/${TAG}-app.txt"
+          if [[ ! -f "$app_notes_file" && "$RELEASE_TYPE" == "preview" ]]; then app_notes_file="release-notes/v${APP_VERSION}-preview-app.txt"; fi
           if [[ -f "$app_notes_file" ]]; then manifest_args+=(--notes-file "$app_notes_file"); fi
           if [[ "$MANDATORY" == "true" ]]; then manifest_args+=(--mandatory); fi
           if [[ -n "$MIN_SUPPORTED_VERSION" ]]; then manifest_args+=(--min-supported-version "$MIN_SUPPORTED_VERSION"); fi

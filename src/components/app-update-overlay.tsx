@@ -1,6 +1,8 @@
 import { StrictButton as Button } from '@/components/ui/strict-button';
 import type { AppUpdateManager } from '@/hooks/use-app-updates';
 import { getBinaryUpdateDisplayVersion, getCurrentAppDisplayVersion, isMandatoryUpdate } from '@/services/app-update';
+import { getApplicableReleaseNotes } from '@/services/release-notes';
+import * as Application from 'expo-application';
 import { useTranslation } from 'react-i18next';
 import { Modal, ScrollView } from 'react-native';
 import { Progress, Text, View, XStack, YStack } from 'tamagui';
@@ -38,6 +40,16 @@ export function AppUpdateOverlay({ manager }: Props) {
       });
   const currentVersion = getCurrentAppDisplayVersion();
   const newVersion = visibleBinaryUpdate ? getBinaryUpdateDisplayVersion(visibleBinaryUpdate) : '';
+  const currentBuildNumber = Number(Application.nativeBuildVersion ?? 0);
+  const applicableReleaseNotes = visibleBinaryUpdate
+    ? getApplicableReleaseNotes(
+        visibleBinaryUpdate.releaseNotesHistory,
+        Application.nativeApplicationVersion,
+        currentBuildNumber,
+        visibleBinaryUpdate.version,
+        visibleBinaryUpdate.buildNumber,
+      )
+    : [];
   const progress = binaryProgress?.percent ?? 0;
   const hasPartialDownload = (binaryProgress?.bytesWritten ?? 0) > 0;
   const showBinaryProgress = isBinary && !isBinaryDownloaded && (isDownloadingBinary || binaryProgress !== null);
@@ -74,9 +86,33 @@ export function AppUpdateOverlay({ manager }: Props) {
               </Text>
             ) : null}
             <ScrollView style={{ maxHeight: 250 }}>
-              <Text fontSize="$footnote" lineHeight={20} color="$color11">
-                {description}
-              </Text>
+              {isBinary && applicableReleaseNotes.length > 0 ? (
+                <YStack gap="$3">
+                  {applicableReleaseNotes.map((entry) => (
+                    <YStack key={`${entry.displayVersion}-${entry.buildNumber ?? ''}`} gap="$1">
+                      <Text
+                        fontSize="$footnote"
+                        fontWeight="600"
+                        color={entry.importance === 'major' ? '$primary' : '$color12'}
+                      >
+                        {entry.importance === 'major'
+                          ? t('majorReleaseVersion', {
+                              defaultValue: '重点更新 · v{{version}}',
+                              version: entry.displayVersion,
+                            })
+                          : t('releaseVersion', { defaultValue: 'v{{version}}', version: entry.displayVersion })}
+                      </Text>
+                      <Text fontSize="$footnote" lineHeight={20} color="$color11">
+                        {entry.notes}
+                      </Text>
+                    </YStack>
+                  ))}
+                </YStack>
+              ) : (
+                <Text fontSize="$footnote" lineHeight={20} color="$color11">
+                  {description}
+                </Text>
+              )}
             </ScrollView>
           </YStack>
 
