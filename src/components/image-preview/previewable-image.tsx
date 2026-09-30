@@ -123,12 +123,11 @@ function PreviewableImageContent({
   };
 
   const openPreview = (touch?: PreviewTouchCoordinates) => {
-    const dimensions = dimensionsRef.current;
     if (!previewUri || session || openingRef.current) return;
     openingRef.current = true;
     measureSource(() => {
       const thumbnailUri = sourceLoadedRef.current ? source.uri : (previewFallbackUri ?? source.uri);
-      setSession([{ id: previewUri, uri: previewUri, thumbnailUri, ...dimensions }]);
+      setSession([{ id: previewUri, uri: previewUri, thumbnailUri, ...dimensionsRef.current }]);
     }, touch);
   };
 

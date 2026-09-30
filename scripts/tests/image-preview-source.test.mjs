@@ -5,12 +5,30 @@ import { getPreviewContainerOrigin, getPreviewSourceGeometry } from '../../src/u
 const viewport = { width: 400, height: 800 };
 const landscape = { width: 1600, height: 900 };
 
-test('unknown image dimensions use a fade until loading supplies the real aspect ratio', () => {
+test('unknown image dimensions open from the measured source until the real aspect ratio loads', () => {
   const source = { x: 20, y: 100, width: 100, height: 100, contentFit: 'cover' };
   for (const image of [{}, { width: 1600 }, { height: 900 }, { width: 0, height: 0 }]) {
-    assert.equal(getPreviewSourceGeometry(image, viewport, source), null);
+    assert.deepEqual(getPreviewSourceGeometry(image, viewport, source), {
+      transform: { x: -130, y: -250, scale: 0.25 },
+      clip: { x: 20, y: 100, width: 100, height: 100, borderRadius: 0 },
+    });
   }
-  assert.ok(getPreviewSourceGeometry(landscape, viewport, source));
+  assert.notEqual(getPreviewSourceGeometry(landscape, viewport, source).transform.scale, 0.25);
+});
+
+test('unknown image dimensions preserve a separately clipped source', () => {
+  const clip = { x: 30, y: 400, width: 220, height: 140 };
+  const geometry = getPreviewSourceGeometry({}, viewport, {
+    ...clip,
+    width: 250,
+    contentFit: 'cover',
+    borderRadius: 8,
+    clip,
+  });
+  assert.deepEqual(geometry, {
+    transform: { x: -45, y: 70, scale: 0.625 },
+    clip: { ...clip, borderRadius: 8 },
+  });
 });
 
 test('sheet touch coordinates locate the source independently of its Fabric position', () => {

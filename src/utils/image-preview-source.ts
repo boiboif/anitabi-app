@@ -29,9 +29,7 @@ export function getPreviewSourceGeometry(
   viewport: { width: number; height: number },
   source: ImagePreviewBounds | null | undefined,
 ) {
-  // A not-yet-loaded thumbnail can still open the preview, using a fade until
-  // the original image supplies its aspect ratio.
-  if (!source || !image.width || !image.height) return null;
+  if (!source) return null;
   const clip = source.clip ?? source;
   if (
     ![source.x, source.y, source.width, source.height, clip.x, clip.y, clip.width, clip.height].every(
@@ -41,8 +39,6 @@ export function getPreviewSourceGeometry(
     source.height <= 0 ||
     clip.width <= 0 ||
     clip.height <= 0 ||
-    image.width <= 0 ||
-    image.height <= 0 ||
     viewport.width <= 0 ||
     viewport.height <= 0 ||
     clip.x + clip.width <= 0 ||
@@ -52,9 +48,15 @@ export function getPreviewSourceGeometry(
   )
     return null;
 
+  // Before the thumbnail loads, use the measured image view's aspect ratio to
+  // start at its position. Once loaded, use the image's actual dimensions.
+  const hasImageSize =
+    Number.isFinite(image.width) && Number.isFinite(image.height) && (image.width ?? 0) > 0 && (image.height ?? 0) > 0;
+  const imageWidth = hasImageSize ? image.width! : source.width;
+  const imageHeight = hasImageSize ? image.height! : source.height;
   const fit = source.contentFit === 'cover' ? Math.max : Math.min;
-  const sourceScale = fit(source.width / image.width, source.height / image.height);
-  const previewScale = Math.min(viewport.width / image.width, viewport.height / image.height);
+  const sourceScale = fit(source.width / imageWidth, source.height / imageHeight);
+  const previewScale = Math.min(viewport.width / imageWidth, viewport.height / imageHeight);
   return {
     transform: {
       x: source.x + source.width / 2 - viewport.width / 2,
