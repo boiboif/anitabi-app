@@ -1,8 +1,8 @@
 import { StrictButton as Button } from '@/components/strict-button';
 import type { AppUpdateManager } from '@/hooks/use-app-updates';
 import { getBinaryUpdateDisplayVersion, getCurrentAppDisplayVersion, isMandatoryUpdate } from '@/services/app-update';
-import { Modal, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Modal, ScrollView } from 'react-native';
 import { Progress, Text, View, XStack, YStack } from 'tamagui';
 
 type Props = {
@@ -73,7 +73,7 @@ export function AppUpdateOverlay({ manager }: Props) {
                 {t('releaseNotes', { defaultValue: '更新信息' })}
               </Text>
             ) : null}
-            <ScrollView style={{ maxHeight: 180 }}>
+            <ScrollView style={{ maxHeight: 250 }}>
               <Text fontSize="$footnote" lineHeight={20} color="$color11">
                 {description}
               </Text>
