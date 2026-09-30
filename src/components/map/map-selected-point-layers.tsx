@@ -13,6 +13,9 @@ import { Text, useTheme, View, YStack } from 'tamagui';
 
 export type MarkerHitRect = { left: number; top: number; right: number; bottom: number };
 
+// The artwork ends at the dot's bottom, but the map coordinate belongs at its center.
+const SELECTED_PLAN_ICON_OFFSET_Y = SELECTED_MAP_POINT_DOT_DIAMETER / 2;
+
 export function getSelectedPlanMarkerKey(bangumiId: number, pointId: string, showImage: boolean): string {
   return `${bangumiId}:${pointId}:${showImage}`;
 }
@@ -66,7 +69,7 @@ function SelectedMapPointArtwork({ point, bangumi, showImage, onRendered, onHitR
     if (hasImage && !image) return;
     const toHitRect = (layout: LayoutRectangle, offsetX = 0, offsetY = 0): MarkerHitRect => {
       const left = offsetX + layout.x - root.width / 2;
-      const top = offsetY + layout.y - root.height;
+      const top = offsetY + layout.y - root.height + SELECTED_PLAN_ICON_OFFSET_Y;
       return { left, top, right: left + layout.width, bottom: top + layout.height };
     };
     onHitRectsChange([
@@ -216,6 +219,7 @@ export function SelectedPlanMapPointLayer({ selected, showImage, onHitRectsChang
             iconImage: IMAGE_ID,
             iconSize: 1,
             iconAnchor: 'bottom',
+            iconOffset: [0, SELECTED_PLAN_ICON_OFFSET_Y],
             iconPitchAlignment: 'viewport',
             iconRotationAlignment: 'viewport',
             iconAllowOverlap: true,
