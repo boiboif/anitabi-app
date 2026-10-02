@@ -53,9 +53,13 @@ function readCroppedIcons(spriteMeta: SpriteMeta): Map<number, string> | null {
     )
       return null;
 
-    const names = new Set(dir.list().map((entry) => entry.name));
-    if (spriteMeta.ids.some((_, index) => !names.has(`${index}.png`))) return null;
-    return new Map(spriteMeta.ids.map((id, index) => [id, new File(dir, `${index}.png`).uri]));
+    // The manifest is written only after every crop has been copied. Avoid
+    // listing hundreds of files synchronously during startup.
+    const lastIndex = spriteMeta.ids.length - 1;
+    if (lastIndex >= 0 && (!new File(dir, '0.png').exists || !new File(dir, `${lastIndex}.png`).exists))
+      return null;
+    const uriPrefix = dir.uri.endsWith('/') ? dir.uri : `${dir.uri}/`;
+    return new Map(spriteMeta.ids.map((id, index) => [id, `${uriPrefix}${index}.png`]));
   } catch {
     return null;
   }
