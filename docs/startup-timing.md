@@ -21,6 +21,8 @@ measures only the named operation.
 Key events:
 
 - `map-cache-read`: each MMKV read and JSON parse, including the payload length.
+- `map-data-module-load`: time spent loading the map data service after the
+  splash hide request and before reading its cached data.
 - `root-import-complete`, `root-mounted`, `root-layout`: root module evaluation,
   React commit, and layout. Layout is not proof that a frame was displayed.
 - `native-splash-hide-request`: the root view has laid out and requests the
