@@ -26,6 +26,7 @@ import {
   MarkerView,
 } from '@rnmapbox/maps';
 import { useDebounceFn } from 'ahooks';
+import Constants from 'expo-constants';
 import { useFocusEffect, useNavigation } from 'expo-router';
 import { type ComponentProps, forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -60,6 +61,7 @@ type Props = {
 
 const DEFAULT_COORDINATES: [number, number] = [137, 35.2];
 const DEFAULT_ZOOM = 4.6;
+const STARTUP_RENDER_PROBE_ENABLED = Constants.expoConfig?.extra?.appVariant === 'test';
 const CAMERA_CHANGE_DEBOUNCE_MS = 250;
 const LOCATION_PUCK_BEARING_IMAGE = 'location-puck-bearing';
 const LOCATION_PUCK_COLOR = '#1677FF';
@@ -158,6 +160,9 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
 
   const cameraRef = useRef<Camera>(null);
   const mapViewRef = useRef<MapView>(null);
+  const firstPointProbeDoneRef = useRef(false);
+  const pointProbeRunningRef = useRef(false);
+  const pointProbeAttemptsRef = useRef(0);
   const selectedHitRectsRef = useRef<{ key: string; rects: MarkerHitRect[] } | null>(null);
   const selectedMarkerKey = selectedPointData
     ? getSelectedPlanMarkerKey(selectedPointData.bangumi.id, selectedPointData.point.id, showPointImageMarkers)
@@ -280,6 +285,35 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     setLoadedStyleIndex(styleIndex);
     onMapReady?.();
   }, [onMapReady, styleIndex]);
+
+  function handleMapFullyRendered() {
+    if (
+      !STARTUP_RENDER_PROBE_ENABLED ||
+      isPlanMode ||
+      bangumis.length === 0 ||
+      firstPointProbeDoneRef.current ||
+      pointProbeRunningRef.current ||
+      pointProbeAttemptsRef.current >= 20
+    )
+      return;
+    const map = mapViewRef.current;
+    if (!map) return;
+
+    pointProbeAttemptsRef.current += 1;
+    pointProbeRunningRef.current = true;
+    void map
+      .queryRenderedFeaturesInRect([], [], ['points'])
+      .then((result) => {
+        const count = result?.features.length ?? 0;
+        if (count === 0 || firstPointProbeDoneRef.current) return;
+        firstPointProbeDoneRef.current = true;
+        logStartupOnce('first-visible-map-point', { count });
+      })
+      .catch(() => {})
+      .finally(() => {
+        pointProbeRunningRef.current = false;
+      });
+  }
 
   const handleCameraChanged = useCallback(
     (state: MapState) => {
@@ -436,6 +470,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
         scaleBarPosition={scaleBarPosition ?? { right: 0, bottom: 8 }}
         onCameraChanged={handleCameraChanged}
         onDidFinishLoadingMap={handleMapReady}
+        onDidFinishRenderingMapFully={handleMapFullyRendered}
         onPress={isPlanMode ? handlePlanMapPress : clearSelectedMapPoint}
       >
         <Camera

@@ -12,6 +12,7 @@ import { useThemedMapStyle } from '@/hooks/use-themed-map-style';
 import { FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE, MAP_TOP_CONTROLS_TOP_OFFSET } from '@/lib/constants';
 import { getPointFlyToZoom } from '@/lib/map-camera';
 import { logStartupDuration, logStartupOnce, startupNow } from '@/lib/startup-timing';
+import type { Bangumi } from '@/services/types';
 import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
 import { useMapBrowse } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
@@ -28,6 +29,19 @@ type CameraState = {
   zoom: number;
   bounds: { ne: [number, number]; sw: [number, number] } | null;
 };
+
+type RandomPointCandidate = { bangumiId: number; pointId: string };
+
+function buildRandomPointCandidates(bangumis: Bangumi[]): RandomPointCandidate[] {
+  const startedAt = startupNow();
+  const candidates = bangumis.flatMap((bangumi) =>
+    bangumi.points
+      .filter((point) => point.geo[0] !== 0 || point.geo[1] !== 0)
+      .map((point) => ({ bangumiId: bangumi.id, pointId: point.id })),
+  );
+  logStartupDuration('random-point-candidates', startedAt, { count: candidates.length });
+  return candidates;
+}
 
 function RandomPointButton({ onPress }: { onPress: () => void }) {
   const theme = useTheme();
@@ -65,24 +79,28 @@ export default function HomeScreen() {
     setCameraState(nextCameraState);
   }, []);
   const bangumis = useMemo(() => data?.data.bangumis ?? [], [data]);
+  const randomPointCandidatesRef = useRef<{ bangumis: Bangumi[]; candidates: RandomPointCandidate[] } | null>(null);
   const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const mapCameraRequest = useMapBrowse((state) => state.mapCameraRequest);
   const focusPointFromMapControl = useMapBrowse((state) => state.focusPointFromMapControl);
   const completeMapCameraRequest = useMapBrowse((state) => state.completeMapCameraRequest);
   const clearMapBangumiFilter = useMapBangumiFilter((state) => state.clear);
-  const randomPointCandidates = useMemo(
-    () => {
-      const startedAt = startupNow();
-      const candidates = bangumis.flatMap((bangumi) =>
-        bangumi.points
-          .filter((point) => point.geo[0] !== 0 || point.geo[1] !== 0)
-          .map((point) => ({ bangumiId: bangumi.id, pointId: point.id })),
-      );
-      logStartupDuration('random-point-candidates', startedAt, { count: candidates.length });
-      return candidates;
-    },
-    [bangumis],
-  );
+  useEffect(() => {
+    if (bangumis.length === 0) return;
+    const buildWhenIdle = () => {
+      if (randomPointCandidatesRef.current?.bangumis !== bangumis) {
+        randomPointCandidatesRef.current = { bangumis, candidates: buildRandomPointCandidates(bangumis) };
+      }
+    };
+    if (typeof requestIdleCallback === 'function') {
+      const id = requestIdleCallback(buildWhenIdle, { timeout: 2_000 });
+      return () => {
+        if (typeof cancelIdleCallback === 'function') cancelIdleCallback(id);
+      };
+    }
+    const id = setTimeout(buildWhenIdle, 500);
+    return () => clearTimeout(id);
+  }, [bangumis]);
 
   useEffect(() => {
     logStartupOnce('home-mounted', { cachedBangumis: bangumis.length });
@@ -125,6 +143,12 @@ export default function HomeScreen() {
   }, [completeMapCameraRequest, data, isCameraReady, mapCameraRequest, mapCameraRequestData, openedBangumiDetailsId]);
 
   const handleRandomPoint = useCallback(() => {
+    let cached = randomPointCandidatesRef.current;
+    if (cached?.bangumis !== bangumis) {
+      cached = { bangumis, candidates: buildRandomPointCandidates(bangumis) };
+      randomPointCandidatesRef.current = cached;
+    }
+    const randomPointCandidates = cached.candidates;
     if (randomPointCandidates.length === 0) {
       Alert.alert(
         t('noLocationsYet', { defaultValue: '暂无巡礼点' }),
@@ -136,7 +160,7 @@ export default function HomeScreen() {
     const randomIndex = Math.floor(Math.random() * randomPointCandidates.length);
     clearMapBangumiFilter();
     focusPointFromMapControl(randomPointCandidates[randomIndex]);
-  }, [clearMapBangumiFilter, focusPointFromMapControl, randomPointCandidates, t]);
+  }, [bangumis, clearMapBangumiFilter, focusPointFromMapControl, t]);
 
   const [styleIndex, setStyleIndex] = useThemedMapStyle();
   const handle3DBuildingsChange = useCallback((enabled: boolean) => {
