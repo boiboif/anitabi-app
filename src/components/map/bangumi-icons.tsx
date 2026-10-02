@@ -68,27 +68,40 @@ function readCroppedIcons(spriteMeta: SpriteMeta): Map<number, string> | null {
 async function persistCroppedIcons(spriteMeta: SpriteMeta, icons: Map<number, string>): Promise<void> {
   const dir = cropDirectory(spriteMeta);
   if (!dir) return;
-  try {
-    if (dir.exists) dir.delete();
-    dir.create({ intermediates: true });
-    for (let start = 0; start < spriteMeta.ids.length; start += 32) {
-      const copies = await Promise.allSettled(
-        spriteMeta.ids.slice(start, start + 32).map(async (id, offset) => {
-          const uri = icons.get(id);
-          if (!uri) throw new Error(`Missing cropped icon ${id}`);
-          await new File(uri).copy(new File(dir, `${start + offset}.png`));
-        }),
-      );
-      const failedCopy = copies.find((copy) => copy.status === 'rejected');
-      if (failedCopy?.status === 'rejected') throw failedCopy.reason;
-    }
-    new File(dir, 'meta.json').write(JSON.stringify({ fingerprint: spriteMeta.fingerprint, ids: spriteMeta.ids }));
-    logStartup('sprite-crop-cache-saved', { count: icons.size });
-  } catch (error) {
-    logStartup('sprite-crop-cache-save-error', { message: String(error) });
+  for (let attempt = 0; attempt < 2; attempt++) {
     try {
       if (dir.exists) dir.delete();
-    } catch {}
+      dir.create({ intermediates: true });
+      for (let start = 0; start < spriteMeta.ids.length; start += 32) {
+        // Keep both native File objects alive until their asynchronous copy finishes.
+        const pairs = spriteMeta.ids.slice(start, start + 32).map((id, offset) => {
+          const uri = icons.get(id);
+          if (!uri) throw new Error(`Missing cropped icon ${id}`);
+          return { source: new File(uri), destination: new File(dir, `${start + offset}.png`) };
+        });
+        const copies = await Promise.allSettled(
+          pairs.map(async (pair) => {
+            await pair.source.copy(pair.destination);
+            return pair;
+          }),
+        );
+        const failedCopy = copies.find((copy) => copy.status === 'rejected');
+        if (failedCopy?.status === 'rejected') throw failedCopy.reason;
+      }
+      new File(dir, 'meta.json').write(JSON.stringify({ fingerprint: spriteMeta.fingerprint, ids: spriteMeta.ids }));
+      logStartup('sprite-crop-cache-saved', { count: icons.size });
+      return;
+    } catch (error) {
+      try {
+        if (dir.exists) dir.delete();
+      } catch {}
+      if (attempt === 1) {
+        logStartup('sprite-crop-cache-save-error', { message: String(error) });
+      } else {
+        logStartup('sprite-crop-cache-save-retry', { message: String(error) });
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    }
   }
 }
 
