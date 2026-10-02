@@ -11,7 +11,6 @@ import { useMapLocate } from '@/hooks/use-map-locate';
 import { useThemedMapStyle } from '@/hooks/use-themed-map-style';
 import { FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE, MAP_TOP_CONTROLS_TOP_OFFSET } from '@/lib/constants';
 import { getPointFlyToZoom } from '@/lib/map-camera';
-import { logStartupDuration, logStartupOnce, startupNow } from '@/lib/startup-timing';
 import type { Bangumi } from '@/services/types';
 import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
 import { useMapBrowse } from '@/store/use-map-browse';
@@ -33,14 +32,11 @@ type CameraState = {
 type RandomPointCandidate = { bangumiId: number; pointId: string };
 
 function buildRandomPointCandidates(bangumis: Bangumi[]): RandomPointCandidate[] {
-  const startedAt = startupNow();
-  const candidates = bangumis.flatMap((bangumi) =>
+  return bangumis.flatMap((bangumi) =>
     bangumi.points
       .filter((point) => point.geo[0] !== 0 || point.geo[1] !== 0)
       .map((point) => ({ bangumiId: bangumi.id, pointId: point.id })),
   );
-  logStartupDuration('random-point-candidates', startedAt, { count: candidates.length });
-  return candidates;
 }
 
 function RandomPointButton({ onPress }: { onPress: () => void }) {
@@ -102,9 +98,6 @@ export default function HomeScreen() {
     return () => clearTimeout(id);
   }, [bangumis]);
 
-  useEffect(() => {
-    logStartupOnce('home-mounted', { cachedBangumis: bangumis.length });
-  }, [bangumis.length]);
   const selectedBangumi = useMemo(
     () => bangumis?.find((bangumi) => bangumi.id === openedBangumiDetailsId) ?? null,
     [bangumis, openedBangumiDetailsId],

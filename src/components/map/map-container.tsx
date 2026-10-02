@@ -12,7 +12,6 @@ import PopupCard from '@/components/map/point-popup-card';
 import { resolveLanguageTag } from '@/i18n';
 import { MAP_COMPASS_TOP_OFFSET, MAP_DEFAULT_ZOOM } from '@/lib/constants';
 import { MAP_STYLES } from '@/lib/map-styles';
-import { logStartupOnce } from '@/lib/startup-timing';
 import type { Bangumi } from '@/services/types';
 import { type MapPointReference, useMapBrowse } from '@/store/use-map-browse';
 import {
@@ -26,7 +25,6 @@ import {
   MarkerView,
 } from '@rnmapbox/maps';
 import { useDebounceFn } from 'ahooks';
-import Constants from 'expo-constants';
 import { useFocusEffect, useNavigation } from 'expo-router';
 import { type ComponentProps, forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -60,7 +58,6 @@ type Props = {
 };
 
 const DEFAULT_COORDINATES: [number, number] = [137, 35.2];
-const STARTUP_RENDER_PROBE_ENABLED = Constants.expoConfig?.extra?.appVariant === 'test';
 const CAMERA_CHANGE_DEBOUNCE_MS = 250;
 const LOCATION_PUCK_BEARING_IMAGE = 'location-puck-bearing';
 const LOCATION_PUCK_COLOR = '#1677FF';
@@ -159,10 +156,6 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
 
   const cameraRef = useRef<Camera>(null);
   const mapViewRef = useRef<MapView>(null);
-  const firstPointProbeDoneRef = useRef(false);
-  const pointProbeRunningRef = useRef(false);
-  const pointProbeAttemptsRef = useRef(0);
-  const pointProbeLastAttemptAtRef = useRef(0);
   const selectedHitRectsRef = useRef<{ key: string; rects: MarkerHitRect[] } | null>(null);
   const selectedMarkerKey = selectedPointData
     ? getSelectedPlanMarkerKey(selectedPointData.bangumi.id, selectedPointData.point.id, showPointImageMarkers)
@@ -280,46 +273,10 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   );
 
   const handleMapReady = useCallback(() => {
-    logStartupOnce('map-ready');
     loadedStyleIndexRef.current = styleIndex;
     setLoadedStyleIndex(styleIndex);
     onMapReady?.();
   }, [onMapReady, styleIndex]);
-
-  function handleMapFrameRendered() {
-    if (
-      !STARTUP_RENDER_PROBE_ENABLED ||
-      isPlanMode ||
-      bangumis.length === 0 ||
-      firstPointProbeDoneRef.current ||
-      pointProbeRunningRef.current ||
-      pointProbeAttemptsRef.current >= 20
-    )
-      return;
-    const map = mapViewRef.current;
-    if (!map) return;
-    const now = performance.now();
-    if (now - pointProbeLastAttemptAtRef.current < 150) return;
-
-    pointProbeLastAttemptAtRef.current = now;
-    pointProbeAttemptsRef.current += 1;
-    pointProbeRunningRef.current = true;
-    logStartupOnce('map-point-probe-start');
-    void map
-      .queryRenderedFeaturesInRect([], [], ['points'])
-      .then((result) => {
-        const count = result?.features.length ?? 0;
-        if (count === 0 || firstPointProbeDoneRef.current) return;
-        firstPointProbeDoneRef.current = true;
-        logStartupOnce('first-visible-map-point', { count });
-      })
-      .catch((error: unknown) => {
-        logStartupOnce('map-point-probe-error', { message: String(error) });
-      })
-      .finally(() => {
-        pointProbeRunningRef.current = false;
-      });
-  }
 
   const handleCameraChanged = useCallback(
     (state: MapState) => {
@@ -476,7 +433,6 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
         scaleBarPosition={scaleBarPosition ?? { right: 0, bottom: 8 }}
         onCameraChanged={handleCameraChanged}
         onDidFinishLoadingMap={handleMapReady}
-        onDidFinishRenderingFrameFully={STARTUP_RENDER_PROBE_ENABLED ? handleMapFrameRendered : undefined}
         onPress={isPlanMode ? handlePlanMapPress : clearSelectedMapPoint}
       >
         <Camera

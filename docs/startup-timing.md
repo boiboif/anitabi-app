@@ -1,54 +1,6 @@
-# Test APK startup timing
+# 启动优化复盘（2026-10-02）
 
-The `Android Test Build (Release APK)` workflow keeps `[startup-timing]` logcat
-messages in its release optimized APK. Production and preview builds still remove
-JavaScript console calls.
-
-To collect a cold start without deleting other device logs:
-
-```powershell
-adb shell am force-stop bbf.anitabiapp.test
-adb shell am start -n bbf.anitabiapp.test/.MainActivity
-adb logcat -d -v threadtime -s ReactNativeJS:I ActivityTaskManager:I WindowManager:I dev.expo.updates:I |
-  Select-String 'startup-timing|bbf.anitabiapp.test|Updates state change'
-```
-
-`wallMs` aligns each JavaScript marker with Android log timestamps. `sinceFirstMarkMs`
-is a monotonic JavaScript interval measured from `js-timing-start` when the root
-layout module loads; it is not an Android process start time. `durationMs`
-measures only the named operation.
-
-Key events:
-
-- `map-cache-read`: each MMKV read and JSON parse, including the payload length.
-- `map-data-module-load`: time spent loading the map data service after the
-  splash hide request and before reading its cached data.
-- `root-import-complete`, `root-mounted`, `root-layout`: root module evaluation,
-  React commit, and layout. Layout is not proof that a frame was displayed.
-- `native-splash-hide-request`: the root view has laid out and requests the
-  native splash to close. Compare this with Android's actual splash removal log;
-  the request timestamp alone is not the measured disappearance time.
-- `map-data-initialize-after-hide-request`: deferred map cache initialization begins
-  after the hide request has resolved and another frame has been scheduled.
-- `home-mounted`, `map-points-geojson`, `point-image-index`: first screen work.
-- `first-visible-map-point`: after a rendered map frame, a test-build-only
-  query found at least one visible feature in the `points` layer. Its JS callback
-  timestamp is an upper bound for the first rendered point, not a pixel timestamp.
-- `map-point-probe-start` and `map-point-probe-error`: confirm that frame callbacks
-  reached the test-only query and surface query failures.
-- `overlay-mounted`, `overlay-hidden`: present only in earlier test builds;
-  the root layout no longer renders the extra blue overlay.
-- `location-permission-check`, `location-permission-result`: the startup
-  permission check. `location-permission-request` appears when access is not
-  already granted and a permission prompt may be needed.
-- `map-ready`: Mapbox's `onDidFinishLoadingMap` callback.
-- `sprite-crop-start`, `sprite-crop-complete`: all bangumi sprite icon crops.
-
-Compare the system's splash window removal with first screen computation and
-`map-ready`. Keep the device, data cache, and
-network conditions fixed across repeated launches.
-
-## 2026-10-02 启动优化复盘
+以下数据来自合并前的临时埋点测试包。埋点和地图渲染探针已从最终代码中移除，保留这份历史记录供后续优化参考。
 
 测试对象：`codex/startup-timing-test` 的 `1d07e05` test APK，Android 设备 `25060RK16C`。
 [GitHub Actions 构建](https://github.com/boiboif/anitabi-app/actions/runs/37025594649)成功；正式包 `bbf.anitabiapp` 未参与测试。
@@ -67,7 +19,7 @@ network conditions fixed across repeated launches.
 
 本次有效的做法：
 
-1. 用系统 Splash Screen 隐藏事件确认真实终点；`hideAsync()` 请求、Activity `Displayed`、截图和肉眼观察不是同一个时间点。
+1. 用系统 Splash Screen 隐藏事件确认真实终点；`hideAsync()` 请求、Activity `Displayed`、截图和肉眼观察不是同一个时间点。重复测量时保持设备、缓存和网络条件一致。
 2. 让根视图先布局并请求隐藏开屏，再读取和解析约 1355 万字符的地图缓存；移除开屏后的额外蓝色遮罩动画，延后非首屏模块。
 3. 首屏先提交当前缩放级别可见的 1344 个点位，再提交全部 51903 个点位；随机点候选和图片点位索引也延后到需要时计算。
 4. 番剧图标裁剪结果按 sprite 指纹和 ID 顺序持久缓存；异步复制期间保留 `File` 对象引用，并在首次写盘偶发失败时重试。清单最后写入，避免下次启动读取不完整缓存。

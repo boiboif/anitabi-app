@@ -5,7 +5,6 @@ import {
   SELECTED_MAP_POINT_LAYER_ID,
 } from '@/lib/constants';
 import { buildImageUrl } from '@/services/handlers';
-import { logStartupDuration, startupNow } from '@/lib/startup-timing';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
 import { useMapBrowse } from '@/store/use-map-browse';
@@ -113,8 +112,6 @@ function getImageMarkerIndex(bangumis: Bangumi[]): ImageMarkerIndex {
   const cached = imageMarkerIndexCache.get(bangumis);
   if (cached) return cached;
 
-  const startedAt = startupNow();
-
   const candidates: ImageMarkerCandidate[] = [];
   for (const bangumi of bangumis) {
     for (const point of bangumi.points) {
@@ -133,7 +130,6 @@ function getImageMarkerIndex(bangumis: Bangumi[]): ImageMarkerIndex {
     .sort((a, b) => a.point.geo[0] - b.point.geo[0] || a.order - b.order);
   const index = { candidates, byLatitude, stableSortKeys: getStableMapImageSortKeys(byLatitude, candidates.length) };
   imageMarkerIndexCache.set(bangumis, index);
-  logStartupDuration('point-image-index', startedAt, { count: candidates.length });
   return index;
 }
 

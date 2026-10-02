@@ -4,7 +4,6 @@ import {
   SELECTED_MAP_POINT_LAYER_ID,
 } from '@/lib/constants';
 import { getBangumiMapLabel } from '@/lib/localized-data';
-import { logStartup, logStartupDuration, startupNow } from '@/lib/startup-timing';
 import { getBangumiIcons } from '@/services/api';
 import { baseUrl } from '@/services/handlers';
 import type { Bangumi } from '@/services/types';
@@ -89,18 +88,12 @@ async function persistCroppedIcons(spriteMeta: SpriteMeta, icons: Map<number, st
         if (failedCopy?.status === 'rejected') throw failedCopy.reason;
       }
       new File(dir, 'meta.json').write(JSON.stringify({ fingerprint: spriteMeta.fingerprint, ids: spriteMeta.ids }));
-      logStartup('sprite-crop-cache-saved', { count: icons.size });
       return;
-    } catch (error) {
+    } catch {
       try {
         if (dir.exists) dir.delete();
       } catch {}
-      if (attempt === 1) {
-        logStartup('sprite-crop-cache-save-error', { message: String(error) });
-      } else {
-        logStartup('sprite-crop-cache-save-retry', { message: String(error) });
-        await new Promise((resolve) => setTimeout(resolve, 500));
-      }
+      if (attempt === 0) await new Promise((resolve) => setTimeout(resolve, 500));
     }
   }
 }
@@ -114,16 +107,12 @@ function getCroppedIcons(spriteMeta: SpriteMeta) {
   const cached = croppedIconsCache.get(cacheKey);
   if (cached) return cached;
 
-  const startedAt = startupNow();
   const persisted = readCroppedIcons(spriteMeta);
   if (persisted) {
-    logStartupDuration('sprite-crop-cache-hit', startedAt, { count: persisted.size });
     const task = Promise.resolve(persisted);
     croppedIconsCache.set(cacheKey, task);
     return task;
   }
-
-  logStartup('sprite-crop-start', { count: spriteMeta.ids.length });
 
   const crop = async (retries = 0): Promise<Map<number, string>> => {
     try {
@@ -150,13 +139,11 @@ function getCroppedIcons(spriteMeta: SpriteMeta) {
 
   const task = crop()
     .then((result) => {
-      logStartupDuration('sprite-crop-complete', startedAt, { count: result.size });
       // Disk copies should not compete with the first map frame.
       setTimeout(() => void persistCroppedIcons(spriteMeta, result), PERSIST_CROPS_DELAY_MS);
       return result;
     })
     .catch((err) => {
-      logStartupDuration('sprite-crop-error', startedAt);
       // Let a later mount retry after a failed crop instead of caching a rejection.
       croppedIconsCache.delete(cacheKey);
       throw err;

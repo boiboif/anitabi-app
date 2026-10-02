@@ -1,4 +1,3 @@
-import { logStartupOnce } from '@/lib/startup-timing';
 import PlanPickerProvider from '@/components/plan/plan-picker-provider';
 import '@/global.css';
 import i18n, { resolveLanguagePreference } from '@/i18n';
@@ -58,8 +57,6 @@ if (MAPBOX_ACCESS_TOKEN) {
   console.warn('Missing EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN in .env');
 }
 
-logStartupOnce('root-import-complete');
-
 function resolveTheme(
   colorScheme: ReturnType<typeof useColorScheme>,
   preference: 'system' | 'light' | 'dark',
@@ -89,16 +86,13 @@ function RootLayout() {
   const didFinishInitialLayout = useRef(false);
 
   function handleRootLayout() {
-    logStartupOnce('root-layout');
     if (didFinishInitialLayout.current) return;
     didFinishInitialLayout.current = true;
 
     // Show the mounted app before parsing the large cached map payload on JS.
-    logStartupOnce('native-splash-hide-request');
     const startMapData = () => {
       requestAnimationFrame(() => {
         setTimeout(() => {
-          logStartupOnce('map-data-initialize-after-hide-request');
           void initializeMapData();
           void initializeFirstInstallDemo();
         }, 0);
@@ -106,10 +100,6 @@ function RootLayout() {
     };
     void SplashScreen.hideAsync().then(startMapData, startMapData);
   }
-
-  useEffect(() => {
-    logStartupOnce('root-mounted');
-  }, []);
 
   useEffect(() => {
     if (languagePreference !== 'system') return;

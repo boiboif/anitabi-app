@@ -1,4 +1,3 @@
-import { logStartupDuration, startupNow } from '@/lib/startup-timing';
 import type { AssembledData, FetchProgress } from '@/services/types';
 import { create } from 'zustand';
 import i18n from '@/i18n';
@@ -34,9 +33,7 @@ export const useMapData = create<MapDataStore>((set, get) => ({
 
     initializePromise = (async () => {
       // Load the map service only after the native splash hide request.
-      const moduleStartedAt = startupNow();
       const { getCachedMapData, refreshMapData } = await import('@/services/map-data');
-      logStartupDuration('map-data-module-load', moduleStartedAt);
 
       const cachedData = getCachedMapData();
       const hasCachedData = cachedData !== null;

@@ -9,7 +9,6 @@ import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
 import { useMapBrowse } from '@/store/use-map-browse';
 import { SelectableCircleLayer } from './map-marker-selection';
 import { getMapPointCircleStyle } from '@/utils/map-point-style';
-import { logStartupDuration, startupNow } from '@/lib/startup-timing';
 import { CircleLayer, ShapeSource } from '@rnmapbox/maps';
 import { ComponentProps, useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -97,15 +96,7 @@ export default function MapMarkers({
 
   // At the default zoom, lower-priority points cannot render; send the visible subset first.
   // Restore the complete source shortly afterward so zooming and filtering keep their usual behavior.
-  const geoJSON = useMemo(() => {
-    const startedAt = startupNow();
-    const result = toGeoJSON(bangumis, minimumPriority);
-    logStartupDuration('map-points-geojson', startedAt, {
-      count: result.features.length,
-      phase: minimumPriority === null ? 'full' : 'initial',
-    });
-    return result;
-  }, [bangumis, minimumPriority]);
+  const geoJSON = useMemo(() => toGeoJSON(bangumis, minimumPriority), [bangumis, minimumPriority]);
 
   const pointFilter: ComponentProps<typeof CircleLayer>['filter'] = useMemo(() => {
     if (activeOpenedBangumiDetailsId !== null) {
