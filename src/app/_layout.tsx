@@ -1,5 +1,4 @@
 import { logStartupOnce } from '@/lib/startup-timing';
-import { AppUpdateOverlay } from '@/components/app-update-overlay';
 import PlanPickerProvider from '@/components/plan/plan-picker-provider';
 import '@/global.css';
 import i18n, { resolveLanguagePreference } from '@/i18n';
@@ -27,7 +26,7 @@ import {
 } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useRef } from 'react';
+import { lazy, Suspense, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -41,6 +40,9 @@ Toast.config({
 });
 
 const MAPBOX_ACCESS_TOKEN = Constants.expoConfig?.extra?.mapboxAccessToken as string | undefined;
+const AppUpdateOverlay = lazy(() =>
+  import('@/components/app-update-overlay').then(({ AppUpdateOverlay }) => ({ default: AppUpdateOverlay })),
+);
 const LightNavigationTheme = {
   ...DefaultTheme,
   colors: {
@@ -96,8 +98,9 @@ function RootLayout() {
     const startMapData = () => {
       requestAnimationFrame(() => {
         setTimeout(() => {
-          logStartupOnce('map-data-initialize-after-splash');
+          logStartupOnce('map-data-initialize-after-hide-request');
           void initializeMapData();
+          void initializeFirstInstallDemo();
         }, 0);
       });
     };
@@ -117,10 +120,6 @@ function RootLayout() {
     sentryNavigationIntegration.registerNavigationContainer(navigationContainerRef);
   }, [navigationContainerRef]);
 
-  useEffect(() => {
-    void initializeFirstInstallDemo();
-  }, [initializeFirstInstallDemo]);
-
   return (
     <SafeAreaProvider>
       <GestureHandlerRootView style={{ flex: 1 }} onLayout={handleRootLayout}>
@@ -130,7 +129,11 @@ function RootLayout() {
               <PlanPickerProvider>
                 <AppUpdateManagerContext.Provider value={appUpdates}>
                   <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
-                  <AppUpdateOverlay manager={appUpdates} />
+                  {(appUpdates.isBinaryUpdateVisible || appUpdates.hotUpdateReady) && (
+                    <Suspense fallback={null}>
+                      <AppUpdateOverlay manager={appUpdates} />
+                    </Suspense>
+                  )}
                   <Stack
                     screenOptions={{
                       headerShown: false,

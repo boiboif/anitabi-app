@@ -14,8 +14,9 @@ adb logcat -d -v threadtime -s ReactNativeJS:I ActivityTaskManager:I WindowManag
 ```
 
 `wallMs` aligns each JavaScript marker with Android log timestamps. `sinceFirstMarkMs`
-is a monotonic JavaScript interval measured from `js-timing-start`; it is not an
-Android process start time. `durationMs` measures only the named operation.
+is a monotonic JavaScript interval measured from `js-timing-start` in the custom
+entry file, before Expo Router loads the route tree; it is not an Android process
+start time. `durationMs` measures only the named operation.
 
 Key events:
 
@@ -25,9 +26,12 @@ Key events:
 - `native-splash-hide-request`: the root view has laid out and requests the
   native splash to close. Compare this with Android's actual splash removal log;
   the request timestamp alone is not the measured disappearance time.
-- `map-data-initialize-after-splash`: deferred map cache initialization begins
+- `map-data-initialize-after-hide-request`: deferred map cache initialization begins
   after the hide request has resolved and another frame has been scheduled.
 - `home-mounted`, `map-points-geojson`, `point-image-index`: first screen work.
+- `first-visible-map-point`: after a fully rendered map event, a test-build-only
+  query found at least one visible feature in the `points` layer. Its JS callback
+  timestamp is an upper bound for the first rendered point, not a pixel timestamp.
 - `overlay-mounted`, `overlay-hidden`: present only in earlier test builds;
   the root layout no longer renders the extra blue overlay.
 - `location-permission-check`, `location-permission-result`: the startup
