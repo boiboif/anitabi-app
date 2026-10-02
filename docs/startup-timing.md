@@ -14,9 +14,9 @@ adb logcat -d -v threadtime -s ReactNativeJS:I ActivityTaskManager:I WindowManag
 ```
 
 `wallMs` aligns each JavaScript marker with Android log timestamps. `sinceFirstMarkMs`
-is a monotonic JavaScript interval measured from `js-timing-start` in the custom
-entry file, before Expo Router loads the route tree; it is not an Android process
-start time. `durationMs` measures only the named operation.
+is a monotonic JavaScript interval measured from `js-timing-start` when the root
+layout module loads; it is not an Android process start time. `durationMs`
+measures only the named operation.
 
 Key events:
 
@@ -29,9 +29,11 @@ Key events:
 - `map-data-initialize-after-hide-request`: deferred map cache initialization begins
   after the hide request has resolved and another frame has been scheduled.
 - `home-mounted`, `map-points-geojson`, `point-image-index`: first screen work.
-- `first-visible-map-point`: after a fully rendered map event, a test-build-only
+- `first-visible-map-point`: after a rendered map frame, a test-build-only
   query found at least one visible feature in the `points` layer. Its JS callback
   timestamp is an upper bound for the first rendered point, not a pixel timestamp.
+- `map-point-probe-start` and `map-point-probe-error`: confirm that frame callbacks
+  reached the test-only query and surface query failures.
 - `overlay-mounted`, `overlay-hidden`: present only in earlier test builds;
   the root layout no longer renders the extra blue overlay.
 - `location-permission-check`, `location-permission-result`: the startup

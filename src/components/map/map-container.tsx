@@ -163,6 +163,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   const firstPointProbeDoneRef = useRef(false);
   const pointProbeRunningRef = useRef(false);
   const pointProbeAttemptsRef = useRef(0);
+  const pointProbeLastAttemptAtRef = useRef(0);
   const selectedHitRectsRef = useRef<{ key: string; rects: MarkerHitRect[] } | null>(null);
   const selectedMarkerKey = selectedPointData
     ? getSelectedPlanMarkerKey(selectedPointData.bangumi.id, selectedPointData.point.id, showPointImageMarkers)
@@ -286,7 +287,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     onMapReady?.();
   }, [onMapReady, styleIndex]);
 
-  function handleMapFullyRendered() {
+  function handleMapFrameRendered() {
     if (
       !STARTUP_RENDER_PROBE_ENABLED ||
       isPlanMode ||
@@ -298,9 +299,13 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
       return;
     const map = mapViewRef.current;
     if (!map) return;
+    const now = performance.now();
+    if (now - pointProbeLastAttemptAtRef.current < 150) return;
 
+    pointProbeLastAttemptAtRef.current = now;
     pointProbeAttemptsRef.current += 1;
     pointProbeRunningRef.current = true;
+    logStartupOnce('map-point-probe-start');
     void map
       .queryRenderedFeaturesInRect([], [], ['points'])
       .then((result) => {
@@ -309,7 +314,9 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
         firstPointProbeDoneRef.current = true;
         logStartupOnce('first-visible-map-point', { count });
       })
-      .catch(() => {})
+      .catch((error: unknown) => {
+        logStartupOnce('map-point-probe-error', { message: String(error) });
+      })
       .finally(() => {
         pointProbeRunningRef.current = false;
       });
@@ -470,7 +477,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
         scaleBarPosition={scaleBarPosition ?? { right: 0, bottom: 8 }}
         onCameraChanged={handleCameraChanged}
         onDidFinishLoadingMap={handleMapReady}
-        onDidFinishRenderingMapFully={handleMapFullyRendered}
+        onDidFinishRenderingFrame={STARTUP_RENDER_PROBE_ENABLED ? handleMapFrameRendered : undefined}
         onPress={isPlanMode ? handlePlanMapPress : clearSelectedMapPoint}
       >
         <Camera

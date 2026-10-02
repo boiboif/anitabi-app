@@ -1,6 +1,6 @@
 {
   "name": "anitabi-app",
-  "main": "index.js",
+  "main": "expo-router/entry",
   "version": "1.0.0",
   "license": "GPL-3.0-only",
   "dependencies": {
