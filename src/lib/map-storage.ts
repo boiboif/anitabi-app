@@ -1,5 +1,6 @@
 import { createMMKV } from 'react-native-mmkv';
 import type { AssembledData } from '@/services/types';
+import { logStartupDuration, startupNow } from '@/lib/startup-timing';
 
 let storage: ReturnType<typeof createMMKV> | null = null;
 try {
@@ -10,6 +11,7 @@ try {
 
 const ASSEMBLED_KEY = 'assembled-data';
 const G_MODIFIED_KEY = 'g-modified';
+let cacheReadCount = 0;
 
 export function getGModified(): number | null {
   if (!storage) return null;
@@ -33,13 +35,21 @@ export function setGModified(ts: number): void {
 }
 
 export function getCachedData(): AssembledData | null {
-  if (!storage) return null;
+  const startedAt = startupNow();
+  const read = ++cacheReadCount;
+  let payloadChars = 0;
+  let hit = false;
   try {
+    if (!storage) return null;
     const raw = storage.getString(ASSEMBLED_KEY);
     if (!raw) return null;
+    payloadChars = raw.length;
+    hit = true;
     return JSON.parse(raw) as AssembledData;
   } catch {
     return null;
+  } finally {
+    logStartupDuration('map-cache-read', startedAt, { read, hit, payloadChars });
   }
 }
 

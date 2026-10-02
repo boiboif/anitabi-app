@@ -1,3 +1,4 @@
+import { logStartupOnce } from '@/lib/startup-timing';
 import { AnimatedSplashOverlay } from '@/components/ui/animated-icon';
 import { AppUpdateOverlay } from '@/components/app-update-overlay';
 import PlanPickerProvider from '@/components/plan/plan-picker-provider';
@@ -55,6 +56,12 @@ if (MAPBOX_ACCESS_TOKEN) {
   console.warn('Missing EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN in .env');
 }
 
+logStartupOnce('root-import-complete');
+
+function handleRootLayout() {
+  logStartupOnce('root-layout');
+}
+
 function resolveTheme(
   colorScheme: ReturnType<typeof useColorScheme>,
   preference: 'system' | 'light' | 'dark',
@@ -83,6 +90,10 @@ function RootLayout() {
   const appUpdates = useAppUpdates();
 
   useEffect(() => {
+    logStartupOnce('root-mounted');
+  }, []);
+
+  useEffect(() => {
     if (languagePreference !== 'system') return;
     void i18n.changeLanguage(resolveLanguagePreference('system', locales[0]?.languageTag));
   }, [languagePreference, locales]);
@@ -101,7 +112,7 @@ function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <GestureHandlerRootView style={{ flex: 1 }}>
+      <GestureHandlerRootView style={{ flex: 1 }} onLayout={handleRootLayout}>
         <TamaguiProvider config={tamaguiConfig} defaultTheme={theme}>
           <ThemeProvider value={theme === 'dark' ? DarkTheme : LightNavigationTheme}>
             <TrueSheetProvider>

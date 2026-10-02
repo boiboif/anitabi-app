@@ -8,6 +8,7 @@ import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
 import { useMapBrowse } from '@/store/use-map-browse';
 import { SelectableCircleLayer } from './map-marker-selection';
 import { getMapPointCircleStyle } from '@/utils/map-point-style';
+import { logStartupDuration, startupNow } from '@/lib/startup-timing';
 import { CircleLayer, ShapeSource } from '@rnmapbox/maps';
 import { ComponentProps, useCallback, useMemo } from 'react';
 
@@ -75,7 +76,12 @@ export default function MapMarkers({
   const activeSelectedBangumiIds = selectedBangumiIds ?? storedSelectedMapBangumiIds;
 
   // 始终用完整数据生成 GeoJSON，筛选通过 filter 表达式实现
-  const geoJSON = useMemo(() => toGeoJSON(bangumis), [bangumis]);
+  const geoJSON = useMemo(() => {
+    const startedAt = startupNow();
+    const result = toGeoJSON(bangumis);
+    logStartupDuration('map-points-geojson', startedAt, { count: result.features.length });
+    return result;
+  }, [bangumis]);
 
   const pointFilter: ComponentProps<typeof CircleLayer>['filter'] = useMemo(() => {
     if (activeOpenedBangumiDetailsId !== null) {

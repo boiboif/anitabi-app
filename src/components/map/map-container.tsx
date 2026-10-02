@@ -12,6 +12,7 @@ import PopupCard from '@/components/map/point-popup-card';
 import { resolveLanguageTag } from '@/i18n';
 import { MAP_COMPASS_TOP_OFFSET } from '@/lib/constants';
 import { MAP_STYLES } from '@/lib/map-styles';
+import { logStartupOnce } from '@/lib/startup-timing';
 import type { Bangumi } from '@/services/types';
 import { type MapPointReference, useMapBrowse } from '@/store/use-map-browse';
 import {
@@ -274,6 +275,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   );
 
   const handleMapReady = useCallback(() => {
+    logStartupOnce('map-ready');
     loadedStyleIndexRef.current = styleIndex;
     setLoadedStyleIndex(styleIndex);
     onMapReady?.();

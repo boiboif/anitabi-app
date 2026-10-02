@@ -1,6 +1,7 @@
 import { Toast } from '@boiboif/react-native-toast';
 import { locationManager, type Camera, type Location as MapboxLocation } from '@rnmapbox/maps';
 import { hasServicesEnabledAsync, requestForegroundPermissionsAsync } from 'expo-location';
+import { logStartupDuration, logStartupOnce, startupNow } from '@/lib/startup-timing';
 import { useFocusEffect } from 'expo-router';
 import { type RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, AppState, type AppStateStatus } from 'react-native';
@@ -172,8 +173,11 @@ export function useMapLocate(cameraRef: RefObject<Camera | null>) {
       focusStartedAtRef.current = Date.now();
 
       const activateLocation = async () => {
+        const permissionStartedAt = startupNow();
+        logStartupOnce('location-permission-request');
         try {
           const { status } = await requestForegroundPermissionsAsync();
+          logStartupDuration('location-permission-result', permissionStartedAt, { status });
           if (cancelled || !isFocusedRef.current) return;
 
           hasLocationPermissionRef.current = status === 'granted';
@@ -184,6 +188,7 @@ export function useMapLocate(cameraRef: RefObject<Camera | null>) {
           recoverLocationProvider({ force: true });
           await cacheLastKnownLocation();
         } catch {
+          logStartupDuration('location-permission-error', permissionStartedAt);
           if (!cancelled && isMountedRef.current) setIsLocationPuckActive(false);
         }
       };

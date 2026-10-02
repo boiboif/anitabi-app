@@ -4,6 +4,7 @@ import {
   SELECTED_MAP_POINT_LAYER_ID,
 } from '@/lib/constants';
 import { getBangumiMapLabel } from '@/lib/localized-data';
+import { logStartup, logStartupDuration, startupNow } from '@/lib/startup-timing';
 import { getBangumiIcons } from '@/services/api';
 import { baseUrl } from '@/services/handlers';
 import type { Bangumi } from '@/services/types';
@@ -31,6 +32,9 @@ function getCroppedIcons(spriteMeta: { ids: number[]; url: string }) {
   const cached = croppedIconsCache.get(cacheKey);
   if (cached) return cached;
 
+  const startedAt = startupNow();
+  logStartup('sprite-crop-start', { count: spriteMeta.ids.length });
+
   const crop = async (retries = 0): Promise<Map<number, string>> => {
     try {
       const results = await Promise.all(
@@ -54,11 +58,17 @@ function getCroppedIcons(spriteMeta: { ids: number[]; url: string }) {
     }
   };
 
-  const task = crop().catch((err) => {
-    // Let a later mount retry after a failed crop instead of caching a rejection.
-    croppedIconsCache.delete(cacheKey);
-    throw err;
-  });
+  const task = crop()
+    .then((result) => {
+      logStartupDuration('sprite-crop-complete', startedAt, { count: result.size });
+      return result;
+    })
+    .catch((err) => {
+      logStartupDuration('sprite-crop-error', startedAt);
+      // Let a later mount retry after a failed crop instead of caching a rejection.
+      croppedIconsCache.delete(cacheKey);
+      throw err;
+    });
   croppedIconsCache.set(cacheKey, task);
   return task;
 }
