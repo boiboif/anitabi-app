@@ -26,7 +26,8 @@ import {
   type ErrorBoundaryProps,
 } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import * as SplashScreen from 'expo-splash-screen';
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -57,10 +58,6 @@ if (MAPBOX_ACCESS_TOKEN) {
 
 logStartupOnce('root-import-complete');
 
-function handleRootLayout() {
-  logStartupOnce('root-layout');
-}
-
 function resolveTheme(
   colorScheme: ReturnType<typeof useColorScheme>,
   preference: 'system' | 'light' | 'dark',
@@ -87,6 +84,25 @@ function RootLayout() {
   const initializeFirstInstallDemo = usePlans((state) => state.initializeFirstInstallDemo);
   const navigationContainerRef = useNavigationContainerRef();
   const appUpdates = useAppUpdates();
+  const didFinishInitialLayout = useRef(false);
+
+  function handleRootLayout() {
+    logStartupOnce('root-layout');
+    if (didFinishInitialLayout.current) return;
+    didFinishInitialLayout.current = true;
+
+    // Show the mounted app before parsing the large cached map payload on JS.
+    logStartupOnce('native-splash-hide-request');
+    const startMapData = () => {
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          logStartupOnce('map-data-initialize-after-splash');
+          void initializeMapData();
+        }, 0);
+      });
+    };
+    void SplashScreen.hideAsync().then(startMapData, startMapData);
+  }
 
   useEffect(() => {
     logStartupOnce('root-mounted');
@@ -100,10 +116,6 @@ function RootLayout() {
   useEffect(() => {
     sentryNavigationIntegration.registerNavigationContainer(navigationContainerRef);
   }, [navigationContainerRef]);
-
-  useEffect(() => {
-    void initializeMapData();
-  }, [initializeMapData]);
 
   useEffect(() => {
     void initializeFirstInstallDemo();

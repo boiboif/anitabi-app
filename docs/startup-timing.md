@@ -22,6 +22,11 @@ Key events:
 - `map-cache-read`: each MMKV read and JSON parse, including the payload length.
 - `root-import-complete`, `root-mounted`, `root-layout`: root module evaluation,
   React commit, and layout. Layout is not proof that a frame was displayed.
+- `native-splash-hide-request`: the root view has laid out and requests the
+  native splash to close. Compare this with Android's actual splash removal log;
+  the request timestamp alone is not the measured disappearance time.
+- `map-data-initialize-after-splash`: deferred map cache initialization begins
+  after the hide request has resolved and another frame has been scheduled.
 - `home-mounted`, `map-points-geojson`, `point-image-index`: first screen work.
 - `overlay-mounted`, `overlay-hidden`: present only in earlier test builds;
   the root layout no longer renders the extra blue overlay.

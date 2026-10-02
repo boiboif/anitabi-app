@@ -14,7 +14,6 @@ type MapDataStore = {
   initialize: () => Promise<void>;
 };
 
-const cachedData = getCachedMapData();
 let refreshPromise: Promise<void> | null = null;
 
 function toError(error: unknown): Error {
@@ -24,8 +23,8 @@ function toError(error: unknown): Error {
 }
 
 export const useMapData = create<MapDataStore>((set, get) => ({
-  data: cachedData,
-  status: cachedData ? 'ready' : 'idle',
+  data: null,
+  status: 'idle',
   isRefreshing: false,
   progress: null,
   error: null,
@@ -33,8 +32,11 @@ export const useMapData = create<MapDataStore>((set, get) => ({
   initialize: async () => {
     if (refreshPromise) return refreshPromise;
 
-    const hasCachedData = get().data !== null;
+    // Keep the large JSON parse out of module evaluation and the first app frame.
+    const cachedData = getCachedMapData();
+    const hasCachedData = cachedData !== null;
     set({
+      data: cachedData,
       status: hasCachedData ? 'ready' : 'loading',
       isRefreshing: hasCachedData,
       progress: hasCachedData
