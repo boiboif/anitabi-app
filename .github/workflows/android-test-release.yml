@@ -44,6 +44,9 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          # Manual test builds repeatedly run on non-default branches.
+          cache-read-only: false
 
       - name: Install dependencies
         run: corepack enable && yarn install --frozen-lockfile
@@ -74,6 +77,7 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease \
+            --build-cache \
             -PreactNativeArchitectures=arm64-v8a \
             -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" \
             --max-workers=2 \
