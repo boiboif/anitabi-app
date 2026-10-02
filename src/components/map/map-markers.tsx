@@ -89,10 +89,8 @@ export default function MapMarkers({
     return () => clearTimeout(timeout);
   }, [bangumis, showFullPointSource]);
 
-  const minimumPriority =
-    showFullPointSource || showAllPoints || activeOpenedBangumiDetailsId !== null || activeSelectedBangumiIds.length > 0
-      ? null
-      : MAP_INITIAL_POINT_PRIORITY;
+  // Selection only changes the layer filter; the startup source expands on its own timer.
+  const minimumPriority = showFullPointSource || showAllPoints ? null : MAP_INITIAL_POINT_PRIORITY;
 
   // At the default zoom, lower-priority points cannot render; send the visible subset first.
   // Restore the complete source shortly afterward so zooming and filtering keep their usual behavior.
