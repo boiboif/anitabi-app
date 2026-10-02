@@ -477,7 +477,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
         scaleBarPosition={scaleBarPosition ?? { right: 0, bottom: 8 }}
         onCameraChanged={handleCameraChanged}
         onDidFinishLoadingMap={handleMapReady}
-        onDidFinishRenderingFrame={STARTUP_RENDER_PROBE_ENABLED ? handleMapFrameRendered : undefined}
+        onDidFinishRenderingFrameFully={STARTUP_RENDER_PROBE_ENABLED ? handleMapFrameRendered : undefined}
         onPress={isPlanMode ? handlePlanMapPress : clearSelectedMapPoint}
       >
         <Camera
