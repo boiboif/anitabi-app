@@ -1,3 +1,4 @@
+import BangumiDetailSheet from '@/components/map/bangumi-detail-sheet';
 import Building3DSwitch from '@/components/map/building-3d-switch';
 import LayerSwitch from '@/components/map/layer-switch';
 import LoadingBadge from '@/components/map/loading-badge';
@@ -18,7 +19,7 @@ import { useMapData } from '@/store/use-map-data';
 import type { Camera } from '@rnmapbox/maps';
 import { Dices } from '@tamagui/lucide-icons-2';
 import { useRouter } from 'expo-router';
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -30,7 +31,6 @@ type CameraState = {
 };
 
 type RandomPointCandidate = { bangumiId: number; pointId: string };
-const BangumiDetailSheet = lazy(() => import('@/components/map/bangumi-detail-sheet'));
 
 function buildRandomPointCandidates(bangumis: Bangumi[]): RandomPointCandidate[] {
   const startedAt = startupNow();
@@ -226,11 +226,7 @@ export default function HomeScreen() {
         )}
       </YStack>
 
-      {selectedBangumi && (
-        <Suspense fallback={null}>
-          <BangumiDetailSheet />
-        </Suspense>
-      )}
+      <BangumiDetailSheet />
     </View>
   );
 }
