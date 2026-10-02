@@ -239,13 +239,18 @@ export default function PointImageMarkers({
   const belowZoomThreshold = !ignoreZoomThreshold && (imageZoom < zoomThreshold || !imageBounds);
   const minimumImagePriority = ignoreZoomThreshold ? 0 : 3 * 2 ** (imagePriorityBaseZoom - imageZoom);
 
-  // Cache by dataset identity so zoom, filtering and marker toggles reuse one index.
-  const { candidates, byLatitude, stableSortKeys } = useMemo(() => getImageMarkerIndex(bangumis), [bangumis]);
+  // The initial map is far below the image threshold. Do not build the full
+  // image index until the viewport can actually display image markers.
+  const imageMarkerIndex = useMemo(
+    () => (belowZoomThreshold ? null : getImageMarkerIndex(bangumis)),
+    [bangumis, belowZoomThreshold],
+  );
   // Match the website's order: query the viewport first, then apply sparsity to
   // those points. Filtering preserves candidate references for PointImageLayer.
   // Selection must not rerun the viewport search or invalidate the source payload.
   const visible = useMemo(() => {
-    const inBounds = belowZoomThreshold ? [] : getVisibleCandidates(candidates, byLatitude, imageBounds);
+    if (!imageMarkerIndex) return [];
+    const inBounds = getVisibleCandidates(imageMarkerIndex.candidates, imageMarkerIndex.byLatitude, imageBounds);
     const selectedIds = new Set(activeSelectedBangumiIds);
     return inBounds.filter((item) => {
       if (activeOpenedBangumiDetailsId !== null && item.bangumi.id !== activeOpenedBangumiDetailsId) return false;
@@ -254,9 +259,7 @@ export default function PointImageMarkers({
       return ignoreZoomThreshold || !(item.point.priority < minimumImagePriority);
     });
   }, [
-    belowZoomThreshold,
-    candidates,
-    byLatitude,
+    imageMarkerIndex,
     imageBounds,
     activeSelectedBangumiIds,
     activeOpenedBangumiDetailsId,
@@ -264,13 +267,13 @@ export default function PointImageMarkers({
     minimumImagePriority,
   ]);
 
-  if (visible.length === 0) return null;
+  if (!imageMarkerIndex || visible.length === 0) return null;
   return (
     <PointImageLayer
       visible={visible}
       bangumis={bangumis}
       onPointSelect={onPointSelect}
-      stableSortKeys={stableSortKeys}
+      stableSortKeys={imageMarkerIndex.stableSortKeys}
     />
   );
 }

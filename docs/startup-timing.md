@@ -24,9 +24,9 @@ Key events:
   React commit, and layout. Layout is not proof that a frame was displayed.
 - `home-mounted`, `map-points-geojson`, `point-image-index`: first screen work.
 - `overlay-mounted`, `overlay-hidden`: the extra blue overlay's React commits.
-- `location-permission-request`, `location-permission-result`: the startup
-  permission request, which can cause `am start -W` to report the permission
-  controller instead of the app.
+- `location-permission-check`, `location-permission-result`: the startup
+  permission check. `location-permission-request` appears when access is not
+  already granted and a permission prompt may be needed.
 - `map-ready`: Mapbox's `onDidFinishLoadingMap` callback.
 - `sprite-crop-start`, `sprite-crop-complete`: all bangumi sprite icon crops.
 
