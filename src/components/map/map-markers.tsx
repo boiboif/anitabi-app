@@ -1,4 +1,5 @@
 import {
+  MAP_INITIAL_POINT_PRIORITY,
   MAP_POINT_PRIORITY_ALL_VISIBLE_ZOOM,
   MAP_POINT_PRIORITY_ZOOM_STOPS,
   SELECTED_MAP_POINT_LAYER_ID,
@@ -10,7 +11,7 @@ import { SelectableCircleLayer } from './map-marker-selection';
 import { getMapPointCircleStyle } from '@/utils/map-point-style';
 import { logStartupDuration, startupNow } from '@/lib/startup-timing';
 import { CircleLayer, ShapeSource } from '@rnmapbox/maps';
-import { ComponentProps, useCallback, useMemo } from 'react';
+import { ComponentProps, useCallback, useEffect, useMemo, useState } from 'react';
 
 type Props = {
   bangumis: Bangumi[];
@@ -26,12 +27,13 @@ type Props = {
 // GeoJSON 坐标顺序为 [lng, lat]
 // ---------------------------------------------------------------------------
 
-function toGeoJSON(bangumis: Bangumi[]): GeoJSON.FeatureCollection {
+function toGeoJSON(bangumis: Bangumi[], minimumPriority: number | null): GeoJSON.FeatureCollection {
   const features: GeoJSON.Feature[] = [];
 
   for (const b of bangumis) {
     for (const p of b.points) {
       if (p.geo[0] === 0 && p.geo[1] === 0) continue;
+      if (minimumPriority !== null && !(p.priority > minimumPriority)) continue;
 
       features.push({
         type: 'Feature',
@@ -61,6 +63,9 @@ const POINT_PRIORITY_FILTER = [
   ['has', 'priority'],
 ] as unknown as ComponentProps<typeof CircleLayer>['filter'];
 
+const FULL_POINT_SOURCE_DELAY_MS = 900;
+let fullPointSourceLoaded = false;
+
 export default function MapMarkers({
   bangumis,
   onPointSelect,
@@ -74,14 +79,33 @@ export default function MapMarkers({
   const activeOpenedBangumiDetailsId =
     openedBangumiDetailsId === undefined ? storedOpenedBangumiDetailsId : openedBangumiDetailsId;
   const activeSelectedBangumiIds = selectedBangumiIds ?? storedSelectedMapBangumiIds;
+  const [showFullPointSource, setShowFullPointSource] = useState(fullPointSourceLoaded);
 
-  // 始终用完整数据生成 GeoJSON，筛选通过 filter 表达式实现
+  useEffect(() => {
+    if (showFullPointSource || bangumis.length === 0) return;
+    const timeout = setTimeout(() => {
+      fullPointSourceLoaded = true;
+      setShowFullPointSource(true);
+    }, FULL_POINT_SOURCE_DELAY_MS);
+    return () => clearTimeout(timeout);
+  }, [bangumis, showFullPointSource]);
+
+  const minimumPriority =
+    showFullPointSource || showAllPoints || activeOpenedBangumiDetailsId !== null || activeSelectedBangumiIds.length > 0
+      ? null
+      : MAP_INITIAL_POINT_PRIORITY;
+
+  // At the default zoom, lower-priority points cannot render; send the visible subset first.
+  // Restore the complete source shortly afterward so zooming and filtering keep their usual behavior.
   const geoJSON = useMemo(() => {
     const startedAt = startupNow();
-    const result = toGeoJSON(bangumis);
-    logStartupDuration('map-points-geojson', startedAt, { count: result.features.length });
+    const result = toGeoJSON(bangumis, minimumPriority);
+    logStartupDuration('map-points-geojson', startedAt, {
+      count: result.features.length,
+      phase: minimumPriority === null ? 'full' : 'initial',
+    });
     return result;
-  }, [bangumis]);
+  }, [bangumis, minimumPriority]);
 
   const pointFilter: ComponentProps<typeof CircleLayer>['filter'] = useMemo(() => {
     if (activeOpenedBangumiDetailsId !== null) {

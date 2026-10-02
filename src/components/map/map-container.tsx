@@ -10,7 +10,7 @@ import {
 import PointImageMarkers from '@/components/map/point-image-markers';
 import PopupCard from '@/components/map/point-popup-card';
 import { resolveLanguageTag } from '@/i18n';
-import { MAP_COMPASS_TOP_OFFSET } from '@/lib/constants';
+import { MAP_COMPASS_TOP_OFFSET, MAP_DEFAULT_ZOOM } from '@/lib/constants';
 import { MAP_STYLES } from '@/lib/map-styles';
 import { logStartupOnce } from '@/lib/startup-timing';
 import type { Bangumi } from '@/services/types';
@@ -60,7 +60,6 @@ type Props = {
 };
 
 const DEFAULT_COORDINATES: [number, number] = [137, 35.2];
-const DEFAULT_ZOOM = 4.6;
 const STARTUP_RENDER_PROBE_ENABLED = Constants.expoConfig?.extra?.appVariant === 'test';
 const CAMERA_CHANGE_DEBOUNCE_MS = 250;
 const LOCATION_PUCK_BEARING_IMAGE = 'location-puck-bearing';
@@ -124,7 +123,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   const isPlanMode = mode === 'plan';
   const language = resolveLanguageTag(i18n.resolvedLanguage);
   const mapLabelLocale = language === 'zh-CN' ? 'zh-Hans' : language;
-  const [zoom, setZoom] = useState(DEFAULT_ZOOM);
+  const [zoom, setZoom] = useState(MAP_DEFAULT_ZOOM);
   const [bounds, setBounds] = useState<Bounds | null>(null);
   const [loadedStyleIndex, setLoadedStyleIndex] = useState<number | null>(null);
   const loadedStyleIndexRef = useRef<number | null>(null);
@@ -483,7 +482,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
         <Camera
           ref={setCameraRef}
           centerCoordinate={DEFAULT_COORDINATES}
-          zoomLevel={DEFAULT_ZOOM}
+          zoomLevel={MAP_DEFAULT_ZOOM}
           animationMode="none"
         />
         <Images>

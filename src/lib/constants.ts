@@ -28,6 +28,9 @@ export const MAP_BANGUMI_ICON_PRIORITY_ZOOM_STOPS = [
 /** Anitabi 的普通巡礼点在该 zoom 起不再按 priority 筛选。 */
 export const MAP_POINT_PRIORITY_ALL_VISIBLE_ZOOM = 17;
 
+/** 浏览地图首次打开时的缩放级别。 */
+export const MAP_DEFAULT_ZOOM = 4.6;
+
 /** Anitabi 普通巡礼点的 zoom -> 最低 priority（严格大于）映射。 */
 export const MAP_POINT_PRIORITY_ZOOM_STOPS = [
   [0, 60_000],
@@ -47,6 +50,12 @@ export const MAP_POINT_PRIORITY_ZOOM_STOPS = [
   [15, 5],
   [16, 3],
 ] as const;
+
+/** 首帧只提交当前缩放级别能显示的点位，完整点集随后加载。 */
+export const MAP_INITIAL_POINT_PRIORITY = MAP_POINT_PRIORITY_ZOOM_STOPS.reduce<number>(
+  (priority, [zoom, minimum]) => (zoom <= MAP_DEFAULT_ZOOM ? minimum : priority),
+  MAP_POINT_PRIORITY_ZOOM_STOPS[0][1],
+);
 
 /** 图片出现的最低 zoom（zoom >= 此值时显示巡礼点图片）。 */
 export const MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE = 18;
