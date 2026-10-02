@@ -1,5 +1,4 @@
 import { logStartupOnce } from '@/lib/startup-timing';
-import { AnimatedSplashOverlay } from '@/components/ui/animated-icon';
 import { AppUpdateOverlay } from '@/components/app-update-overlay';
 import PlanPickerProvider from '@/components/plan/plan-picker-provider';
 import '@/global.css';
@@ -119,7 +118,6 @@ function RootLayout() {
               <PlanPickerProvider>
                 <AppUpdateManagerContext.Provider value={appUpdates}>
                   <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
-                  <AnimatedSplashOverlay />
                   <AppUpdateOverlay manager={appUpdates} />
                   <Stack
                     screenOptions={{
