@@ -266,16 +266,17 @@ export default function PlanMapScreen() {
       const viewport = currentViewportRef.current;
       const currentZoom = viewport?.zoom ?? null;
       const panOnly = source === 'map-tap' && currentZoom !== null && currentZoom >= MAP_TAP_PAN_ONLY_ZOOM_THRESHOLD;
-      const keepZoomForFlyTo =
+      const keepZoomForCardList =
         source === 'card-list' &&
         currentZoom !== null &&
         currentZoom >= CARD_LIST_KEEP_ZOOM_THRESHOLD &&
         isPointNearViewport(resolved.point, viewport?.bounds ?? null);
+      const panAtCurrentZoom = panOnly || keepZoomForCardList;
       cameraRef.current?.setCamera({
         centerCoordinate: [resolved.point.geo[1], resolved.point.geo[0]],
-        zoomLevel: panOnly ? undefined : keepZoomForFlyTo ? currentZoom : getPointFlyToZoom(resolved.point.density),
-        animationMode: source === 'map-tap' ? 'easeTo' : 'flyTo',
-        animationDuration: 1000,
+        zoomLevel: panAtCurrentZoom ? undefined : getPointFlyToZoom(resolved.point.density),
+        animationMode: source === 'map-tap' || keepZoomForCardList ? 'easeTo' : 'flyTo',
+        animationDuration: panAtCurrentZoom ? 200 : 1000,
         padding: {
           paddingTop: insets.top + POINT_CAMERA_TOP_PADDING,
           paddingRight: 0,

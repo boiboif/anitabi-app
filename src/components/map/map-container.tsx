@@ -121,6 +121,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   const language = resolveLanguageTag(i18n.resolvedLanguage);
   const mapLabelLocale = language === 'zh-CN' ? 'zh-Hans' : language;
   const [zoom, setZoom] = useState(MAP_DEFAULT_ZOOM);
+  const [isMapInteracting, setIsMapInteracting] = useState(false);
   const [bounds, setBounds] = useState<Bounds | null>(null);
   const [loadedStyleIndex, setLoadedStyleIndex] = useState<number | null>(null);
   const loadedStyleIndexRef = useRef<number | null>(null);
@@ -224,23 +225,26 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     const b = state.properties.bounds
       ? { ne: state.properties.bounds.ne as [number, number], sw: state.properties.bounds.sw as [number, number] }
       : null;
-    setZoom(z);
-    if (b) {
-      setBounds((previous) =>
-        previous?.ne[0] === b.ne[0] &&
-        previous.ne[1] === b.ne[1] &&
-        previous.sw[0] === b.sw[0] &&
-        previous.sw[1] === b.sw[1]
-          ? previous
-          : b,
-      );
+    if (!isPlanMode) {
+      setZoom(z);
+      if (b) {
+        setBounds((previous) =>
+          previous?.ne[0] === b.ne[0] &&
+          previous.ne[1] === b.ne[1] &&
+          previous.sw[0] === b.sw[0] &&
+          previous.sw[1] === b.sw[1]
+            ? previous
+            : b,
+        );
+      }
     }
     return { zoom: z, bounds: b };
-  }, []);
+  }, [isPlanMode]);
 
   const lastReportedCameraStateRef = useRef<ReturnType<typeof updateCameraState> | null>(null);
   const { run: reportCameraChange, cancel: cancelCameraChange } = useDebounceFn(
     (next: ReturnType<typeof updateCameraState>) => {
+      if (!isPlanMode) setIsMapInteracting(false);
       if (!navigation.isFocused()) return;
       const previous = lastReportedCameraStateRef.current;
       if (
@@ -253,6 +257,12 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
         return;
       }
       lastReportedCameraStateRef.current = next;
+      // Plan mode shows image markers at every zoom. Updating their viewport on
+      // each camera frame would rebuild the native image source throughout a pan.
+      if (isPlanMode) {
+        setZoom(next.zoom);
+        if (next.bounds) setBounds(next.bounds);
+      }
       onCameraChange?.(next);
     },
     { wait: CAMERA_CHANGE_DEBOUNCE_MS },
@@ -262,6 +272,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     useCallback(() => {
       cancelCameraChange();
       if (!isPlanMode) {
+        setIsMapInteracting(false);
         if (hasFocusedMapRef.current) ignoreNextFocusCameraEventRef.current = true;
         else hasFocusedMapRef.current = true;
       }
@@ -298,12 +309,13 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
       ) {
         return;
       }
-      // MapIdle also waits for tile rendering; camera debounce works while tiles are still loading.
+      if (!isPlanMode && state.gestures.isGestureActive) setIsMapInteracting(true);
+      // Settle interaction from camera events, without waiting for map tiles to finish rendering.
       const next = updateCameraState(state);
       onViewportChange?.(next);
       reportCameraChange(next);
     },
-    [navigation, onViewportChange, reportCameraChange, styleIndex, updateCameraState],
+    [isPlanMode, navigation, onViewportChange, reportCameraChange, styleIndex, updateCameraState],
   );
 
   const getSelectedArtworkPress = useCallback(
@@ -480,6 +492,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
           selectedBangumiIds={isPlanMode ? (selectedBangumiIds ?? []) : undefined}
           openedBangumiDetailsId={isPlanMode ? null : undefined}
           showAllPoints={isPlanMode}
+          isMapInteracting={isMapInteracting}
           maxVisualDiameter={maxPointMarkerDiameter}
           onPointSelect={handlePointSelect}
         />

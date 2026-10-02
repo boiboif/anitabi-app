@@ -18,6 +18,7 @@ type Props = {
   selectedBangumiIds?: number[];
   openedBangumiDetailsId?: number | null;
   showAllPoints?: boolean;
+  isMapInteracting?: boolean;
   maxVisualDiameter?: number;
 };
 
@@ -71,6 +72,7 @@ export default function MapMarkers({
   selectedBangumiIds,
   openedBangumiDetailsId,
   showAllPoints = false,
+  isMapInteracting = false,
   maxVisualDiameter,
 }: Props) {
   const storedOpenedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
@@ -81,15 +83,15 @@ export default function MapMarkers({
   const [showFullPointSource, setShowFullPointSource] = useState(fullPointSourceLoaded);
 
   useEffect(() => {
-    if (showFullPointSource || bangumis.length === 0) return;
+    if (showFullPointSource || showAllPoints || bangumis.length === 0 || isMapInteracting) return;
     const timeout = setTimeout(() => {
       fullPointSourceLoaded = true;
       setShowFullPointSource(true);
     }, FULL_POINT_SOURCE_DELAY_MS);
     return () => clearTimeout(timeout);
-  }, [bangumis, showFullPointSource]);
+  }, [bangumis, isMapInteracting, showAllPoints, showFullPointSource]);
 
-  // Selection only changes the layer filter; the startup source expands on its own timer.
+  // Selection only changes the layer filter; expand the startup source after map interaction settles.
   const minimumPriority = showFullPointSource || showAllPoints ? null : MAP_INITIAL_POINT_PRIORITY;
 
   // At the default zoom, lower-priority points cannot render; send the visible subset first.
