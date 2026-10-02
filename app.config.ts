@@ -91,7 +91,8 @@ const config: ExpoConfig = {
           usesCleartextTraffic: true,
           enableMinifyInReleaseBuilds: true,
           enableShrinkResourcesInReleaseBuilds: true,
-          useLegacyPackaging: true,
+          // Keep native libraries uncompressed so Android can load them directly from the APK.
+          useLegacyPackaging: false,
         },
       },
     ],
