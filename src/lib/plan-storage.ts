@@ -78,6 +78,16 @@ export function setPlans(plans: ItineraryPlan[]): void {
   }
 }
 
+export function needsDemoPlanInitialization(): boolean {
+  if (!storage) return false;
+  try {
+    return !storage.contains(DEMO_PLAN_INITIALIZED_KEY);
+  } catch (error) {
+    console.warn('MMKV demo plan status check failed:', error);
+    return false;
+  }
+}
+
 export function initializeDemoPlan(plan: ItineraryPlan | null): ItineraryPlan | null {
   if (!storage) return null;
   try {

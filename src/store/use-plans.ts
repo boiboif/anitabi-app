@@ -1,10 +1,10 @@
-import { createFirstInstallDemoPlan } from '@/lib/demo-plan';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import {
   clearPlans,
   getPlanListSortOrder,
   getPlans,
   initializeDemoPlan,
+  needsDemoPlanInitialization,
   setPlanListSortOrder,
   setPlans,
   type ItineraryPlan,
@@ -67,7 +67,9 @@ export const usePlans = create<PlansStore>((set, get) => ({
   plans: initialPlans,
   planListSortOrder: getPlanListSortOrder(),
   initializeFirstInstallDemo: async () => {
+    if (!needsDemoPlanInitialization()) return;
     try {
+      const { createFirstInstallDemoPlan } = await import('@/lib/demo-plan');
       const demoPlan = await createFirstInstallDemoPlan();
       const seededPlan = initializeDemoPlan(demoPlan);
       if (seededPlan) set({ plans: [seededPlan] });

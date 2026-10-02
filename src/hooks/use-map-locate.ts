@@ -1,6 +1,7 @@
 import { Toast } from '@boiboif/react-native-toast';
 import { locationManager, type Camera, type Location as MapboxLocation } from '@rnmapbox/maps';
-import { hasServicesEnabledAsync, requestForegroundPermissionsAsync } from 'expo-location';
+import { getForegroundPermissionsAsync, hasServicesEnabledAsync, requestForegroundPermissionsAsync } from 'expo-location';
+import { useMapData } from '@/store/use-map-data';
 import { useFocusEffect } from 'expo-router';
 import { type RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, AppState, type AppStateStatus } from 'react-native';
@@ -168,12 +169,40 @@ export function useMapLocate(cameraRef: RefObject<Camera | null>) {
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
+      let stopWaitingForMapData: (() => void) | null = null;
       isFocusedRef.current = true;
       focusStartedAtRef.current = Date.now();
 
+      const waitForMapDataStart = () =>
+        new Promise<void>((resolve) => {
+          if (useMapData.getState().status !== 'idle') {
+            resolve();
+            return;
+          }
+
+          const unsubscribe = useMapData.subscribe((state) => {
+            if (state.status !== 'idle') finish();
+          });
+          const finish = () => {
+            unsubscribe();
+            stopWaitingForMapData = null;
+            resolve();
+          };
+          stopWaitingForMapData = finish;
+          if (useMapData.getState().status !== 'idle') finish();
+        });
+
       const activateLocation = async () => {
         try {
-          const { status } = await requestForegroundPermissionsAsync();
+          let { status } = await getForegroundPermissionsAsync();
+          if (cancelled || !isFocusedRef.current) return;
+          if (status !== 'granted') {
+            // A native permission dialog pauses requestAnimationFrame. Let the
+            // root start map data before showing it on a fresh install.
+            await waitForMapDataStart();
+            if (cancelled || !isFocusedRef.current) return;
+            ({ status } = await requestForegroundPermissionsAsync());
+          }
           if (cancelled || !isFocusedRef.current) return;
 
           hasLocationPermissionRef.current = status === 'granted';
@@ -218,6 +247,7 @@ export function useMapLocate(cameraRef: RefObject<Camera | null>) {
 
       return () => {
         cancelled = true;
+        stopWaitingForMapData?.();
         isFocusedRef.current = false;
         followNextLocationUntilRef.current = 0;
         clearInterval(watchdogId);

@@ -1,5 +1,3 @@
-import { AnimatedSplashOverlay } from '@/components/ui/animated-icon';
-import { AppUpdateOverlay } from '@/components/app-update-overlay';
 import PlanPickerProvider from '@/components/plan/plan-picker-provider';
 import '@/global.css';
 import i18n, { resolveLanguagePreference } from '@/i18n';
@@ -26,7 +24,8 @@ import {
   type ErrorBoundaryProps,
 } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import * as SplashScreen from 'expo-splash-screen';
+import { lazy, Suspense, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -40,6 +39,9 @@ Toast.config({
 });
 
 const MAPBOX_ACCESS_TOKEN = Constants.expoConfig?.extra?.mapboxAccessToken as string | undefined;
+const AppUpdateOverlay = lazy(() =>
+  import('@/components/app-update-overlay').then(({ AppUpdateOverlay }) => ({ default: AppUpdateOverlay })),
+);
 const LightNavigationTheme = {
   ...DefaultTheme,
   colors: {
@@ -81,6 +83,23 @@ function RootLayout() {
   const initializeFirstInstallDemo = usePlans((state) => state.initializeFirstInstallDemo);
   const navigationContainerRef = useNavigationContainerRef();
   const appUpdates = useAppUpdates();
+  const didFinishInitialLayout = useRef(false);
+
+  function handleRootLayout() {
+    if (didFinishInitialLayout.current) return;
+    didFinishInitialLayout.current = true;
+
+    // Show the mounted app before parsing the large cached map payload on JS.
+    const startMapData = () => {
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          void initializeMapData();
+          void initializeFirstInstallDemo();
+        }, 0);
+      });
+    };
+    void SplashScreen.hideAsync().then(startMapData, startMapData);
+  }
 
   useEffect(() => {
     if (languagePreference !== 'system') return;
@@ -91,25 +110,20 @@ function RootLayout() {
     sentryNavigationIntegration.registerNavigationContainer(navigationContainerRef);
   }, [navigationContainerRef]);
 
-  useEffect(() => {
-    void initializeMapData();
-  }, [initializeMapData]);
-
-  useEffect(() => {
-    void initializeFirstInstallDemo();
-  }, [initializeFirstInstallDemo]);
-
   return (
     <SafeAreaProvider>
-      <GestureHandlerRootView style={{ flex: 1 }}>
+      <GestureHandlerRootView style={{ flex: 1 }} onLayout={handleRootLayout}>
         <TamaguiProvider config={tamaguiConfig} defaultTheme={theme}>
           <ThemeProvider value={theme === 'dark' ? DarkTheme : LightNavigationTheme}>
             <TrueSheetProvider>
               <PlanPickerProvider>
                 <AppUpdateManagerContext.Provider value={appUpdates}>
                   <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
-                  <AnimatedSplashOverlay />
-                  <AppUpdateOverlay manager={appUpdates} />
+                  {(appUpdates.isBinaryUpdateVisible || appUpdates.hotUpdateReady) && (
+                    <Suspense fallback={null}>
+                      <AppUpdateOverlay manager={appUpdates} />
+                    </Suspense>
+                  )}
                   <Stack
                     screenOptions={{
                       headerShown: false,

@@ -10,6 +10,7 @@ try {
 
 const ASSEMBLED_KEY = 'assembled-data';
 const G_MODIFIED_KEY = 'g-modified';
+let cachedDataSnapshot: AssembledData | null | undefined;
 
 export function getGModified(): number | null {
   if (!storage) return null;
@@ -33,13 +34,14 @@ export function setGModified(ts: number): void {
 }
 
 export function getCachedData(): AssembledData | null {
-  if (!storage) return null;
+  if (cachedDataSnapshot !== undefined) return cachedDataSnapshot;
   try {
+    if (!storage) return (cachedDataSnapshot = null);
     const raw = storage.getString(ASSEMBLED_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as AssembledData;
+    if (!raw) return (cachedDataSnapshot = null);
+    return (cachedDataSnapshot = JSON.parse(raw) as AssembledData);
   } catch {
-    return null;
+    return (cachedDataSnapshot = null);
   }
 }
 
@@ -47,6 +49,7 @@ export function setCachedData(data: AssembledData): void {
   if (!storage) return;
   try {
     storage.set(ASSEMBLED_KEY, JSON.stringify(data));
+    cachedDataSnapshot = data;
   } catch (e) {
     console.warn('MMKV setCachedData failed:', e);
   }
@@ -57,6 +60,7 @@ export function clearMapCache(): void {
   try {
     storage.remove(ASSEMBLED_KEY);
     storage.remove(G_MODIFIED_KEY);
+    cachedDataSnapshot = null;
   } catch (e) {
     console.warn('MMKV clearMapCache failed:', e);
   }

@@ -1,18 +1,27 @@
-import {
-  areAppUpdatesEnabled,
-  cancelBinaryUpdateDownload,
-  checkBinaryUpdate,
-  downloadAndInstallBinaryUpdate,
-  getResumableBinaryDownloadProgress,
-  isBinaryUpdateDownloaded,
-  openBinaryUpdateInBrowser,
-  pauseBinaryUpdateDownload,
-  type BinaryDownloadProgress,
-  type BinaryUpdate,
-} from '@/services/app-update';
-import * as Updates from 'expo-updates';
+import type { BinaryDownloadProgress, BinaryUpdate } from '@/services/app-update';
+import Constants from 'expo-constants';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+
+type AppUpdateModule = typeof import('@/services/app-update');
+let appUpdateModulePromise: Promise<AppUpdateModule> | null = null;
+let loadedAppUpdateModule: AppUpdateModule | null = null;
+
+function getAppUpdateModule(): Promise<AppUpdateModule> {
+  if (!appUpdateModulePromise) {
+    appUpdateModulePromise = import('@/services/app-update').then(
+      (module) => {
+        loadedAppUpdateModule = module;
+        return module;
+      },
+      (error) => {
+        appUpdateModulePromise = null;
+        throw error;
+      },
+    );
+  }
+  return appUpdateModulePromise;
+}
 
 export type AppUpdateManager = {
   binaryUpdate: BinaryUpdate | null;
@@ -54,22 +63,25 @@ export function useAppUpdates(): AppUpdateManager {
       downloadRunningRef.current = true;
       setIsDownloadingBinary(true);
       setBinaryDownloadError(null);
-      const downloaded = isBinaryUpdateDownloaded(update);
-      setIsBinaryDownloaded(downloaded);
-      if (!downloaded) {
-        setBinaryProgress(
-          (current) =>
-            current ??
-            getResumableBinaryDownloadProgress(update) ?? {
-              bytesWritten: 0,
-              totalBytes: 0,
-              percent: 0,
-            },
-        );
-      }
-
+      let appUpdate: AppUpdateModule | null = null;
       try {
-        const result = await downloadAndInstallBinaryUpdate(update, setBinaryProgress);
+        appUpdate = await getAppUpdateModule();
+        const downloaded = appUpdate.isBinaryUpdateDownloaded(update);
+        setIsBinaryDownloaded(downloaded);
+        if (!downloaded) {
+          const resumableProgress = appUpdate.getResumableBinaryDownloadProgress(update);
+          setBinaryProgress(
+            (current) =>
+              current ??
+              resumableProgress ?? {
+                bytesWritten: 0,
+                totalBytes: 0,
+                percent: 0,
+              },
+          );
+        }
+
+        const result = await appUpdate.downloadAndInstallBinaryUpdate(update, setBinaryProgress);
         if (result === 'cancelled') {
           setBinaryProgress(null);
           setBinaryDownloadError(null);
@@ -82,7 +94,7 @@ export function useAppUpdates(): AppUpdateManager {
         );
         console.warn('Failed to download binary update', error);
       } finally {
-        setIsBinaryDownloaded(isBinaryUpdateDownloaded(update));
+        if (appUpdate) setIsBinaryDownloaded(appUpdate.isBinaryUpdateDownloaded(update));
         setIsDownloadingBinary(false);
         downloadRunningRef.current = false;
       }
@@ -91,22 +103,23 @@ export function useAppUpdates(): AppUpdateManager {
   );
 
   const checkNow = useCallback(async () => {
-    if (__DEV__ || !areAppUpdatesEnabled() || isCheckingRef.current) return false;
+    if (__DEV__ || Constants.expoConfig?.extra?.appUpdatesEnabled !== true || isCheckingRef.current) return false;
     isCheckingRef.current = true;
     setIsChecking(true);
 
     try {
+      const [appUpdate, Updates] = await Promise.all([getAppUpdateModule(), import('expo-updates')]);
       const [binaryResult, hotResult] = await Promise.allSettled([
-        checkBinaryUpdate(),
+        appUpdate.checkBinaryUpdate(),
         Updates.isEnabled ? Updates.checkForUpdateAsync() : Promise.resolve({ isAvailable: false }),
       ]);
 
       if (binaryResult.status === 'fulfilled' && binaryResult.value) {
         binaryUpdateRef.current = binaryResult.value;
         setBinaryUpdate(binaryResult.value);
-        const downloaded = isBinaryUpdateDownloaded(binaryResult.value);
+        const downloaded = appUpdate.isBinaryUpdateDownloaded(binaryResult.value);
         setIsBinaryDownloaded(downloaded);
-        setBinaryProgress(downloaded ? null : getResumableBinaryDownloadProgress(binaryResult.value));
+        setBinaryProgress(downloaded ? null : appUpdate.getResumableBinaryDownloadProgress(binaryResult.value));
         setBinaryDownloadError(null);
         setIsBinaryUpdateVisible(true);
       }
@@ -130,7 +143,7 @@ export function useAppUpdates(): AppUpdateManager {
   }, [runBinaryDownload]);
 
   const cancelBinaryUpdate = useCallback(() => {
-    cancelBinaryUpdateDownload();
+    loadedAppUpdateModule?.cancelBinaryUpdateDownload();
   }, []);
 
   const downloadBinaryUpdateInBrowser = useCallback(async () => {
@@ -139,8 +152,9 @@ export function useAppUpdates(): AppUpdateManager {
 
     setBinaryDownloadError(null);
     try {
-      if (downloadRunningRef.current) await pauseBinaryUpdateDownload();
-      await openBinaryUpdateInBrowser(update);
+      const appUpdate = await getAppUpdateModule();
+      if (downloadRunningRef.current) await appUpdate.pauseBinaryUpdateDownload();
+      await appUpdate.openBinaryUpdateInBrowser(update);
     } catch (error) {
       setBinaryDownloadError(
         t('couldNotOpenTheBrowserPleaseTryAgainLater', { defaultValue: '无法打开浏览器，请稍后重试。' }),
@@ -150,6 +164,7 @@ export function useAppUpdates(): AppUpdateManager {
   }, [t]);
 
   const reloadForHotUpdate = useCallback(async () => {
+    const Updates = await import('expo-updates');
     await Updates.reloadAsync();
   }, []);
 
@@ -195,9 +210,9 @@ export function useAppUpdates(): AppUpdateManager {
     downloadBinaryUpdateInBrowser,
     reloadForHotUpdate,
     showBinaryUpdate: () => {
-      if (binaryUpdate) {
-        setIsBinaryDownloaded(isBinaryUpdateDownloaded(binaryUpdate));
-        setBinaryProgress(getResumableBinaryDownloadProgress(binaryUpdate));
+      if (binaryUpdate && loadedAppUpdateModule) {
+        setIsBinaryDownloaded(loadedAppUpdateModule.isBinaryUpdateDownloaded(binaryUpdate));
+        setBinaryProgress(loadedAppUpdateModule.getResumableBinaryDownloadProgress(binaryUpdate));
         setBinaryDownloadError(null);
         setIsBinaryUpdateVisible(true);
       }

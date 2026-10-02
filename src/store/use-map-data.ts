@@ -1,4 +1,3 @@
-import { getCachedMapData, refreshMapData } from '@/services/map-data';
 import type { AssembledData, FetchProgress } from '@/services/types';
 import { create } from 'zustand';
 import i18n from '@/i18n';
@@ -14,8 +13,7 @@ type MapDataStore = {
   initialize: () => Promise<void>;
 };
 
-const cachedData = getCachedMapData();
-let refreshPromise: Promise<void> | null = null;
+let initializePromise: Promise<void> | null = null;
 
 function toError(error: unknown): Error {
   return error instanceof Error
@@ -24,31 +22,36 @@ function toError(error: unknown): Error {
 }
 
 export const useMapData = create<MapDataStore>((set, get) => ({
-  data: cachedData,
-  status: cachedData ? 'ready' : 'idle',
+  data: null,
+  status: 'idle',
   isRefreshing: false,
   progress: null,
   error: null,
 
   initialize: async () => {
-    if (refreshPromise) return refreshPromise;
+    if (initializePromise) return initializePromise;
 
-    const hasCachedData = get().data !== null;
-    set({
-      status: hasCachedData ? 'ready' : 'loading',
-      isRefreshing: hasCachedData,
-      progress: hasCachedData
-        ? null
-        : { phase: 'checking', message: i18n.t('checkingForDataUpdates', { defaultValue: '检查数据更新…' }) },
-      error: null,
-    });
+    initializePromise = (async () => {
+      // Load the map service only after the native splash hide request.
+      const { getCachedMapData, refreshMapData } = await import('@/services/map-data');
 
-    refreshPromise = refreshMapData((progress) => {
-      if (!get().data) set({ progress });
-    })
-      .then((data) => {
-        set({ data, status: 'ready', isRefreshing: false, progress: null, error: null });
-      })
+      const cachedData = getCachedMapData();
+      const hasCachedData = cachedData !== null;
+      set({
+        data: cachedData,
+        status: hasCachedData ? 'ready' : 'loading',
+        isRefreshing: hasCachedData,
+        progress: hasCachedData
+          ? null
+          : { phase: 'checking', message: i18n.t('checkingForDataUpdates', { defaultValue: '检查数据更新…' }) },
+        error: null,
+      });
+
+      const data = await refreshMapData(cachedData, (progress) => {
+        if (!get().data) set({ progress });
+      });
+      set({ data, status: 'ready', isRefreshing: false, progress: null, error: null });
+    })()
       .catch((error: unknown) => {
         const hasData = get().data !== null;
         set({
@@ -61,9 +64,9 @@ export const useMapData = create<MapDataStore>((set, get) => ({
         });
       })
       .finally(() => {
-        refreshPromise = null;
+        initializePromise = null;
       });
 
-    return refreshPromise;
+    return initializePromise;
   },
 }));

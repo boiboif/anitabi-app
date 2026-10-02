@@ -154,8 +154,10 @@ export function getCachedMapData(): AssembledData | null {
  * 调用方负责决定何时刷新，以及如何把刷新结果同步到 UI。这样缓存更新
  * 不会发生在页面订阅范围之外。
  */
-export async function refreshMapData(onProgress?: (p: FetchProgress) => void): Promise<AssembledData> {
-  const cachedData = getCachedData();
+export async function refreshMapData(
+  cachedData: AssembledData | null,
+  onProgress?: (p: FetchProgress) => void,
+): Promise<AssembledData> {
   onProgress?.({ phase: 'checking', message: i18n.t('checkingForDataUpdates', { defaultValue: '检查数据更新…' }) });
 
   const gRaw = (await getGJSON()) as [RawGBangumi[], number, number];
