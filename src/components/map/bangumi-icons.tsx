@@ -22,17 +22,90 @@ import { useTranslation } from 'react-i18next';
 
 const ICON_SCALE = 0.5;
 const SPRITE_MAX_RETRIES = 3;
+const PERSIST_CROPS_DELAY_MS = 1_200;
+const CACHE_DIR = 'bangumi-icons';
+const cacheDir = () => new Directory(Paths.document, CACHE_DIR);
+const cacheFile = (name: string) => new File(cacheDir(), name);
+
+type SpriteMeta = { ids: number[]; url: string; fingerprint?: string };
+
+function cropDirectory(spriteMeta: SpriteMeta): Directory | null {
+  if (!spriteMeta.fingerprint) return null;
+  let idsHash = 2166136261;
+  for (const id of spriteMeta.ids) {
+    for (const char of `${id},`) idsHash = Math.imul(idsHash ^ char.charCodeAt(0), 16777619);
+  }
+  return new Directory(cacheDir(), 'crops', `${spriteMeta.fingerprint}-${(idsHash >>> 0).toString(16)}`);
+}
+
+function readCroppedIcons(spriteMeta: SpriteMeta): Map<number, string> | null {
+  const dir = cropDirectory(spriteMeta);
+  if (!dir?.exists) return null;
+  const manifestFile = new File(dir, 'meta.json');
+  if (!manifestFile.exists) return null;
+  try {
+    const manifest = JSON.parse(manifestFile.textSync()) as { fingerprint: string; ids: number[] };
+    if (
+      manifest.fingerprint !== spriteMeta.fingerprint ||
+      !Array.isArray(manifest.ids) ||
+      manifest.ids.length !== spriteMeta.ids.length ||
+      manifest.ids.some((id, index) => id !== spriteMeta.ids[index])
+    )
+      return null;
+
+    const names = new Set(dir.list().map((entry) => entry.name));
+    if (spriteMeta.ids.some((_, index) => !names.has(`${index}.png`))) return null;
+    return new Map(spriteMeta.ids.map((id, index) => [id, new File(dir, `${index}.png`).uri]));
+  } catch {
+    return null;
+  }
+}
+
+async function persistCroppedIcons(spriteMeta: SpriteMeta, icons: Map<number, string>): Promise<void> {
+  const dir = cropDirectory(spriteMeta);
+  if (!dir) return;
+  try {
+    if (dir.exists) dir.delete();
+    dir.create({ intermediates: true });
+    for (let start = 0; start < spriteMeta.ids.length; start += 32) {
+      const copies = await Promise.allSettled(
+        spriteMeta.ids.slice(start, start + 32).map(async (id, offset) => {
+          const uri = icons.get(id);
+          if (!uri) throw new Error(`Missing cropped icon ${id}`);
+          await new File(uri).copy(new File(dir, `${start + offset}.png`));
+        }),
+      );
+      const failedCopy = copies.find((copy) => copy.status === 'rejected');
+      if (failedCopy?.status === 'rejected') throw failedCopy.reason;
+    }
+    new File(dir, 'meta.json').write(JSON.stringify({ fingerprint: spriteMeta.fingerprint, ids: spriteMeta.ids }));
+    logStartup('sprite-crop-cache-saved', { count: icons.size });
+  } catch (error) {
+    logStartup('sprite-crop-cache-save-error', { message: String(error) });
+    try {
+      if (dir.exists) dir.delete();
+    } catch {}
+  }
+}
 
 // Map style reloads unmount BangumiIcons. Keep completed (and in-flight) crops
 // outside the component so remounting does not manipulate the same sprite again.
 const croppedIconsCache = new Map<string, Promise<Map<number, string>>>();
 
-function getCroppedIcons(spriteMeta: { ids: number[]; url: string }) {
-  const cacheKey = `${spriteMeta.url}:${spriteMeta.ids.join(',')}`;
+function getCroppedIcons(spriteMeta: SpriteMeta) {
+  const cacheKey = `${spriteMeta.fingerprint ?? spriteMeta.url}:${spriteMeta.ids.join(',')}`;
   const cached = croppedIconsCache.get(cacheKey);
   if (cached) return cached;
 
   const startedAt = startupNow();
+  const persisted = readCroppedIcons(spriteMeta);
+  if (persisted) {
+    logStartupDuration('sprite-crop-cache-hit', startedAt, { count: persisted.size });
+    const task = Promise.resolve(persisted);
+    croppedIconsCache.set(cacheKey, task);
+    return task;
+  }
+
   logStartup('sprite-crop-start', { count: spriteMeta.ids.length });
 
   const crop = async (retries = 0): Promise<Map<number, string>> => {
@@ -61,6 +134,8 @@ function getCroppedIcons(spriteMeta: { ids: number[]; url: string }) {
   const task = crop()
     .then((result) => {
       logStartupDuration('sprite-crop-complete', startedAt, { count: result.size });
+      // Disk copies should not compete with the first map frame.
+      setTimeout(() => void persistCroppedIcons(spriteMeta, result), PERSIST_CROPS_DELAY_MS);
       return result;
     })
     .catch((err) => {
@@ -72,14 +147,6 @@ function getCroppedIcons(spriteMeta: { ids: number[]; url: string }) {
   croppedIconsCache.set(cacheKey, task);
   return task;
 }
-
-// ===========================================================================
-// Cache helpers
-// ===========================================================================
-
-const CACHE_DIR = 'bangumi-icons';
-const cacheDir = () => new Directory(Paths.document, CACHE_DIR);
-const cacheFile = (name: string) => new File(cacheDir(), name);
 
 const BANGUMI_ICON_PRIORITY_FILTER = [
   'step',
@@ -107,10 +174,7 @@ function BangumiIcons({ bangumis, onIconPress }: Props) {
   const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const selectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
 
-  const [spriteMeta, setSpriteMeta] = useState<{
-    ids: number[];
-    url: string;
-  } | null>(null);
+  const [spriteMeta, setSpriteMeta] = useState<SpriteMeta | null>(null);
   const [icons, setIcons] = useState<Map<number, string> | null>(null);
 
   // 从 spriteMeta 衍生允许显示的 id 集合
@@ -134,7 +198,7 @@ function BangumiIcons({ bangumis, onIconPress }: Props) {
           if (!cancelled) {
             const cacheUrl = sprite.contentUri ?? sprite.uri;
             console.log('[bangumi-icons] 缓存命中, size:', sprite.size, 'url:', cacheUrl);
-            setSpriteMeta({ ids: cached.ids.map(Number), url: cacheUrl });
+            setSpriteMeta({ ids: cached.ids.map(Number), url: cacheUrl, fingerprint: sprite.md5 ?? undefined });
             cacheLoaded = true;
           }
         } else {
@@ -153,10 +217,6 @@ function BangumiIcons({ bangumis, onIconPress }: Props) {
         if (cancelled) return;
         const ids = resp.ids.map(Number);
         const url = `${baseUrl}${resp.src}`;
-        if (!cacheLoaded) {
-          setSpriteMeta({ ids, url });
-        }
-
         // 更新本地缓存（先写临时文件再原子替换）
         try {
           const dir = cacheDir();
@@ -168,7 +228,13 @@ function BangumiIcons({ bangumis, onIconPress }: Props) {
           if (target.exists) target.delete();
           tmp.rename('sprite.png');
           cacheFile('meta.json').write(JSON.stringify({ ids: resp.ids }));
-        } catch {}
+          if (!cacheLoaded && !cancelled) {
+            setSpriteMeta({ ids, url: target.contentUri ?? target.uri, fingerprint: target.md5 ?? undefined });
+          }
+        } catch {
+          // A failed download can still use the remote sprite for this session.
+          if (!cacheLoaded && !cancelled) setSpriteMeta({ ids, url });
+        }
       } catch (err) {
         if (!cancelled) {
           const metaFile = cacheFile('meta.json');
@@ -202,10 +268,6 @@ function BangumiIcons({ bangumis, onIconPress }: Props) {
   useEffect(() => {
     if (!spriteMeta) return;
     let cancelled = false;
-    const cacheKey = `${spriteMeta.url}:${spriteMeta.ids.join(',')}`;
-    if (!croppedIconsCache.has(cacheKey)) {
-      console.log('[bangumi-icons] crop 开始, url:', spriteMeta.url, 'ids count:', spriteMeta.ids.length);
-    }
     getCroppedIcons(spriteMeta)
       .then((result) => {
         if (!cancelled) setIcons(result);
