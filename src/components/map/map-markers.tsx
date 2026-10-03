@@ -1,5 +1,4 @@
 import {
-  MAP_INITIAL_POINT_PRIORITY,
   MAP_POINT_PRIORITY_ALL_VISIBLE_ZOOM,
   MAP_POINT_PRIORITY_ZOOM_STOPS,
   SELECTED_MAP_POINT_LAYER_ID,
@@ -10,7 +9,7 @@ import { useMapBrowse } from '@/store/use-map-browse';
 import { SelectableCircleLayer } from './map-marker-selection';
 import { getMapPointCircleStyle } from '@/utils/map-point-style';
 import { CircleLayer, ShapeSource } from '@rnmapbox/maps';
-import { ComponentProps, useCallback, useEffect, useMemo, useState } from 'react';
+import { ComponentProps, useCallback, useMemo } from 'react';
 
 type Props = {
   bangumis: Bangumi[];
@@ -18,7 +17,6 @@ type Props = {
   selectedBangumiIds?: number[];
   openedBangumiDetailsId?: number | null;
   showAllPoints?: boolean;
-  isMapInteracting?: boolean;
   maxVisualDiameter?: number;
 };
 
@@ -27,13 +25,12 @@ type Props = {
 // GeoJSON 坐标顺序为 [lng, lat]
 // ---------------------------------------------------------------------------
 
-function toGeoJSON(bangumis: Bangumi[], minimumPriority: number | null): GeoJSON.FeatureCollection {
+function toGeoJSON(bangumis: Bangumi[]): GeoJSON.FeatureCollection {
   const features: GeoJSON.Feature[] = [];
 
   for (const b of bangumis) {
     for (const p of b.points) {
       if (p.geo[0] === 0 && p.geo[1] === 0) continue;
-      if (minimumPriority !== null && !(p.priority > minimumPriority)) continue;
 
       features.push({
         type: 'Feature',
@@ -63,16 +60,12 @@ const POINT_PRIORITY_FILTER = [
   ['has', 'priority'],
 ] as unknown as ComponentProps<typeof CircleLayer>['filter'];
 
-const FULL_POINT_SOURCE_DELAY_MS = 900;
-let fullPointSourceLoaded = false;
-
 export default function MapMarkers({
   bangumis,
   onPointSelect,
   selectedBangumiIds,
   openedBangumiDetailsId,
   showAllPoints = false,
-  isMapInteracting = false,
   maxVisualDiameter,
 }: Props) {
   const storedOpenedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
@@ -80,23 +73,8 @@ export default function MapMarkers({
   const activeOpenedBangumiDetailsId =
     openedBangumiDetailsId === undefined ? storedOpenedBangumiDetailsId : openedBangumiDetailsId;
   const activeSelectedBangumiIds = selectedBangumiIds ?? storedSelectedMapBangumiIds;
-  const [showFullPointSource, setShowFullPointSource] = useState(fullPointSourceLoaded);
-
-  useEffect(() => {
-    if (showFullPointSource || showAllPoints || bangumis.length === 0 || isMapInteracting) return;
-    const timeout = setTimeout(() => {
-      fullPointSourceLoaded = true;
-      setShowFullPointSource(true);
-    }, FULL_POINT_SOURCE_DELAY_MS);
-    return () => clearTimeout(timeout);
-  }, [bangumis, isMapInteracting, showAllPoints, showFullPointSource]);
-
-  // Selection only changes the layer filter; expand the startup source after map interaction settles.
-  const minimumPriority = showFullPointSource || showAllPoints ? null : MAP_INITIAL_POINT_PRIORITY;
-
-  // At the default zoom, lower-priority points cannot render; send the visible subset first.
-  // Restore the complete source shortly afterward so zooming and filtering keep their usual behavior.
-  const geoJSON = useMemo(() => toGeoJSON(bangumis, minimumPriority), [bangumis, minimumPriority]);
+  // Keep the complete source stable; visibility changes only through the Mapbox layer filter.
+  const geoJSON = useMemo(() => toGeoJSON(bangumis), [bangumis]);
 
   const pointFilter: ComponentProps<typeof CircleLayer>['filter'] = useMemo(() => {
     if (activeOpenedBangumiDetailsId !== null) {

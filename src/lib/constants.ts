@@ -51,12 +51,6 @@ export const MAP_POINT_PRIORITY_ZOOM_STOPS = [
   [16, 3],
 ] as const;
 
-/** 首帧只提交当前缩放级别能显示的点位，完整点集随后加载。 */
-export const MAP_INITIAL_POINT_PRIORITY = MAP_POINT_PRIORITY_ZOOM_STOPS.reduce<number>(
-  (priority, [zoom, minimum]) => (zoom <= MAP_DEFAULT_ZOOM ? minimum : priority),
-  MAP_POINT_PRIORITY_ZOOM_STOPS[0][1],
-);
-
 /** 图片出现的最低 zoom（zoom >= 此值时显示巡礼点图片）。 */
 export const MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE = 18;
 
