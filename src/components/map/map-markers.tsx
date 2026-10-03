@@ -1,6 +1,7 @@
 import {
   MAP_POINT_PRIORITY_ALL_VISIBLE_ZOOM,
   MAP_POINT_PRIORITY_ZOOM_STOPS,
+  MAP_POINT_LAYER_ID,
   SELECTED_MAP_POINT_LAYER_ID,
 } from '@/lib/constants';
 import type { Bangumi, Point } from '@/services/types';
@@ -60,21 +61,22 @@ const POINT_PRIORITY_FILTER = [
   ['has', 'priority'],
 ] as unknown as ComponentProps<typeof CircleLayer>['filter'];
 
-export default function MapMarkers({
-  bangumis,
-  onPointSelect,
+type PointLayerProps = Pick<
+  Props,
+  'selectedBangumiIds' | 'openedBangumiDetailsId' | 'showAllPoints' | 'maxVisualDiameter'
+> & { sourceID?: string };
+
+function PointMarkerLayer({
+  sourceID,
   selectedBangumiIds,
   openedBangumiDetailsId,
   showAllPoints = false,
   maxVisualDiameter,
-}: Props) {
-  const storedOpenedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
-  const storedSelectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
-  const activeOpenedBangumiDetailsId =
-    openedBangumiDetailsId === undefined ? storedOpenedBangumiDetailsId : openedBangumiDetailsId;
-  const activeSelectedBangumiIds = selectedBangumiIds ?? storedSelectedMapBangumiIds;
-  // Keep the complete source stable; visibility changes only through the Mapbox layer filter.
-  const geoJSON = useMemo(() => toGeoJSON(bangumis), [bangumis]);
+}: PointLayerProps) {
+  const activeOpenedBangumiDetailsId = useMapBrowse((state) =>
+    openedBangumiDetailsId === undefined ? state.openedBangumiDetailsId : openedBangumiDetailsId,
+  );
+  const activeSelectedBangumiIds = useMapBangumiFilter((state) => selectedBangumiIds ?? state.selectedBangumiIds);
 
   const pointFilter: ComponentProps<typeof CircleLayer>['filter'] = useMemo(() => {
     if (activeOpenedBangumiDetailsId !== null) {
@@ -91,6 +93,30 @@ export default function MapMarkers({
     if (showAllPoints) return undefined;
     return POINT_PRIORITY_FILTER;
   }, [activeOpenedBangumiDetailsId, activeSelectedBangumiIds, showAllPoints]);
+
+  const circleStyle = useMemo(() => getMapPointCircleStyle(maxVisualDiameter), [maxVisualDiameter]);
+
+  return (
+    <SelectableCircleLayer
+      id={MAP_POINT_LAYER_ID}
+      sourceID={sourceID}
+      belowLayerID={SELECTED_MAP_POINT_LAYER_ID}
+      filter={pointFilter}
+      style={circleStyle}
+    />
+  );
+}
+
+export default function MapMarkers({
+  bangumis,
+  onPointSelect,
+  selectedBangumiIds,
+  openedBangumiDetailsId,
+  showAllPoints = false,
+  maxVisualDiameter,
+}: Props) {
+  // Browse selection updates the child layer without making ShapeSource serialize the complete source again.
+  const geoJSON = useMemo(() => toGeoJSON(bangumis), [bangumis]);
 
   /** 点击圆点标记 → 查找完整点/番数据 → 弹出详情 */
   const handlePress = useCallback(
@@ -114,16 +140,14 @@ export default function MapMarkers({
     [bangumis, onPointSelect],
   );
 
-  const circleStyle = useMemo(() => getMapPointCircleStyle(maxVisualDiameter), [maxVisualDiameter]);
-
   return (
     <>
       <ShapeSource id="anitabi-points" shape={geoJSON} onPress={handlePress}>
-        <SelectableCircleLayer
-          id="points"
-          belowLayerID={SELECTED_MAP_POINT_LAYER_ID}
-          filter={pointFilter}
-          style={circleStyle}
+        <PointMarkerLayer
+          selectedBangumiIds={selectedBangumiIds}
+          openedBangumiDetailsId={openedBangumiDetailsId}
+          showAllPoints={showAllPoints}
+          maxVisualDiameter={maxVisualDiameter}
         />
       </ShapeSource>
     </>

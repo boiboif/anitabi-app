@@ -61,6 +61,12 @@ interface FlatSectionRows {
   pointItems: FlatPointItem[];
 }
 
+interface AccordionExpansionState {
+  bangumi: Bangumi | undefined;
+  // null means all sections are expanded, including the first render of a selection.
+  keys: Set<string> | null;
+}
+
 interface PendingModeScroll {
   committed: boolean;
   mode: AccordionMode;
@@ -362,7 +368,10 @@ function BangumiDetailSheet() {
   } = useBangumiDetailSheet(selectedBangumi?.id, closeBangumiDetails);
 
   const [accordionMode, setAccordionMode] = useState<AccordionMode>('ep');
-  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
+  const [expansionState, setExpansionState] = useState<AccordionExpansionState>(() => ({
+    bangumi: selectedBangumi,
+    keys: null,
+  }));
   const [controlsHeight, setControlsHeight] = useState(0);
   const [controlsOffset, setControlsOffset] = useState<number | null>(null);
   const [isControlsSticky, setIsControlsSticky] = useState(false);
@@ -371,6 +380,13 @@ function BangumiDetailSheet() {
   const isControlsStickyRef = useRef(false);
   const pendingModeScrollRef = useRef<PendingModeScroll | null>(null);
   const controlsOffsetRef = useRef(Number.POSITIVE_INFINITY);
+
+  // Reset before the new sheet's children commit, rather than replacing its list data in an effect.
+  const isSameExpansionSession = expansionState.bangumi === selectedBangumi;
+  const expandedKeys = isSameExpansionSession ? expansionState.keys : null;
+  if (!isSameExpansionSession) {
+    setExpansionState({ bangumi: selectedBangumi, keys: null });
+  }
 
   // FlashList compares item references at its recycling boundary. Keep point
   // items stable while expansion state only switches the section header.
@@ -404,13 +420,11 @@ function BangumiDetailSheet() {
     });
   }, [accordionMode, i18n.language, i18n.resolvedLanguage, selectedBangumi, t]);
 
-  const allExpanded = expandedKeys.size === sectionRows.length && sectionRows.length > 0;
+  const allExpanded = sectionRows.length > 0 && (expandedKeys === null || expandedKeys.size === sectionRows.length);
 
-  // 番剧切换时重置为全部展开
+  // 番剧切换时重置列表布局上下文；展开状态已在首次渲染前重置。
   useEffect(() => {
-    // A new selection must reset the user-controlled accordion state.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setExpandedKeys(new Set(sectionRows.map((section) => section.key)));
     setControlsHeight(0);
     setControlsOffset(null);
     setIsControlsSticky(false);
@@ -418,11 +432,13 @@ function BangumiDetailSheet() {
     isControlsStickyRef.current = false;
     controlsOffsetRef.current = Number.POSITIVE_INFINITY;
     pendingModeScrollRef.current = null;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBangumi]);
 
   const setAllSectionsExpanded = (expanded: boolean) => {
-    setExpandedKeys(expanded ? new Set(sectionRows.map((section) => section.key)) : new Set());
+    setExpansionState({
+      bangumi: selectedBangumi,
+      keys: expanded ? null : new Set(),
+    });
   };
 
   const handleAccordionModeChange = (mode: AccordionMode) => {
@@ -440,26 +456,25 @@ function BangumiDetailSheet() {
       };
     }
     // Commit the new grouping and its expansion state together, without an intermediate collapsed list.
-    const nextSections = groupPoints(
-      selectedBangumi.points,
-      mode,
-      selectedBangumi,
-      i18n.resolvedLanguage ?? i18n.language,
-      t('other', { defaultValue: '其他' }),
-      t('unnamedCollection', { defaultValue: '未命名合辑' }),
-    );
-    setExpandedKeys(allExpanded ? new Set(nextSections.map((section) => section.key)) : new Set());
+    setExpansionState({
+      bangumi: selectedBangumi,
+      keys: allExpanded ? null : new Set(),
+    });
     setAccordionMode(mode);
   };
 
-  const toggleSection = useCallback((key: string) => {
-    setExpandedKeys((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  }, []);
+  const toggleSection = useCallback(
+    (key: string) => {
+      setExpansionState((previous) => {
+        const previousKeys = previous.bangumi === selectedBangumi ? previous.keys : null;
+        const next = new Set(previousKeys ?? sectionRows.map((section) => section.key));
+        if (next.has(key)) next.delete(key);
+        else next.add(key);
+        return { bangumi: selectedBangumi, keys: next };
+      });
+    },
+    [sectionRows, selectedBangumi],
+  );
 
   const handleControlsLayout = (event: LayoutChangeEvent) => {
     const { height, y } = event.nativeEvent.layout;
@@ -508,7 +523,7 @@ function BangumiDetailSheet() {
   const flatData = useMemo<FlatItem[]>(
     () =>
       sectionRows.flatMap((section) => {
-        const expanded = expandedKeys.has(section.key);
+        const expanded = expandedKeys === null || expandedKeys.has(section.key);
         const items: FlatItem[] = [expanded ? section.expandedHeader : section.collapsedHeader];
         if (expanded) items.push(...section.pointItems);
         return items;

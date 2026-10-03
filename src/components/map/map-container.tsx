@@ -336,13 +336,18 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     [isPlanMode, selectedMarkerKey, selectedPointData],
   );
 
-  const handlePointSelect = useCallback(
+  // Browse point presses do not inspect the selected artwork. Keeping this
+  // callback independent prevents popup dismissal from invalidating the full point source.
+  const handleBrowsePointSelect = useCallback(
+    (point: Bangumi['points'][number], bangumi: Bangumi) => {
+      selectMapPoint({ bangumiId: bangumi.id, pointId: point.id });
+    },
+    [selectMapPoint],
+  );
+
+  const handlePlanPointSelect = useCallback(
     (point: Bangumi['points'][number], bangumi: Bangumi, screenPoint?: { x: number; y: number }) => {
       const reference = { bangumiId: bangumi.id, pointId: point.id };
-      if (!isPlanMode) {
-        selectMapPoint(reference);
-        return;
-      }
       if (!screenPoint) {
         onPointSelect?.(reference);
         return;
@@ -351,8 +356,9 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
         onPointSelect?.(selectedPress ?? reference);
       });
     },
-    [getSelectedArtworkPress, isPlanMode, onPointSelect, selectMapPoint],
+    [getSelectedArtworkPress, onPointSelect],
   );
+  const handlePointSelect = isPlanMode ? handlePlanPointSelect : handleBrowsePointSelect;
 
   const handlePlanMapPress = useCallback(
     (event: GeoJSON.Feature<GeoJSON.Point, { screenPointX: number; screenPointY: number }>) => {

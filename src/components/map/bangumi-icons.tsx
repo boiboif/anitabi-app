@@ -1,8 +1,4 @@
-import {
-  MAP_BANGUMI_ICON_PRIORITY_ZOOM_STOPS,
-  MAP_ICON_ZOOM_THRESHOLD,
-  SELECTED_MAP_POINT_LAYER_ID,
-} from '@/lib/constants';
+import { MAP_BANGUMI_ICON_PRIORITY_ZOOM_STOPS, MAP_ICON_ZOOM_THRESHOLD, MAP_POINT_LAYER_ID } from '@/lib/constants';
 import { getBangumiMapLabel } from '@/lib/localized-data';
 import { getBangumiIcons } from '@/services/api';
 import { baseUrl } from '@/services/handlers';
@@ -55,8 +51,7 @@ function readCroppedIcons(spriteMeta: SpriteMeta): Map<number, string> | null {
     // The manifest is written only after every crop has been copied. Avoid
     // listing hundreds of files synchronously during startup.
     const lastIndex = spriteMeta.ids.length - 1;
-    if (lastIndex >= 0 && (!new File(dir, '0.png').exists || !new File(dir, `${lastIndex}.png`).exists))
-      return null;
+    if (lastIndex >= 0 && (!new File(dir, '0.png').exists || !new File(dir, `${lastIndex}.png`).exists)) return null;
     const uriPrefix = dir.uri.endsWith('/') ? dir.uri : `${dir.uri}/`;
     return new Map(spriteMeta.ids.map((id, index) => [id, `${uriPrefix}${index}.png`]));
   } catch {
@@ -173,10 +168,51 @@ type Props = {
   onIconPress?: (bangumi: Bangumi) => void;
 };
 
-function BangumiIcons({ bangumis, onIconPress }: Props) {
-  const { i18n } = useTranslation();
+function BangumiIconLayer({ sourceID }: { sourceID?: string }) {
   const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const selectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
+
+  // 官网在作品详情或多作品筛选模式下隐藏整个作品 icon 图层。
+  const bangumiIconFilter: ComponentProps<typeof SymbolLayer>['filter'] =
+    openedBangumiDetailsId !== null || selectedMapBangumiIds.length > 0
+      ? ['==', ['get', 'bangumiId'], -1]
+      : BANGUMI_ICON_PRIORITY_FILTER;
+
+  return (
+    <SymbolLayer
+      id="bangumi-icons-layer"
+      sourceID={sourceID}
+      // Wait for the point layer and insert above it; a shared upper anchor leaves their order ambiguous.
+      aboveLayerID={MAP_POINT_LAYER_ID}
+      filter={bangumiIconFilter}
+      maxZoomLevel={MAP_ICON_ZOOM_THRESHOLD}
+      style={{
+        iconImage: ['get', 'iconImage'],
+        iconSize: ICON_SCALE,
+        iconAllowOverlap: true,
+        iconIgnorePlacement: true,
+        iconAnchor: 'center',
+        symbolSortKey: ['get', 'order'],
+        textField: ['get', 'label'],
+        textFont: ['DIN Pro Bold', 'Arial Unicode MS Bold'],
+        textColor: ['get', 'color'],
+        textSize: 11,
+        textMaxWidth: 7,
+        textLineHeight: 1.1,
+        textHaloColor: '#fff',
+        textHaloWidth: 1,
+        textHaloBlur: 0,
+        textAllowOverlap: true,
+        textIgnorePlacement: true,
+        textOffset: [0, 1],
+        textAnchor: 'top',
+      }}
+    />
+  );
+}
+
+function BangumiIcons({ bangumis, onIconPress }: Props) {
+  const { i18n } = useTranslation();
 
   const [spriteMeta, setSpriteMeta] = useState<SpriteMeta | null>(null);
   const [icons, setIcons] = useState<Map<number, string> | null>(null);
@@ -347,43 +383,12 @@ function BangumiIcons({ bangumis, onIconPress }: Props) {
 
   if (!spriteMeta || !icons) return null;
 
-  // 官网在作品详情或多作品筛选模式下隐藏整个作品 icon 图层。
-  const bangumiIconFilter: ComponentProps<typeof SymbolLayer>['filter'] =
-    openedBangumiDetailsId !== null || selectedMapBangumiIds.length > 0
-      ? ['==', ['get', 'bangumiId'], -1]
-      : BANGUMI_ICON_PRIORITY_FILTER;
-
   return (
     <>
       <Images images={imagesMap} />
       <ShapeSource id="bangumi-icons" shape={geojson} onPress={handlePress as any}>
-        <SymbolLayer
-          id="bangumi-icons-layer"
-          belowLayerID={SELECTED_MAP_POINT_LAYER_ID}
-          filter={bangumiIconFilter}
-          maxZoomLevel={MAP_ICON_ZOOM_THRESHOLD}
-          style={{
-            iconImage: ['get', 'iconImage'],
-            iconSize: ICON_SCALE,
-            iconAllowOverlap: true,
-            iconIgnorePlacement: true,
-            iconAnchor: 'center',
-            symbolSortKey: ['get', 'order'],
-            textField: ['get', 'label'],
-            textFont: ['DIN Pro Bold', 'Arial Unicode MS Bold'],
-            textColor: ['get', 'color'],
-            textSize: 11,
-            textMaxWidth: 7,
-            textLineHeight: 1.1,
-            textHaloColor: '#fff',
-            textHaloWidth: 1,
-            textHaloBlur: 0,
-            textAllowOverlap: true,
-            textIgnorePlacement: true,
-            textOffset: [0, 1],
-            textAnchor: 'top',
-          }}
-        />
+        {/* Keep this child element independent of selection so the source payload stays cached. */}
+        <BangumiIconLayer />
       </ShapeSource>
     </>
   );

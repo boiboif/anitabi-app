@@ -1,6 +1,6 @@
 import ComparisonCameraButton from '@/components/comparison-camera/comparison-camera-button';
-import GoogleMapsNavigationButton from '@/components/point/google-maps-navigation-button';
 import type { PlanMapResolvedPoint } from '@/components/plan/plan-map-point-types';
+import GoogleMapsNavigationButton from '@/components/point/google-maps-navigation-button';
 import PointImage from '@/components/point/point-image';
 import PointSequenceBadge from '@/components/point/point-sequence-badge';
 import SwipeableCardCarousel, { type SwipeableCardCarouselHandle } from '@/components/ui/swipeable-card-carousel';
@@ -9,7 +9,7 @@ import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { CheckCircle2, ChevronLeft, ChevronRight, Flag } from '@tamagui/lucide-icons-2';
 import { memo, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, type LayoutChangeEvent } from 'react-native';
+import { Pressable, ScrollView, type LayoutChangeEvent } from 'react-native';
 import { getTokens, Text, useTheme, useThemeName, View, XStack, YStack } from 'tamagui';
 
 export const PLAN_MAP_POINT_CARD_FALLBACK_HEIGHT = 231;
@@ -64,7 +64,7 @@ const PlanMapPointCardPage = memo(function PlanMapPointCardPage({
           <Text fontSize="$caption" color="$color10" style={{ fontVariant: ['tabular-nums'] }}>
             {planIndex + 1} / {total}
           </Text>
-          <Text fontSize="$body" lineHeight={20} fontWeight="700" color="$color12" numberOfLines={1}>
+          <Text selectable fontSize="$body" lineHeight={20} fontWeight="700" color="$color12" numberOfLines={1}>
             {pointTitle}
           </Text>
         </YStack>
@@ -117,15 +117,17 @@ const PlanMapPointCardPage = memo(function PlanMapPointCardPage({
           ) : null}
         </PointImage>
 
-        <YStack flex={1} minW={0} self="stretch" justify="flex-start" gap="$0.5" pt="$0.5">
-          <Text fontSize="$footnote" lineHeight={18} fontWeight="600" color="$primary" numberOfLines={1}>
+        <YStack flex={1} minW={0} self="stretch" justify="flex-start" gap="$1">
+          <Text fontSize="$footnote" fontWeight="600" color="$primary" numberOfLines={1}>
             {bangumiTitle}
           </Text>
-          {point.mark ? (
-            <Text fontSize="$caption" lineHeight={16} color="$color11" numberOfLines={6}>
-              {point.mark}
-            </Text>
-          ) : null}
+          <ScrollView>
+            {point.mark ? (
+              <Text selectable fontSize="$caption" lineHeight={14} color="$color11" numberOfLines={7}>
+                {point.mark}
+              </Text>
+            ) : null}
+          </ScrollView>
         </YStack>
       </XStack>
     </YStack>
