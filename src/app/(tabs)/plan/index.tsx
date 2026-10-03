@@ -138,7 +138,6 @@ export default function PlansScreen() {
     () => Platform.select({
       android: insets.top + TopLevelPageTopPadding,
       ios: TopLevelPageTopPadding,
-      web: TopLevelPageTopPadding,
       default: TopLevelPageTopPadding,
     }),
     [insets.top],

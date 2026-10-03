@@ -34,9 +34,6 @@ export default function OpenSourceLicenseScreen() {
     ios: {
       paddingBottom: safeAreaInsets.bottom + 24,
     },
-    web: {
-      paddingBottom: 24,
-    },
   });
 
   return (

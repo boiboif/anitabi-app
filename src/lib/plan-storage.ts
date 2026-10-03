@@ -32,7 +32,7 @@ let storage: ReturnType<typeof createMMKV> | null = null;
 try {
   storage = createMMKV({ id: 'anitabi-plans' });
 } catch (error) {
-  console.warn('MMKV init failed (web?), plans disabled:', error);
+  console.warn('MMKV init failed, plans disabled:', error);
 }
 
 const PLANS_KEY = 'itinerary-plans-v1';

@@ -22,6 +22,7 @@ const config: ExpoConfig = {
   name: appName,
   slug: 'anitabi-app',
   version: nativeAppVersion,
+  platforms: ['ios', 'android'],
   runtimeVersion: appVersion,
   updates: {
     enabled: appUpdatesEnabled,
@@ -60,10 +61,6 @@ const config: ExpoConfig = {
     package: appIdentifier,
     versionCode: Number(process.env.ANDROID_VERSION_CODE ?? 1),
     permissions: ['android.permission.CAMERA', 'android.permission.REQUEST_INSTALL_PACKAGES'],
-  },
-  web: {
-    output: 'static',
-    favicon: './assets/images/anitabi-icon.png',
   },
   plugins: [
     'expo-router',

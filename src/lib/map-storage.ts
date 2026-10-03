@@ -5,7 +5,7 @@ let storage: ReturnType<typeof createMMKV> | null = null;
 try {
   storage = createMMKV({ id: 'anitabi-map-cache' });
 } catch (e) {
-  console.warn('MMKV init failed (web?), caching disabled:', e);
+  console.warn('MMKV init failed, caching disabled:', e);
 }
 
 const ASSEMBLED_KEY = 'assembled-data';

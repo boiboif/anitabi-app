@@ -106,7 +106,7 @@ export function getCurrentAppDisplayVersion(): string {
       ? Application.nativeApplicationVersion
       : (configuredVersion ?? Application.nativeApplicationVersion ?? i18n.t('unknown', { defaultValue: '未知' }));
   const hotUpdateId =
-    Platform.OS !== 'web' && Updates.isEnabled && !Updates.isEmbeddedLaunch && !Updates.isEmergencyLaunch
+    Updates.isEnabled && !Updates.isEmbeddedLaunch && !Updates.isEmergencyLaunch
       ? Updates.updateId
       : null;
 

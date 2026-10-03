@@ -28,10 +28,6 @@ export default function ProfileScreen() {
       paddingRight: insets.right,
       paddingBottom: insets.bottom,
     },
-    web: {
-      paddingTop: TopLevelPageTopPadding,
-      paddingBottom: 24,
-    },
     ios: {
       paddingTop: TopLevelPageTopPadding,
       paddingBottom: insets.bottom,

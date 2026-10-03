@@ -5,7 +5,7 @@ import * as Updates from 'expo-updates';
 import { Platform } from 'react-native';
 
 async function isNewBinaryInstall(): Promise<boolean> {
-  if (Platform.OS === 'web' || (Updates.isEnabled && !Updates.isEmbeddedLaunch)) return false;
+  if (Updates.isEnabled && !Updates.isEmbeddedLaunch) return false;
 
   const installedAt = await getInstallationTimeAsync();
   const installTime = installedAt?.getTime();

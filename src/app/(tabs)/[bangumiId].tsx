@@ -126,7 +126,6 @@ export default function FavoriteBangumiScreen() {
       paddingRight: safeAreaInsets.right,
       paddingBottom: bottomInset,
     },
-    web: { paddingTop: 24, paddingBottom: 24 },
   });
 
   return (

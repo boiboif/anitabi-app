@@ -70,13 +70,10 @@ export default function AboutScreen() {
     ios: {
       paddingBottom: safeAreaInsets.bottom + 24,
     },
-    web: {
-      paddingBottom: 24,
-    },
   });
 
   const openExternalLink = async (url: string, appUrl?: string) => {
-    const targetUrl = Platform.OS === 'web' ? url : (appUrl ?? url);
+    const targetUrl = appUrl ?? url;
 
     try {
       await Linking.openURL(targetUrl);

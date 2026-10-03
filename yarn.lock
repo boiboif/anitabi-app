@@ -8747,7 +8747,7 @@ react-native-vision-camera@5.2.3:
   resolved "https://registry.yarnpkg.com/react-native-vision-camera/-/react-native-vision-camera-5.2.3.tgz#8b489ae2939dbebc441917069fc0c3146f49aa93"
   integrity sha512-OHjgM8BPzxppTqbF1FEltj+fxvisj4xdghM7ypoT1p6cOe28HByhOJP1c7LkBiUiZuotbsdbQwGdJ8nU7ZvPzA==
 
-react-native-web@^0.21.0, react-native-web@~0.21.0:
+react-native-web@^0.21.0:
   version "0.21.2"
   resolved "https://registry.npmjs.org/react-native-web/-/react-native-web-0.21.2.tgz"
   integrity sha512-SO2t9/17zM4iEnFvlu2DA9jqNbzNhoUP+AItkoCOyFmDMOhUnBBznBDCYN92fGdfAkfQlWzPoez6+zLxFNsZEg==

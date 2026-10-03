@@ -17,7 +17,6 @@ const zh = {
   imagePreviewUnsupportedFormat: '暂不支持保存或分享此图片格式。',
   imagePreviewSaveFailed: '图片保存失败，请稍后重试。',
   imagePreviewOpenSettings: '打开设置',
-  imagePreviewActionsUnavailableOnWeb: '请在手机应用中保存或分享图片。',
   language: '语言',
   followSystem: '跟随系统',
   simplifiedChinese: '简体中文',
@@ -206,8 +205,6 @@ const zh = {
   createDisplayImage: '生成展示图片',
   noFavoriteLocationsAvailableToAdd: '暂无可添加的收藏点位',
   sharingFailedPleaseTryAgainLater: '分享失败，请稍后重试',
-  sharingLocalImagesIsNotSupportedOnTheWebYet: '网页版暂不支持分享本地图片',
-  sharingPlanFilesIsNotSupportedOnTheWebYet: '网页版暂不支持分享计划文件',
   sharePilgrimagePlan: '分享巡礼计划',
   thisImageIsForDisplayOnly: '这张图片仅供展示',
   thisPlanIsTooLargeToIncludeAnImportableQrCodeShareThePlanFileIfTheRecipientNeedsToImportIt:

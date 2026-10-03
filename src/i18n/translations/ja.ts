@@ -19,7 +19,6 @@ const ja = {
   imagePreviewUnsupportedFormat: 'この画像形式の保存・共有にはまだ対応していません。',
   imagePreviewSaveFailed: '画像を保存できませんでした。しばらくしてから再試行してください。',
   imagePreviewOpenSettings: '設定を開く',
-  imagePreviewActionsUnavailableOnWeb: '画像の保存・共有はモバイルアプリをご利用ください。',
   language: '言語',
   followSystem: 'システム設定に従う',
   simplifiedChinese: '簡体字中国語',
@@ -213,8 +212,6 @@ const ja = {
   createDisplayImage: '表示用画像を作成',
   noFavoriteLocationsAvailableToAdd: '追加できるお気に入りスポットがありません',
   sharingFailedPleaseTryAgainLater: '共有に失敗しました。しばらくしてから再試行してください',
-  sharingLocalImagesIsNotSupportedOnTheWebYet: 'Web版では端末内の画像をまだ共有できません',
-  sharingPlanFilesIsNotSupportedOnTheWebYet: 'Web版ではプランファイルをまだ共有できません',
   sharePilgrimagePlan: '巡礼プランを共有',
   thisImageIsForDisplayOnly: 'この画像は表示専用です',
   thisPlanIsTooLargeToIncludeAnImportableQrCodeShareThePlanFileIfTheRecipientNeedsToImportIt:

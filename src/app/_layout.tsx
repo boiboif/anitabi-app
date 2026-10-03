@@ -1,5 +1,4 @@
 import PlanPickerProvider from '@/components/plan/plan-picker-provider';
-import '@/global.css';
 import i18n, { resolveLanguagePreference } from '@/i18n';
 import { AppUpdateManagerContext } from '@/hooks/use-app-update-manager';
 import { useAppUpdates } from '@/hooks/use-app-updates';

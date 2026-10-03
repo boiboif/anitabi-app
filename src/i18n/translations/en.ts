@@ -19,7 +19,6 @@ const en = {
   imagePreviewUnsupportedFormat: 'Saving or sharing this image format is not supported yet.',
   imagePreviewSaveFailed: 'Could not save the image. Please try again later.',
   imagePreviewOpenSettings: 'Open Settings',
-  imagePreviewActionsUnavailableOnWeb: 'Please use the mobile app to save or share images.',
   language: 'Language',
   followSystem: 'Follow system',
   simplifiedChinese: 'Simplified Chinese',
@@ -212,8 +211,6 @@ const en = {
   createDisplayImage: 'Create display image',
   noFavoriteLocationsAvailableToAdd: 'No favorite locations available to add',
   sharingFailedPleaseTryAgainLater: 'Sharing failed. Please try again later.',
-  sharingLocalImagesIsNotSupportedOnTheWebYet: 'Sharing local images is not supported on the web yet',
-  sharingPlanFilesIsNotSupportedOnTheWebYet: 'Sharing plan files is not supported on the web yet',
   sharePilgrimagePlan: 'Share pilgrimage plan',
   thisImageIsForDisplayOnly: 'This image is for display only',
   thisPlanIsTooLargeToIncludeAnImportableQrCodeShareThePlanFileIfTheRecipientNeedsToImportIt:

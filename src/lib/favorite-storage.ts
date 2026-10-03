@@ -21,7 +21,7 @@ let storage: ReturnType<typeof createMMKV> | null = null;
 try {
   storage = createMMKV({ id: 'anitabi-favorites' });
 } catch (error) {
-  console.warn('MMKV init failed (web?), favorites disabled:', error);
+  console.warn('MMKV init failed, favorites disabled:', error);
 }
 
 const FAVORITES_KEY = 'favorite-points-v1';

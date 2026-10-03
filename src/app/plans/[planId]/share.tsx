@@ -9,7 +9,7 @@ import { Toast } from '@boiboif/react-native-toast';
 import { FileJson, Share2 } from '@tamagui/lucide-icons-2';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
-import { View as NativeView, Platform, ScrollView, useWindowDimensions } from 'react-native';
+import { View as NativeView, ScrollView, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { captureRef } from 'react-native-view-shot';
 import { Spinner, Text, View, YStack, useTheme } from 'tamagui';
@@ -47,10 +47,6 @@ export default function PlanShareScreen() {
 
   const shareImage = async () => {
     if (!plan || !cardRef.current || !cardIsReady || sharing) return;
-    if (Platform.OS === 'web') {
-      Toast.show(t('sharingLocalImagesIsNotSupportedOnTheWebYet', { defaultValue: '网页版暂不支持分享本地图片' }));
-      return;
-    }
     setSharing('image');
     try {
       const uri = await captureRef(cardRef, {
@@ -70,10 +66,6 @@ export default function PlanShareScreen() {
 
   const shareFile = async () => {
     if (!plan || sharing) return;
-    if (Platform.OS === 'web') {
-      Toast.show(t('sharingPlanFilesIsNotSupportedOnTheWebYet', { defaultValue: '网页版暂不支持分享计划文件' }));
-      return;
-    }
     setSharing('file');
     try {
       await sharePlanFile(plan);

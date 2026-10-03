@@ -233,10 +233,6 @@ export default function FavoritesScreen() {
       paddingRight: insets.right,
       paddingBottom: insets.bottom,
     },
-    web: {
-      paddingTop: 64,
-      paddingBottom: 24,
-    },
   });
 
   const renderListItem = useCallback(

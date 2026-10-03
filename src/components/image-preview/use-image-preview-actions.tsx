@@ -7,7 +7,7 @@ import * as MediaLibrary from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Linking, Platform } from 'react-native';
+import { Alert, Linking } from 'react-native';
 
 type ImageAction = 'save' | 'share';
 
@@ -32,10 +32,6 @@ export function useImagePreviewActions() {
     let prepared: Awaited<ReturnType<typeof preparePreviewImage>> | undefined;
     let handedToSharing = false;
     try {
-      if (Platform.OS === 'web') {
-        Alert.alert(t('imagePreviewActionsUnavailableOnWeb'));
-        return;
-      }
       if (action === 'save') {
         const permission = await MediaLibrary.requestPermissionsAsync(true);
         if (signal.aborted) return;
