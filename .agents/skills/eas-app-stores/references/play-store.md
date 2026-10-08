@@ -6,6 +6,8 @@
 2. **App Created in Console** - Create your app listing before first submission
 3. **Service Account** - For automated submissions via EAS
 
+Once these are complete, the default `eas submit` works for a first-time submission and creates the app's first release on the internal testing track. Store listing, content rating, and pricing are only required before promoting a release to production.
+
 ## Service Account Setup
 
 ### 1. Create Service Account
@@ -131,7 +133,7 @@ This releases to 10% of users. Increase via Play Console or subsequent submissio
 
 ```bash
 # Build and submit to internal track
-eas build -p android --profile production --submit
+eas build -p android --profile production --auto-submit
 
 # Submit existing build to Play Store
 eas submit -p android --latest
@@ -229,13 +231,9 @@ Or use EAS Update for OTA updates to existing installs.
 
 ## Monitoring Submissions
 
-```bash
-# Check submission status
-eas submit:list -p android
+Follow the submission URL returned by `eas submit` for status and logs. Check Play Console for the resulting track and release state.
 
-# View specific submission
-eas submit:view SUBMISSION_ID
-```
+With EAS CLI 23.2.0, `eas submit:list -p android --json` and `eas submit:view SUBMISSION_ID --json` report EAS submission jobs. `submit:status` currently reads Apple status only; do not treat an EAS job's success as confirmation of Play Console rollout.
 
 ## Tips
 
