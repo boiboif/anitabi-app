@@ -148,6 +148,14 @@ function RootLayout() {
                       }}
                     />
                     <Stack.Screen
+                      name="data-backup"
+                      options={{
+                        headerShown: true,
+                        headerTitleAlign: 'center',
+                        title: t('backupAndRestore'),
+                      }}
+                    />
+                    <Stack.Screen
                       name="about"
                       options={{
                         headerShown: true,

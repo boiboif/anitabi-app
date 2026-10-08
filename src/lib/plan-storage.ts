@@ -1,4 +1,5 @@
 import { createMMKV } from 'react-native-mmkv';
+import { createBackupStorageWrite } from '@/lib/backup-storage-write';
 
 export type PlanPointSnapshot = {
   bangumiName: string;
@@ -40,6 +41,13 @@ const PLAN_LIST_SORT_ORDER_KEY = 'itinerary-plan-list-sort-order-v1';
 const DEMO_PLAN_INITIALIZED_KEY = 'demo-plan-initialized-v1';
 
 export type PlanListSortOrder = 'asc' | 'desc';
+
+export function createPlansRestoreWrites(plans: ItineraryPlan[], sortOrder: PlanListSortOrder) {
+  return [
+    createBackupStorageWrite(storage, PLANS_KEY, JSON.stringify(plans)),
+    createBackupStorageWrite(storage, PLAN_LIST_SORT_ORDER_KEY, sortOrder),
+  ];
+}
 
 export function getPlanListSortOrder(): PlanListSortOrder {
   try {

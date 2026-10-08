@@ -1,6 +1,47 @@
 import type { TranslationKey } from './zh';
 
 const en = {
+  dataAndStorage: 'Data & storage',
+  backupAndRestore: 'Backup & restore',
+  backupAndRestoreDescription: 'Export or restore favorites and pilgrimage plans',
+  backupCurrentData: 'Current data',
+  backupDataCounts: '{{favoriteCount}} favorites · {{planCount}} plans',
+  backupPlanPointCounts: '{{pointCount}} locations in plans, {{completedCount}} completed',
+  exportDataBackup: 'Export backup',
+  exportDataBackupDescription: 'Export a JSON backup to save or send to another device',
+  restoreDataFromFile: 'Restore from file',
+  restoreDataFromFileDescription: 'Choose a backup, review its contents, and select a restore mode',
+  backupScopeDescription:
+    'Includes all favorites, plan names and descriptions, location order, completion status, timestamps, information snapshots, and plan list sorting. Images are stored as references; image files and map caches are excluded.',
+  backupProcessing: 'Processing backup data',
+  backupFileSummary: 'Backup contents',
+  backupExportedAt: 'Backup date: {{date}}',
+  backupRestoreMode: 'Restore mode',
+  backupMerge: 'Merge',
+  backupMergeDescription:
+    'Keep current data and add missing favorites, plans, and locations. Existing locations keep their completion status and order; new locations are appended.',
+  backupOverwrite: 'Overwrite',
+  backupOverwriteDescription:
+    'Replace all current favorites and plans with the backup, restoring its status, order, and timestamps.',
+  backupStartRestore: 'Restore data',
+  backupConfirmOverwrite: 'Confirm overwrite',
+  backupOverwriteWarning:
+    'Your current {{favoriteCount}} favorites and {{planCount}} plans will be replaced. Data absent from the backup will be deleted. This cannot be undone.',
+  backupRestoreSucceeded:
+    'Restored. You now have {{favoriteCount}} favorites and {{planCount}} plans with {{pointCount}} locations.',
+  backupInvalidData: 'The backup has an invalid format or invalid data. Nothing was restored.',
+  backupWrongFileType:
+    'This is not an Anitabi data backup. Choose a JSON file created with Export backup. Shared plan files cannot restore backups.',
+  backupUnsupportedVersion: 'This backup format version is not supported. Update the app and try again.',
+  backupMigrationFailed:
+    'Could not migrate this older backup. Current data is unchanged. Keep the original backup file.',
+  backupFileTooLarge: 'Backup files cannot exceed 20 MB.',
+  backupExportFailed: 'Could not export the backup. Please try again later.',
+  backupReadFailed: 'Could not read the backup. Please select the file again.',
+  backupRestoreFailed: 'Could not restore the backup. Current data is unchanged. Please try again later.',
+  backupWriteFailed: 'Could not save the restored data. Changes were rolled back. Please try again later.',
+  backupRollbackFailed:
+    'Could not save the restored data, and some changes could not be rolled back. Keep the backup file and try restoring again.',
   closeImagePreview: 'Close image preview',
   imagePreviewPage: 'Image {{current}} of {{total}}',
   imagePreviewLoadFailed: 'Could not load image',

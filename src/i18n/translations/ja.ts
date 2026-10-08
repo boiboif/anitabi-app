@@ -1,6 +1,48 @@
 import type { TranslationKey } from './zh';
 
 const ja = {
+  dataAndStorage: 'データとストレージ',
+  backupAndRestore: 'バックアップと復元',
+  backupAndRestoreDescription: 'お気に入りと巡礼プランを書き出し・復元',
+  backupCurrentData: '現在のデータ',
+  backupDataCounts: 'お気に入り {{favoriteCount}} 件 · プラン {{planCount}} 件',
+  backupPlanPointCounts: 'プラン内のスポット {{pointCount}} 件、完了 {{completedCount}} 件',
+  exportDataBackup: 'バックアップを書き出す',
+  exportDataBackupDescription: '保存や他の端末への転送に使える JSON ファイルを書き出します',
+  restoreDataFromFile: 'ファイルから復元',
+  restoreDataFromFileDescription: 'バックアップを選び、内容と復元方法を確認します',
+  backupScopeDescription:
+    'すべてのお気に入り、プランの名前と説明、スポットの順序、完了状態、日時、情報のスナップショット、プラン一覧の並び順を含みます。画像は参照先のみを保存し、画像ファイルと地図キャッシュは含みません。',
+  backupProcessing: 'バックアップデータを処理中',
+  backupFileSummary: 'バックアップの内容',
+  backupExportedAt: 'バックアップ日時：{{date}}',
+  backupRestoreMode: '復元方法',
+  backupMerge: '統合',
+  backupMergeDescription:
+    '現在のデータを残し、不足しているお気に入り、プラン、スポットを追加します。既存スポットの完了状態と順序は保持し、新しいスポットは末尾に追加します。',
+  backupOverwrite: '上書き',
+  backupOverwriteDescription: '現在のお気に入りとプランをすべて置き換え、バックアップの状態、順序、日時を復元します。',
+  backupStartRestore: 'データを復元',
+  backupConfirmOverwrite: '上書き復元を確定',
+  backupOverwriteWarning:
+    '現在のお気に入り {{favoriteCount}} 件とプラン {{planCount}} 件が置き換えられます。バックアップにないデータは削除されます。この操作は取り消せません。',
+  backupRestoreSucceeded:
+    '復元しました。お気に入り {{favoriteCount}} 件、プラン {{planCount}} 件、プラン内のスポット {{pointCount}} 件があります。',
+  backupInvalidData: 'バックアップの形式またはデータが無効です。データは復元されていません。',
+  backupWrongFileType:
+    'Anitabi のデータバックアップではありません。「バックアップを書き出す」で作成した JSON ファイルを選んでください。共有プランのファイルは使えません。',
+  backupUnsupportedVersion:
+    'このバックアップ形式のバージョンには対応していません。アプリを更新して再度お試しください。',
+  backupFileTooLarge: 'バックアップファイルは 20 MB 以下にしてください。',
+  backupMigrationFailed:
+    '古いバックアップのデータ移行に失敗しました。現在のデータは変更されていません。元のバックアップファイルを保管してください。',
+  backupExportFailed: 'バックアップを書き出せませんでした。しばらくしてから再度お試しください。',
+  backupReadFailed: 'バックアップを読み込めませんでした。ファイルを選び直してください。',
+  backupRestoreFailed:
+    'バックアップを復元できませんでした。現在のデータは変更されていません。しばらくしてから再度お試しください。',
+  backupWriteFailed: '復元データを保存できませんでした。変更は元に戻しました。再度お試しください。',
+  backupRollbackFailed:
+    '復元データを保存できず、一部の変更を元に戻せませんでした。バックアップファイルを保管し、復元を再度お試しください。',
   closeImagePreview: '画像プレビューを閉じる',
   imagePreviewPage: '{{total}} 枚中 {{current}} 枚目',
   imagePreviewLoadFailed: '画像を読み込めませんでした',

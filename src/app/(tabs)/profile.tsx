@@ -3,7 +3,7 @@ import { SettingsSection } from '@/components/ui/settings/settings-section';
 import { clearAppCache } from '@/lib/app-cache';
 import { getCurrentAppDisplayVersion } from '@/services/app-update';
 import { BottomTabInset, MaxContentWidth, TopLevelPageTopPadding } from '@/tamagui.config';
-import { CalendarDays, HardDrive, Info, Languages, Moon } from '@tamagui/lucide-icons-2';
+import { CalendarDays, DatabaseBackup, HardDrive, Info, Languages, Moon } from '@tamagui/lucide-icons-2';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -109,7 +109,14 @@ export default function ProfileScreen() {
           />
         </SettingsSection>
 
-        <SettingsSection title={t('other', { defaultValue: '其他' })}>
+        <SettingsSection title={t('dataAndStorage')}>
+          <SettingCell
+            icon={DatabaseBackup}
+            title={t('backupAndRestore')}
+            description={t('backupAndRestoreDescription')}
+            onPress={() => router.navigate('/data-backup' as never)}
+            showDivider
+          />
           <SettingCell
             icon={HardDrive}
             title={t('clearCache', { defaultValue: '清除缓存' })}
@@ -118,8 +125,10 @@ export default function ProfileScreen() {
             disabled={isClearingCache}
             accessibilityState={{ disabled: isClearingCache }}
             onPress={confirmClearCache}
-            showDivider
           />
+        </SettingsSection>
+
+        <SettingsSection title={t('other', { defaultValue: '其他' })}>
           <SettingCell
             icon={Info}
             title={t('about', { defaultValue: '关于' })}

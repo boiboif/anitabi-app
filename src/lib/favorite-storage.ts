@@ -1,4 +1,5 @@
 import { createMMKV } from 'react-native-mmkv';
+import { createBackupStorageWrite } from '@/lib/backup-storage-write';
 
 export type FavoritePointSnapshot = {
   bangumiName: string;
@@ -25,6 +26,10 @@ try {
 }
 
 const FAVORITES_KEY = 'favorite-points-v1';
+
+export function createFavoritePointsRestoreWrite(points: FavoritePoint[]) {
+  return createBackupStorageWrite(storage, FAVORITES_KEY, JSON.stringify(points));
+}
 
 export function getFavoritePoints(): FavoritePoint[] {
   if (!storage) return [];
