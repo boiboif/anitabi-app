@@ -371,6 +371,8 @@ const ja = {
   couldNotSaveImage: '画像を保存できません',
   allowTheAppToAddPhotosToYourLibrary: '写真ライブラリへの画像追加を許可してください。',
   comparisonImageSavedToPhotos: '比較画像を写真に保存しました',
+  comparisonImageSavedToAlbum: '比較画像を Anitabi アルバムに保存しました',
+  comparisonImageSavedWithoutAlbum: '比較画像を保存しましたが、Anitabi アルバムには追加できませんでした',
   comparisonExportConfiguration: '書き出し設定',
   comparisonExportAction: '書き出す',
   comparisonExportAppearance: '外観',

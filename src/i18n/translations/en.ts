@@ -370,6 +370,8 @@ const en = {
   couldNotSaveImage: 'Could not save image',
   allowTheAppToAddPhotosToYourLibrary: 'Allow the app to add photos to your library.',
   comparisonImageSavedToPhotos: 'Comparison image saved to photos',
+  comparisonImageSavedToAlbum: 'Comparison image saved to the Anitabi album',
+  comparisonImageSavedWithoutAlbum: 'Comparison image saved, but could not be added to the Anitabi album',
   comparisonExportConfiguration: 'Export settings',
   comparisonExportAction: 'Export',
   comparisonExportAppearance: 'Appearance',

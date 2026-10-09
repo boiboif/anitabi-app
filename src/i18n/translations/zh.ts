@@ -354,6 +354,8 @@ const zh = {
   couldNotSaveImage: '无法保存图片',
   allowTheAppToAddPhotosToYourLibrary: '请允许应用向系统相册添加照片。',
   comparisonImageSavedToPhotos: '对比图已保存到相册',
+  comparisonImageSavedToAlbum: '对比图已保存到 Anitabi 相册',
+  comparisonImageSavedWithoutAlbum: '对比图已保存，但未能归入 Anitabi 相册',
   comparisonExportConfiguration: '导出配置',
   comparisonExportAction: '导出',
   comparisonExportAppearance: '外观',

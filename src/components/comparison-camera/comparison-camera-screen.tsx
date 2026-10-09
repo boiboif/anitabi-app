@@ -302,7 +302,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
     orientationReady && isValidImageSize(stageViewport) && Boolean(currentOutputs) && (!referenceUri || referenceReady);
   const showStage = hasPresentedStage || firstLayoutReady;
   // Keep the session alive behind the result modal so returning does not reset the hardware zoom to 1x.
-  const cameraIsActive = isFocused && !pickerVisible && !resultVisible;
+  const cameraIsActive = isFocused && !pickerVisible;
 
   useEffect(() => {
     if (showStage) return;

@@ -71,6 +71,7 @@ type ComparisonLayout = {
 };
 
 const EXPORT_JPEG_QUALITY = 95;
+const COMPARISON_PHOTO_ALBUM = 'Anitabi';
 
 const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
@@ -314,7 +315,16 @@ export default function ComparisonResultModal({
 
     try {
       setSaving(true);
-      const permission = await MediaLibrary.requestPermissionsAsync(true);
+      let permission: MediaLibrary.PermissionResponse;
+      let canOrganizeAlbum = false;
+      if (Platform.OS === 'ios') {
+        const readPermission = await MediaLibrary.requestPermissionsAsync(false, ['photo']);
+        canOrganizeAlbum = readPermission.granted && readPermission.accessPrivileges === 'all';
+        permission = canOrganizeAlbum ? readPermission : await MediaLibrary.requestPermissionsAsync(true, ['photo']);
+      } else {
+        permission = await MediaLibrary.requestPermissionsAsync(true, ['photo']);
+        canOrganizeAlbum = permission.granted;
+      }
       if (!permission.granted) {
         Alert.alert(
           t('couldNotSaveImage', { defaultValue: '无法保存图片' }),
@@ -393,8 +403,30 @@ export default function ComparisonResultModal({
 
       const outputPath = await canvas.saveToTemporaryFileAsync('jpg', EXPORT_JPEG_QUALITY);
       outputUri = `file://${outputPath}`;
-      await MediaLibrary.Asset.create(outputUri);
-      Toast.show(t('comparisonImageSavedToPhotos', { defaultValue: '对比图已保存到相册' }));
+      const asset = await MediaLibrary.Asset.create(outputUri);
+      let savedToAlbum = false;
+      if (canOrganizeAlbum) {
+        try {
+          if (Platform.OS === 'ios') {
+            const album = await MediaLibrary.Album.get(COMPARISON_PHOTO_ALBUM);
+            if (album) {
+              await album.add(asset);
+            } else {
+              await MediaLibrary.Album.create(COMPARISON_PHOTO_ALBUM, [asset]);
+            }
+          } else {
+            await MediaLibrary.Album.create(COMPARISON_PHOTO_ALBUM, [asset]);
+          }
+          savedToAlbum = true;
+        } catch (error) {
+          console.error('[comparison-camera] Failed to organize comparison image album', error);
+        }
+      }
+      Toast.show(
+        t(savedToAlbum ? 'comparisonImageSavedToAlbum' : 'comparisonImageSavedWithoutAlbum', {
+          defaultValue: savedToAlbum ? '对比图已保存到 Anitabi 相册' : '对比图已保存，但未能归入 Anitabi 相册',
+        }),
+      );
     } catch (error) {
       console.error('[comparison-camera] Failed to export comparison image', error);
       Alert.alert(
