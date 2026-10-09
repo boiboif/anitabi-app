@@ -1,4 +1,4 @@
-import { Input, styled, useThemeName, type InputProps } from 'tamagui';
+import { Input, styled } from 'tamagui';
 
 const ThemeInputFrame = styled(Input, {
   name: 'ThemeInput',
@@ -20,13 +20,10 @@ const ThemeInputFrame = styled(Input, {
     borderColor: '$color5',
     opacity: 0.6,
   },
+  placeholderTextColor: '$color10',
 });
 
 export const ThemeInput = ThemeInputFrame.styleable((props, ref) => {
-  const isDark = useThemeName().startsWith('dark');
-  // Input accepts literal colors at runtime, but its placeholder type only lists tokens.
-  const placeholderTextColor = (isDark ? '#98989f' : '#8a8a93') as InputProps['placeholderTextColor'];
-  return (
-    <ThemeInputFrame {...props} ref={ref} placeholderTextColor={props.placeholderTextColor ?? placeholderTextColor} />
-  );
+  // Native Input consumes disabled when deriving editable; preserve it for disabledStyle.
+  return <ThemeInputFrame {...props} ref={ref} aria-disabled={props.disabled || props['aria-disabled']} />;
 });

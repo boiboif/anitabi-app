@@ -10,6 +10,7 @@ Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before 
 - Prefer the smallest coherent fix that addresses the cause and preserves established semantics. Compare restoring the intended behavior with adding compensating logic; avoid adding state, asynchronous recovery, or special cases merely to mask an unintended change.
 - If a tradeoff materially changes behavior or depends on unclear product intent, explain it before making that change. Do not use routine implementation decisions as a reason to request unnecessary confirmation.
 - Report the historical cause when established, why the chosen fix fits the current design, relevant tradeoffs, and what validation does and does not prove. If history does not establish a cause, say so rather than inventing one.
+- Treat an unexplained recent change as unresolved intent, not proof that it is unnecessary. Before reverting it, check available conversation context and performance constraints as well as Git; ask for the missing reason if reverting could undo a material fix. For the comparison camera, keep the camera stopped while the result modal is visible because running it causes the result page's bottom-sheet animation to drop frames; preserve retake zoom separately.
 
 ## React Compiler
 

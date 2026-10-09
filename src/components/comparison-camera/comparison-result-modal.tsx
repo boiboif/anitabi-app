@@ -17,7 +17,7 @@ import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { getComparisonExportSettings, setComparisonExportSettings } from '@/lib/storage';
 import type { Bangumi, Point } from '@/services/types';
 import { Toast } from '@boiboif/react-native-toast';
-import { Download, Images, RotateCcw, Settings2, X } from '@tamagui/lucide-icons-2';
+import { Download, Images, RotateCcw, Settings2, Undo2, X } from '@tamagui/lucide-icons-2';
 import { File } from 'expo-file-system';
 import { Image } from 'expo-image';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
@@ -54,6 +54,7 @@ type Props = {
   onClose: () => void;
   onPickPhoto: () => Promise<void>;
   onPickReference: () => Promise<void>;
+  onRestoreReference?: () => void;
   onRetake: () => void;
 };
 
@@ -185,6 +186,7 @@ export default function ComparisonResultModal({
   referenceDimensions,
   onPickPhoto,
   onPickReference,
+  onRestoreReference,
   onRetake,
 }: Props) {
   const { t, i18n } = useTranslation();
@@ -404,7 +406,6 @@ export default function ComparisonResultModal({
       const outputPath = await canvas.saveToTemporaryFileAsync('jpg', EXPORT_JPEG_QUALITY);
       outputUri = `file://${outputPath}`;
       const asset = await MediaLibrary.Asset.create(outputUri);
-      let savedToAlbum = false;
       if (canOrganizeAlbum) {
         try {
           if (Platform.OS === 'ios') {
@@ -417,16 +418,11 @@ export default function ComparisonResultModal({
           } else {
             await MediaLibrary.Album.create(COMPARISON_PHOTO_ALBUM, [asset]);
           }
-          savedToAlbum = true;
         } catch (error) {
           console.error('[comparison-camera] Failed to organize comparison image album', error);
         }
       }
-      Toast.show(
-        t(savedToAlbum ? 'comparisonImageSavedToAlbum' : 'comparisonImageSavedWithoutAlbum', {
-          defaultValue: savedToAlbum ? '对比图已保存到 Anitabi 相册' : '对比图已保存，但未能归入 Anitabi 相册',
-        }),
-      );
+      Toast.show(t('comparisonImageSavedToPhotos', { defaultValue: '对比图已保存到相册' }));
     } catch (error) {
       console.error('[comparison-camera] Failed to export comparison image', error);
       Alert.alert(
@@ -566,6 +562,16 @@ export default function ComparisonResultModal({
                       style={StyleSheet.absoluteFill}
                       transition={0}
                     />
+                  ) : null}
+                  {onRestoreReference ? (
+                    <View position="absolute" t={8} l={8}>
+                      <ActionButton
+                        label={t('restoreOriginalReferenceImage')}
+                        icon={<Undo2 size={18} color="white" />}
+                        onPress={onRestoreReference}
+                        disabled={saving}
+                      />
+                    </View>
                   ) : null}
                 </View>
                 <Pressable
