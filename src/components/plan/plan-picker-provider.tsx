@@ -1,5 +1,6 @@
 import PlanSortButton from '@/components/plan/plan-sort-button';
 import { StrictButton as Button } from '@/components/ui/strict-button';
+import { ThemeInput } from '@/components/ui/theme-input';
 import type { Bangumi, Point } from '@/services/types';
 import { useFavoritePoints } from '@/store/use-favorite-points';
 import { usePlans } from '@/store/use-plans';
@@ -9,7 +10,7 @@ import { Plus, Square, SquareCheckBig, X } from '@tamagui/lucide-icons-2';
 import { createContext, type ReactNode, use, useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView } from 'react-native';
-import { getTokens, Input, Text, useTheme, View, XStack, YStack } from 'tamagui';
+import { getTokens, Text, useTheme, View, XStack, YStack } from 'tamagui';
 
 type PlanPickerContextValue = {
   open: (point: Point, bangumi: Bangumi) => void;
@@ -238,9 +239,7 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
               <X size={20} color="$color11" />
             </Pressable>
           </XStack>
-          <Input
-            bg="$background"
-            placeholderTextColor="$color6"
+          <ThemeInput
             value={newPlanTitle}
             onChangeText={setNewPlanTitle}
             placeholder={t('enterAPlanName', { defaultValue: '请输入计划名称' })}

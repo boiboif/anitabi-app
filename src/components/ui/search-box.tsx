@@ -4,19 +4,16 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useRef, type ComponentProps, type ReactNode } from 'react';
 import { Keyboard, Pressable, StyleSheet, TouchableWithoutFeedback } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { getTokens, Input, styled, TamaguiElement, useThemeName, View } from 'tamagui';
+import { getTokens, styled, TamaguiElement, useThemeName, View } from 'tamagui';
+import { ThemeInput } from '@/components/ui/theme-input';
 
-const StyledInput = styled(Input, {
+const StyledInput = styled(ThemeInput, {
   rounded: 28,
   paddingInlineStart: 40,
   height: 44,
   fontSize: '$subtitle',
   borderColor: '$color4',
   borderWidth: StyleSheet.hairlineWidth,
-  focusStyle: {
-    borderColor: '$primary',
-  },
-  cursorColor: '$primary',
   bg: 'transparent',
 });
 
@@ -90,7 +87,6 @@ export default function SearchBox({
 
           <StyledInput
             placeholder={placeholder ?? t('cityWorkOrLocation', { defaultValue: '城市、作品、地标' })}
-            placeholderTextColor="$color9"
             readOnly={readOnly}
             ref={ref}
             style={right || showClear ? { paddingRight: 40 } : undefined}

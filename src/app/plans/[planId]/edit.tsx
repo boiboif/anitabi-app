@@ -1,4 +1,5 @@
 import { StrictButton as Button } from '@/components/ui/strict-button';
+import { ThemeInput } from '@/components/ui/theme-input';
 import { BLOCK_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';
 import { usePlans } from '@/store/use-plans';
 import { Check } from '@tamagui/lucide-icons-2';
@@ -6,7 +7,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Input, Text, View, YStack, useTheme } from 'tamagui';
+import { Text, View, YStack, useTheme } from 'tamagui';
 
 export default function EditPlanScreen() {
   const { t } = useTranslation();
@@ -47,11 +48,9 @@ export default function EditPlanScreen() {
             <Text fontSize="$body" fontWeight="600" color="$color12">
               {t('planName', { defaultValue: '计划名称' })}
             </Text>
-            <Input
+            <ThemeInput
               value={title}
               onChangeText={setTitle}
-              bg="$background"
-              placeholderTextColor="$color6"
               placeholder={t('forExampleBocchiTheRockInShimokitazawa', {
                 defaultValue: '例如：下北泽《孤独摇滚》巡礼',
               })}
@@ -62,11 +61,9 @@ export default function EditPlanScreen() {
             <Text fontSize="$body" fontWeight="600" color="$color12">
               {t('notesOptional', { defaultValue: '备注（可选）' })}
             </Text>
-            <Input
+            <ThemeInput
               value={description}
               onChangeText={setDescription}
-              bg="$background"
-              placeholderTextColor="$color6"
               placeholder={t('addDatesCompanionsOrOtherArrangements', { defaultValue: '记录日期、同行人或其他安排' })}
               multiline
               minH={90}

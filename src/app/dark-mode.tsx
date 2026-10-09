@@ -1,7 +1,8 @@
+import { useTranslation } from 'react-i18next';
 import { ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Switch, type SwitchProps, Text, View, XStack, YStack, styled, useTheme, useThemeName } from 'tamagui';
-import { useTranslation } from 'react-i18next';
+import { Text, View, XStack, YStack, styled, useTheme, useThemeName } from 'tamagui';
+import { ThemeSwitch } from '@/components/ui/theme-switch';
 
 import { useMapStylePreference } from '@/store/use-map-style-preference';
 import { useThemePreference } from '@/store/use-theme-preference';
@@ -14,20 +15,6 @@ const SettingTitle = styled(Text, {
   lineHeight: 24,
   fontWeight: '500',
 });
-
-function ThemeSwitch(props: Pick<SwitchProps, 'checked' | 'onCheckedChange'>) {
-  return (
-    <Switch
-      checked={props.checked}
-      onCheckedChange={props.onCheckedChange}
-      activeStyle={{ backgroundColor: '$primary' }}
-      size="$3"
-      padding="$1"
-    >
-      <Switch.Thumb style={{ height: '100%', aspectRatio: 1 }} backgroundColor="$white" transition="quickest" />
-    </Switch>
-  );
-}
 
 export default function DarkModeScreen() {
   const { t } = useTranslation();

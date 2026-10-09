@@ -1,10 +1,11 @@
 import { StrictButton as Button } from '@/components/ui/strict-button';
+import { ThemeInput } from '@/components/ui/theme-input';
 import { usePlans } from '@/store/use-plans';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Input, Text, YStack, useTheme } from 'tamagui';
+import { Text, YStack, useTheme } from 'tamagui';
 
 export default function CreatePlanScreen() {
   const { t } = useTranslation();
@@ -33,13 +34,10 @@ export default function CreatePlanScreen() {
             <Text fontSize="$body" fontWeight="600" color="$color12">
               {t('planName', { defaultValue: '计划名称' })}
             </Text>
-            <Input
-              bg="$background"
-              placeholderTextColor="$color6"
+            <ThemeInput
               value={title}
               onChangeText={setTitle}
               placeholder={t('enterText', { defaultValue: '请输入' })}
-              fontSize="$body"
               autoFocus
               maxLength={60}
             />
@@ -48,16 +46,13 @@ export default function CreatePlanScreen() {
             <Text fontSize="$body" fontWeight="600" color="$color12">
               {t('notesOptional', { defaultValue: '备注（可选）' })}
             </Text>
-            <Input
+            <ThemeInput
               value={description}
               onChangeText={setDescription}
-              bg="$background"
-              placeholderTextColor="$color6"
               placeholder={t('enterText', { defaultValue: '请输入' })}
               multiline
               minH={90}
               textAlignVertical="top"
-              fontSize="$body"
             />
           </YStack>
           <YStack gap="$2">

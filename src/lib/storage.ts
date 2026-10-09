@@ -1,4 +1,6 @@
 import { createMMKV } from 'react-native-mmkv';
+import { CAMERA_RATIO_OPTIONS, type CameraRatioPreference } from './comparison-camera-geometry';
+import { normalizeComparisonExportSettings, type ComparisonExportSettings } from './comparison-export';
 
 export type ThemePreference = 'system' | 'light' | 'dark';
 export type AppLanguage = 'zh-CN' | 'ja' | 'en';
@@ -14,6 +16,8 @@ const storage = createMMKV({ id: 'anitabi-settings' });
 const DARK_MODE_KEY = 'dark-mode-config';
 const LANGUAGE_KEY = 'language-preference';
 const MAP_STYLE_FOLLOWS_THEME_KEY = 'map-style-follows-theme';
+const CAMERA_RATIO_KEY = 'comparison-camera-ratio';
+const COMPARISON_EXPORT_KEY = 'comparison-export-settings';
 
 const DEFAULT_THEME_PREFERENCE: ThemePreference = 'system';
 const DEFAULT_LANGUAGE_PREFERENCE: LanguagePreference = 'system';
@@ -52,6 +56,28 @@ export function getMapStyleFollowsTheme(): boolean {
 
 export function setMapStyleFollowsTheme(followsTheme: boolean): void {
   storage.set(MAP_STYLE_FOLLOWS_THEME_KEY, followsTheme);
+}
+
+export function getCameraRatioPreference(): CameraRatioPreference {
+  const value = storage.getString(CAMERA_RATIO_KEY);
+  return CAMERA_RATIO_OPTIONS.find((option) => option === value) ?? 'auto';
+}
+
+export function setCameraRatioPreference(preference: CameraRatioPreference): void {
+  storage.set(CAMERA_RATIO_KEY, preference);
+}
+
+export function getComparisonExportSettings(): ComparisonExportSettings {
+  try {
+    const raw = storage.getString(COMPARISON_EXPORT_KEY);
+    return normalizeComparisonExportSettings(raw ? JSON.parse(raw) : undefined);
+  } catch {
+    return normalizeComparisonExportSettings(undefined);
+  }
+}
+
+export function setComparisonExportSettings(settings: ComparisonExportSettings): void {
+  storage.set(COMPARISON_EXPORT_KEY, JSON.stringify(normalizeComparisonExportSettings(settings)));
 }
 
 function isThemePreferenceConfig(value: unknown): value is { preference: ThemePreference } {
