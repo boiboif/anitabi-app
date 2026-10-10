@@ -1,8 +1,8 @@
 {
-  "version": "0.6.0",
-  "displayVersion": "0.6.0",
-  "title": "v0.6.0",
-  "releaseNotes": "【地图与作品详情】\n提高 App 启动速度，优化地图点位图片显示和近景选点体验。\n改进作品详情打开与切换的流畅度，修复打开抽屉时按返回键误提示退出的问题。\n\n【巡礼计划与图片】\n修复近景选点缩放变化、相邻图片误选和标记偏移；改进图片预览的加载过渡。\n\n【更新提示】\n更新弹窗按已安装版本展示本次更新，并在适用时补充最近一次尚未安装的重点更新。",
+  "version": "0.7.0",
+  "displayVersion": "0.7.0",
+  "title": "v0.7.0",
+  "releaseNotes": "【巡礼相机升级】\n新增拍摄比例选择，默认自动匹配巡礼图；优化界面布局，横竖构图更自由。\n导出时可添加名字、拍摄时间、地点等巡礼信息，生成专属巡礼图；权限允许时保存至 Anitabi 相册，方便收藏与分享。\n\n【新增备份】\n收藏与巡礼计划可导出备份，恢复时支持合并或覆盖，保留点位顺序与完成状态。\n\n【修复与改进】\n优化作品详情关闭动画，修复计划列表筛选闪动，并改进多处使用细节。",
   "releaseNotesHistory": [
     {
       "version": "0.4.0",
@@ -20,13 +20,19 @@
       "version": "0.6.0",
       "displayVersion": "0.6.0",
       "notes": "【地图与作品详情】\n提高 App 启动速度，优化地图点位图片显示和近景选点体验。\n改进作品详情打开与切换的流畅度，修复打开抽屉时按返回键误提示退出的问题。\n\n【巡礼计划与图片】\n修复近景选点缩放变化、相邻图片误选和标记偏移；改进图片预览的加载过渡。\n\n【更新提示】\n更新弹窗按已安装版本展示本次更新，并在适用时补充最近一次尚未安装的重点更新。",
+      "importance": "major"
+    },
+    {
+      "version": "0.7.0",
+      "displayVersion": "0.7.0",
+      "notes": "【巡礼相机升级】\n新增拍摄比例选择，默认自动匹配巡礼图；优化界面布局，横竖构图更自由。\n导出时可添加名字、拍摄时间、地点等巡礼信息，生成专属巡礼图；权限允许时保存至 Anitabi 相册，方便收藏与分享。\n\n【新增备份】\n收藏与巡礼计划可导出备份，恢复时支持合并或覆盖，保留点位顺序与完成状态。\n\n【修复与改进】\n优化作品详情关闭动画，修复计划列表筛选闪动，并改进多处使用细节。",
       "importance": "major",
-      "buildNumber": 1024
+      "buildNumber": 1025
     }
   ],
-  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.6.0/anitabi-app-v0.6.0-android.apk",
-  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.6.0",
+  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.7.0/anitabi-app-v0.7.0-android.apk",
+  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.7.0",
   "mandatory": false,
-  "buildNumber": 1024,
-  "fileName": "anitabi-app-v0.6.0-android.apk"
+  "buildNumber": 1025,
+  "fileName": "anitabi-app-v0.7.0-android.apk"
 }
