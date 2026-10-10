@@ -1,8 +1,8 @@
 import type { PlanMapResolvedPoint } from '@/components/plan/plan-map-point-types';
 import PointListCard from '@/components/point/point-list-card';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
-import { LegendList, type LegendListRef } from '@legendapp/list/react-native';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
+import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { Check, ListTodo } from '@tamagui/lucide-icons-2';
 import { forwardRef, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -21,13 +21,8 @@ type Props = {
 };
 
 const PLAN_POINT_ROW_SIZE = 104;
-const PINNED_POINT_ROWS = 8;
 const SCROLL_IDLE_DELAY = 140;
 const LOCATE_BUTTON_HIDE_DELAY = 2500;
-
-function getPlanPointRowSize() {
-  return PLAN_POINT_ROW_SIZE;
-}
 
 function ScrollToSelectedIcon({ color }: { color: string }) {
   return (
@@ -117,7 +112,7 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
   const isDark = useThemeName() === 'dark';
   const [selectionStore] = useState(() => createStore<{ key?: string }>()(() => ({ key: selectedKey })));
   const callbacksRef = useRef({ onSelect, onToggleCompleted });
-  const listRef = useRef<LegendListRef>(null);
+  const listRef = useRef<FlashListRef<PlanMapResolvedPoint>>(null);
   const listReadyRef = useRef(false);
   const contentReadyRef = useRef(false);
   const openingPositionReadyRef = useRef(false);
@@ -126,7 +121,6 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
   const pendingFilterScrollRef = useRef(false);
   const filterTransitionRef = useRef(false);
   const filterTransitionIdRef = useRef(0);
-  const filterScrollFrameRef = useRef<number | null>(null);
   const lastScrollOffsetRef = useRef<number | null>(null);
   const programmaticScrollRef = useRef(false);
   const isDraggingRef = useRef(false);
@@ -150,17 +144,6 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
     (resolved: PlanMapResolvedPoint) => callbacksRef.current.onToggleCompleted(resolved),
     [],
   );
-  const pinnedPointKeys = useMemo(() => {
-    const incomplete = points.filter((resolved) => !resolved.item.completed);
-    const keys = new Set<string>();
-    for (const list of [points, incomplete]) {
-      const selectedPosition = list.findIndex((resolved) => resolved.item.key === selectedKey);
-      const start = Math.max(0, selectedPosition - 1);
-      for (const resolved of list.slice(start, start + PINNED_POINT_ROWS)) keys.add(resolved.item.key);
-    }
-    return { keys: [...keys] };
-  }, [points, selectedKey]);
-  const previousVisibleCountRef = useRef(visiblePoints.length);
   const selectedIndex = useMemo(
     () => visiblePoints.findIndex((resolved) => resolved.item.key === selectedKey),
     [selectedKey, visiblePoints],
@@ -169,9 +152,13 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
     (animated: boolean) => {
       const scrollView = listRef.current?.getNativeScrollRef() as ScrollView | undefined;
       if (!scrollView || selectedIndex < 0) return false;
-      // TrueSheet adds native scroll padding at the 0.6 detent. LegendList's
+      const precedingIndex = Math.max(0, selectedIndex - 1);
+      const measuredOffset = listRef.current?.getLayout(precedingIndex)?.y;
+      // TrueSheet adds native scroll padding at the 0.6 detent. The list's
       // JS scroll limit does not include it, so let Android clamp this offset.
-      scrollView.scrollTo({ y: Math.max(0, selectedIndex - 1) * PLAN_POINT_ROW_SIZE, animated });
+      // Use FlashList's layout coordinates, which account for native row
+      // measurements, rather than accumulating a nominal 104px per row.
+      scrollView.scrollTo({ y: Math.max(0, measuredOffset ?? precedingIndex * PLAN_POINT_ROW_SIZE), animated });
       return true;
     },
     [selectedIndex],
@@ -188,13 +175,6 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
     if (hideLocateTimerRef.current) {
       clearTimeout(hideLocateTimerRef.current);
       hideLocateTimerRef.current = null;
-    }
-  }, []);
-
-  const cancelFilterScrollFrame = useCallback(() => {
-    if (filterScrollFrameRef.current !== null) {
-      cancelAnimationFrame(filterScrollFrameRef.current);
-      filterScrollFrameRef.current = null;
     }
   }, []);
 
@@ -228,9 +208,8 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
     () => () => {
       clearScrollIdleTimer();
       clearHideLocateTimer();
-      cancelFilterScrollFrame();
     },
-    [cancelFilterScrollFrame, clearHideLocateTimer, clearScrollIdleTimer],
+    [clearHideLocateTimer, clearScrollIdleTimer],
   );
 
   const handleScroll = useCallback(
@@ -259,7 +238,6 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
     filterTransitionIdRef.current += 1;
     filterTransitionRef.current = false;
     pendingFilterScrollRef.current = false;
-    cancelFilterScrollFrame();
     clearScrollIdleTimer();
     clearHideLocateTimer();
     programmaticScrollRef.current = false;
@@ -267,7 +245,7 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
     isScrollingRef.current = true;
     setIsScrolling(true);
     if (selectedIndex >= 0) setShowLocateButton(true);
-  }, [cancelFilterScrollFrame, clearHideLocateTimer, clearScrollIdleTimer, selectedIndex]);
+  }, [clearHideLocateTimer, clearScrollIdleTimer, selectedIndex]);
 
   const handleScrollEndDrag = useCallback(() => {
     isDraggingRef.current = false;
@@ -351,29 +329,16 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
     });
   }, [scrollToSelectedNative, selectedIndex, visiblePoints.length]);
 
-  const scheduleFilteredScroll = useCallback(() => {
-    cancelFilterScrollFrame();
-    filterScrollFrameRef.current = requestAnimationFrame(() => {
-      filterScrollFrameRef.current = null;
-      scrollToFilteredSelection();
-    });
-  }, [cancelFilterScrollFrame, scrollToFilteredSelection]);
-
-  useLayoutEffect(() => {
-    const wasEmpty = previousVisibleCountRef.current === 0;
-    previousVisibleCountRef.current = visiblePoints.length;
-    if (pendingFilterScrollRef.current && (!wasEmpty || visiblePoints.length === 0)) scheduleFilteredScroll();
-  }, [scheduleFilteredScroll, showIncompleteOnly, visiblePoints.length]);
-
   const handleListReady = useCallback(() => {
     listReadyRef.current = true;
-    if (pendingFilterScrollRef.current) scheduleFilteredScroll();
+    // The layout-commit callback positions filtered rows immediately. The
+    // first-load callback shares the same readiness and opening fallback.
+    if (pendingFilterScrollRef.current) scrollToFilteredSelection();
     else if (sheetPresentedRef.current && pendingScrollRef.current) scrollToSelected();
     else scrollDuringPresentation();
-  }, [scheduleFilteredScroll, scrollDuringPresentation, scrollToSelected]);
+  }, [scrollDuringPresentation, scrollToFilteredSelection, scrollToSelected]);
 
   const toggleIncompleteFilter = useCallback(() => {
-    cancelFilterScrollFrame();
     clearScrollIdleTimer();
     clearHideLocateTimer();
     filterTransitionIdRef.current += 1;
@@ -384,7 +349,7 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
     setShowLocateButton(false);
     pendingFilterScrollRef.current = true;
     setShowIncompleteOnly((current) => !current);
-  }, [cancelFilterScrollFrame, clearHideLocateTimer, clearScrollIdleTimer]);
+  }, [clearHideLocateTimer, clearScrollIdleTimer]);
 
   const renderPoint = useCallback(
     ({ item: resolved }: { item: PlanMapResolvedPoint }) => (
@@ -429,7 +394,6 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
         pendingFilterScrollRef.current = false;
         filterTransitionIdRef.current += 1;
         filterTransitionRef.current = false;
-        cancelFilterScrollFrame();
         resetLocateButton();
       }}
       header={
@@ -500,14 +464,12 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
       }
     >
       <GestureHandlerRootView style={{ flexGrow: 1 }}>
-        <LegendList
+        <FlashList
           ref={listRef}
           data={visiblePoints}
-          recycleItems
-          alwaysRender={pinnedPointKeys}
           keyExtractor={(resolved) => resolved.item.key}
           renderItem={renderPoint}
-          getFixedItemSize={getPlanPointRowSize}
+          maintainVisibleContentPosition={{ disabled: true }}
           onContentSizeChange={(_, height) => {
             if (height <= 0) return;
             contentReadyRef.current = true;
@@ -515,7 +477,8 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
             if (sheetPresentedRef.current && pendingScrollRef.current) scrollToSelected();
             else scrollDuringPresentation();
           }}
-          onReady={handleListReady}
+          onLoad={handleListReady}
+          onCommitLayoutEffect={handleListReady}
           onScroll={handleScroll}
           onScrollBeginDrag={handleScrollBeginDrag}
           onScrollEndDrag={handleScrollEndDrag}
