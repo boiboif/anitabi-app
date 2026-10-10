@@ -10,12 +10,16 @@ import {
   resolveComparisonBorderColor,
 } from '../../src/lib/comparison-export.ts';
 
-test('new or damaged settings enable only a white border', () => {
+test('new or damaged settings enable a white border and all five metadata fields', () => {
   for (const source of [undefined, null, 'bad data', [], {}]) {
     const settings = normalizeComparisonExportSettings(source);
     assert.deepEqual(settings, DEFAULT_COMPARISON_EXPORT_SETTINGS);
     assert.ok(settings.borderWidth > 0);
-    assert.deepEqual(buildComparisonMetadata(settings, {}), { name: undefined, rows: [] });
+    assert.equal(settings.showName, false);
+    assert.deepEqual(
+      buildComparisonMetadata(settings, {}).rows.map((row) => row.field),
+      ['work', 'location', 'scene', 'capturedAt', 'coordinates'],
+    );
   }
 });
 
@@ -28,14 +32,26 @@ test('persisted settings round and clamp widths, reject invalid values, and reta
     showScene: true,
     showCoordinates: 'true',
     showLocation: 1,
+    showCapturedAt: false,
+    showWork: false,
   });
   assert.equal(settings.borderWidth, 32);
   assert.equal(settings.borderColor, 'theme');
   assert.equal(settings.name.length, 40);
   assert.equal(settings.showName, true);
   assert.equal(settings.showScene, true);
-  assert.equal(settings.showCoordinates, false);
-  assert.equal(settings.showLocation, false);
+  assert.equal(settings.showCoordinates, true);
+  assert.equal(settings.showLocation, true);
+  assert.equal(settings.showCapturedAt, false);
+  assert.equal(settings.showWork, false);
+  const deselected = normalizeComparisonExportSettings({
+    showCapturedAt: false,
+    showLocation: false,
+    showWork: false,
+    showScene: false,
+    showCoordinates: false,
+  });
+  assert.deepEqual(buildComparisonMetadata(deselected, {}), { name: undefined, rows: [] });
   assert.equal(normalizeComparisonExportSettings({ borderWidth: -10 }).borderWidth, 0);
   assert.equal(normalizeComparisonExportSettings({ borderWidth: 13.8 }).borderWidth, 14);
   assert.equal(
@@ -58,6 +74,8 @@ test('metadata includes only selected fields and prioritizes title and location'
     ...DEFAULT_COMPARISON_EXPORT_SETTINGS,
     showName: true,
     name: '  巡礼者  ',
+    showLocation: false,
+    showCapturedAt: false,
     showWork: true,
     showScene: true,
     showCoordinates: true,
@@ -84,7 +102,10 @@ test('a selected but empty pilgrim name produces the same metadata as an unselec
   };
   for (const name of ['', '   ', '\n\t']) {
     const settings = { ...DEFAULT_COMPARISON_EXPORT_SETTINGS, showName: true, name };
-    assert.deepEqual(buildComparisonMetadata(settings, values), { name: undefined, rows: [] });
+    assert.deepEqual(
+      buildComparisonMetadata(settings, values),
+      buildComparisonMetadata({ ...settings, showName: false }, values),
+    );
     const withTime = { ...settings, showCapturedAt: true };
     assert.deepEqual(
       buildComparisonMetadata(withTime, values),
