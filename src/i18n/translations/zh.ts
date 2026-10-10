@@ -343,6 +343,7 @@ const zh = {
   allowCameraAccessToTakePilgrimageComparisonPhotos: '允许访问相机后才能拍摄巡礼对比图。',
   allowCamera: '授权相机',
   chooseReferenceImage: '选择参考图',
+  restoreOriginalReferenceImage: '恢复原参考图',
   overlayOpacity: '叠图透明度',
   chooseReferenceImageFromPhotos: '从相册选择参考图',
   takePhoto: '拍照',

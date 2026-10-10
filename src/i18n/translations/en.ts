@@ -359,6 +359,7 @@ const en = {
   allowCameraAccessToTakePilgrimageComparisonPhotos: 'Allow camera access to take pilgrimage comparison photos.',
   allowCamera: 'Allow camera',
   chooseReferenceImage: 'Choose reference image',
+  restoreOriginalReferenceImage: 'Restore original reference image',
   overlayOpacity: 'Overlay opacity',
   chooseReferenceImageFromPhotos: 'Choose reference image from photos',
   takePhoto: 'Take photo',

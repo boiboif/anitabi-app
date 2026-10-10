@@ -20,11 +20,11 @@ export const DEFAULT_COMPARISON_EXPORT_SETTINGS: ComparisonExportSettings = {
   borderColor: 'white',
   showName: false,
   name: '',
-  showCapturedAt: false,
-  showLocation: false,
-  showWork: false,
-  showScene: false,
-  showCoordinates: false,
+  showCapturedAt: true,
+  showLocation: true,
+  showWork: true,
+  showScene: true,
+  showCoordinates: true,
 };
 
 export function normalizeComparisonExportSettings(value: unknown): ComparisonExportSettings {
@@ -39,11 +39,11 @@ export function normalizeComparisonExportSettings(value: unknown): ComparisonExp
     borderColor: COMPARISON_BORDER_COLORS.find((color) => color === source.borderColor) ?? defaults.borderColor,
     name: typeof source.name === 'string' ? source.name.slice(0, 40) : '',
     showName: source.showName === true,
-    showCapturedAt: source.showCapturedAt === true,
-    showLocation: source.showLocation === true,
-    showWork: source.showWork === true,
-    showScene: source.showScene === true,
-    showCoordinates: source.showCoordinates === true,
+    showCapturedAt: typeof source.showCapturedAt === 'boolean' ? source.showCapturedAt : defaults.showCapturedAt,
+    showLocation: typeof source.showLocation === 'boolean' ? source.showLocation : defaults.showLocation,
+    showWork: typeof source.showWork === 'boolean' ? source.showWork : defaults.showWork,
+    showScene: typeof source.showScene === 'boolean' ? source.showScene : defaults.showScene,
+    showCoordinates: typeof source.showCoordinates === 'boolean' ? source.showCoordinates : defaults.showCoordinates,
   };
 }
 

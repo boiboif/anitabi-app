@@ -1,7 +1,7 @@
 {
   "ios": {
     "NSCameraUsageDescription": "用于拍摄巡礼点的实景对比照片和扫描巡礼计划二维码",
-    "NSPhotoLibraryUsageDescription": "用于选择动漫巡礼点的参考图片和对比图相关照片",
+    "NSPhotoLibraryUsageDescription": "用于选择参考图片并管理 Anitabi 相册中的巡礼对比图",
     "NSPhotoLibraryAddUsageDescription": "用于将生成的巡礼对比图保存到相册",
     "NSLocationWhenInUseUsageDescription": "用于在地图上显示当前位置",
     "NSMotionUsageDescription": "用于访问设备运动与方向数据"

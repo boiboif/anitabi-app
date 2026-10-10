@@ -12,7 +12,13 @@ import dayjs from 'dayjs';
 import { useIsFocused, useNavigation } from 'expo-router';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { type LayoutChangeEvent, type NativeScrollEvent, type NativeSyntheticEvent, Pressable } from 'react-native';
+import {
+  type LayoutChangeEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  Platform,
+  Pressable,
+} from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { getTokens, Text, useTheme, View } from 'tamagui';
 
@@ -241,57 +247,123 @@ function groupPoints(
   return sections;
 }
 
-function useBangumiDetailSheet(bangumiId: number | undefined, onDetailsDismiss: () => void) {
+function useBangumiDetailSheet(requestedBangumi: Bangumi | undefined, onDetailsDismiss: () => void) {
   const sheetRef = useRef<TrueSheet>(null);
   const flashListRef = useRef<FlashListRef<FlatItem>>(null);
   const isSheetPresentedRef = useRef(false);
+  const isSheetPresentingRef = useRef(false);
   const activeBangumiIdRef = useRef<number | null>(null);
   const loadedBangumiIdRef = useRef<number | null>(null);
-  const [savedDetent, setSavedDetent] = useState({ bangumiId, index: DEFAULT_BANGUMI_DETAIL_DETENT_INDEX });
+  const [savedDetent, setSavedDetent] = useState<{ bangumiId: number | undefined; index: number }>({
+    bangumiId: undefined,
+    index: DEFAULT_BANGUMI_DETAIL_DETENT_INDEX,
+  });
   const currentScrollOffsetRef = useRef(0);
   const pendingScrollRestoreOffsetRef = useRef<number | null>(null);
   const isRouteFocused = useIsFocused();
   const navigation = useNavigation();
-  // The object identity is a session token used to reject stale native events.
-  // This useMemo is a correctness boundary rather than a render optimization.
-  const session = useMemo(() => ({ bangumiId, isRouteFocused }), [bangumiId, isRouteFocused]);
+  // Keep the mounted work intact until native dismissal finishes, even when the
+  // store selection clears or the route blurs. Each mount has its own event token.
+  const [session, setSession] = useState<{ bangumi: Bangumi | undefined; key: number }>({
+    bangumi: undefined,
+    key: 0,
+  });
   const activeSessionRef = useRef<typeof session | null>(null);
+  const isDismissRequestedRef = useRef(false);
+  const isRouteDismissRequestedRef = useRef(false);
+  const isSheetDismissingRef = useRef(false);
+  const bangumiId = session.bangumi?.id;
+
+  if (!session.bangumi && isRouteFocused && navigation.isFocused() && requestedBangumi) {
+    setSession({ bangumi: requestedBangumi, key: session.key + 1 });
+  }
+
   const initialDetentIndex =
     savedDetent.bangumiId === bangumiId ? savedDetent.index : DEFAULT_BANGUMI_DETAIL_DETENT_INDEX;
 
   useLayoutEffect(() => {
     activeSessionRef.current = session;
     isSheetPresentedRef.current = false;
+    isSheetPresentingRef.current = false;
+    isDismissRequestedRef.current = false;
+    isRouteDismissRequestedRef.current = false;
+    isSheetDismissingRef.current = false;
     loadedBangumiIdRef.current = null;
-    if (activeBangumiIdRef.current !== (bangumiId ?? null)) {
-      activeBangumiIdRef.current = bangumiId ?? null;
+    if (bangumiId !== undefined && activeBangumiIdRef.current !== bangumiId) {
+      activeBangumiIdRef.current = bangumiId;
       currentScrollOffsetRef.current = 0;
       pendingScrollRestoreOffsetRef.current = null;
-    } else {
+    } else if (bangumiId !== undefined) {
       pendingScrollRestoreOffsetRef.current = currentScrollOffsetRef.current;
     }
 
     return () => {
       activeSessionRef.current = null;
       isSheetPresentedRef.current = false;
+      isSheetPresentingRef.current = false;
     };
   }, [bangumiId, session]);
 
   // Native dismiss/load events from an unmounted sheet must not affect its replacement.
-  const isCurrentSession = () => activeSessionRef.current === session && isRouteFocused && navigation.isFocused();
+  const isCurrentSession = () => activeSessionRef.current === session && session.bangumi !== undefined;
+  const isCurrentFocusedSession = () =>
+    isCurrentSession() && navigation.isFocused() && useMapBrowse.getState().openedBangumiDetailsId === bangumiId;
+
+  // Android v3 accepts dismiss as soon as native presentation starts. iOS v3
+  // rejects it until viewDidAppear; retain that platform's completion fallback.
+  // Never use lazy present(): its mount promise cannot be cancelled on blur.
+  const dismissSheet = useCallback(() => {
+    const canDismiss = isSheetPresentedRef.current || (Platform.OS !== 'ios' && isSheetPresentingRef.current);
+    if (!canDismiss || isSheetDismissingRef.current) return;
+    isDismissRequestedRef.current = true;
+    isSheetDismissingRef.current = true;
+    void sheetRef.current?.dismiss().catch((error: unknown) => {
+      console.warn('Failed to dismiss bangumi detail sheet', error);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (session.bangumi && (!isRouteFocused || requestedBangumi?.id !== session.bangumi.id)) {
+      if (!isRouteFocused) isRouteDismissRequestedRef.current = true;
+      dismissSheet();
+    }
+  }, [dismissSheet, isRouteFocused, requestedBangumi?.id, session]);
+
+  const handleSheetWillDismiss = () => {
+    if (!isCurrentSession()) return;
+    isSheetPresentingRef.current = false;
+    isSheetDismissingRef.current = true;
+  };
 
   const handleSheetDismiss = () => {
     if (!isCurrentSession()) return;
     isSheetPresentedRef.current = false;
-    setSavedDetent({ bangumiId: undefined, index: DEFAULT_BANGUMI_DETAIL_DETENT_INDEX });
-    activeBangumiIdRef.current = null;
-    currentScrollOffsetRef.current = 0;
-    pendingScrollRestoreOffsetRef.current = null;
-    onDetailsDismiss();
+    isSheetPresentingRef.current = false;
+    // Only an interactive dismissal of the current work clears its selection.
+    // Route blur and selection changes must not clear a replacement work.
+    if (!isDismissRequestedRef.current && isCurrentFocusedSession()) {
+      onDetailsDismiss();
+    }
+    if (useMapBrowse.getState().openedBangumiDetailsId !== bangumiId) {
+      setSavedDetent({ bangumiId: undefined, index: DEFAULT_BANGUMI_DETAIL_DETENT_INDEX });
+      activeBangumiIdRef.current = null;
+      currentScrollOffsetRef.current = 0;
+      pendingScrollRestoreOffsetRef.current = null;
+    }
+    setSession({ bangumi: undefined, key: session.key });
+  };
+
+  const handleSheetBlur = () => {
+    // iOS navigation can finish native dismissal without emitting onDidDismiss.
+    // onDidBlur still fires at completion. A stacked sheet's blur while home is
+    // focused must keep this sheet mounted instead.
+    if (!isCurrentSession() || (navigation.isFocused() && !isRouteDismissRequestedRef.current)) return;
+    isDismissRequestedRef.current = true;
+    handleSheetDismiss();
   };
 
   const handleDetentChange = (event: DetentChangeEvent) => {
-    if (!isCurrentSession()) return;
+    if (!isCurrentFocusedSession() || isSheetDismissingRef.current) return;
     const { index } = event.nativeEvent;
     if (Number.isInteger(index) && index >= 0 && index < BANGUMI_DETAIL_SHEET_DETENTS.length) {
       setSavedDetent((previous) =>
@@ -301,7 +373,7 @@ function useBangumiDetailSheet(bangumiId: number | undefined, onDetailsDismiss: 
   };
 
   const handleListScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    if (!isCurrentSession() || !isSheetPresentedRef.current) return;
+    if (!isCurrentFocusedSession() || !isSheetPresentedRef.current || isSheetDismissingRef.current) return;
     currentScrollOffsetRef.current = event.nativeEvent.contentOffset.y;
   };
 
@@ -317,15 +389,27 @@ function useBangumiDetailSheet(bangumiId: number | undefined, onDetailsDismiss: 
   };
 
   const handleListLoad = () => {
-    if (!isCurrentSession()) return;
+    if (!isCurrentFocusedSession()) return;
     loadedBangumiIdRef.current = activeBangumiIdRef.current;
     restoreListScrollPosition();
   };
 
   const handleSheetPresent = () => {
-    if (!isCurrentSession()) return;
+    if (!isCurrentSession() || isSheetDismissingRef.current) return;
+    isSheetPresentingRef.current = false;
     isSheetPresentedRef.current = true;
-    restoreListScrollPosition();
+    if (isCurrentFocusedSession()) {
+      restoreListScrollPosition();
+    } else {
+      dismissSheet();
+    }
+  };
+
+  const handleSheetWillPresent = () => {
+    if (!isCurrentSession() || isSheetDismissingRef.current) return;
+    isSheetPresentingRef.current = true;
+    // Close requests can arrive before the native start event reaches JS.
+    if (!isCurrentFocusedSession()) dismissSheet();
   };
 
   return {
@@ -334,9 +418,14 @@ function useBangumiDetailSheet(bangumiId: number | undefined, onDetailsDismiss: 
     handleListLoad,
     handleListScroll,
     handleSheetDismiss,
+    handleSheetBlur,
     handleSheetPresent,
+    handleSheetWillDismiss,
+    handleSheetWillPresent,
     initialDetentIndex,
-    shouldRenderSheet: isRouteFocused && bangumiId !== undefined,
+    selectedBangumi: requestedBangumi?.id === bangumiId ? requestedBangumi : (session.bangumi ?? requestedBangumi),
+    shouldRenderSheet: session.bangumi !== undefined,
+    sheetKey: session.key,
     sheetRef,
   };
 }
@@ -347,7 +436,23 @@ function BangumiDetailSheet() {
   const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const focusPointFromBangumiDetails = useMapBrowse((state) => state.focusPointFromBangumiDetails);
   const closeBangumiDetails = useMapBrowse((state) => state.closeBangumiDetails);
-  const selectedBangumi = bangumis?.find((bangumi) => bangumi.id === openedBangumiDetailsId);
+  const requestedBangumi = bangumis?.find((bangumi) => bangumi.id === openedBangumiDetailsId);
+  const {
+    flashListRef,
+    handleDetentChange,
+    handleListLoad,
+    handleListScroll,
+    handleSheetDismiss,
+    handleSheetBlur,
+    handleSheetPresent,
+    handleSheetWillDismiss,
+    handleSheetWillPresent,
+    initialDetentIndex,
+    selectedBangumi,
+    shouldRenderSheet,
+    sheetKey,
+    sheetRef,
+  } = useBangumiDetailSheet(requestedBangumi, closeBangumiDetails);
   const theme = useTheme();
   const localizedBangumiTitle = selectedBangumi
     ? getBangumiTitle(selectedBangumi, i18n.resolvedLanguage) || t('work', { defaultValue: '番剧' })
@@ -355,17 +460,6 @@ function BangumiDetailSheet() {
   const originalBangumiTitle =
     selectedBangumi?.title && selectedBangumi.title !== localizedBangumiTitle ? selectedBangumi.title : null;
   const coverPreviewLabel = t('previewWorkCover', { title: localizedBangumiTitle });
-  const {
-    flashListRef,
-    handleDetentChange,
-    handleListLoad,
-    handleListScroll,
-    handleSheetDismiss,
-    handleSheetPresent,
-    initialDetentIndex,
-    shouldRenderSheet,
-    sheetRef,
-  } = useBangumiDetailSheet(selectedBangumi?.id, closeBangumiDetails);
 
   const [accordionMode, setAccordionMode] = useState<AccordionMode>('ep');
   const [expansionState, setExpansionState] = useState<AccordionExpansionState>(() => ({
@@ -595,7 +689,7 @@ function BangumiDetailSheet() {
   const coverUri = buildImageUrl(selectedBangumi?.cover ?? '');
   return (
     <TrueSheet
-      key={selectedBangumi?.id}
+      key={sheetKey}
       ref={sheetRef}
       initialDetentIndex={initialDetentIndex}
       initialDetentAnimated
@@ -606,7 +700,10 @@ function BangumiDetailSheet() {
       cornerRadius={getTokens().radius['4'].val}
       grabberOptions={{ color: theme.primary.val, adaptive: false, topMargin: 12 }}
       onDidPresent={handleSheetPresent}
+      onWillPresent={handleSheetWillPresent}
+      onWillDismiss={handleSheetWillDismiss}
       onDidDismiss={handleSheetDismiss}
+      onDidBlur={handleSheetBlur}
       onDetentChange={handleDetentChange}
       style={{ paddingTop: 26 }}
     >

@@ -360,6 +360,7 @@ const ja = {
   allowCameraAccessToTakePilgrimageComparisonPhotos: '巡礼比較写真を撮影するにはカメラへのアクセスを許可してください。',
   allowCamera: 'カメラを許可',
   chooseReferenceImage: '参考画像を選択',
+  restoreOriginalReferenceImage: '元の参考画像に戻す',
   overlayOpacity: '重ね合わせの透明度',
   chooseReferenceImageFromPhotos: '写真から参考画像を選択',
   takePhoto: '撮影',

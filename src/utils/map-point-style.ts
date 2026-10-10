@@ -16,9 +16,17 @@ export function getUnselectedMapPointFilter(
 
 /** Shared native zoom expressions keep the selected overlay exactly aligned with its underlying dot. */
 export function getMapPointCircleStyle(maxVisualDiameter?: number): ComponentProps<typeof CircleLayer>['style'] {
-  // Mapbox draws the stroke outside the radius: the maximum diameter is 2 * (16 + 6) = 44.
-  const radiusCap = maxVisualDiameter === undefined ? Infinity : (maxVisualDiameter * 16) / 44;
-  const strokeCap = maxVisualDiameter === undefined ? Infinity : (maxVisualDiameter * 6) / 44;
+  // The original maximum diameter, including the outside stroke, is 2 * (16 + 6) = 44px.
+  const maxDiameter = maxVisualDiameter ?? 24;
+  const radiusCap = (maxDiameter * 16) / 44;
+  const strokeCap = (maxDiameter * 6) / 44;
+  // End the home interpolation where the original curve reaches 24px, then hold its size.
+  // Moving only the final value at zoom 22 would also slow growth before reaching the cap.
+  // Explicit caps preserve the plan map's existing curve.
+  const maxSizeZoom =
+    maxVisualDiameter === undefined
+      ? 18 + Math.log(1 + ((radiusCap - 8) / (16 - 8)) * (1.75 ** (22 - 18) - 1)) / Math.log(1.75)
+      : 22;
   return {
     circleSortKey: 90_001,
     circleColor: ['get', 'color'],
@@ -30,7 +38,7 @@ export function getMapPointCircleStyle(maxVisualDiameter?: number): ComponentPro
       Math.min(4, radiusCap),
       18,
       Math.min(8, radiusCap),
-      22,
+      maxSizeZoom,
       Math.min(16, radiusCap),
     ],
     circleStrokeWidth: [
@@ -41,7 +49,7 @@ export function getMapPointCircleStyle(maxVisualDiameter?: number): ComponentPro
       Math.min(1.5, strokeCap),
       18,
       Math.min(3, strokeCap),
-      22,
+      maxSizeZoom,
       Math.min(6, strokeCap),
     ],
     circleStrokeColor: '#ffffff',

@@ -17,7 +17,7 @@ import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { getComparisonExportSettings, setComparisonExportSettings } from '@/lib/storage';
 import type { Bangumi, Point } from '@/services/types';
 import { Toast } from '@boiboif/react-native-toast';
-import { Download, Images, RotateCcw, Settings2, X } from '@tamagui/lucide-icons-2';
+import { Download, Images, RotateCcw, Settings2, Undo2, X } from '@tamagui/lucide-icons-2';
 import { File } from 'expo-file-system';
 import { Image } from 'expo-image';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
@@ -54,6 +54,7 @@ type Props = {
   onClose: () => void;
   onPickPhoto: () => Promise<void>;
   onPickReference: () => Promise<void>;
+  onRestoreReference?: () => void;
   onRetake: () => void;
 };
 
@@ -71,6 +72,7 @@ type ComparisonLayout = {
 };
 
 const EXPORT_JPEG_QUALITY = 95;
+const COMPARISON_PHOTO_ALBUM = 'Anitabi';
 
 const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
@@ -184,6 +186,7 @@ export default function ComparisonResultModal({
   referenceDimensions,
   onPickPhoto,
   onPickReference,
+  onRestoreReference,
   onRetake,
 }: Props) {
   const { t, i18n } = useTranslation();
@@ -314,7 +317,16 @@ export default function ComparisonResultModal({
 
     try {
       setSaving(true);
-      const permission = await MediaLibrary.requestPermissionsAsync(true);
+      let permission: MediaLibrary.PermissionResponse;
+      let canOrganizeAlbum = false;
+      if (Platform.OS === 'ios') {
+        const readPermission = await MediaLibrary.requestPermissionsAsync(false, ['photo']);
+        canOrganizeAlbum = readPermission.granted && readPermission.accessPrivileges === 'all';
+        permission = canOrganizeAlbum ? readPermission : await MediaLibrary.requestPermissionsAsync(true, ['photo']);
+      } else {
+        permission = await MediaLibrary.requestPermissionsAsync(true, ['photo']);
+        canOrganizeAlbum = permission.granted;
+      }
       if (!permission.granted) {
         Alert.alert(
           t('couldNotSaveImage', { defaultValue: '无法保存图片' }),
@@ -393,7 +405,23 @@ export default function ComparisonResultModal({
 
       const outputPath = await canvas.saveToTemporaryFileAsync('jpg', EXPORT_JPEG_QUALITY);
       outputUri = `file://${outputPath}`;
-      await MediaLibrary.Asset.create(outputUri);
+      const asset = await MediaLibrary.Asset.create(outputUri);
+      if (canOrganizeAlbum) {
+        try {
+          if (Platform.OS === 'ios') {
+            const album = await MediaLibrary.Album.get(COMPARISON_PHOTO_ALBUM);
+            if (album) {
+              await album.add(asset);
+            } else {
+              await MediaLibrary.Album.create(COMPARISON_PHOTO_ALBUM, [asset]);
+            }
+          } else {
+            await MediaLibrary.Album.create(COMPARISON_PHOTO_ALBUM, [asset]);
+          }
+        } catch (error) {
+          console.error('[comparison-camera] Failed to organize comparison image album', error);
+        }
+      }
       Toast.show(t('comparisonImageSavedToPhotos', { defaultValue: '对比图已保存到相册' }));
     } catch (error) {
       console.error('[comparison-camera] Failed to export comparison image', error);
@@ -534,6 +562,16 @@ export default function ComparisonResultModal({
                       style={StyleSheet.absoluteFill}
                       transition={0}
                     />
+                  ) : null}
+                  {onRestoreReference ? (
+                    <View position="absolute" t={8} l={8}>
+                      <ActionButton
+                        label={t('restoreOriginalReferenceImage')}
+                        icon={<Undo2 size={18} color="white" />}
+                        onPress={onRestoreReference}
+                        disabled={saving}
+                      />
+                    </View>
                   ) : null}
                 </View>
                 <Pressable

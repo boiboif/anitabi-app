@@ -1,7 +1,7 @@
 import type { ExpoConfig } from 'expo/config';
 import appPackage from './package.json';
 
-const appVersion = '0.6.0';
+const appVersion = '0.7.0';
 const openSourceLicensePrimaryPackages = Object.keys(appPackage.dependencies).sort();
 const nativeAppVersion = process.env.APP_NATIVE_VERSION || appVersion;
 const updateChannel = process.env.EXPO_UPDATE_CHANNEL || 'development';
@@ -120,7 +120,7 @@ const config: ExpoConfig = {
     [
       'expo-media-library',
       {
-        photosPermission: '用于读取对比图相关照片',
+        photosPermission: '用于管理 Anitabi 相册中的巡礼对比图',
         savePhotosPermission: '用于将预览图片和巡礼对比图保存到相册',
         granularPermissions: [],
       },

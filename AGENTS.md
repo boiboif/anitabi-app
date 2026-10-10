@@ -2,6 +2,16 @@
 
 Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before writing any code.
 
+## Fixes, History, and Design Intent
+
+- Before fixing a problem, inspect the affected flow and relevant Git history (`git log`, `git blame`, and targeted commit diffs), along with nearby comments and documentation. Scale the investigation to the issue; for regressions, compare the previously working behavior with the change that introduced the problem.
+- Understand why the old behavior existed and which requirements or prior fixes it protected. Distinguish evidence from inference; do not assume every historical implementation is still correct or every recent change was intentional.
+- Evaluate the whole affected flow, including state ownership, lifecycle, persistence, callers, and user-visible behavior. Check whether the proposed fix would undermine another requirement or reintroduce a previously solved problem.
+- Prefer the smallest coherent fix that addresses the cause and preserves established semantics. Compare restoring the intended behavior with adding compensating logic; avoid adding state, asynchronous recovery, or special cases merely to mask an unintended change.
+- If a tradeoff materially changes behavior or depends on unclear product intent, explain it before making that change. Do not use routine implementation decisions as a reason to request unnecessary confirmation.
+- Report the historical cause when established, why the chosen fix fits the current design, relevant tradeoffs, and what validation does and does not prove. If history does not establish a cause, say so rather than inventing one.
+- Treat an unexplained recent change as unresolved intent, not proof that it is unnecessary. Before reverting it, check available conversation context and performance constraints as well as Git; ask for the missing reason if reverting could undo a material fix. For the comparison camera, keep the camera stopped while the result modal is visible because running it causes the result page's bottom-sheet animation to drop frames; preserve retake zoom separately.
+
 ## React Compiler
 
 - React Compiler is enabled in `app.config.ts` (`reactCompiler: true`). Rely on its automatic memoization by default; do not add `useMemo`, `useCallback`, or `React.memo` merely to stabilize references or prevent routine re-renders.

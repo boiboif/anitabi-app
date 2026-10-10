@@ -22,11 +22,11 @@ export function ThemeSlider({ trackColor = '$color5', activeColor = '$primary', 
   return (
     <GestureDetector gesture={sliderGesture}>
       <Slider size="$2" {...props}>
-        <Slider.Track hitSlop={20} height={6} backgroundColor={trackColor}>
+        <Slider.Track hitSlop={24} height={6} backgroundColor={trackColor}>
           <Slider.TrackActive backgroundColor={activeColor} />
         </Slider.Track>
         <Slider.Thumb
-          hitSlop={20}
+          hitSlop={24}
           circular
           size={16}
           index={0}

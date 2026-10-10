@@ -122,7 +122,10 @@ export default function ComparisonExportSheet({ sheetRef, onExport, onDismiss, r
       }
     >
       <GestureHandlerRootView style={{ flexGrow: 1 }} pointerEvents={saving ? 'none' : 'auto'}>
-        <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 80 }}>
+        <ScrollView
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 80 }}
+          keyboardShouldPersistTaps="handled"
+        >
           <View gap={10}>
             <View gap={10}>
               <Text color="$color10" fontSize="$caption" fontWeight="600">
@@ -200,9 +203,9 @@ export default function ComparisonExportSheet({ sheetRef, onExport, onDismiss, r
                   checked={settings.showName}
                   onChange={(showName) => onChange({ ...settings, showName })}
                 />
-                <View gap={6}>
+                <View gap={6} pointerEvents={saving || !settings.showName ? 'none' : 'auto'}>
                   <ThemeInput
-                    disabled={saving}
+                    disabled={saving || !settings.showName}
                     multiline={false}
                     numberOfLines={1}
                     value={settings.name}
