@@ -15,6 +15,7 @@ import type { Bangumi } from '@/services/types';
 import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
 import { useMapBrowse } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
+import type { MapViewportState } from '@/utils/map-viewport';
 import type { Camera } from '@rnmapbox/maps';
 import { Dices } from '@tamagui/lucide-icons-2';
 import { useRouter } from 'expo-router';
@@ -24,10 +25,7 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, View, YStack } from 'tamagui';
 
-type CameraState = {
-  zoom: number;
-  bounds: { ne: [number, number]; sw: [number, number] } | null;
-};
+type CameraState = MapViewportState;
 
 type RandomPointCandidate = { bangumiId: number; pointId: string };
 
@@ -197,7 +195,12 @@ export default function HomeScreen() {
           />
         </View>
 
-        <MapTopBangumiIcons bangumis={bangumis} zoom={cameraState.zoom} bounds={cameraState.bounds} />
+        <MapTopBangumiIcons
+          bangumis={bangumis}
+          zoom={cameraState.zoom}
+          bounds={cameraState.bounds}
+          footprint={cameraState.footprint}
+        />
       </View>
 
       {progress && <LoadingBadge progress={progress} insets={insets} />}

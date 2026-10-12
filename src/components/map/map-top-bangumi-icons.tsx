@@ -5,6 +5,7 @@ import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi } from '@/services/types';
 import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
 import { useMapBrowse } from '@/store/use-map-browse';
+import { createMapViewportContainsPoint, type MapViewportState } from '@/utils/map-viewport';
 import { X } from '@tamagui/lucide-icons-2';
 import { Image } from 'expo-image';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -24,16 +25,13 @@ const BORDER_WIDTH = 2;
 // Helpers
 // ===========================================================================
 
-function isWithinBounds(lat: number, lng: number, bounds: { ne: [number, number]; sw: [number, number] }): boolean {
-  const [swLng, swLat] = bounds.sw;
-  const [neLng, neLat] = bounds.ne;
-  return lat >= swLat && lat <= neLat && lng >= swLng && lng <= neLng;
-}
-
-function countVisiblePoints(points: Bangumi['points'], bounds: { ne: [number, number]; sw: [number, number] }): number {
+function countVisiblePoints(
+  points: Bangumi['points'],
+  containsPoint: ReturnType<typeof createMapViewportContainsPoint>,
+): number {
   let count = 0;
   for (const point of points ?? []) {
-    if (isWithinBounds(point.geo[0], point.geo[1], bounds)) count++;
+    if (containsPoint(point.geo)) count++;
   }
   return count;
 }
@@ -45,7 +43,8 @@ function countVisiblePoints(points: Bangumi['points'], bounds: { ne: [number, nu
 type Props = {
   bangumis: Bangumi[];
   zoom: number;
-  bounds: { ne: [number, number]; sw: [number, number] } | null;
+  bounds: MapViewportState['bounds'];
+  footprint?: MapViewportState['footprint'];
   filter?: {
     selectedBangumiIds: number[];
     onToggleBangumi: (bangumiId: number) => void;
@@ -59,6 +58,7 @@ export default function MapTopBangumiIcons({
   bangumis,
   zoom,
   bounds,
+  footprint,
   filter,
   alwaysVisible = false,
   showOpenedBangumiDetails = true,
@@ -80,22 +80,23 @@ export default function MapTopBangumiIcons({
     [bangumis, openedBangumiDetailsId, showOpenedBangumiDetails],
   );
 
-  const { inViewBangumis, visibleCounts } = useMemo(() => {
+  const { inViewBangumis, visibleCounts, containsPoint } = useMemo(() => {
+    const containsPoint = createMapViewportContainsPoint(bounds, footprint);
     const visibleCounts = new Map<number, number>();
-    if (selectedBangumi) return { inViewBangumis: [], visibleCounts };
-    if (!bounds) return { inViewBangumis: alwaysVisible ? bangumis : [], visibleCounts };
-    if (!alwaysVisible && zoom < MAP_ICON_ZOOM_THRESHOLD) return { inViewBangumis: [], visibleCounts };
+    if (selectedBangumi) return { inViewBangumis: [], visibleCounts, containsPoint };
+    if (!bounds) return { inViewBangumis: alwaysVisible ? bangumis : [], visibleCounts, containsPoint };
+    if (!alwaysVisible && zoom < MAP_ICON_ZOOM_THRESHOLD) return { inViewBangumis: [], visibleCounts, containsPoint };
 
     const inView: { bangumi: Bangumi; visibleCount: number }[] = [];
     for (const bangumi of bangumis) {
-      const visibleCount = countVisiblePoints(bangumi.points, bounds);
+      const visibleCount = countVisiblePoints(bangumi.points, containsPoint);
       if (visibleCount === 0) continue;
       visibleCounts.set(bangumi.id, visibleCount);
       inView.push({ bangumi, visibleCount });
     }
     inView.sort((a, b) => b.visibleCount - a.visibleCount);
-    return { inViewBangumis: inView.map((entry) => entry.bangumi), visibleCounts };
-  }, [alwaysVisible, bangumis, bounds, selectedBangumi, zoom]);
+    return { inViewBangumis: inView.map((entry) => entry.bangumi), visibleCounts, containsPoint };
+  }, [alwaysVisible, bangumis, bounds, footprint, selectedBangumi, zoom]);
 
   const displayedBangumis = useMemo(() => {
     const selectedIds = new Set(selectedMapBangumiIds);
@@ -126,7 +127,7 @@ export default function MapTopBangumiIcons({
   if (selectedBangumi) {
     const b = selectedBangumi;
     const borderColor = b.color || theme.color12.val;
-    const visibleCount = bounds ? countVisiblePoints(b.points, bounds) : 0;
+    const visibleCount = bounds ? countVisiblePoints(b.points, containsPoint) : 0;
 
     return (
       <View py="$3" pointerEvents="box-none">
@@ -248,7 +249,7 @@ export default function MapTopBangumiIcons({
           const visibleCount = bounds
             ? (visibleCounts.get(b.id) ??
               (isSelected && !alwaysVisible && zoom < MAP_ICON_ZOOM_THRESHOLD
-                ? countVisiblePoints(b.points, bounds)
+                ? countVisiblePoints(b.points, containsPoint)
                 : 0))
             : 0;
           const borderColor = b.color || theme.color12.val;

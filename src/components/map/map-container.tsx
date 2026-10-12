@@ -13,6 +13,7 @@ import { resolveLanguageTag } from '@/i18n';
 import { MAP_COMPASS_TOP_OFFSET, MAP_DEFAULT_ZOOM } from '@/lib/constants';
 import { MAP_STYLES } from '@/lib/map-styles';
 import type { Bangumi } from '@/services/types';
+import type { MapCoordinate, MapViewportState } from '@/utils/map-viewport';
 import { type MapPointReference, useMapBrowse } from '@/store/use-map-browse';
 import {
   Camera,
@@ -42,7 +43,7 @@ type Props = {
   show3DBuildings: boolean;
   showPointImageMarkers: boolean;
   /** Reports the viewport after camera events stop for 250ms. */
-  onCameraChange?: (state: { zoom: number; bounds: { ne: [number, number]; sw: [number, number] } | null }) => void;
+  onCameraChange?: (state: MapViewportState) => void;
   /** Reports the viewport immediately so point selection can use the current camera state. */
   onViewportChange?: (state: { zoom: number; bounds: { ne: [number, number]; sw: [number, number] } | null }) => void;
   onMapReady?: () => void;
@@ -156,6 +157,8 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
 
   const cameraRef = useRef<Camera>(null);
   const mapViewRef = useRef<MapView>(null);
+  const mapSizeRef = useRef({ width: 0, height: 0 });
+  const cameraRevisionRef = useRef(0);
   const selectedHitRectsRef = useRef<{ key: string; rects: MarkerHitRect[] } | null>(null);
   const selectedMarkerKey = selectedPointData
     ? getSelectedPlanMarkerKey(selectedPointData.bangumi.id, selectedPointData.point.id, showPointImageMarkers)
@@ -235,16 +238,30 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
           : b,
       );
     }
-    return { zoom: z, bounds: b };
+    return {
+      zoom: z,
+      bounds: b,
+      center: state.properties.center,
+      heading: state.properties.heading,
+      pitch: state.properties.pitch,
+      ...mapSizeRef.current,
+    };
   }, []);
 
+  const currentCameraStateRef = useRef<ReturnType<typeof updateCameraState> | null>(null);
   const lastReportedCameraStateRef = useRef<ReturnType<typeof updateCameraState> | null>(null);
   const { run: reportCameraChange, cancel: cancelCameraChange } = useDebounceFn(
-    (next: ReturnType<typeof updateCameraState>) => {
+    async (next: ReturnType<typeof updateCameraState>) => {
       if (!navigation.isFocused()) return;
       const previous = lastReportedCameraStateRef.current;
       if (
         previous?.zoom === next.zoom &&
+        previous.center[0] === next.center[0] &&
+        previous.center[1] === next.center[1] &&
+        previous.heading === next.heading &&
+        previous.pitch === next.pitch &&
+        previous.width === next.width &&
+        previous.height === next.height &&
         previous.bounds?.ne[0] === next.bounds?.ne[0] &&
         previous.bounds?.ne[1] === next.bounds?.ne[1] &&
         previous.bounds?.sw[0] === next.bounds?.sw[0] &&
@@ -252,8 +269,31 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
       ) {
         return;
       }
+      const revision = cameraRevisionRef.current;
+      const map = mapViewRef.current;
+      let footprint: MapCoordinate[] | undefined;
+      if (onCameraChange && map && next.width > 0 && next.height > 0 && (next.heading !== 0 || next.pitch !== 0)) {
+        // A rotated/tilted viewport is a quadrilateral inside the camera's bounds.
+        // Read only its four corners after settling, never one native call per point/frame.
+        try {
+          const corners = await Promise.all(
+            [
+              [0, 0],
+              [next.width, 0],
+              [next.width, next.height],
+              [0, next.height],
+            ].map((corner) => map.getCoordinateFromView(corner)),
+          );
+          if (corners.every((corner) => corner.length >= 2 && corner.every(Number.isFinite))) {
+            footprint = corners.map(([longitude, latitude]) => [longitude, latitude]);
+          }
+        } catch {
+          // Retain bounds-based reporting if the native map becomes unavailable.
+        }
+      }
+      if (revision !== cameraRevisionRef.current || !navigation.isFocused() || map !== mapViewRef.current) return;
       lastReportedCameraStateRef.current = next;
-      onCameraChange?.(next);
+      onCameraChange?.({ zoom: next.zoom, bounds: next.bounds, footprint });
     },
     { wait: CAMERA_CHANGE_DEBOUNCE_MS },
   );
@@ -267,6 +307,8 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
       }
 
       return () => {
+        cameraRevisionRef.current++;
+        lastReportedCameraStateRef.current = null;
         cancelCameraChange();
       };
     }, [cancelCameraChange, isPlanMode]),
@@ -280,6 +322,8 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
 
   const handleCameraChanged = useCallback(
     (state: MapState) => {
+      // Invalidate corner reads as soon as another native camera event arrives.
+      cameraRevisionRef.current++;
       // TabSlot restores the native map from display:none when this route regains
       // focus. Mapbox then emits one non-gesture event with the previous zoom but
       // bounds measured from the collapsed viewport. Keeping that event would make
@@ -300,6 +344,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
       }
       // Update marker viewports on each camera event; debounce only the external settled callback.
       const next = updateCameraState(state);
+      currentCameraStateRef.current = next;
       onViewportChange?.(next);
       reportCameraChange(next);
     },
@@ -437,6 +482,15 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
         compassPosition={{ top: insets.top + MAP_COMPASS_TOP_OFFSET, right: 8 }}
         scaleBarEnabled={true}
         scaleBarPosition={scaleBarPosition ?? { right: 0, bottom: 8 }}
+        onLayout={({ nativeEvent: { layout } }) => {
+          if (mapSizeRef.current.width === layout.width && mapSizeRef.current.height === layout.height) return;
+          mapSizeRef.current = { width: layout.width, height: layout.height };
+          cameraRevisionRef.current++;
+          lastReportedCameraStateRef.current = null;
+          if (currentCameraStateRef.current) {
+            reportCameraChange({ ...currentCameraStateRef.current, ...mapSizeRef.current });
+          }
+        }}
         onCameraChanged={handleCameraChanged}
         onDidFinishLoadingMap={handleMapReady}
         onPress={isPlanMode ? handlePlanMapPress : clearSelectedMapPoint}

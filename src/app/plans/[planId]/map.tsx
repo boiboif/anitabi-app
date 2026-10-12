@@ -21,6 +21,7 @@ import type { Bangumi, Point } from '@/services/types';
 import { type MapPointReference } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
 import { usePlans } from '@/store/use-plans';
+import type { MapViewportState } from '@/utils/map-viewport';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import type { Camera } from '@rnmapbox/maps';
 import { ArrowLeft, List } from '@tamagui/lucide-icons-2';
@@ -30,10 +31,7 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, View, YStack } from 'tamagui';
 
-type CameraState = {
-  zoom: number;
-  bounds: { ne: [number, number]; sw: [number, number] } | null;
-};
+type CameraState = MapViewportState;
 
 const POINT_CAMERA_TOP_PADDING = 110;
 const POINT_CAMERA_BOTTOM_PADDING = 24;
@@ -398,6 +396,7 @@ export default function PlanMapScreen() {
               bangumis={bangumis}
               zoom={cameraState.zoom}
               bounds={cameraState.bounds}
+              footprint={cameraState.footprint}
               alwaysVisible
               showOpenedBangumiDetails={false}
               filter={{
