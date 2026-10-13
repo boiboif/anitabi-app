@@ -41,7 +41,8 @@ export const createHandler = (params: CreateHandlerParams) => {
         merged.data = data;
       }
 
-      const response = await service.request<any, Res>(merged);
+      // 响应拦截器已返回 response.data，这里声明解包后的业务数据类型。
+      const response = (await service.request<any, Res>(merged)) as Res;
 
       if (adaptor) {
         const { success, msg, code } = adaptor(response ?? {}, merged);
