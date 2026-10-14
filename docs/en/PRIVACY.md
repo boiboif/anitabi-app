@@ -1,6 +1,6 @@
 # Privacy Policy
 
-Last updated: September 24, 2026
+Last updated: October 15, 2026
 
 This policy explains how Anitabi App and the project website handle information related to their use.
 
@@ -16,11 +16,13 @@ Uninstalling the app or clearing its data may delete this content. Your device's
 
 The app requests permissions only when you use the corresponding feature:
 
-- **Location**: Shows your current position on the map.
+- **Location**: Shows your position on the map and calculates straight-line distances to plan locations on your device when you choose to view them by distance.
 - **Camera**: Captures pilgrimage comparison photos and scans pilgrimage-plan QR codes.
 - **Photos and media library**: Selects reference images and saves generated images.
 
 You can deny or revoke permissions in system settings, but the related features may become unavailable. This project does not actively upload your location or image content to its own servers.
+
+Viewing plan locations by distance requests foreground location permission separately. Its location listener stops when you turn off distance viewing, leave the plan page, or move the app to the background. Your current location and calculated distances are not written to the plan, and movement history is not stored.
 
 ## 3. Third-party services
 

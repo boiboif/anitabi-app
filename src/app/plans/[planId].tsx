@@ -1,7 +1,9 @@
 import { ActionSheet, type ActionSheetRef } from '@/components/ui/action-sheet';
 import PointListCard from '@/components/point/point-list-card';
+import PlanListSettingsSheet from '@/components/plan/plan-list-settings-sheet';
 import StableReorderableList, { type StableReorderableListRenderItem } from '@/components/ui/stable-reorderable-list';
 import { StrictButton as Button } from '@/components/ui/strict-button';
+import { usePlanDistanceLocation } from '@/hooks/use-plan-distance-location';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { sharePlanFile } from '@/lib/plan-share-files';
 import { createPlanShareBundle } from '@/lib/plan-sharing';
@@ -10,13 +12,16 @@ import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapData } from '@/store/use-map-data';
 import { usePlans } from '@/store/use-plans';
+import { sortPlanPointsByDistance } from '@/utils/plan-point-distances';
 import {
   ArrowDownUp,
   Check,
   FileJson,
   GripVertical,
   Image as ImageIcon,
-  ListTodo,
+  SlidersHorizontal,
+  Square,
+  SquareCheckBig,
   MapPinned,
   MoreHorizontal,
   Pencil,
@@ -25,9 +30,9 @@ import {
   Trash2,
 } from '@tamagui/lucide-icons-2';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { type ReactNode, useCallback, useMemo, useRef, useState } from 'react';
+import { type ReactNode, createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Pressable } from 'react-native';
+import { Alert, Linking, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, View, XStack, YStack, useTheme } from 'tamagui';
 
@@ -38,17 +43,24 @@ type ResolvedItem = {
   point?: Point;
   bangumi?: Bangumi;
   imageSource?: string;
+  distanceMeters?: number | null;
 };
 
 type DraggablePointRowProps = {
+  planId: string;
   resolved: ResolvedItem;
   onPress?: () => void;
   onToggle: () => void;
-  onRemove: () => void;
+  onSelect: () => void;
   theme: ReturnType<typeof useTheme>;
   sorting: boolean;
+  showDistance: boolean;
   dragHandle?: ReactNode;
 };
+
+// Cached list rows must receive selection changes without replacing their data
+// or resetting drag state. Only the checkbox subscribes to this page-local state.
+const PlanSelectionContext = createContext<{ planId: string; points: ReadonlyMap<string, number> } | null>(null);
 
 function ReorderHandle() {
   const { t } = useTranslation();
@@ -67,37 +79,64 @@ function ReorderHandle() {
   );
 }
 
-function RemovePointButton({ onRemove }: { onRemove: () => void }) {
+function SelectPointButton({
+  planId,
+  item,
+  onSelect,
+}: {
+  planId: string;
+  item: Pick<ResolvedItem['item'], 'key' | 'addedAt'>;
+  onSelect: () => void;
+}) {
   const { t } = useTranslation();
+  const selection = useContext(PlanSelectionContext);
+  const selected = selection?.planId === planId && selection.points.get(item.key) === item.addedAt;
   return (
     <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={t('removeLocation', { defaultValue: '移除巡礼点' })}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: selected }}
+      accessibilityLabel={
+        selected
+          ? t('planDeselectLocation', { defaultValue: '取消选择巡礼点' })
+          : t('planSelectLocation', { defaultValue: '选择巡礼点' })
+      }
       hitSlop={8}
       onPress={(event) => {
         event.stopPropagation();
-        onRemove();
+        onSelect();
       }}
       style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
     >
       <View width={44} height="100%" items="center" justify="center">
-        <Trash2 size={17} color="$color11" />
+        {selected ? <SquareCheckBig size={20} color="$primary" /> : <Square size={20} color="$color11" />}
       </View>
     </Pressable>
   );
 }
 
 function DraggablePointRow({
+  planId,
   resolved,
   onPress,
   onToggle,
-  onRemove,
+  onSelect,
   theme,
   sorting,
+  showDistance,
   dragHandle,
 }: DraggablePointRowProps) {
   const { t, i18n } = useTranslation();
   const { item, point, bangumi } = resolved;
+  const distance = resolved.distanceMeters;
+  const distanceLabel =
+    typeof distance !== 'number'
+      ? t('planDistanceUnknown', { defaultValue: '距离未知' })
+      : distance < 1_000
+        ? t('planDistanceMeters', { defaultValue: '约 {{distance}} 米', distance: Math.round(distance) })
+        : t('planDistanceKilometers', {
+            defaultValue: '约 {{distance}} 公里',
+            distance: (distance / 1_000).toFixed(1),
+          });
 
   return (
     <PointListCard
@@ -106,6 +145,7 @@ function DraggablePointRow({
       title={point ? getPointTitle(point, i18n.resolvedLanguage) : item.snapshot.pointName}
       subtitle={bangumi ? getBangumiTitle(bangumi, i18n.resolvedLanguage) : item.snapshot.bangumiName}
       description={point?.mark || item.snapshot.pointMark}
+      meta={showDistance ? distanceLabel : undefined}
       image={point?.image || item.snapshot.pointImage}
       cover={bangumi?.cover || item.snapshot.bangumiCover}
       previewEnabled={!sorting}
@@ -117,7 +157,7 @@ function DraggablePointRow({
       opacity={item.completed ? 0.58 : 1}
       disabled={sorting || !point || !bangumi}
       onPress={onPress}
-      leading={sorting ? <RemovePointButton onRemove={onRemove} /> : null}
+      leading={sorting ? <SelectPointButton planId={planId} item={item} onSelect={onSelect} /> : null}
       trailing={sorting ? dragHandle : null}
       statusAction={
         !sorting ? (
@@ -166,14 +206,21 @@ export default function PlanDetailScreen() {
   const plan = usePlans((state) => state.plans.find((item) => item.id === planId));
   const deletePlan = usePlans((state) => state.deletePlan);
   const togglePoint = usePlans((state) => state.togglePoint);
-  const removePoint = usePlans((state) => state.removePoint);
+  const removePoints = usePlans((state) => state.removePoints);
   const reorderPoints = usePlans((state) => state.reorderPoints);
   const data = useMapData((state) => state.data);
   const menuSheetRef = useRef<ActionSheetRef>(null);
   const overflowSheetRef = useRef<ActionSheetRef>(null);
+  const listSettingsSheetRef = useRef<ActionSheetRef>(null);
   const [sorting, setSorting] = useState(false);
   const [showIncompleteOnly, setShowIncompleteOnly] = useState(false);
+  const [sortByDistance, setSortByDistance] = useState(false);
+  const [selection, setSelection] = useState({ planId, points: new Map<string, number>() });
   const hasPlanPoints = (plan?.items.length ?? 0) > 0;
+  const selectedItems = (plan?.items ?? []).filter(
+    (item) => selection.planId === planId && selection.points.get(item.key) === item.addedAt,
+  );
+  const distanceLocation = usePlanDistanceLocation(sortByDistance && hasPlanPoints && !sorting);
 
   const bangumiById = useMemo(
     () => new Map((data?.data.bangumis ?? []).map((bangumi) => [bangumi.id, bangumi])),
@@ -204,16 +251,23 @@ export default function PlanDetailScreen() {
     });
   }, [bangumiById, plan]);
 
-  const visibleItems = useMemo(
+  const filteredItems = useMemo(
     () => (showIncompleteOnly ? resolvedItems.filter((resolved) => !resolved.item.completed) : resolvedItems),
     [resolvedItems, showIncompleteOnly],
   );
+  const visibleItems = sortByDistance
+    ? sortPlanPointsByDistance(filteredItems, distanceLocation.location)
+    : filteredItems;
 
   const toggleSorting = useCallback(() => {
     if (!hasPlanPoints) return;
-    if (!sorting) setShowIncompleteOnly(false);
+    if (!sorting) {
+      setShowIncompleteOnly(false);
+      setSortByDistance(false);
+    }
+    setSelection({ planId, points: new Map() });
     setSorting((current) => !current);
-  }, [hasPlanPoints, sorting]);
+  }, [hasPlanPoints, planId, sorting]);
 
   const handleReorder = useCallback(
     (nextOrderIds: string[]) => {
@@ -222,13 +276,16 @@ export default function PlanDetailScreen() {
     [planId, reorderPoints],
   );
 
-  const handleRemove = useCallback(
-    (itemKey: string) => {
-      const removingLastPoint = plan?.items.length === 1;
-      removePoint(planId, itemKey);
-      if (removingLastPoint) setSorting(false);
+  const toggleSelectedPoint = useCallback(
+    (item: ResolvedItem['item']) => {
+      setSelection((current) => {
+        const points = new Map(current.planId === planId ? current.points : []);
+        if (points.get(item.key) === item.addedAt) points.delete(item.key);
+        else points.set(item.key, item.addedAt);
+        return { planId, points };
+      });
     },
-    [plan?.items.length, planId, removePoint],
+    [planId],
   );
 
   const openPlanMap = useCallback(() => {
@@ -243,6 +300,7 @@ export default function PlanDetailScreen() {
   const renderListItem = useCallback(
     ({ item, dragHandle }: StableReorderableListRenderItem<ResolvedItem>) => (
       <DraggablePointRow
+        planId={planId}
         resolved={item}
         onPress={
           sorting
@@ -261,13 +319,14 @@ export default function PlanDetailScreen() {
               }
         }
         onToggle={() => togglePoint(planId, item.item.key)}
-        onRemove={() => handleRemove(item.item.key)}
+        onSelect={() => toggleSelectedPoint(item.item)}
         dragHandle={dragHandle}
         theme={theme}
         sorting={sorting}
+        showDistance={sortByDistance}
       />
     ),
-    [handleRemove, planId, router, sorting, theme, togglePoint],
+    [planId, router, sortByDistance, sorting, theme, togglePoint, toggleSelectedPoint],
   );
 
   const keyExtractor = useCallback((item: ResolvedItem) => item.id, []);
@@ -309,6 +368,30 @@ export default function PlanDetailScreen() {
   }
 
   const completed = plan.items.filter((item) => item.completed).length;
+  const allSelected = hasPlanPoints && selectedItems.length === plan.items.length;
+  const confirmRemoveSelected = () => {
+    if (selectedItems.length === 0) return;
+    const targets = selectedItems.map(({ key, addedAt }) => ({ key, addedAt }));
+    Alert.alert(
+      t('planDeleteSelectedLocations', { defaultValue: '删除所选点位' }),
+      t('planDeleteSelectedLocationsConfirm', {
+        defaultValue: '确定从当前计划删除所选的 {{count}} 个点位吗？',
+        count: targets.length,
+      }),
+      [
+        { text: t('cancel', { defaultValue: '取消' }), style: 'cancel' },
+        {
+          text: t('delete', { defaultValue: '删除' }),
+          style: 'destructive',
+          onPress: () => {
+            removePoints(planId, targets);
+            setSelection({ planId, points: new Map() });
+            if (!usePlans.getState().plans.find((current) => current.id === planId)?.items.length) setSorting(false);
+          },
+        },
+      ],
+    );
+  };
   const confirmDelete = () =>
     Alert.alert(
       t('deletePilgrimagePlan', { defaultValue: '删除巡礼计划' }),
@@ -389,16 +472,13 @@ export default function PlanDetailScreen() {
                 chromeless
                 circular
                 size="$3"
-                icon={<ListTodo size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />}
-                color={!hasPlanPoints || sorting ? '$color8' : showIncompleteOnly ? '$primary' : '$color12'}
-                disabled={!hasPlanPoints || sorting}
-                onPress={() => setShowIncompleteOnly((current) => !current)}
-                aria-pressed={showIncompleteOnly}
-                aria-label={
-                  showIncompleteOnly
-                    ? t('showAllLocations', { defaultValue: '显示全部点位' })
-                    : t('showIncompleteLocationsOnly', { defaultValue: '仅显示未完成点位' })
+                icon={<SlidersHorizontal size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />}
+                color={
+                  !hasPlanPoints || sorting ? '$color8' : showIncompleteOnly || sortByDistance ? '$primary' : '$color12'
                 }
+                disabled={!hasPlanPoints || sorting}
+                onPress={() => listSettingsSheetRef.current?.present()}
+                aria-label={t('planListSettings', { defaultValue: '列表设置' })}
               />
               <Button
                 chromeless
@@ -460,6 +540,70 @@ export default function PlanDetailScreen() {
 
           {/* <XStack flex={1}></XStack> */}
         </XStack>
+        {sorting ? (
+          <XStack px="$3" pb="$2" items="center" gap="$2">
+            <Button
+              size="$2"
+              chromeless
+              color="$primary"
+              onPress={() =>
+                setSelection({
+                  planId,
+                  points: allSelected ? new Map() : new Map(plan.items.map((item) => [item.key, item.addedAt])),
+                })
+              }
+              accessibilityLabel={
+                allSelected
+                  ? t('planDeselectAllLocations', { defaultValue: '取消全选' })
+                  : t('planSelectAllLocations', { defaultValue: '全选' })
+              }
+            >
+              {allSelected
+                ? t('planDeselectAllLocations', { defaultValue: '取消全选' })
+                : t('planSelectAllLocations', { defaultValue: '全选' })}
+            </Button>
+            <Text flex={1} fontSize="$caption" color="$color11">
+              {t('planSelectedLocations', { defaultValue: '已选择 {{count}} 个点位', count: selectedItems.length })}
+            </Text>
+            <Button
+              size="$2"
+              fontSize="$caption"
+              color="$red10"
+              disabled={selectedItems.length === 0}
+              onPress={confirmRemoveSelected}
+              accessibilityLabel={t('planDeleteSelectedLocations', { defaultValue: '删除所选点位' })}
+            >
+              {t('planDeleteSelectedLocations', { defaultValue: '删除所选点位' })}
+            </Button>
+          </XStack>
+        ) : null}
+        {sortByDistance && hasPlanPoints ? (
+          <YStack px="$4" pb="$2" gap="$1">
+            <Text fontSize="$caption" color="$color10">
+              {distanceLocation.error === 'permission'
+                ? t('planDistancePermissionRequired', { defaultValue: '请允许使用位置后查看距离' })
+                : distanceLocation.error === 'services'
+                  ? t('planDistanceServicesDisabled', { defaultValue: '请开启系统定位服务后重试' })
+                  : distanceLocation.error
+                    ? t('planDistanceLocationFailed', { defaultValue: '暂时无法获取位置，请重试' })
+                    : distanceLocation.isLocating
+                      ? t('planDistanceLocating', { defaultValue: '正在获取当前位置…' })
+                      : t('planDistanceStraightLine', { defaultValue: '显示直线距离，不改变计划顺序' })}
+            </Text>
+            {distanceLocation.error ? (
+              <XStack gap="$2">
+                <Button size="$2" fontSize="$caption" onPress={distanceLocation.retry}>
+                  {t('planDistanceRetry', { defaultValue: '重试定位' })}
+                </Button>
+                {distanceLocation.error === 'permission' ? (
+                  <Button size="$2" fontSize="$caption" onPress={() => void Linking.openSettings().catch(() => {})}>
+                    {t('planDistanceOpenSettings', { defaultValue: '打开设置' })}
+                  </Button>
+                ) : null}
+              </XStack>
+            ) : null}
+          </YStack>
+        ) : null}
         {visibleItems.length === 0 ? (
           <YStack flex={1} minH={220} items="center" justify="center">
             <Text color="$color11">
@@ -469,29 +613,39 @@ export default function PlanDetailScreen() {
             </Text>
           </YStack>
         ) : (
-          <StableReorderableList
-            data={visibleItems}
-            enabled={sorting}
-            itemHeight={PLAN_POINT_ROW_HEIGHT}
-            keyExtractor={keyExtractor}
-            renderItem={renderListItem}
-            renderDragHandle={renderDragHandle}
-            renderDragPreview={renderDragPreview}
-            onReorder={handleReorder}
-            dragPreviewHeight={DRAG_PREVIEW_HEIGHT}
-            dragPreviewHorizontalInset={54}
-            indicatorColor={theme.primary.val}
-            indicatorInsetStart={44}
-            autoscrollThreshold={REORDER_AUTOSCROLL_THRESHOLD}
-            autoscrollMaxSpeed={REORDER_AUTOSCROLL_MAX_SPEED}
-            maxFrameDurationMs={REORDER_MAX_FRAME_DURATION_MS}
-            contentPaddingHorizontal={12}
-            contentPaddingBottom={insets.bottom + 30}
-            style={{ flex: 1, backgroundColor: theme.background?.val }}
-          />
+          <PlanSelectionContext.Provider value={selection}>
+            <StableReorderableList
+              data={visibleItems}
+              enabled={sorting}
+              itemHeight={PLAN_POINT_ROW_HEIGHT}
+              keyExtractor={keyExtractor}
+              renderItem={renderListItem}
+              renderDragHandle={renderDragHandle}
+              renderDragPreview={renderDragPreview}
+              onReorder={handleReorder}
+              dragPreviewHeight={DRAG_PREVIEW_HEIGHT}
+              dragPreviewHorizontalInset={54}
+              indicatorColor={theme.primary.val}
+              indicatorInsetStart={44}
+              autoscrollThreshold={REORDER_AUTOSCROLL_THRESHOLD}
+              autoscrollMaxSpeed={REORDER_AUTOSCROLL_MAX_SPEED}
+              maxFrameDurationMs={REORDER_MAX_FRAME_DURATION_MS}
+              contentPaddingHorizontal={12}
+              contentPaddingBottom={insets.bottom + 30}
+              style={{ flex: 1, backgroundColor: theme.background?.val }}
+            />
+          </PlanSelectionContext.Provider>
         )}
       </YStack>
 
+      <PlanListSettingsSheet
+        ref={listSettingsSheetRef}
+        showIncompleteOnly={showIncompleteOnly}
+        sortByDistance={sortByDistance}
+        disabled={!hasPlanPoints || sorting}
+        onIncompleteChange={setShowIncompleteOnly}
+        onDistanceChange={setSortByDistance}
+      />
       <ActionSheet
         ref={menuSheetRef}
         primaryAction={{

@@ -1,4 +1,5 @@
 import PointListCard from '@/components/point/point-list-card';
+import PlanPointBatchBrowser from '@/components/plan/plan-point-batch-browser';
 import { StrictButton as Button } from '@/components/ui/strict-button';
 import { type FavoritePoint } from '@/lib/favorite-storage';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
@@ -11,11 +12,11 @@ import { resolveFavoritePoints } from '@/utils/resolve-favorite-points';
 import { FlashList } from '@shopify/flash-list';
 import { Check, MapPin, Plus } from '@tamagui/lucide-icons-2';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Text, View, YStack, useTheme } from 'tamagui';
+import { Text, View, XStack, YStack, useTheme } from 'tamagui';
 
 type AvailableFavorite = {
   favorite: FavoritePoint;
@@ -24,8 +25,7 @@ type AvailableFavorite = {
 };
 
 type AddPointListItem =
-  | { type: 'date'; id: string; label: string }
-  | { type: 'point'; id: string; item: AvailableFavorite };
+  { type: 'date'; id: string; label: string } | { type: 'point'; id: string; item: AvailableFavorite };
 
 function getDateGroup(timestamp: number, language: string, todayLabel: string, yesterdayLabel: string): string {
   const today = new Date();
@@ -54,6 +54,7 @@ export default function AddPlanPointsScreen() {
   const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const [source, setSource] = useState<'favorites' | 'work'>('favorites');
   const favorites = useFavoritePoints((state) => state.favoritePoints);
   const data = useMapData((state) => state.data);
   const plan = usePlans((state) => state.plans.find((item) => item.id === planId));
@@ -177,7 +178,39 @@ export default function AddPlanPointsScreen() {
   return (
     <>
       <Stack.Screen options={{ title: t('addLocations', { defaultValue: '添加巡礼点' }) }} />
-      {available.length === 0 ? (
+      <XStack bg="$background" px="$3" py="$2" gap="$2">
+        {(
+          [
+            { key: 'favorites', label: t('fromFavoriteLocations', { defaultValue: '从收藏添加' }) },
+            { key: 'work', label: t('byWorkAndGroup', { defaultValue: '按作品与分组' }) },
+          ] as const
+        ).map((option) => (
+          <View
+            key={option.key}
+            flex={1}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: source === option.key }}
+            onPress={() => setSource(option.key)}
+            pressStyle={{ opacity: 0.65 }}
+          >
+            <View
+              minH={40}
+              px="$2"
+              rounded="$2"
+              items="center"
+              justify="center"
+              bg={source === option.key ? '$color3' : '$color2'}
+            >
+              <Text fontSize="$footnote" fontWeight="600" color={source === option.key ? '$primary' : '$color11'}>
+                {option.label}
+              </Text>
+            </View>
+          </View>
+        ))}
+      </XStack>
+      {source === 'work' ? (
+        <PlanPointBatchBrowser planId={planId} />
+      ) : available.length === 0 ? (
         <YStack
           flex={1}
           minH={260}
