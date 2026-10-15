@@ -1,4 +1,5 @@
 import CameraRatioPicker from '@/components/comparison-camera/camera-ratio-picker';
+import { ComparisonImagePressable } from '@/components/comparison-camera/comparison-image-pressable';
 import {
   COMPARISON_CAMERA_BOTTOM_REGION_HEIGHT,
   COMPARISON_CAMERA_TOP_REGION_HEIGHT,
@@ -903,7 +904,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
 
   const referencePane = (
     <View width={referenceFrame.width} height={referenceFrame.height} overflow="hidden" bg="#090909">
-      <Pressable
+      <ComparisonImagePressable
         accessibilityRole="button"
         accessibilityLabel={t('chooseReferenceImage', { defaultValue: '选择参考图' })}
         onPress={pickReference}
@@ -927,7 +928,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
             </View>
           )}
         </View>
-      </Pressable>
+      </ComparisonImagePressable>
       {restoreReferenceControl}
     </View>
   );

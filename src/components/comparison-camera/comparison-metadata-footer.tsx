@@ -12,7 +12,7 @@ export default function ComparisonMetadataFooter({ metadata, width }: { metadata
   const coordinates = metadata.rows.find((row) => row.field === 'coordinates')?.value;
   const capturedAt = metadata.rows.find((row) => row.field === 'capturedAt')?.value;
   return (
-    <YStack width={width} bg="white" px={6 * scale} py={6 * scale} gap={2 * scale}>
+    <YStack width={width} bg="white" px={6 * scale} py={5 * scale} gap={1 * scale}>
       {pointName || metadata.name ? (
         <XStack items="baseline" justify={pointName ? 'space-between' : 'flex-end'} gap={8 * scale}>
           {pointName ? (
@@ -44,7 +44,7 @@ export default function ComparisonMetadataFooter({ metadata, width }: { metadata
         </XStack>
       ) : null}
       {workAndScene ? (
-        <Text allowFontScaling={false} fontSize={9 * scale} lineHeight={12 * scale} color="#71717a">
+        <Text allowFontScaling={false} fontSize={8 * scale} lineHeight={12 * scale} color="#71717a">
           {workAndScene}
         </Text>
       ) : null}
@@ -59,7 +59,7 @@ export default function ComparisonMetadataFooter({ metadata, width }: { metadata
                 minW={0}
                 shrink={1}
                 allowFontScaling={false}
-                fontSize={8 * scale}
+                fontSize={7 * scale}
                 lineHeight={11 * scale}
                 color="#8a8a94"
               >
@@ -72,7 +72,7 @@ export default function ComparisonMetadataFooter({ metadata, width }: { metadata
               minW={0}
               shrink={1}
               allowFontScaling={false}
-              fontSize={9 * scale}
+              fontSize={7 * scale}
               lineHeight={12 * scale}
               color="#8a8a94"
               text="right"

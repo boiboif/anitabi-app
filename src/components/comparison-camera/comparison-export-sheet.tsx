@@ -3,6 +3,8 @@ import { ThemeSwitch } from '@/components/ui/theme-switch';
 import {
   COMPARISON_BORDER_COLORS,
   COMPARISON_BORDER_WIDTH_MAX,
+  COMPARISON_EXPORT_LAYOUTS,
+  COMPARISON_REFERENCE_FITS,
   normalizeComparisonExportSettings,
   resolveComparisonBorderColor,
   type ComparisonExportSettings,
@@ -14,8 +16,8 @@ import { ActivityIndicator, Pressable } from 'react-native';
 import { GestureHandlerRootView, ScrollView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, useTheme, View, XStack, YStack } from 'tamagui';
+import { ScrollAwareSlider } from '../ui/scroll-aware-slider';
 import { ThemeInput } from '../ui/theme-input';
-import { ThemeSlider } from '../ui/theme-slider';
 
 export type ComparisonExportSheetHandle = {
   present: (settings: ComparisonExportSettings) => Promise<void>;
@@ -29,6 +31,50 @@ type Props = {
   ready: boolean;
   saving: boolean;
 };
+
+function ChoiceRow<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+  inline = false,
+}: {
+  label: string;
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (value: T) => void;
+  inline?: boolean;
+}) {
+  return (
+    <View
+      flexDirection={inline ? 'row' : 'column'}
+      items={inline ? 'center' : undefined}
+      minH={inline ? 46 : undefined}
+      gap={8}
+      py={inline ? 0 : 8}
+    >
+      <Text flex={inline ? 1 : undefined} minW={0} color="$color12" fontSize="$body">
+        {label}
+      </Text>
+      <XStack gap={8} flexWrap={inline ? 'nowrap' : 'wrap'} accessibilityRole="radiogroup" accessibilityLabel={label}>
+        {options.map((option) => (
+          <Pressable
+            key={option.value}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: value === option.value }}
+            onPress={() => onChange(option.value)}
+          >
+            <XStack minH={36} px={10} items="center" rounded={8} bg={value === option.value ? '$color4' : '$color2'}>
+              <Text color={value === option.value ? '$primary' : '$color11'} fontSize="$footnote">
+                {option.label}
+              </Text>
+            </XStack>
+          </Pressable>
+        ))}
+      </XStack>
+    </View>
+  );
+}
 
 function ToggleRow({
   label,
@@ -54,6 +100,7 @@ export default function ComparisonExportSheet({ sheetRef, onExport, onDismiss, r
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const nativeSheet = useRef<TrueSheet>(null);
+  const [footerHeight, setFooterHeight] = useState(0);
   const [settings, setSettings] = useState(() => normalizeComparisonExportSettings(undefined));
   const latestSettings = useRef(settings);
   const onChange = (nextSettings: ComparisonExportSettings) => {
@@ -81,8 +128,11 @@ export default function ComparisonExportSheet({ sheetRef, onExport, onDismiss, r
   return (
     <TrueSheet
       ref={nativeSheet}
-      detents={[0.6, 1]}
+      detents={[0.7, 1]}
       scrollable
+      // The native keyboard scroll target clears the keyboard, while our fixed footer
+      // sits above it. Include the footer's measured height in the input clearance.
+      scrollableOptions={{ keyboardScrollOffset: footerHeight + 24 }}
       cornerRadius={20}
       backgroundColor={theme.color2.val}
       grabberOptions={{ color: theme.primary.val, adaptive: false, topMargin: 8, width: 42, height: 5 }}
@@ -97,7 +147,14 @@ export default function ComparisonExportSheet({ sheetRef, onExport, onDismiss, r
         </YStack>
       }
       footer={
-        <XStack px={16} pt={12} pb={Math.max(insets.bottom, 12)} gap={12} bg="$color2">
+        <XStack
+          px={16}
+          pt={12}
+          pb={Math.max(insets.bottom, 12)}
+          gap={12}
+          bg="$color2"
+          onLayout={(event) => setFooterHeight(event.nativeEvent.layout.height)}
+        >
           <Button
             flex={1}
             bg="$color4"
@@ -121,9 +178,10 @@ export default function ComparisonExportSheet({ sheetRef, onExport, onDismiss, r
         </XStack>
       }
     >
-      <GestureHandlerRootView style={{ flexGrow: 1 }} pointerEvents={saving ? 'none' : 'auto'}>
+      <GestureHandlerRootView style={{ flex: 1 }} pointerEvents={saving ? 'none' : 'auto'}>
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 80 }}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: footerHeight + 12 }}
           keyboardShouldPersistTaps="handled"
         >
           <View gap={10}>
@@ -132,6 +190,33 @@ export default function ComparisonExportSheet({ sheetRef, onExport, onDismiss, r
                 {t('comparisonExportAppearance', { defaultValue: '外观' })}
               </Text>
               <View bg="$color1" rounded={10} px={12} py={8} gap={4}>
+                <ChoiceRow
+                  inline
+                  label={t('comparisonExportLayout')}
+                  value={settings.layout}
+                  options={COMPARISON_EXPORT_LAYOUTS.map((value) => ({
+                    value,
+                    label: t(value === 'vertical' ? 'comparisonExportVertical' : 'comparisonExportHorizontal'),
+                  }))}
+                  onChange={(layout) => onChange({ ...settings, layout })}
+                />
+                <ToggleRow
+                  label={t('comparisonExportMatchPhotoRatio')}
+                  checked={settings.matchPhotoRatio}
+                  onChange={(matchPhotoRatio) => onChange({ ...settings, matchPhotoRatio })}
+                />
+                {settings.matchPhotoRatio ? (
+                  <ChoiceRow
+                    inline
+                    label={t('comparisonExportReferenceFit')}
+                    value={settings.referenceFit}
+                    options={COMPARISON_REFERENCE_FITS.map((value) => ({
+                      value,
+                      label: t(value === 'cover' ? 'comparisonExportCover' : 'comparisonExportContain'),
+                    }))}
+                    onChange={(referenceFit) => onChange({ ...settings, referenceFit })}
+                  />
+                ) : null}
                 <XStack items="center" justify="space-between">
                   <Text color="$color12" fontSize="$body">
                     {t('comparisonExportBorderWidth', { defaultValue: '边框宽度' })}
@@ -140,14 +225,14 @@ export default function ComparisonExportSheet({ sheetRef, onExport, onDismiss, r
                     {settings.borderWidth} px
                   </Text>
                 </XStack>
-                <ThemeSlider
-                  my="$2.5"
+                <ScrollAwareSlider
                   min={0}
                   max={COMPARISON_BORDER_WIDTH_MAX}
                   step={2}
-                  value={[settings.borderWidth]}
-                  aria-label={t('comparisonExportBorderWidth')}
-                  onValueChange={(values) => onChange({ ...settings, borderWidth: values[0] ?? 0 })}
+                  value={settings.borderWidth}
+                  disabled={saving}
+                  accessibilityLabel={t('comparisonExportBorderWidth')}
+                  onValueChange={(borderWidth) => onChange({ ...settings, borderWidth })}
                 />
                 <Text color="$color12" fontSize="$body">
                   {t('comparisonExportBorderColor', { defaultValue: '边框颜色' })}
@@ -190,6 +275,27 @@ export default function ComparisonExportSheet({ sheetRef, onExport, onDismiss, r
                       </Pressable>
                     );
                   })}
+                </XStack>
+                <XStack minH={46} items="center" gap={8}>
+                  <Text flex={1} color="$color12" fontSize="$body">
+                    {t('comparisonExportBorderScope')}
+                  </Text>
+                  {(['showOuterBorder', 'showInnerBorder'] as const).map((field) => (
+                    <Pressable
+                      key={field}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: settings[field] }}
+                      onPress={() => onChange({ ...settings, [field]: !settings[field] })}
+                    >
+                      <XStack minH={36} px={10} items="center" rounded={8} bg={settings[field] ? '$color4' : '$color2'}>
+                        <Text color={settings[field] ? '$primary' : '$color11'} fontSize="$footnote">
+                          {t(
+                            field === 'showOuterBorder' ? 'comparisonExportOuterBorder' : 'comparisonExportInnerBorder',
+                          )}
+                        </Text>
+                      </XStack>
+                    </Pressable>
+                  ))}
                 </XStack>
               </View>
             </View>

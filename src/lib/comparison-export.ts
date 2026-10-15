@@ -2,10 +2,17 @@ export const COMPARISON_EXPORT_WIDTH = 2160;
 export const COMPARISON_BORDER_WIDTH_MAX = 32;
 export const COMPARISON_BORDER_COLORS = ['white', 'black', 'theme'] as const;
 export type ComparisonBorderColor = (typeof COMPARISON_BORDER_COLORS)[number];
+export const COMPARISON_EXPORT_LAYOUTS = ['vertical', 'horizontal'] as const;
+export const COMPARISON_REFERENCE_FITS = ['cover', 'contain'] as const;
 
 export type ComparisonExportSettings = {
   borderWidth: number;
   borderColor: ComparisonBorderColor;
+  showOuterBorder: boolean;
+  showInnerBorder: boolean;
+  layout: (typeof COMPARISON_EXPORT_LAYOUTS)[number];
+  matchPhotoRatio: boolean;
+  referenceFit: (typeof COMPARISON_REFERENCE_FITS)[number];
   showName: boolean;
   name: string;
   showCapturedAt: boolean;
@@ -18,6 +25,11 @@ export type ComparisonExportSettings = {
 export const DEFAULT_COMPARISON_EXPORT_SETTINGS: ComparisonExportSettings = {
   borderWidth: 8,
   borderColor: 'white',
+  showOuterBorder: true,
+  showInnerBorder: true,
+  layout: 'vertical',
+  matchPhotoRatio: false,
+  referenceFit: 'cover',
   showName: false,
   name: '',
   showCapturedAt: true,
@@ -37,6 +49,11 @@ export function normalizeComparisonExportSettings(value: unknown): ComparisonExp
         ? Math.max(0, Math.min(COMPARISON_BORDER_WIDTH_MAX, Math.round(source.borderWidth)))
         : defaults.borderWidth,
     borderColor: COMPARISON_BORDER_COLORS.find((color) => color === source.borderColor) ?? defaults.borderColor,
+    showOuterBorder: typeof source.showOuterBorder === 'boolean' ? source.showOuterBorder : defaults.showOuterBorder,
+    showInnerBorder: typeof source.showInnerBorder === 'boolean' ? source.showInnerBorder : defaults.showInnerBorder,
+    layout: COMPARISON_EXPORT_LAYOUTS.find((layout) => layout === source.layout) ?? defaults.layout,
+    matchPhotoRatio: typeof source.matchPhotoRatio === 'boolean' ? source.matchPhotoRatio : defaults.matchPhotoRatio,
+    referenceFit: COMPARISON_REFERENCE_FITS.find((fit) => fit === source.referenceFit) ?? defaults.referenceFit,
     name: typeof source.name === 'string' ? source.name.slice(0, 40) : '',
     showName: source.showName === true,
     showCapturedAt: typeof source.showCapturedAt === 'boolean' ? source.showCapturedAt : defaults.showCapturedAt,
@@ -93,23 +110,42 @@ export function buildComparisonMetadata(
 export function getComparisonExportLayout(
   referenceRatio: number,
   photoRatio: number,
-  borderWidth: number,
+  settings: ComparisonExportSettings,
   footerHeight: number,
 ) {
   const width = COMPARISON_EXPORT_WIDTH;
-  const contentWidth = width - borderWidth * 2;
-  const referenceHeight = Math.max(1, Math.round(contentWidth / referenceRatio));
-  const photoHeight = Math.max(1, Math.round(contentWidth / photoRatio));
-  const photoY = borderWidth * 2 + referenceHeight;
-  const footerY = photoY + photoHeight + (footerHeight > 0 ? borderWidth : 0);
+  const outerBorder = settings.showOuterBorder ? settings.borderWidth : 0;
+  const gap = settings.showInnerBorder ? settings.borderWidth : 0;
+  const contentWidth = width - outerBorder * 2;
+  const panelRatio = settings.matchPhotoRatio ? photoRatio : referenceRatio;
+  const horizontal = settings.layout === 'horizontal';
+  // Side-by-side panels share a height; their widths follow their own aspect ratios.
+  const sharedHeight = (contentWidth - gap) / (panelRatio + photoRatio);
+  const referenceWidth = horizontal ? Math.round(sharedHeight * panelRatio) : contentWidth;
+  const photoWidth = horizontal ? contentWidth - gap - referenceWidth : contentWidth;
+  const referenceHeight = Math.max(1, Math.round(horizontal ? sharedHeight : contentWidth / panelRatio));
+  const photoHeight = horizontal ? referenceHeight : Math.max(1, Math.round(contentWidth / photoRatio));
+  const reference = { x: outerBorder, y: outerBorder, width: referenceWidth, height: referenceHeight };
+  const photo = {
+    x: horizontal ? outerBorder + referenceWidth + gap : outerBorder,
+    y: horizontal ? outerBorder : outerBorder + referenceHeight + gap,
+    width: photoWidth,
+    height: photoHeight,
+  };
+  const imagesHeight = horizontal ? referenceHeight : referenceHeight + gap + photoHeight;
+  const footerGap = footerHeight > 0 ? outerBorder : 0;
+  const footerY = outerBorder + imagesHeight + footerGap;
   return {
     width,
     contentWidth,
-    referenceHeight,
-    photoHeight,
-    photoY,
+    outerBorder,
+    gap,
+    footerGap,
+    imagesHeight,
+    reference,
+    photo,
     footerY,
-    height: footerY + footerHeight + borderWidth,
+    height: footerY + footerHeight + outerBorder,
   };
 }
 

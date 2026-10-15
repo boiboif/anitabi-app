@@ -2,7 +2,7 @@ import {
   COMPARISON_CAMERA_BOTTOM_REGION_HEIGHT,
   COMPARISON_CAMERA_TOP_REGION_HEIGHT,
 } from '@/components/comparison-camera/comparison-camera-layout';
-import { fitImageSize, isValidImageSize, type ImageSize } from '@/lib/comparison-camera-geometry';
+import { fitImageSize, getCenterCrop, isValidImageSize, type ImageSize } from '@/lib/comparison-camera-geometry';
 import {
   buildComparisonMetadata,
   COMPARISON_EXPORT_WIDTH,
@@ -40,6 +40,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { captureRef, releaseCapture } from 'react-native-view-shot';
 import { useTheme, View, XStack, YStack } from 'tamagui';
 import ComparisonExportSheet, { type ComparisonExportSheetHandle } from './comparison-export-sheet';
+import { ComparisonImagePressable } from './comparison-image-pressable';
 import ComparisonMetadataFooter from './comparison-metadata-footer';
 
 type Props = {
@@ -127,14 +128,35 @@ async function normalizeImageForPixelAccess(uri: string) {
   }
 }
 
-async function addPanel(canvas: NitroImage, uri: string, width: number, height: number, x: number, y: number) {
+async function addPanel(
+  canvas: NitroImage,
+  uri: string,
+  width: number,
+  height: number,
+  x: number,
+  y: number,
+  fit: ComparisonExportSettings['referenceFit'] = 'contain',
+) {
   let normalizedUri: string | undefined;
   let source: NitroImage | undefined;
+  let cropped: NitroImage | undefined;
 
   try {
     const loaded = await loadUriImage(uri);
     normalizedUri = loaded.normalizedUri;
     source = loaded.image;
+
+    if (fit === 'cover') {
+      // Crop before compositing so cover cannot paint over the neighboring panel or border.
+      const crop = getCenterCrop(source, width / height);
+      cropped = await source.cropAsync(
+        crop.originX,
+        crop.originY,
+        crop.originX + crop.width,
+        crop.originY + crop.height,
+      );
+      return await renderInto(canvas, cropped, x, y, width, height);
+    }
 
     const scale = Math.min(width / source.width, height / source.height);
     const drawWidth = source.width * scale;
@@ -144,6 +166,7 @@ async function addPanel(canvas: NitroImage, uri: string, width: number, height: 
 
     return await renderInto(canvas, source, x + drawX, y + drawY, drawWidth, drawHeight);
   } finally {
+    cropped?.dispose();
     source?.dispose();
     if (normalizedUri && normalizedUri !== uri) deleteTemporaryFile(normalizedUri);
   }
@@ -237,13 +260,17 @@ export default function ComparisonResultModal({
   };
   const metadata = buildComparisonMetadata(settings, metadataValues);
   const hasMetadata = Boolean(metadata.name || metadata.rows.length);
-  const footerWidth = (COMPARISON_EXPORT_WIDTH - settings.borderWidth * 2) / pixelRatio;
+  const exportContentWidth = COMPARISON_EXPORT_WIDTH - (settings.showOuterBorder ? settings.borderWidth * 2 : 0);
+  const footerWidth = exportContentWidth / pixelRatio;
   // Use a small layout copy for preview; mount the full-resolution text only while exporting.
   const metadataRenderWidth = saving ? footerWidth : 360;
   const footerKey = JSON.stringify([metadata, metadataRenderWidth, i18n.language]);
   const previewFooterKey = JSON.stringify([metadata, 360, i18n.language]);
   const footerReady = !hasMetadata || footerMeasurement?.key === previewFooterKey;
-  const footerHeight = hasMetadata && footerReady && footerMeasurement ? footerMeasurement.height : 0;
+  // Keep the last measured height while changed metadata awaits onLayout, so the images
+  // do not briefly expand into an empty footer. Export waits for its own full-resolution measurement.
+  const footerHeight =
+    hasMetadata && footerMeasurement ? Math.ceil((footerMeasurement.height * exportContentWidth) / 360) : 0;
 
   const referenceLoaded = Boolean(referenceUri && loadedReference?.uri === referenceUri);
   const photoLoaded = Boolean(photoUri && loadedPhoto?.uri === photoUri);
@@ -257,14 +284,19 @@ export default function ComparisonResultModal({
       : loadedPhoto?.size;
   const referenceRatio = referenceSize ? referenceSize.width / referenceSize.height : 4 / 3;
   const photoRatio = photoSize ? photoSize.width / photoSize.height : 4 / 3;
-  const exportLayout = getComparisonExportLayout(referenceRatio, photoRatio, settings.borderWidth, footerHeight);
+  const exportLayout = getComparisonExportLayout(referenceRatio, photoRatio, settings, footerHeight);
   const preview = fitImageSize(comparisonLayout ?? { width: 0, height: 0 }, exportLayout.width / exportLayout.height);
   const previewScale = preview.width / COMPARISON_EXPORT_WIDTH;
   const contentWidth = exportLayout.contentWidth * previewScale;
-  const previewBorder = settings.borderWidth * previewScale;
+  const previewBorder = exportLayout.outerBorder * previewScale;
+  const previewGap = exportLayout.gap * previewScale;
   const borderColor = resolveComparisonBorderColor(settings.borderColor, theme.primary.val);
-  const readyToPresent = referenceLoaded && photoLoaded && footerReady && isValidImageSize(comparisonLayout);
-  const readyToSave = hasPresentedPreview && readyToPresent && !saving;
+  const imagesReady = referenceLoaded && photoLoaded && isValidImageSize(comparisonLayout);
+  const readyToPresent = imagesReady && footerReady;
+  // Preview remeasurement must not flicker the buttons after the first presentation.
+  // saveComparison separately waits for the exact export settings before capturing text.
+  const readyToExport = hasPresentedPreview && imagesReady;
+  const readyToSave = readyToExport && !saving;
   const loading = visible && (!hasPresentedPreview || !referenceLoaded || !photoLoaded);
   const loadingKey = JSON.stringify([referenceUri, photoUri]);
   const showLoading = loading && loadingShownFor === loadingKey;
@@ -339,11 +371,9 @@ export default function ComparisonResultModal({
       const needsFooter = Boolean(exportMetadata.name || exportMetadata.rows.length);
       let measuredFooterHeight = 0;
       if (needsFooter) {
-        const expectedKey = JSON.stringify([
-          exportMetadata,
-          (COMPARISON_EXPORT_WIDTH - nextSettings.borderWidth * 2) / pixelRatio,
-          i18n.language,
-        ]);
+        const nextContentWidth =
+          COMPARISON_EXPORT_WIDTH - (nextSettings.showOuterBorder ? nextSettings.borderWidth * 2 : 0);
+        const expectedKey = JSON.stringify([exportMetadata, nextContentWidth / pixelRatio, i18n.language]);
         // Wait for the exact settings/text to commit and lay out before taking the footer snapshot.
         for (let frame = 0; frame < 60 && footerMeasurementRef.current?.key !== expectedKey; frame++) await nextFrame();
         if (footerMeasurementRef.current?.key !== expectedKey || !footerRef.current)
@@ -359,22 +389,17 @@ export default function ComparisonResultModal({
         });
         footerImage = await loadImage({ filePath: footerUri });
       }
-      const layout = getComparisonExportLayout(
-        referenceRatio,
-        photoRatio,
-        nextSettings.borderWidth,
-        measuredFooterHeight,
-      );
+      const layout = getComparisonExportLayout(referenceRatio, photoRatio, nextSettings, measuredFooterHeight);
       const color = resolveComparisonBorderColor(nextSettings.borderColor, theme.primary.val);
       canvas = await NitroImages.createBlankImageAsync(layout.width, layout.height, true, hexToImageColor(color));
 
       const withPhoto = await addPanel(
         canvas,
         photoUri,
-        layout.contentWidth,
-        layout.photoHeight,
-        nextSettings.borderWidth,
-        layout.photoY,
+        layout.photo.width,
+        layout.photo.height,
+        layout.photo.x,
+        layout.photo.y,
       );
       canvas.dispose();
       canvas = withPhoto;
@@ -382,10 +407,11 @@ export default function ComparisonResultModal({
       const withReference = await addPanel(
         canvas,
         referenceUri,
-        layout.contentWidth,
-        layout.referenceHeight,
-        nextSettings.borderWidth,
-        nextSettings.borderWidth,
+        layout.reference.width,
+        layout.reference.height,
+        layout.reference.x,
+        layout.reference.y,
+        nextSettings.matchPhotoRatio ? nextSettings.referenceFit : 'contain',
       );
       canvas.dispose();
       canvas = withReference;
@@ -394,7 +420,7 @@ export default function ComparisonResultModal({
         const withFooter = await renderInto(
           canvas,
           footerImage,
-          nextSettings.borderWidth,
+          layout.outerBorder,
           layout.footerY,
           layout.contentWidth,
           measuredFooterHeight,
@@ -531,86 +557,97 @@ export default function ComparisonResultModal({
               <YStack
                 width={preview.width}
                 p={previewBorder}
-                gap={previewBorder}
                 bg={borderColor}
                 opacity={hasPresentedPreview ? 1 : 0}
                 pointerEvents={hasPresentedPreview ? 'auto' : 'none'}
               >
-                <View
-                  width={contentWidth}
-                  height={exportLayout.referenceHeight * previewScale}
-                  overflow="hidden"
-                  bg="black"
-                >
-                  {referenceUri ? (
-                    <Image
-                      source={{ uri: referenceUri }}
-                      cachePolicy="disk"
-                      contentFit="contain"
-                      recyclingKey={referenceUri}
-                      onLoad={({ source }) => {
-                        const size = { width: source.width, height: source.height };
-                        if (isValidImageSize(size))
-                          setLoadedReference((current) =>
-                            current?.uri === referenceUri &&
-                            current.size.width === size.width &&
-                            current.size.height === size.height
-                              ? current
-                              : { uri: referenceUri, size },
-                          );
-                      }}
-                      style={StyleSheet.absoluteFill}
-                      transition={0}
-                    />
-                  ) : null}
-                  {onRestoreReference ? (
-                    <View position="absolute" t={8} l={8}>
-                      <ActionButton
-                        label={t('restoreOriginalReferenceImage')}
-                        icon={<Undo2 size={18} color="white" />}
-                        onPress={onRestoreReference}
-                        disabled={saving}
-                      />
-                    </View>
-                  ) : null}
-                </View>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t('replaceCameraPhotoFromLibrary', { defaultValue: '从相册更换实拍图' })}
-                  onPress={onPickPhoto}
-                  disabled={saving}
-                  style={({ pressed }) => ({ opacity: pressed ? 0.82 : 1 })}
-                >
+                <View flexDirection={settings.layout === 'horizontal' ? 'row' : 'column'} gap={previewGap}>
                   <View
-                    width={contentWidth}
-                    height={exportLayout.photoHeight * previewScale}
+                    width={exportLayout.reference.width * previewScale}
+                    height={exportLayout.reference.height * previewScale}
                     overflow="hidden"
-                    bg="black"
                   >
-                    {photoUri ? (
-                      <Image
-                        source={{ uri: photoUri }}
-                        contentFit="contain"
-                        recyclingKey={photoUri}
-                        onLoad={({ source }) => {
-                          const size = { width: source.width, height: source.height };
-                          if (isValidImageSize(size))
-                            setLoadedPhoto((current) =>
-                              current?.uri === photoUri &&
-                              current.size.width === size.width &&
-                              current.size.height === size.height
-                                ? current
-                                : { uri: photoUri, size },
-                            );
-                        }}
-                        style={StyleSheet.absoluteFill}
-                        transition={0}
-                      />
+                    <ComparisonImagePressable
+                      accessibilityRole="button"
+                      accessibilityLabel={t('replaceReferenceImage', { defaultValue: '更换参考图' })}
+                      onPress={onPickReference}
+                      disabled={saving}
+                      style={{ flex: 1 }}
+                    >
+                      <View flex={1} overflow="hidden" bg={borderColor}>
+                        {referenceUri ? (
+                          <Image
+                            source={{ uri: referenceUri }}
+                            cachePolicy="disk"
+                            contentFit={settings.matchPhotoRatio ? settings.referenceFit : 'contain'}
+                            recyclingKey={referenceUri}
+                            onLoad={({ source }) => {
+                              const size = { width: source.width, height: source.height };
+                              if (isValidImageSize(size))
+                                setLoadedReference((current) =>
+                                  current?.uri === referenceUri &&
+                                  current.size.width === size.width &&
+                                  current.size.height === size.height
+                                    ? current
+                                    : { uri: referenceUri, size },
+                                );
+                            }}
+                            style={StyleSheet.absoluteFill}
+                            transition={0}
+                          />
+                        ) : null}
+                      </View>
+                    </ComparisonImagePressable>
+                    {onRestoreReference ? (
+                      <View position="absolute" t={8} l={8}>
+                        <ActionButton
+                          label={t('restoreOriginalReferenceImage')}
+                          icon={<Undo2 size={18} color="white" />}
+                          onPress={onRestoreReference}
+                          disabled={saving}
+                        />
+                      </View>
                     ) : null}
                   </View>
-                </Pressable>
+                  <ComparisonImagePressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t('replaceCameraPhotoFromLibrary', { defaultValue: '从相册更换实拍图' })}
+                    onPress={onPickPhoto}
+                    disabled={saving}
+                  >
+                    <View
+                      width={exportLayout.photo.width * previewScale}
+                      height={exportLayout.photo.height * previewScale}
+                      overflow="hidden"
+                      bg={borderColor}
+                    >
+                      {photoUri ? (
+                        <Image
+                          source={{ uri: photoUri }}
+                          contentFit="contain"
+                          recyclingKey={photoUri}
+                          onLoad={({ source }) => {
+                            const size = { width: source.width, height: source.height };
+                            if (isValidImageSize(size))
+                              setLoadedPhoto((current) =>
+                                current?.uri === photoUri &&
+                                current.size.width === size.width &&
+                                current.size.height === size.height
+                                  ? current
+                                  : { uri: photoUri, size },
+                              );
+                          }}
+                          style={StyleSheet.absoluteFill}
+                          transition={0}
+                        />
+                      ) : null}
+                    </View>
+                  </ComparisonImagePressable>
+                </View>
                 {hasMetadata && contentWidth > 0 ? (
-                  <ComparisonMetadataFooter metadata={metadata} width={contentWidth} />
+                  <View mt={exportLayout.footerGap * previewScale}>
+                    <ComparisonMetadataFooter metadata={metadata} width={contentWidth} />
+                  </View>
                 ) : null}
               </YStack>
             </View>
@@ -679,16 +716,16 @@ export default function ComparisonResultModal({
             onLayout={(event) => {
               const measurement = {
                 key: footerKey,
-                height: Math.ceil(
-                  (event.nativeEvent.layout.height * (COMPARISON_EXPORT_WIDTH - settings.borderWidth * 2)) /
-                    metadataRenderWidth,
-                ),
+                height: Math.ceil((event.nativeEvent.layout.height * exportContentWidth) / metadataRenderWidth),
               };
               footerMeasurementRef.current = measurement;
               // A snapshot width change must not resize an already measured preview.
               // Newly selected metadata still needs its first height, even when exporting straight from the sheet.
               if (!saving || footerMeasurement?.key !== previewFooterKey) {
-                const previewMeasurement = { key: previewFooterKey, height: measurement.height };
+                const previewMeasurement = {
+                  key: previewFooterKey,
+                  height: (event.nativeEvent.layout.height * 360) / metadataRenderWidth,
+                };
                 setFooterMeasurement((current) =>
                   current?.key === previewMeasurement.key && current.height === previewMeasurement.height
                     ? current
@@ -709,7 +746,7 @@ export default function ComparisonResultModal({
             applyConfiguration(nextSettings);
             setConfigurationOpen(false);
           }}
-          ready={hasPresentedPreview && readyToPresent}
+          ready={readyToExport}
           saving={saving}
         />
       </View>

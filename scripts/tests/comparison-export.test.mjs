@@ -114,7 +114,43 @@ test('a selected but empty pilgrim name produces the same metadata as an unselec
   }
 });
 
-test('border, mixed image ratios and metadata all fit within the export canvas', () => {
+test('existing settings keep original ratios, vertical ordering and both border placements', () => {
+  const settings = normalizeComparisonExportSettings({ borderWidth: 12, showScene: false });
+  assert.equal(settings.matchPhotoRatio, false);
+  assert.equal(settings.referenceFit, 'cover');
+  assert.equal(settings.layout, 'vertical');
+  assert.equal(settings.showOuterBorder, true);
+  assert.equal(settings.showInnerBorder, true);
+  assert.equal(settings.showScene, false);
+});
+
+test('new export choices survive persistence and invalid choices fall back to defaults', () => {
+  const settings = normalizeComparisonExportSettings({
+    layout: 'horizontal',
+    matchPhotoRatio: true,
+    referenceFit: 'contain',
+    showOuterBorder: false,
+    showInnerBorder: false,
+  });
+  assert.equal(settings.layout, 'horizontal');
+  assert.equal(settings.matchPhotoRatio, true);
+  assert.equal(settings.referenceFit, 'contain');
+  assert.equal(settings.showOuterBorder, false);
+  assert.equal(settings.showInnerBorder, false);
+  assert.deepEqual(normalizeComparisonExportSettings(JSON.parse(JSON.stringify(settings))), settings);
+  assert.deepEqual(
+    normalizeComparisonExportSettings({
+      layout: 'diagonal',
+      matchPhotoRatio: 'true',
+      referenceFit: 'stretch',
+      showOuterBorder: 'false',
+      showInnerBorder: 0,
+    }),
+    DEFAULT_COMPARISON_EXPORT_SETTINGS,
+  );
+});
+
+test('default layout preserves existing image ratios, borders and metadata spacing', () => {
   for (const border of [0, 12, 64]) {
     for (const footerHeight of [0, 400, 1200]) {
       for (const [referenceRatio, photoRatio] of [
@@ -122,14 +158,76 @@ test('border, mixed image ratios and metadata all fit within the export canvas',
         [4 / 3, 4 / 3],
         [9 / 16, 16 / 9],
       ]) {
-        const layout = getComparisonExportLayout(referenceRatio, photoRatio, border, footerHeight);
+        const layout = getComparisonExportLayout(
+          referenceRatio,
+          photoRatio,
+          { ...DEFAULT_COMPARISON_EXPORT_SETTINGS, borderWidth: border },
+          footerHeight,
+        );
         assert.equal(layout.width, 2160);
         assert.equal(border + layout.contentWidth + border, layout.width);
-        assert.ok(Math.abs(layout.contentWidth / referenceRatio - layout.referenceHeight) <= 0.5);
-        assert.ok(Math.abs(layout.contentWidth / photoRatio - layout.photoHeight) <= 0.5);
-        assert.equal(layout.photoY - (border + layout.referenceHeight), border);
-        assert.equal(layout.footerY - (layout.photoY + layout.photoHeight), footerHeight ? border : 0);
+        assert.ok(Math.abs(layout.contentWidth / referenceRatio - layout.reference.height) <= 0.5);
+        assert.ok(Math.abs(layout.contentWidth / photoRatio - layout.photo.height) <= 0.5);
+        assert.equal(layout.photo.y - (border + layout.reference.height), border);
+        assert.equal(layout.footerY - (layout.photo.y + layout.photo.height), footerHeight ? border : 0);
         assert.equal(layout.footerY + footerHeight + border, layout.height);
+      }
+    }
+  }
+});
+
+test('both layouts honor independent borders, matched ratios and footer bounds', () => {
+  for (const direction of ['vertical', 'horizontal']) {
+    for (const showOuterBorder of [false, true]) {
+      for (const showInnerBorder of [false, true]) {
+        for (const matchPhotoRatio of [false, true]) {
+          for (const borderWidth of [0, 12, 32]) {
+            for (const footerHeight of [0, 400]) {
+              for (const [referenceRatio, photoRatio] of [
+                [16 / 9, 3 / 4],
+                [9 / 16, 16 / 9],
+                [1, 1],
+              ]) {
+                const settings = {
+                  ...DEFAULT_COMPARISON_EXPORT_SETTINGS,
+                  layout: direction,
+                  showOuterBorder,
+                  showInnerBorder,
+                  matchPhotoRatio,
+                  borderWidth,
+                };
+                const layout = getComparisonExportLayout(referenceRatio, photoRatio, settings, footerHeight);
+                const outer = showOuterBorder ? borderWidth : 0;
+                const gap = showInnerBorder ? borderWidth : 0;
+                assert.equal(layout.width, 2160);
+                assert.equal(layout.contentWidth, 2160 - 2 * outer);
+                assert.equal(layout.reference.x, outer);
+                assert.equal(layout.reference.y, outer);
+                assert.equal(layout.footerY + footerHeight + outer, layout.height);
+                assert.equal(layout.footerY, outer + layout.imagesHeight + (footerHeight ? outer : 0));
+                for (const panel of [layout.reference, layout.photo]) {
+                  assert.ok(panel.width > 0 && panel.height > 0);
+                  assert.ok(panel.x + panel.width <= layout.width - outer);
+                  assert.ok(panel.y + panel.height <= layout.footerY);
+                }
+                if (direction === 'horizontal') {
+                  assert.equal(layout.reference.height, layout.photo.height);
+                  assert.equal(layout.photo.y, outer);
+                  assert.equal(layout.photo.x - layout.reference.x - layout.reference.width, gap);
+                  assert.equal(layout.photo.x + layout.photo.width + outer, layout.width);
+                  const ratio = matchPhotoRatio ? photoRatio : referenceRatio;
+                  assert.ok(Math.abs(layout.reference.width - layout.reference.height * ratio) <= 2);
+                  assert.ok(Math.abs(layout.photo.width - layout.photo.height * photoRatio) <= 2);
+                  if (matchPhotoRatio) assert.ok(Math.abs(layout.reference.width - layout.photo.width) <= 1);
+                } else {
+                  assert.equal(layout.photo.x, outer);
+                  assert.equal(layout.photo.y - layout.reference.y - layout.reference.height, gap);
+                  if (matchPhotoRatio) assert.equal(layout.reference.height, layout.photo.height);
+                }
+              }
+            }
+          }
+        }
       }
     }
   }
