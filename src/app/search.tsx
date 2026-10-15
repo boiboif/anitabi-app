@@ -1,5 +1,5 @@
-import PointListCard from '@/components/point/point-list-card';
 import PreviewableImage from '@/components/image-preview/previewable-image';
+import PointListCard from '@/components/point/point-list-card';
 import SearchBox from '@/components/ui/search-box';
 import { getCategoryMessage, translateMessage, type TranslationMessage } from '@/i18n/messages';
 import { getBangumiTitle } from '@/lib/localized-data';
@@ -12,8 +12,8 @@ import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Keyboard, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Keyboard, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getTokens, Text, useTheme, View } from 'tamagui';
 
@@ -315,7 +315,6 @@ const Search = () => {
                 key={tabItem.key}
                 onPress={() => {
                   setTab(tabItem.key);
-                  flashListRef.current?.scrollToOffset({ offset: 0, animated: false });
                 }}
               >
                 <View
@@ -356,6 +355,9 @@ const Search = () => {
               paddingHorizontal: getTokens().space['3'].val,
               paddingTop: getTokens().space['3'].val,
               paddingBottom: insets.bottom + 16,
+            }}
+            maintainVisibleContentPosition={{
+              disabled: true,
             }}
           />
         )}
