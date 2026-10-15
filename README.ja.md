@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://boiboif.github.io/anitabi-app/ja/">
-    <img src="docs/public/app-icon.svg" width="128" alt="Anitabi Logo" />
+    <img src="docs/public/app-icon-rounded.svg" width="128" alt="Anitabi Logo" />
   </a>
 
   <h1>Anitabi App</h1>

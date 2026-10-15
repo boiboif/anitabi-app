@@ -55,6 +55,7 @@ const config: ExpoConfig = {
   android: {
     adaptiveIcon: {
       backgroundColor: '#8DCEF1',
+      backgroundImage: './assets/images/anitabi-icon-adaptive-background.png',
       foregroundImage: './assets/images/anitabi-icon-adaptive-foreground.png',
     },
     predictiveBackGestureEnabled: false,

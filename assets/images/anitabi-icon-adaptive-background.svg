@@ -1,0 +1,10 @@
+<svg width="1024" height="1024" viewBox="-252 -252 1528 1528" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B5E5FA"/>
+      <stop offset="0.52" stop-color="#8DCEF1"/>
+      <stop offset="1" stop-color="#69B6E5"/>
+    </linearGradient>
+  </defs>
+  <rect x="-252" y="-252" width="1528" height="1528" fill="url(#sky)"/>
+</svg>
