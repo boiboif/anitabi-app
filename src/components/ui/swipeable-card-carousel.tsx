@@ -85,7 +85,7 @@ const CarouselPage = memo(function CarouselPage({
           : width
         : (positions.value[pageKey] ?? rolePosition);
     return { transform: [{ translateX: base }] };
-  }, [duplicateNeighbour, pageKey, role, width]);
+  });
 
   return (
     <Animated.View

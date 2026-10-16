@@ -313,12 +313,9 @@ function SortableDragHandleInner({
 const SortableDragHandle = memo(SortableDragHandleInner);
 
 function StableRow<T>({ item, itemKey, itemHeight, activeKey, dragHandle, renderItem }: StableRowProps<T>) {
-  const animatedStyle = useAnimatedStyle(
-    () => ({
-      opacity: activeKey.value === itemKey ? 0.55 : 1,
-    }),
-    [itemKey],
-  );
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: activeKey.value === itemKey ? 0.55 : 1,
+  }));
 
   return (
     <Animated.View style={[styles.row, { height: itemHeight }, animatedStyle]}>
@@ -417,7 +414,7 @@ export default function StableReorderableList<T>({
       opacity: activeKey.value && from !== to ? 1 : 0,
       transform: [{ translateY: insertionIndex * itemHeight - scrollOffset.value - 1 }],
     };
-  }, [itemHeight]);
+  });
 
   const previewStyle = useAnimatedStyle(() => ({
     opacity: activeKey.value ? 1 : 0,

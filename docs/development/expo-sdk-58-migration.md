@@ -48,9 +48,64 @@ Node 使用 Expo 58 支持的版本，例如 22.13+（22.x）或 24.3+（24.x）
 
 `expo-localization` 保持官方 58.0.4，保留其 `zh-Hans` 同时包含 `zh-rCN` 资源的修复。基础版本号可通过原插件的资源配置转换；完整 prebuild 与远程 APK 构建仍待重新运行确认。
 
-## Sentry 导航计时限制
+## 开发期警告跟踪（2026-10-16）
 
-SDK 58 移除了旧导航容器接口与 `__unsafe_action__`。核对 `@sentry/react-native@8.28.0` 和当时最新稳定版 8.31.0 后，`expoRouterIntegration()` 仍依赖已不存在的 `expo-router/build/global-state/router-store`，无法恢复原有自动导航计时。此次移除旧导航 integration 和容器注册，保留 Sentry 初始化、JS 异常、原生崩溃配置、根组件包装、0.2 采样率与 `sendDefaultPii: false`。
+以下是 SDK 58 迁移后设备调试与 Metro 重载时发现的问题。上游版本结论以 2026-10-16 的核对结果为准；“代码已修复”不代表已经完成设备回归。
+
+| 问题 | 来源 | 当前处理与状态 |
+| --- | --- | --- |
+| 渲染期间调用 `navigation.isFocused()` | 地图作品详情弹层 | 项目代码已修复，保留事件回调的即时焦点检查；待设备回归 |
+| Reanimated 原生端忽略依赖数组 | 拖拽列表、卡片轮播 | 已删除项目内三处无效参数；待拖拽和滑动回归 |
+| 同一条 Reanimated 警告来自图片缩放 | `react-native-zoom-toolkit@5.1.1` | 官方最新版仍有旧写法，保留警告，等待上游修复 |
+| `router-store.js` 不存在，Metro 回退解析 | `@sentry/react-native@8.28.0` | 已停用默认 `ExpoRouter` 运行时集成，静态解析警告仍可能出现，等待上游修复 |
+
+项目决定：不为这些依赖添加补丁，不全局屏蔽警告，不通过降级 Expo 配套依赖或关闭 package exports 校验隐藏问题。未来升级前重新核对官方发布版本及具体修复。
+
+### 渲染期间读取导航焦点
+
+警告原文：
+
+```text
+navigation.isFocused() was called while rendering the screen 'index'. During render it can return a stale value, because focus state is updated after render. Use the useIsFocused() hook to read focus during render.
+```
+
+触发点为 [`bangumi-detail-sheet.tsx`](../../src/components/map/bangumi-detail-sheet.tsx) 的会话创建条件。此前弹层生命周期修复同时检查 `useIsFocused()` 和 `navigation.isFocused()`；SDK 58 下，后者在渲染期间可能仍读取上一次已提交的导航状态。
+
+渲染条件现仅使用已有的 `useIsFocused()` 结果，事件回调仍保留 `navigation.isFocused()`，用于处理原生弹层事件到达时页面已经失焦的情况。未改变会话隔离、关闭动画完成后释放内容、返回页面恢复详情等语义。
+
+现有 [`bangumi-detail-sheet-lifecycle.test.mjs`](../../scripts/tests/bangumi-detail-sheet-lifecycle.test.mjs) 增加“返回页面时渲染焦点先更新”和“原生打开回调到达前已失焦”两种场景，共 14/14 通过。设备上仍需验证：首页选择作品、进入其他页面再返回、快速关闭/重开、原生返回和跨页切换。
+
+### Reanimated 原生动画依赖数组
+
+警告原文：
+
+```text
+[Reanimated] Dependencies should only be used on the web and are always ignored on native. Check DevTools to see the offending code.
+```
+
+Reanimated 4.7.1 原生实现通过 Worklet 闭包跟踪依赖，显式数组会被忽略并触发开发期警告。[官方 `useAnimatedStyle` 文档](https://docs.swmansion.com/react-native-reanimated/docs/core/useAnimatedStyle/#dependencies) 说明该参数仅与未启用 Worklets Babel 插件的 Web 用法有关。
+
+已移除 [`stable-reorderable-list.tsx`](../../src/components/ui/stable-reorderable-list.tsx) 中行透明度、插入位置指示器的两个数组，以及 [`swipeable-card-carousel.tsx`](../../src/components/ui/swipeable-card-carousel.tsx) 中页面位置样式的一个数组。保留动画计算、SharedValue、已有 React memoization、列表行身份与手势状态。全量 TypeScript 检查和相关文件 ESLint 检查通过；设备上需复测长按排序、边缘自动滚动、插入指示器、轮播左右滑动和只有两个卡片的往返切换。
+
+图片预览仍可能报告同一警告，调用栈来自 Zoom Toolkit 的 `ResumableZoom` 内部 `useDerivedValue` / `useAnimatedStyle`。已安装的 **5.1.1** 在核对时也是 npm 最新版；其[官方源码](https://github.com/Glazzes/react-native-zoom-toolkit/blob/a1abef731056af6323ef94d6b387d87bb6f3e534/src/components/resumable/ResumableZoom.tsx)仍传入这些依赖数组，不能靠升级当前发布版消除。该警告本身不说明缩放失效。
+
+按用户确认保持不打补丁，不修改 `node_modules` 或替换已使用的缩放实现。待官方修复版发布后再升级，确认原生端不再传入无效数组，并复测图片捏合、拖动、双击缩放、复位与关闭预览。
+
+## Sentry 导航计时限制与 Metro 解析警告
+
+警告中的关键内容：
+
+```text
+The package .../node_modules/expo-router contains an invalid package.json configuration.
+.../expo-router/build/global-state/router-store.js ... this file does not exist.
+Falling back to file-based resolution.
+```
+
+SDK 58 移除了旧导航容器接口与 `__unsafe_action__`。核对 `@sentry/react-native@8.28.0` 和当时最新稳定版 8.31.0 后，`expoRouterIntegration()` 仍依赖已不存在的 `expo-router/build/global-state/router-store`，无法恢复原有自动导航计时。此次移除旧导航 integration 和容器注册，并通过 `integrations` 回调过滤 Sentry 默认自动添加的 `ExpoRouter` 集成，保留其他默认集成、Sentry 初始化、JS 异常、原生崩溃配置、根组件包装、0.2 采样率与 `sendDefaultPii: false`。
+
+这项过滤仅停用运行时集成。Sentry 的导出入口仍静态引用旧 `router-store` 路径，Metro 在解析依赖图时仍可能报告 `invalid package.json configuration` / `Falling back to file-based resolution`；其 `require` 位于 `try/catch` 中，Expo Metro 允许缺失的可选依赖，因此这条警告本身不代表安装损坏，也不等于构建失败。未关闭 package exports 校验、屏蔽日志或添加依赖补丁，待 Sentry 官方修复后移除过滤并恢复导航计时。
+
+解析链为 Sentry 主入口 → tracing 导出入口 → Expo Router 集成/错误边界 → `expoRouterStore` → 已删除的 Router 内部路径。2026-10-16 核对的 [Sentry 8.31.0 官方源码](https://github.com/getsentry/sentry-react-native/blob/8.31.0/packages/core/src/js/tracing/expoRouterStore.ts#L50-L59)仍保留此引用，单独升级到该版本或重装当前依赖不能解决。运行时过滤已通过 TypeScript 和相关 ESLint 检查；未重新打包验证，不将检查通过表述为 Metro 警告已消失。
 
 因此导航 transaction / 页面首次显示时间（TTID）暂时缺失。SDK 58 的 [性能观察 API](https://docs.expo.dev/router/reference/screen-tracking/) 不能直接替代这套原生计时；待 Sentry 正式适配后恢复，并验证导航事件只记录一次。未添加自制 tracing 或依赖私有路由接口的补丁。
 
@@ -76,7 +131,7 @@ TrueSheet 保持稳定版 3.11.18。上游 [PR #896](https://github.com/lodev09/
 
 ## 验证与设备回归
 
-已完成：
+迁移初次适配的检查记录（警告修复后的增量验证见上文）：
 
 - `yarn expo install --check`：通过，保留上述 FlashList 例外。
 - `npx expo-doctor@latest`：20/20 通过。

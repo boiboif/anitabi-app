@@ -233,7 +233,8 @@ function useBangumiDetailSheet(requestedBangumi: Bangumi | undefined, onDetailsD
   const isSheetDismissingRef = useRef(false);
   const bangumiId = session.bangumi?.id;
 
-  if (!session.bangumi && isRouteFocused && navigation.isFocused() && requestedBangumi) {
+  // Render uses the focus context; navigation.isFocused() can still read the previous state.
+  if (!session.bangumi && isRouteFocused && requestedBangumi) {
     setSession({ bangumi: requestedBangumi, key: session.key + 1 });
   }
 

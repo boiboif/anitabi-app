@@ -23,6 +23,8 @@ function createHarness(platform = 'android') {
   let effects = [];
   let requested;
   let focused = true;
+  let committedFocus = true;
+  let isRendering = false;
   let openedId = null;
   let dismissCalls = 0;
   let clearCalls = 0;
@@ -45,7 +47,12 @@ function createHarness(platform = 'android') {
     BANGUMI_DETAIL_SHEET_DETENTS: [0.25, 0.8],
     useMapBrowse: { getState: () => ({ openedBangumiDetailsId: openedId }) },
     useIsFocused: () => focused,
-    useNavigation: () => ({ isFocused: () => focused }),
+    useNavigation: () => ({
+      isFocused: () => {
+        assert.equal(isRendering, false, 'render must read focus from useIsFocused');
+        return committedFocus;
+      },
+    }),
     useState: (initial) => {
       const index = cursor++;
       if (!slots[index]) slots[index] = { value: typeof initial === 'function' ? initial() : initial };
@@ -83,13 +90,20 @@ function createHarness(platform = 'android') {
       dirty = false;
       cursor = 0;
       effects = [];
-      result = context.useBangumiDetailSheet(requested, () => {
-        clearCalls++;
-        openedId = null;
-        requested = undefined;
-        dirty = true;
-      });
+      isRendering = true;
+      try {
+        result = context.useBangumiDetailSheet(requested, () => {
+          clearCalls++;
+          openedId = null;
+          requested = undefined;
+          dirty = true;
+        });
+      } finally {
+        isRendering = false;
+      }
       if (dirty) continue;
+      // The imperative navigation snapshot updates after render, unlike the hook.
+      committedFocus = focused;
       result.sheetRef.current = result.shouldRenderSheet ? nativeSheet : null;
       result.flashListRef.current = result.shouldRenderSheet ? list : null;
       for (const pending of effects.sort((a, b) => Number(b.layout) - Number(a.layout))) {
@@ -111,6 +125,9 @@ function createHarness(platform = 'android') {
       focused = value;
       return render();
     },
+    setNavigationFocus(value) {
+      committedFocus = value;
+    },
     get openedId() {
       return openedId;
     },
@@ -126,6 +143,25 @@ function createHarness(platform = 'android') {
 
 const workA = { id: 10, title: 'A', points: [] };
 const workB = { id: 20, title: 'B', points: [] };
+
+test('returning to a selected work opens using render focus before navigation commits', () => {
+  const app = createHarness();
+  app.focus(false);
+  assert.equal(app.select(workA).shouldRenderSheet, false);
+  const opened = app.focus(true);
+  assert.equal(opened.shouldRenderSheet, true);
+  assert.equal(opened.selectedBangumi, workA);
+});
+
+test('native opening checks live navigation focus before the next hook render', () => {
+  const app = createHarness();
+  const opened = app.select(workA);
+  app.setNavigationFocus(false);
+  opened.handleSheetWillPresent();
+  assert.equal(app.dismissCalls, 1);
+  assert.equal(app.clearCalls, 0);
+  assert.equal(app.openedId, workA.id);
+});
 
 test('X keeps the work mounted until native dismissal finishes', () => {
   const app = createHarness();
