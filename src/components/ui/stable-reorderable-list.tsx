@@ -15,11 +15,12 @@ import {
   type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
-  ScrollView,
+  type ScrollViewInstance,
   type ScrollViewProps,
   type StyleProp,
   StyleSheet,
   View,
+  type ViewInstance,
   type ViewStyle,
 } from 'react-native';
 import { GestureDetector, type PanGestureConfig, usePanGesture } from 'react-native-gesture-handler';
@@ -354,8 +355,8 @@ export default function StableReorderableList<T>({
   );
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
   const [previewKey, setPreviewKey] = useState<string | null>(null);
-  const viewportRef = useRef<View>(null);
-  const scrollRef = useAnimatedRef<ScrollView>();
+  const viewportRef = useRef<ViewInstance>(null);
+  const scrollRef = useAnimatedRef<ScrollViewInstance>();
   const positions = useSharedValue<PositionMap>({});
   const order = useSharedValue<string[]>(EMPTY_KEYS);
   const activeKey = useSharedValue<string | null>(null);
@@ -460,11 +461,11 @@ export default function StableReorderableList<T>({
 
   const renderScrollComponent = useCallback(
     (props: ScrollViewProps) => {
-      const listScrollRef = (props as ScrollViewProps & { ref?: Ref<ScrollView> }).ref;
+      const listScrollRef = (props as ScrollViewProps & { ref?: Ref<ScrollViewInstance> }).ref;
       return (
         <Animated.ScrollView
           {...props}
-          ref={(node: ScrollView | null) => {
+          ref={(node: ScrollViewInstance | null) => {
             scrollRef(node);
             assignRef(listScrollRef, node);
           }}

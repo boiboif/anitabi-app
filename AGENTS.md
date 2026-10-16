@@ -1,6 +1,8 @@
 # Expo HAS CHANGED
 
-Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before writing any code.
+Read the exact versioned docs at https://docs.expo.dev/versions/v58.0.0/ before writing any code.
+
+Some official Expo skills still describe SDK 57 APIs. When they conflict with SDK 58 documentation, follow the versioned documentation; see `docs/development/expo-sdk-58-migration.md` for known differences.
 
 ## Fixes, History, and Design Intent
 

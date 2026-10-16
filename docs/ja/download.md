@@ -14,7 +14,7 @@ description: Anitabi の最新 Android APK と未署名 iOS IPA を入手でき�
 | Android          | Android 7.0（API 24） | GitHub Releases から署名済み APK をダウンロードできます                                        |
 | iOS / iPadOS     | iOS / iPadOS 16.4     | 未署名 IPA を提供しています。ご自身の Apple アカウントで署名してサイドロードする必要があります |
 
-対応バージョンは、本プロジェクトが使用する Expo SDK 57 に準拠しています。詳しくは [Expo の Android / iOS サポート情報](https://docs.expo.dev/versions/v57.0.0/#support-for-android-and-ios-versions)をご覧ください。
+対応バージョンは、本プロジェクトが使用する Expo SDK 58 に準拠しています。詳しくは [Expo の Android / iOS サポート情報](https://docs.expo.dev/versions/v58.0.0/#support-for-android-and-ios-versions)をご覧ください。
 
 ## iOS 版のインストール
 
@@ -30,7 +30,7 @@ iOS では未署名アプリを実行できません。ダウンロードペー�
 
 ## ソースコードからビルド
 
-Anitabi は Expo SDK 57 と React Native 0.86 を使用しています。開発者は[リポジトリ](https://github.com/boiboif/anitabi-app)をクローンし、コントリビューションガイドに従って環境を設定したうえで Android または iOS 版をビルドできます。
+Anitabi は Expo SDK 58 と React Native 0.88 を使用しています。開発者は[リポジトリ](https://github.com/boiboif/anitabi-app)をクローンし、コントリビューションガイドに従って環境を設定したうえで Android または iOS 版をビルドできます。
 
 ::: info 非公式プロジェクト
 Anitabi App は anitabi.cn と公式な提携、スポンサー、推奨関係にありません。地図スポット、作品情報、関連リソースの権利はそれぞれの権利者に帰属します。

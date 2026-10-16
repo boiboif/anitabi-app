@@ -84,7 +84,7 @@ function createHarness({ enabled = true, focused = true, active = true } = {}) {
   };
   const modules = {
     react,
-    'expo-router/react-navigation': { useIsFocused: () => focused },
+    'expo-router': { useIsFocused: () => focused },
     'react-native': { AppState },
     '@/utils/plan-point-distances': {
       isValidCoordinate: (lat, lng) =>

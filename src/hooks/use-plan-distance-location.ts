@@ -7,7 +7,7 @@ import {
   type LocationPermissionResponse,
   type LocationSubscription,
 } from 'expo-location';
-import { useIsFocused } from 'expo-router/react-navigation';
+import { useIsFocused } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { isValidCoordinate, type PlanDistanceLocation } from '@/utils/plan-point-distances';

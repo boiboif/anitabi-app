@@ -1,0 +1,89 @@
+# Expo SDK 58 迁移记录
+
+迁移日期：2026-10-16。分支：`expo-sdk-58`，基于 `6739d50`，保留迁移前的多语言依赖更新。
+
+## 版本与依据
+
+按 [Expo SDK 58 发布说明](https://expo.dev/changelog/sdk-58)、[版本文档](https://docs.expo.dev/versions/v58.0.0/) 和 `expo@58.0.12/bundledNativeModules.json` 对齐依赖：
+
+| 依赖 | 迁移后版本 |
+| --- | --- |
+| Expo | 58.0.12 |
+| React / React Native | 19.3.0 / 0.88.0 |
+| Expo Router | 58.0.21 |
+| Reanimated / Worklets | 4.7.1 / 0.13.0 |
+| Gesture Handler | 3.3.0 |
+| Sentry React Native | 8.28.0 |
+| i18next / react-i18next | 26.4.7 / 17.0.19 |
+
+其余 Expo 包使用 SDK 58 推荐范围，具体锁定版本见 `yarn.lock`。Gesture Handler、SVG、view-shot 已恢复官方版本检查；FlashList 保持已有的 2.3.3（官方推荐 2.3.2），继续作为唯一 `expo.install.exclude` 项。
+
+将 Router 的 `@expo/log-box` / `@expo/metro-runtime`、LogBox 的 `@expo/dom-webview`、FlashList 的 `@babel/runtime` 和 Worklets 的 `@babel/core` / `@react-native/metro-config` 必需 peer 显式声明，避免只依赖传递安装。
+
+Node 使用 Expo 58 支持的版本，例如 22.13+（22.x）或 24.3+（24.x）。项目仍使用 CNG，原生工程不纳入 Git。迁移最初所在的 worktree 没有 `android/`、`ios/`；切回主工作目录后，该目录保留了 SDK 57 生成的 `android/`，需在下次原生构建前重新生成对应 SDK 58 的工程。
+
+## 代码适配
+
+- [FileSystem](https://docs.expo.dev/versions/v58.0.0/sdk/filesystem/) 的 `File.write()` 改为异步。备份、计划分享和地图缓存使用 `writeSync()`，保留“写完后再分享/提交缓存”和同步异常处理。图片格式探测改用 `readBytesSync()`，仍只读取文件头。已有异步复制继续 `await`；`File.md5` 虽已弃用但尚可用，保留原有同步缓存指纹流程。
+- 按 [Router 57 → 58 指南](https://docs.expo.dev/router/migrate/sdk-57-to-58/) 从 `expo-router` 导入 `useIsFocused`、`usePreventRemove`。批量添加页第一次返回仍先退出作品内点位列表，再次返回才离开页面。
+- 三处 Stack 显式设置 `headerTransparent: false`，保留原有内容起点，避免 SDK 58 的 iOS 默认透明标题栏改变页面布局。
+- 按 [React Native 严格 TypeScript API](https://reactnative.dev/docs/strict-typescript-api) 使用实例类型或 `ComponentRef<typeof Component>` 标注原生 ref，保留原有测量和滚动调用，不关闭严格 API 检查。
+- Tamagui 保持 2.7.7，其 ref 声明仍以 RN 的旧组件类型代替实例；在测量、输入聚焦的调用边界限定所需能力，未混入 Tamagui 3 迁移。图片触发器共用 ref 回调，样式原样传递，仅在 Tamagui 2 的类型边界适配；避免 `StyleSheet.flatten` 与 Expo 生成的 Web 类型扩展发生冲突。列表空 Footer 改为 `undefined`。
+- 媒体库新函数签名遗漏 `accessPrivileges` 扩展字段，使用属性窄化保留 iOS 原有的完整读取授权判断及仅写入降级流程。AppState 初始值允许为空，去掉过窄注解，保留后台恢复逻辑。
+- 保留 React Compiler、现有 Babel 生产环境 console 移除、Sentry Metro 配置和 `inlineRequires`。应用环境继续使用 `APP_VARIANT` / `EXPO_UPDATE_CHANNEL`，不依赖现在由 CLI 设置的 `NODE_ENV` 区分测试与生产。
+
+## Sentry 导航计时限制
+
+SDK 58 移除了旧导航容器接口与 `__unsafe_action__`。核对 `@sentry/react-native@8.28.0` 和当时最新稳定版 8.31.0 后，`expoRouterIntegration()` 仍依赖已不存在的 `expo-router/build/global-state/router-store`，无法恢复原有自动导航计时。此次移除旧导航 integration 和容器注册，保留 Sentry 初始化、JS 异常、原生崩溃配置、根组件包装、0.2 采样率与 `sendDefaultPii: false`。
+
+因此导航 transaction / 页面首次显示时间（TTID）暂时缺失。SDK 58 的 [性能观察 API](https://docs.expo.dev/router/reference/screen-tracking/) 不能直接替代这套原生计时；待 Sentry 正式适配后恢复，并验证导航事件只记录一次。未添加自制 tracing 或依赖私有路由接口的补丁。
+
+## TrueSheet iOS 兼容性待验收
+
+TrueSheet 保持稳定版 3.11.18。上游 [PR #896](https://github.com/lodev09/react-native-true-sheet/pull/896) 已确认 RN 0.88 的视图复用会重置隐藏状态，引发重开弹层后背景遮挡；当前 3.x 稳定版尚未包含修复。本项目 `bangumi-detail-sheet.tsx` 按会话挂卸载并设置背景，存在相同触发条件，但尚未在本项目设备上复现。
+
+优先验证首页详情打开、关闭、重开同作品或其他作品、跳转后返回地图，以及底层地图显示和触摸。保持之前暂缓 v4 beta 的决定，不自动引入 beta 或原生补丁。该风险未验证前不能认定 iOS 已可发布。
+
+## OTA 与原生包
+
+应用基础版本仍为 `0.7.0`，runtime 改为 `0.7.0-sdk58`。旧 SDK 57 原生包的 runtime 是 `0.7.0`，不会收到新 SDK 的更新。Preview 展示后缀不参与 runtime。
+
+必须先生成并验证 SDK 58 的开发客户端及发布包，再发布该 runtime 的 OTA。现有热更新工作流仅检查应用基础版本，不能证明服务器已有同 runtime 的原生包。发布流程见 [发版与更新](../releases/README.md)。
+
+## Skills
+
+对照 [Expo 官方 skills 仓库 `927dd7cc`](https://github.com/expo/skills/tree/927dd7cc2088ec2f0c73589fe2e94c3c973afc45) 核对现有 20 个 Expo/EAS skills，仅 `eas-observe` 从 1.1.0 更新为 1.2.0，并同步参考文档和 `skills-lock.json`。其余 19 个已与该官方版本一致。
+
+官方 `expo-upgrade` 仍为 1.0.0，部分内容以 SDK 57 为背景；此次以 SDK 58 正式文档为准，不人为修改上游技能版本，也未因此给应用启用 Observe。
+
+现有技能中的同步 `File.write()` 示例、`expo-router/react-navigation` 导入、`unstable-native-tabs` 入口和平台列表不支持虚拟化的概括均需结合 SDK 58 文档重新判断。`AGENTS.md` 已明确版本文档优先，避免后续照搬过时示例。
+
+## 验证与设备回归
+
+已完成：
+
+- `yarn expo install --check`：通过，保留上述 FlashList 例外。
+- `npx expo-doctor@latest`：20/20 通过。
+- `yarn tsc --noEmit`：通过。
+- `yarn lint`：0 错误，保留 `request.ts` 的 Axios 导入警告和 `tamagui.config.ts` 的空接口警告。
+- 全部 `scripts/tests/*.test.mjs`：205/205 通过。
+- 加载实际 i18n 初始化、Zustand 语言偏好和三份翻译资源，仅替换原生 Localization/MMKV 接口：语言切换、插值、回退、偏好写入及 React 19.3 的 `useTranslation` SSR 冒烟检查通过。未覆盖真机原生语言事件与真实 MMKV 持久化。
+- `yarn icons:check`：10 个生成图标均匹配；依赖完整性检查通过。
+- Expo public config 和 Metro 配置可加载；开发/测试变体禁用更新，Preview 展示后缀不改变 `0.7.0-sdk58` runtime。
+
+迁移初次安装使用 `--ignore-scripts`；随后在主工作目录删除 `node_modules` 后，按用户要求执行了正常生命周期的 `yarn install --frozen-lockfile`，安装及 `yarn check --integrity` 均通过。迁移过程中未由代理执行 prebuild、打包、export、原生编译或发布；这些操作需按项目约定另行获得明确授权。上述检查不证明原生渲染、相机、动画或设备升级已通过。
+
+使用新原生客户端回归：
+
+- 中/英/日语言切换、持久化和重启恢复。
+- 首页/计划地图、定位权限、旋转与 3D 俯仰下的点位计数、图标缓存和离线恢复。
+- 计划批量添加的两级返回、硬件返回、深链和普通桌面恢复、嵌套页标题栏。
+- TrueSheet 重复打开/关闭和跨页面切换，特别是 iOS 视图复用后的空白遮挡。
+- 相机权限、拍摄、结果弹层动画、重拍保留缩放、图片预览/导出/相册/分享；结果页展示期间继续停止相机。
+- iOS 27 可调整窗口下的旋转与方向行为；按页面设置的竖屏不能替代窗口尺寸适配验收。
+- 备份导入导出、计划文件分享、下载更新；新旧 runtime 隔离和新包接收新 OTA。
+- Sentry JS 错误和原生崩溃上报；自动导航计时按上述限制处理。
+
+## 回退边界
+
+迁移与此前的多语言依赖更新都留在新分支，原基线提交为 `6739d50`。需要回到 SDK 57 时，应保留当前工作树修改后切回原分支，并使用对应 lockfile 和 SDK 57 原生客户端；不能把 SDK 58 JavaScript 直接加载到旧客户端。尚未提交或发布时无需重写历史。

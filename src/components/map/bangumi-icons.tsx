@@ -82,7 +82,7 @@ async function persistCroppedIcons(spriteMeta: SpriteMeta, icons: Map<number, st
         const failedCopy = copies.find((copy) => copy.status === 'rejected');
         if (failedCopy?.status === 'rejected') throw failedCopy.reason;
       }
-      new File(dir, 'meta.json').write(JSON.stringify({ fingerprint: spriteMeta.fingerprint, ids: spriteMeta.ids }));
+      new File(dir, 'meta.json').writeSync(JSON.stringify({ fingerprint: spriteMeta.fingerprint, ids: spriteMeta.ids }));
       return;
     } catch {
       try {
@@ -267,7 +267,7 @@ function BangumiIcons({ bangumis, onIconPress }: Props) {
           const target = cacheFile('sprite.png');
           if (target.exists) target.delete();
           tmp.rename('sprite.png');
-          cacheFile('meta.json').write(JSON.stringify({ ids: resp.ids }));
+          cacheFile('meta.json').writeSync(JSON.stringify({ ids: resp.ids }));
           if (!cacheLoaded && !cancelled) {
             setSpriteMeta({ ids, url: target.contentUri ?? target.uri, fingerprint: target.md5 ?? undefined });
           }

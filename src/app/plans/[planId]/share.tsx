@@ -9,7 +9,7 @@ import { Toast } from '@boiboif/react-native-toast';
 import { FileJson, Share2 } from '@tamagui/lucide-icons-2';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
-import { View as NativeView, ScrollView, useWindowDimensions } from 'react-native';
+import { View as NativeView, ScrollView, useWindowDimensions, type ViewInstance } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { captureRef } from 'react-native-view-shot';
 import { Spinner, Text, View, YStack, useTheme } from 'tamagui';
@@ -25,7 +25,7 @@ export default function PlanShareScreen() {
   const data = useMapData((state) => state.data);
   const theme = useTheme();
   const { width } = useWindowDimensions();
-  const cardRef = useRef<NativeView>(null);
+  const cardRef = useRef<ViewInstance>(null);
   const [imageReady, setImageReady] = useState(false);
   const [sharing, setSharing] = useState<'image' | 'file' | null>(null);
   const showDisplayOnly = displayOnly === '1';

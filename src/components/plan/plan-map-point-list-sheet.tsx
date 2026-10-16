@@ -6,7 +6,7 @@ import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { Check, ListTodo } from '@tamagui/lucide-icons-2';
 import { forwardRef, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { type NativeScrollEvent, type NativeSyntheticEvent, Pressable, type ScrollView } from 'react-native';
+import { type NativeScrollEvent, type NativeSyntheticEvent, Pressable, type ScrollViewInstance } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Svg, { Circle } from 'react-native-svg';
 import { Text, useTheme, useThemeName, View, XStack, YStack } from 'tamagui';
@@ -150,7 +150,7 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
   );
   const scrollToSelectedNative = useCallback(
     (animated: boolean) => {
-      const scrollView = listRef.current?.getNativeScrollRef() as ScrollView | undefined;
+      const scrollView = listRef.current?.getNativeScrollRef() as ScrollViewInstance | undefined;
       if (!scrollView || selectedIndex < 0) return false;
       const precedingIndex = Math.max(0, selectedIndex - 1);
       const measuredOffset = listRef.current?.getLayout(precedingIndex)?.y;
@@ -312,7 +312,7 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
       return;
     }
 
-    const scrollView = listRef.current?.getNativeScrollRef() as ScrollView | undefined;
+    const scrollView = listRef.current?.getNativeScrollRef() as ScrollViewInstance | undefined;
     if (!scrollView) {
       filterTransitionRef.current = false;
       programmaticScrollRef.current = false;

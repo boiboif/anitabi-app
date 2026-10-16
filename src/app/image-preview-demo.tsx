@@ -3,7 +3,7 @@ import { StrictButton as Button } from '@/components/ui/strict-button';
 import { Image } from 'expo-image';
 import { Redirect, Stack } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Pressable, ScrollView, type View } from 'react-native';
+import { Pressable, ScrollView, type ViewInstance } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Text, YStack } from 'tamagui';
 
@@ -34,7 +34,7 @@ const EXAMPLES: PreviewImage[] = [
 
 export default function ImagePreviewDemo() {
   const { t } = useTranslation();
-  const thumbnails = useRef<Record<string, View | null>>({});
+  const thumbnails = useRef<Record<string, ViewInstance | null>>({});
   const bounds = useRef<Record<string, ImagePreviewBounds>>({});
   const [session, setSession] = useState<{ images: PreviewImage[]; initialIndex: number; transition: boolean } | null>(
     null,

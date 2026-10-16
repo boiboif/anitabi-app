@@ -9,7 +9,7 @@ import { createMapViewportContainsPoint, type MapViewportState } from '@/utils/m
 import { X } from '@tamagui/lucide-icons-2';
 import { Image } from 'expo-image';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, type ScrollViewInstance } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { GetThemeValueForKey, Text, useTheme, View } from 'tamagui';
 
@@ -64,7 +64,7 @@ export default function MapTopBangumiIcons({
   showOpenedBangumiDetails = true,
 }: Props) {
   const { t, i18n } = useTranslation();
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollViewRef = useRef<ScrollViewInstance>(null);
   const [contentWidth, setContentWidth] = useState<number | null>(null);
   const theme = useTheme();
   const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);

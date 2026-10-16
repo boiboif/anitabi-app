@@ -14,7 +14,7 @@ description: Get the latest Android APK or unsigned iOS IPA for Anitabi.
 | Android      | Android 7.0 (API 24) | A signed APK is available from GitHub Releases                                                 |
 | iOS / iPadOS | iOS / iPadOS 16.4    | An unsigned IPA is available and must be signed with your own Apple account before sideloading |
 
-These requirements match the Expo SDK 57 version used by the project. See [Expo's Android and iOS support table](https://docs.expo.dev/versions/v57.0.0/#support-for-android-and-ios-versions) for details.
+These requirements match the Expo SDK 58 version used by the project. See [Expo's Android and iOS support table](https://docs.expo.dev/versions/v58.0.0/#support-for-android-and-ios-versions) for details.
 
 ## Installing on iOS
 
@@ -30,7 +30,7 @@ The package download should point to `github.com/boiboif/anitabi-app/releases`. 
 
 ## Build from source
 
-Anitabi uses Expo SDK 57 and React Native 0.86. Developers can clone the [project repository](https://github.com/boiboif/anitabi-app), configure the environment according to the contributing guide, and build the Android or iOS version.
+Anitabi uses Expo SDK 58 and React Native 0.88. Developers can clone the [project repository](https://github.com/boiboif/anitabi-app), configure the environment according to the contributing guide, and build the Android or iOS version.
 
 ::: info Unofficial project
 Anitabi App is not officially affiliated with, sponsored by, or endorsed by anitabi.cn. Rights to map locations, anime information, and related resources belong to their respective owners.

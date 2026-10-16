@@ -23,7 +23,8 @@ const config: ExpoConfig = {
   slug: 'anitabi-app',
   version: nativeAppVersion,
   platforms: ['ios', 'android'],
-  runtimeVersion: appVersion,
+  // SDK 58 native modules cannot load updates built for the SDK 57 runtime.
+  runtimeVersion: `${appVersion}-sdk58`,
   updates: {
     enabled: appUpdatesEnabled,
     url: `https://u.expo.dev/${process.env.EXPO_PROJECT_ID}`,
