@@ -145,7 +145,7 @@ const config: ExpoConfig = {
     [
       'expo-location',
       {
-        locationWhenInUsePermission: '显示当前位置在地图上',
+        locationWhenInUsePermission: '显示当前位置，并计算巡礼计划中点位的距离',
       },
     ],
     [

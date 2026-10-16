@@ -1,11 +1,13 @@
 import PointListCard from '@/components/point/point-list-card';
 import PreviewableImage from '@/components/image-preview/previewable-image';
+import AddPointBatchButton from '@/components/plan/add-point-batch-button';
 import { getCategoryMessage, translateMessage } from '@/i18n/messages';
 import { getBangumiTitle } from '@/lib/localized-data';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapBrowse } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
+import { groupPointsForDetails } from '@/utils/plan-point-batches';
 import { type DetentChangeEvent, TrueSheet } from '@lodev09/react-native-true-sheet';
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import dayjs from 'dayjs';
@@ -44,6 +46,7 @@ interface FlatSectionHeader {
   title: string;
   count: number;
   expanded: boolean;
+  points: Point[];
 }
 
 function BangumiCategoryLabel({ category }: { category: string }) {
@@ -200,51 +203,7 @@ function groupPoints(
     return sections;
   }
 
-  const pilgrimageGroups = new Map<string, { title: string; data: Point[] }>();
-  for (const p of points) {
-    if (p.isFolder) {
-      // 上游 name 允许是数字；分组标题要参与 localeCompare，数字名跳过。
-      const nameText = typeof p.name === 'string' ? p.name : '';
-      pilgrimageGroups.set(p.id, { title: nameText || p.folder || p.cn || unnamedCollectionLabel, data: [p] });
-    }
-  }
-
-  const folderMap = new Map<string, Point[]>();
-  const bangumiPoints: Point[] = [];
-
-  for (const p of points) {
-    if (p.isFolder) continue;
-
-    if (p.fid && pilgrimageGroups.has(p.fid)) {
-      pilgrimageGroups.get(p.fid)!.data.push(p);
-    } else if (p.folder) {
-      if (!folderMap.has(p.folder)) folderMap.set(p.folder, []);
-      folderMap.get(p.folder)!.push(p);
-    } else {
-      bangumiPoints.push(p);
-    }
-  }
-
-  const sections: AccordionSection[] = [];
-  if (bangumiPoints.length > 0) {
-    sections.push({
-      key: 'folder-bangumi',
-      title: getBangumiTitle(bangumi, language),
-      data: bangumiPoints,
-    });
-  }
-  const pilgrimageGroupKeys = Array.from(pilgrimageGroups.keys()).sort((a, b) =>
-    pilgrimageGroups.get(a)!.title.localeCompare(pilgrimageGroups.get(b)!.title),
-  );
-  for (const k of pilgrimageGroupKeys) {
-    const group = pilgrimageGroups.get(k)!;
-    sections.push({ key: `pilgrimage-${k}`, title: group.title, data: group.data });
-  }
-  const folderKeys = Array.from(folderMap.keys()).sort();
-  for (const k of folderKeys) {
-    sections.push({ key: `folder-${k}`, title: k, data: folderMap.get(k)! });
-  }
-  return sections;
+  return groupPointsForDetails(points, getBangumiTitle(bangumi, language), unnamedCollectionLabel);
 }
 
 function useBangumiDetailSheet(requestedBangumi: Bangumi | undefined, onDetailsDismiss: () => void) {
@@ -501,6 +460,7 @@ function BangumiDetailSheet() {
         sectionKey: section.key,
         title: section.title,
         count: section.data.length,
+        points: section.data,
       } as const;
 
       return {
@@ -645,13 +605,20 @@ function BangumiDetailSheet() {
             onPress={() => toggleSection(item.sectionKey)}
           >
             <View position="absolute" t={-1} l={0} r={0} height={2} bg="$color1" />
-            <View flexDirection="row" style={{ alignItems: 'center' }} px="$2" py="$2">
-              <Text fontWeight="600" fontSize="$body" color="$color12" flex={1}>
+            <View flexDirection="row" items="center" px="$2" height={SECTION_HEADER_HEIGHT} gap="$1">
+              <Text fontWeight="600" fontSize="$body" color="$color12" flex={1} numberOfLines={1}>
                 {item.title}
               </Text>
               <Text fontSize="$caption" color="$color10" mr="$1">
                 {item.count}
               </Text>
+              {accordionMode === 'folder' && selectedBangumi ? (
+                <AddPointBatchButton
+                  compact
+                  entries={item.points.map((point) => ({ point, bangumi: selectedBangumi }))}
+                  title={`${localizedBangumiTitle} · ${item.title}`}
+                />
+              ) : null}
               <Text fontSize="$footnote" color="$color10">
                 {item.expanded ? '▲' : '▼'}
               </Text>
@@ -680,7 +647,16 @@ function BangumiDetailSheet() {
         </View>
       );
     },
-    [focusPointFromBangumiDetails, selectedBangumi, sheetRef, theme.color1.val, theme.color5.val, toggleSection],
+    [
+      accordionMode,
+      focusPointFromBangumiDetails,
+      localizedBangumiTitle,
+      selectedBangumi,
+      sheetRef,
+      theme.color1.val,
+      theme.color5.val,
+      toggleSection,
+    ],
   );
 
   // Mount-to-present avoids TrueSheet's uncancellable lazy present() promise on route blur.
@@ -784,6 +760,13 @@ function BangumiDetailSheet() {
                       </Text>
                     </View>
                   ) : null}
+                </View>
+                <View px="$2" pb="$3" self="flex-start">
+                  <AddPointBatchButton
+                    entries={selectedBangumi?.points.map((point) => ({ point, bangumi: selectedBangumi })) ?? []}
+                    title={localizedBangumiTitle}
+                    label={t('addAllWorkLocationsToPlan', { defaultValue: '全部点位加入计划' })}
+                  />
                 </View>
                 <AccordionControls
                   accordionMode={accordionMode}

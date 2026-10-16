@@ -13,6 +13,7 @@ import {
 } from '@/lib/plan-storage';
 import i18n from '@/i18n';
 import type { Bangumi, Point } from '@/services/types';
+import type { PlanPointEntry } from '@/utils/plan-point-batches';
 import { create } from 'zustand';
 
 function pointKey(bangumiId: number, pointId: string): string {
@@ -38,6 +39,8 @@ function makeItem(point: Point, bangumi: Bangumi): PlanItem {
   };
 }
 
+export type AddPlanPointsResult = { addedCount: number; existingCount: number; planCount: number };
+
 type PlansStore = {
   plans: ItineraryPlan[];
   planListSortOrder: PlanListSortOrder;
@@ -47,8 +50,10 @@ type PlansStore = {
   updatePlan: (id: string, patch: Pick<ItineraryPlan, 'title' | 'description'>) => void;
   deletePlan: (id: string) => void;
   addPoint: (planId: string, point: Point, bangumi: Bangumi) => void;
+  addPointsToPlans: (entries: PlanPointEntry[], planIds: string[]) => AddPlanPointsResult;
   updatePointPlans: (point: Point, bangumi: Bangumi, selectedPlanIds: string[]) => void;
   removePoint: (planId: string, itemKey: string) => void;
+  removePoints: (planId: string, items: readonly Pick<PlanItem, 'key' | 'addedAt'>[]) => number;
   togglePoint: (planId: string, itemKey: string) => void;
   movePoint: (planId: string, itemKey: string, direction: 'up' | 'down') => void;
   reorderPoints: (planId: string, orderedKeys: string[]) => void;
@@ -117,6 +122,32 @@ export const usePlans = create<PlansStore>((set, get) => ({
       set,
     );
   },
+  addPointsToPlans: (entries, planIds) => {
+    const selectedIds = new Set(planIds);
+    const result = { addedCount: 0, existingCount: 0, planCount: 0 };
+    if (entries.length === 0 || selectedIds.size === 0) return result;
+    const now = Date.now();
+    const nextPlans = get().plans.map((plan) => {
+      if (!selectedIds.has(plan.id)) return plan;
+      result.planCount += 1;
+      const keys = new Set(plan.items.map((item) => item.key));
+      const added: PlanItem[] = [];
+      for (const { point, bangumi } of entries) {
+        const key = pointKey(bangumi.id, point.id);
+        if (keys.has(key)) {
+          result.existingCount += 1;
+        } else {
+          keys.add(key);
+          added.push({ ...makeItem(point, bangumi), addedAt: now });
+        }
+      }
+      result.addedCount += added.length;
+      // Keep existing items and their completion state, snapshots and ordering intact.
+      return added.length ? { ...plan, items: [...plan.items, ...added], updatedAt: now } : plan;
+    });
+    if (result.addedCount > 0) save(nextPlans, set);
+    return result;
+  },
   updatePointPlans: (point, bangumi, selectedPlanIds) => {
     const selectedIds = new Set(selectedPlanIds);
     const itemKey = pointKey(bangumi.id, point.id);
@@ -145,6 +176,21 @@ export const usePlans = create<PlansStore>((set, get) => ({
       ),
       set,
     );
+  },
+  removePoints: (planId, selectedItems) => {
+    const selected = new Map(selectedItems.map((item) => [item.key, item.addedAt]));
+    if (selected.size === 0) return 0;
+    let removedCount = 0;
+    const nextPlans = get().plans.map((plan) => {
+      if (plan.id !== planId) return plan;
+      // Read the latest plan and retain each remaining item unchanged. addedAt
+      // distinguishes an entry removed and re-added while confirmation was open.
+      const items = plan.items.filter((item) => selected.get(item.key) !== item.addedAt);
+      removedCount = plan.items.length - items.length;
+      return removedCount ? { ...plan, items, updatedAt: Date.now() } : plan;
+    });
+    if (removedCount > 0) save(nextPlans, set);
+    return removedCount;
   },
   togglePoint: (planId, itemKey) => {
     save(

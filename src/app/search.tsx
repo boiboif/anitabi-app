@@ -1,23 +1,17 @@
-import PreviewableImage from '@/components/image-preview/previewable-image';
+import BangumiListCard from '@/components/bangumi/bangumi-list-card';
 import PointListCard from '@/components/point/point-list-card';
 import SearchBox from '@/components/ui/search-box';
-import { getCategoryMessage, translateMessage, type TranslationMessage } from '@/i18n/messages';
-import { getBangumiTitle } from '@/lib/localized-data';
-import { buildImageUrl } from '@/services/handlers';
+import { translateMessage, type TranslationMessage } from '@/i18n/messages';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapBrowse } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
 import { FlashList, FlashListRef } from '@shopify/flash-list';
-import dayjs from 'dayjs';
-import duration from 'dayjs/plugin/duration';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Keyboard, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getTokens, Text, useTheme, View } from 'tamagui';
-
-dayjs.extend(duration);
+import { getTokens, Text, View } from 'tamagui';
 
 // ---------------------------------------------------------------------------
 // 列表项联合类型 — 后续增加巡礼点列表时添加 { type: 'point' } 分支
@@ -30,96 +24,6 @@ const TABS: { key: TabKey; label: TranslationMessage }[] = [
   { key: 'recent', label: { key: 'recentlyUpdated', defaultValue: '最近更新' } },
   { key: 'popular', label: { key: 'popularWorks', defaultValue: '热门作品' } },
 ];
-
-// ---------------------------------------------------------------------------
-// Bangumi 卡片
-// ---------------------------------------------------------------------------
-function BangumiCard({ bangumi, onPress }: { bangumi: Bangumi; onPress: () => void }) {
-  const { t, i18n } = useTranslation();
-  const theme = useTheme();
-  const categoryMessage = getCategoryMessage(bangumi.cat);
-  const localizedTitle =
-    getBangumiTitle(bangumi, i18n.resolvedLanguage) || t('unknownWork', { defaultValue: '未知作品' });
-  const originalTitle = bangumi.title && bangumi.title !== localizedTitle ? bangumi.title : null;
-  const coverUri = buildImageUrl(bangumi.cover ?? '');
-  return (
-    <View
-      bg="$color2"
-      p="$2"
-      mb="$2"
-      display="flex"
-      flexDirection="row"
-      rounded="$4"
-      shadowColor="$shadowColor"
-      boxShadow="0 1px 4px $shadowColor"
-      gap="$2.5"
-    >
-      <PreviewableImage
-        recyclingKey={String(bangumi.id)}
-        source={{ uri: coverUri }}
-        previewUri={coverUri || undefined}
-        previewBorderRadius={getTokens().radius['4'].val}
-        accessibilityLabel={t('previewWorkCover', { title: localizedTitle })}
-        style={{
-          width: 100,
-          height: 100,
-          borderRadius: getTokens().radius['4'].val,
-          backgroundColor: bangumi.color || theme.color9.val,
-        }}
-        contentFit="cover"
-      />
-      <Pressable onPress={onPress} style={{ flex: 1 }}>
-        <View flex={1}>
-          {localizedTitle ? (
-            <Text fontWeight="600" fontSize="$subtitle" color="$color12" pr="$8" numberOfLines={2}>
-              {localizedTitle}
-            </Text>
-          ) : null}
-          {originalTitle ? (
-            <Text fontSize="$footnote" color="$color11" mt="$1" mb="$1" numberOfLines={1}>
-              {originalTitle}
-            </Text>
-          ) : null}
-          <View flexDirection="row">
-            {bangumi.city && (
-              <Text fontSize="$footnote" color="$color11">
-                {bangumi.city} {'· '}
-              </Text>
-            )}
-            <Text fontSize="$footnote" color="$color11">
-              <Text color="$primary" fontWeight="bold">
-                {bangumi.points.length}
-              </Text>
-              {t('locationSuffix', { defaultValue: '个巡礼点' })}
-            </Text>
-          </View>
-          <Text fontSize="$caption" color="$color11" position="absolute" r="$0" b="$0">
-            {t('updatedDate', {
-              defaultValue: '最近更新：{{date}}',
-              date: dayjs(bangumi.modified).format('YYYY-MM-DD HH:mm'),
-            })}
-          </Text>
-        </View>
-        {bangumi.cat?.trim() ? (
-          <View
-            position="absolute"
-            t={0}
-            r={0}
-            pointerEvents="none"
-            px="$2"
-            py="$1"
-            rounded="$2"
-            style={{ backgroundColor: bangumi.color || theme.color9.val }}
-          >
-            <Text fontSize="$caption" color="white" fontWeight="500">
-              {categoryMessage ? translateMessage(t, categoryMessage) : bangumi.cat}
-            </Text>
-          </View>
-        ) : null}
-      </Pressable>
-    </View>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // 巡礼点卡片（搜索结果用）
@@ -277,7 +181,7 @@ const Search = () => {
     ({ item }: { item: SearchListItem }) => {
       switch (item.type) {
         case 'bangumi':
-          return <BangumiCard bangumi={item.data} onPress={() => handleBangumiPress(item.data)} />;
+          return <BangumiListCard bangumi={item.data} onPress={() => handleBangumiPress(item.data)} />;
         case 'point':
           return (
             <PointCard

@@ -4,6 +4,7 @@ import { ThemeInput } from '@/components/ui/theme-input';
 import type { Bangumi, Point } from '@/services/types';
 import { useFavoritePoints } from '@/store/use-favorite-points';
 import { usePlans } from '@/store/use-plans';
+import type { PlanPointEntry } from '@/utils/plan-point-batches';
 import { Toast } from '@boiboif/react-native-toast';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { Plus, Square, SquareCheckBig, X } from '@tamagui/lucide-icons-2';
@@ -14,7 +15,11 @@ import { getTokens, Text, useTheme, View, XStack, YStack } from 'tamagui';
 
 type PlanPickerContextValue = {
   open: (point: Point, bangumi: Bangumi) => void;
+  openBatch: (entries: PlanPointEntry[], title: string) => void;
 };
+
+type PlanPickerTarget =
+  { kind: 'single'; point: Point; bangumi: Bangumi } | { kind: 'batch'; entries: PlanPointEntry[]; title: string };
 
 const PlanPickerContext = createContext<PlanPickerContextValue | null>(null);
 
@@ -27,11 +32,13 @@ export function usePlanPicker(): PlanPickerContextValue {
 function PlanRow({
   title,
   count,
+  detail,
   selected,
   onPress,
 }: {
   title: string;
   count: number;
+  detail?: string;
   selected: boolean;
   onPress: () => void;
 }) {
@@ -51,7 +58,7 @@ function PlanRow({
             {title}
           </Text>
           <Text fontSize="$caption" color="$color10">
-            {t('locationCount', { defaultValue: '{{count}} 个点位', count })}
+            {detail ?? t('locationCount', { defaultValue: '{{count}} 个点位', count })}
           </Text>
         </YStack>
         {selected ? (
@@ -74,8 +81,11 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
   const togglePlanListSortOrder = usePlans((state) => state.togglePlanListSortOrder);
   const createPlan = usePlans((state) => state.createPlan);
   const updatePointPlans = usePlans((state) => state.updatePointPlans);
+  const addPointsToPlans = usePlans((state) => state.addPointsToPlans);
   const addFavorite = useFavoritePoints((state) => state.addFavorite);
-  const [target, setTarget] = useState<{ point: Point; bangumi: Bangumi } | null>(null);
+  const addFavorites = useFavoritePoints((state) => state.addFavorites);
+  const [target, setTarget] = useState<PlanPickerTarget | null>(null);
+  const submittedRef = useRef(false);
   const [selectedPlanIds, setSelectedPlanIds] = useState<string[]>([]);
   const [alsoFavorite, setAlsoFavorite] = useState(true);
   const [newPlanTitle, setNewPlanTitle] = useState('');
@@ -84,7 +94,8 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
   const open = useCallback((point: Point, bangumi: Bangumi) => {
     const pointKey = `${bangumi.id}:${point.id}`;
     const latestPlans = usePlans.getState().plans;
-    setTarget({ point, bangumi });
+    submittedRef.current = false;
+    setTarget({ kind: 'single', point, bangumi });
     setSelectedPlanIds(
       latestPlans.filter((plan) => plan.items.some((item) => item.key === pointKey)).map((plan) => plan.id),
     );
@@ -99,11 +110,32 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
   }, []);
 
   const submit = useCallback(() => {
-    if (!target) return;
+    if (!target || submittedRef.current) return;
     if (plans.length === 0) {
       Toast.show(t('createAPilgrimagePlanFirst', { defaultValue: '请先新建巡礼计划' }));
       return;
     }
+    if (target.kind === 'batch') {
+      if (selectedPlanIds.length === 0) return;
+      submittedRef.current = true;
+      const result = addPointsToPlans(target.entries, selectedPlanIds);
+      if (result.planCount === 0) {
+        submittedRef.current = false;
+        return;
+      }
+      if (alsoFavorite) addFavorites(target.entries);
+      void pickerSheetRef.current?.dismiss();
+      Toast.show(
+        t('batchPlanPointsAdded', {
+          defaultValue: '已向 {{plans}} 个计划添加 {{added}} 个点位，跳过 {{existing}} 个已有点位',
+          plans: result.planCount,
+          added: result.addedCount,
+          existing: result.existingCount,
+        }),
+      );
+      return;
+    }
+    submittedRef.current = true;
     updatePointPlans(target.point, target.bangumi, selectedPlanIds);
     if (alsoFavorite && selectedPlanIds.length > 0) addFavorite(target.point, target.bangumi);
     void pickerSheetRef.current?.dismiss();
@@ -112,7 +144,17 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
         ? t('pilgrimagePlansUpdated', { defaultValue: '已更新巡礼计划' })
         : t('removedFromPilgrimagePlans', { defaultValue: '已从巡礼计划移除' }),
     );
-  }, [addFavorite, alsoFavorite, plans.length, selectedPlanIds, t, target, updatePointPlans]);
+  }, [
+    addFavorite,
+    addFavorites,
+    addPointsToPlans,
+    alsoFavorite,
+    plans.length,
+    selectedPlanIds,
+    t,
+    target,
+    updatePointPlans,
+  ]);
 
   const openCreate = useCallback(() => {
     setNewPlanTitle('');
@@ -128,7 +170,24 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
     void createSheetRef.current?.dismiss();
   }, [createPlan, newPlanTitle]);
 
-  const contextValue = useMemo(() => ({ open }), [open]);
+  const contextValue = useMemo<PlanPickerContextValue>(
+    () => ({
+      open,
+      openBatch: (entries, title) => {
+        if (entries.length === 0) return;
+        submittedRef.current = false;
+        setTarget({ kind: 'batch', entries, title });
+        setSelectedPlanIds([]);
+        setAlsoFavorite(true);
+        void pickerSheetRef.current?.present();
+      },
+    }),
+    [open],
+  );
+  const batchKeys = new Set(
+    target?.kind === 'batch' ? target.entries.map(({ point, bangumi }) => `${bangumi.id}:${point.id}`) : [],
+  );
+  const batchSubmitDisabled = target?.kind === 'batch' && !plans.some((plan) => selectedPlanIds.includes(plan.id));
   const sortedPlans = [...plans].sort((a, b) =>
     planListSortOrder === 'desc' ? b.createdAt - a.createdAt : a.createdAt - b.createdAt,
   );
@@ -163,6 +222,19 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
                 </Pressable>
               </XStack>
             </XStack>
+            {target?.kind === 'batch' ? (
+              <YStack gap="$1">
+                <Text fontSize="$body" color="$color12" numberOfLines={2}>
+                  {target.title}
+                </Text>
+                <Text fontSize="$caption" color="$color10">
+                  {t('batchPlanSelectionHint', {
+                    defaultValue: '{{count}} 个点位，选择要加入的计划，已有点位会自动跳过',
+                    count: target.entries.length,
+                  })}
+                </Text>
+              </YStack>
+            ) : null}
           </YStack>
         }
         footer={
@@ -191,8 +263,17 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
                 )}
               </XStack>
             </Pressable>
-            <Button bg="$primary" color="white" onPress={submit}>
-              {t('done', { defaultValue: '完成' })}
+            <Button
+              bg="$primary"
+              color="white"
+              onPress={submit}
+              disabled={batchSubmitDisabled}
+              accessibilityState={{ disabled: batchSubmitDisabled }}
+              opacity={batchSubmitDisabled ? 0.5 : 1}
+            >
+              {target?.kind === 'batch'
+                ? t('addToPilgrimagePlan', { defaultValue: '添加到巡礼计划' })
+                : t('done', { defaultValue: '完成' })}
             </Button>
           </View>
         }
@@ -211,6 +292,16 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
                     <PlanRow
                       title={plan.title}
                       count={plan.items.length}
+                      detail={
+                        target?.kind === 'batch'
+                          ? t('batchPlanPointCounts', {
+                              defaultValue: '将新增 {{added}} 个，已包含 {{existing}} 个',
+                              added:
+                                target.entries.length - plan.items.filter((item) => batchKeys.has(item.key)).length,
+                              existing: plan.items.filter((item) => batchKeys.has(item.key)).length,
+                            })
+                          : undefined
+                      }
                       selected={selectedPlanIds.includes(plan.id)}
                       onPress={() => togglePlan(plan.id)}
                     />
