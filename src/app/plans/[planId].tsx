@@ -3,7 +3,7 @@ import PointListCard from '@/components/point/point-list-card';
 import PlanListSettingsSheet from '@/components/plan/plan-list-settings-sheet';
 import StableReorderableList, { type StableReorderableListRenderItem } from '@/components/ui/stable-reorderable-list';
 import { StrictButton as Button } from '@/components/ui/strict-button';
-import { usePlanDistanceLocation } from '@/hooks/use-plan-distance-location';
+import { usePlanDistanceLocation, type PlanDistanceLocationError } from '@/hooks/use-plan-distance-location';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { sharePlanFile } from '@/lib/plan-share-files';
 import { createPlanShareBundle } from '@/lib/plan-sharing';
@@ -13,6 +13,7 @@ import type { Bangumi, Point } from '@/services/types';
 import { useMapData } from '@/store/use-map-data';
 import { usePlans } from '@/store/use-plans';
 import { sortPlanPointsByDistance } from '@/utils/plan-point-distances';
+import { Toast } from '@boiboif/react-native-toast';
 import {
   ArrowDownUp,
   Check,
@@ -32,7 +33,7 @@ import {
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { type ReactNode, createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Linking, Pressable } from 'react-native';
+import { Alert, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, View, XStack, YStack, useTheme } from 'tamagui';
 
@@ -220,7 +221,20 @@ export default function PlanDetailScreen() {
   const selectedItems = (plan?.items ?? []).filter(
     (item) => selection.planId === planId && selection.points.get(item.key) === item.addedAt,
   );
-  const distanceLocation = usePlanDistanceLocation(sortByDistance && hasPlanPoints && !sorting);
+  const handleDistanceLocationError = useCallback((error: PlanDistanceLocationError) => {
+    setSortByDistance(false);
+    Toast.show(
+      error === 'permission'
+        ? t('planDistancePermissionRequired', { defaultValue: '请允许使用位置后查看距离' })
+        : error === 'services'
+          ? t('planDistanceServicesDisabled', { defaultValue: '请开启系统定位服务后重试' })
+          : t('planDistanceLocationFailed', { defaultValue: '暂时无法获取位置，请重试' }),
+    );
+  }, [t]);
+  const distanceLocation = usePlanDistanceLocation(
+    sortByDistance && hasPlanPoints && !sorting,
+    handleDistanceLocationError,
+  );
 
   const bangumiById = useMemo(
     () => new Map((data?.data.bangumis ?? []).map((bangumi) => [bangumi.id, bangumi])),
@@ -576,33 +590,6 @@ export default function PlanDetailScreen() {
               {t('planDeleteSelectedLocations', { defaultValue: '删除所选点位' })}
             </Button>
           </XStack>
-        ) : null}
-        {sortByDistance && hasPlanPoints ? (
-          <YStack px="$4" pb="$2" gap="$1">
-            <Text fontSize="$caption" color="$color10">
-              {distanceLocation.error === 'permission'
-                ? t('planDistancePermissionRequired', { defaultValue: '请允许使用位置后查看距离' })
-                : distanceLocation.error === 'services'
-                  ? t('planDistanceServicesDisabled', { defaultValue: '请开启系统定位服务后重试' })
-                  : distanceLocation.error
-                    ? t('planDistanceLocationFailed', { defaultValue: '暂时无法获取位置，请重试' })
-                    : distanceLocation.isLocating
-                      ? t('planDistanceLocating', { defaultValue: '正在获取当前位置…' })
-                      : t('planDistanceStraightLine', { defaultValue: '显示直线距离，不改变计划顺序' })}
-            </Text>
-            {distanceLocation.error ? (
-              <XStack gap="$2">
-                <Button size="$2" fontSize="$caption" onPress={distanceLocation.retry}>
-                  {t('planDistanceRetry', { defaultValue: '重试定位' })}
-                </Button>
-                {distanceLocation.error === 'permission' ? (
-                  <Button size="$2" fontSize="$caption" onPress={() => void Linking.openSettings().catch(() => {})}>
-                    {t('planDistanceOpenSettings', { defaultValue: '打开设置' })}
-                  </Button>
-                ) : null}
-              </XStack>
-            ) : null}
-          </YStack>
         ) : null}
         {visibleItems.length === 0 ? (
           <YStack flex={1} minH={220} items="center" justify="center">

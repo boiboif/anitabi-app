@@ -12,18 +12,18 @@ import { useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { isValidCoordinate, type PlanDistanceLocation } from '@/utils/plan-point-distances';
 
-type LocationError = 'permission' | 'services' | 'unavailable';
+export type PlanDistanceLocationError = 'permission' | 'services' | 'unavailable';
 type DistanceLocationState = {
   location: PlanDistanceLocation | null;
   isLocating: boolean;
-  error: LocationError | null;
+  error: PlanDistanceLocationError | null;
 };
 
 const EMPTY_STATE: DistanceLocationState = { location: null, isLocating: false, error: null };
 const FIRST_LOCATION_TIMEOUT_MS = 20_000;
 
 /** A screen-scoped foreground watch; opening distance mode is the permission request intent. */
-export function usePlanDistanceLocation(enabled: boolean) {
+export function usePlanDistanceLocation(enabled: boolean, onError: (error: PlanDistanceLocationError) => void) {
   const isFocused = useIsFocused();
   const [state, setState] = useState<DistanceLocationState>(EMPTY_STATE);
   const [retryRevision, setRetryRevision] = useState(0);
@@ -74,6 +74,7 @@ export function usePlanDistanceLocation(enabled: boolean) {
         restartRequested = false;
         stopWatch();
         setState({ location: null, isLocating: false, error: 'unavailable' });
+        onError('unavailable');
       }, FIRST_LOCATION_TIMEOUT_MS);
     };
 
@@ -113,6 +114,7 @@ export function usePlanDistanceLocation(enabled: boolean) {
         if (disposed) return;
         if (!permission.granted) {
           setState({ location: null, isLocating: false, error: 'permission' });
+          if (active) onError('permission');
           return;
         }
         if (!active) return;
@@ -123,6 +125,7 @@ export function usePlanDistanceLocation(enabled: boolean) {
         if (!isCurrent()) return;
         if (!servicesEnabled) {
           setState({ location: null, isLocating: false, error: 'services' });
+          onError('services');
           return;
         }
 
@@ -159,6 +162,7 @@ export function usePlanDistanceLocation(enabled: boolean) {
             subscription?.remove();
             subscription = null;
             setState({ location: null, isLocating: false, error: 'unavailable' });
+            onError('unavailable');
           },
         );
         // Native watch creation can finish after blur, suspension, disable, or unmount.
@@ -166,7 +170,10 @@ export function usePlanDistanceLocation(enabled: boolean) {
         else subscription = watch;
       } catch {
         clearFirstFixTimeout();
-        if (!disposed && active) setState({ location: null, isLocating: false, error: 'unavailable' });
+        if (!disposed && active) {
+          setState({ location: null, isLocating: false, error: 'unavailable' });
+          onError('unavailable');
+        }
       } finally {
         creatingWatch = false;
         starting = false;
@@ -192,7 +199,7 @@ export function usePlanDistanceLocation(enabled: boolean) {
       appStateSubscription.remove();
       stopWatch();
     };
-  }, [enabled, isFocused, retryRevision]);
+  }, [enabled, isFocused, onError, retryRevision]);
 
   return {
     ...(screenActive ? state : EMPTY_STATE),
