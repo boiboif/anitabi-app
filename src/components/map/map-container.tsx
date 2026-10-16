@@ -42,6 +42,8 @@ type Props = {
   styleIndex: number;
   show3DBuildings: boolean;
   showPointImageMarkers: boolean;
+  /** Plan maps without a threshold keep every point image visible. */
+  planPointImageZoomThreshold?: number;
   /** Reports the viewport after camera events stop for 250ms. */
   onCameraChange?: (state: MapViewportState) => void;
   /** Reports the viewport immediately so point selection can use the current camera state. */
@@ -102,6 +104,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     styleIndex,
     show3DBuildings,
     showPointImageMarkers,
+    planPointImageZoomThreshold,
     onCameraChange,
     onViewportChange,
     onMapReady,
@@ -553,7 +556,8 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
             bounds={bounds}
             selectedBangumiIds={isPlanMode ? (selectedBangumiIds ?? []) : undefined}
             openedBangumiDetailsId={isPlanMode ? null : undefined}
-            ignoreZoomThreshold={isPlanMode}
+            ignoreZoomThreshold={isPlanMode && planPointImageZoomThreshold === undefined}
+            zoomThresholdOverride={isPlanMode ? planPointImageZoomThreshold : undefined}
             onPointSelect={handlePointSelect}
           />
         )}

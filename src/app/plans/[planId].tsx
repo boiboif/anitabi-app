@@ -12,7 +12,7 @@ import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapData } from '@/store/use-map-data';
 import { usePlans } from '@/store/use-plans';
-import { sortPlanPointsByDistance } from '@/utils/plan-point-distances';
+import { sortPlanPointsByDistance, type PlanDistanceLocation } from '@/utils/plan-point-distances';
 import { Toast } from '@boiboif/react-native-toast';
 import {
   ArrowDownUp,
@@ -30,8 +30,8 @@ import {
   Share2,
   Trash2,
 } from '@tamagui/lucide-icons-2';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { type ReactNode, createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import { Stack, useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
+import { type ReactNode, createContext, startTransition, useCallback, useContext, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -56,6 +56,7 @@ type DraggablePointRowProps = {
   theme: ReturnType<typeof useTheme>;
   sorting: boolean;
   showDistance: boolean;
+  distancePending: boolean;
   dragHandle?: ReactNode;
 };
 
@@ -124,20 +125,23 @@ function DraggablePointRow({
   theme,
   sorting,
   showDistance,
+  distancePending,
   dragHandle,
 }: DraggablePointRowProps) {
   const { t, i18n } = useTranslation();
   const { item, point, bangumi } = resolved;
   const distance = resolved.distanceMeters;
   const distanceLabel =
-    typeof distance !== 'number'
-      ? t('planDistanceUnknown', { defaultValue: '距离未知' })
-      : distance < 1_000
-        ? t('planDistanceMeters', { defaultValue: '约 {{distance}} 米', distance: Math.round(distance) })
-        : t('planDistanceKilometers', {
-            defaultValue: '约 {{distance}} 公里',
-            distance: (distance / 1_000).toFixed(1),
-          });
+    distancePending
+      ? t('planDistanceLocating', { defaultValue: '正在获取当前位置…' })
+      : typeof distance !== 'number'
+        ? t('planDistanceUnknown', { defaultValue: '距离未知' })
+        : distance < 1_000
+          ? t('planDistanceMeters', { defaultValue: '约 {{distance}} 米', distance: Math.round(distance) })
+          : t('planDistanceKilometers', {
+              defaultValue: '约 {{distance}} 公里',
+              distance: (distance / 1_000).toFixed(1),
+            });
 
   return (
     <PointListCard
@@ -204,7 +208,27 @@ export default function PlanDetailScreen() {
   const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const plan = usePlans((state) => state.plans.find((item) => item.id === planId));
+  const isFocused = useIsFocused();
+  const [displayedPlan, setDisplayedPlan] = useState(() => ({
+    planId,
+    plan: usePlans.getState().plans.find((item) => item.id === planId),
+  }));
+  useLayoutEffect(() => {
+    const refreshPlan = () => {
+      const plan = usePlans.getState().plans.find((item) => item.id === planId);
+      const update = () => {
+        setDisplayedPlan((current) =>
+          current.planId === planId && current.plan === plan ? current : { planId, plan },
+        );
+      };
+      if (isFocused) update();
+      else startTransition(update);
+    };
+    const unsubscribe = usePlans.subscribe(refreshPlan);
+    refreshPlan();
+    return unsubscribe;
+  }, [isFocused, planId]);
+  const plan = displayedPlan.planId === planId ? displayedPlan.plan : undefined;
   const deletePlan = usePlans((state) => state.deletePlan);
   const togglePoint = usePlans((state) => state.togglePoint);
   const removePoints = usePlans((state) => state.removePoints);
@@ -235,6 +259,10 @@ export default function PlanDetailScreen() {
     sortByDistance && hasPlanPoints && !sorting,
     handleDistanceLocationError,
   );
+  const [lastFocusedDistanceLocation, setLastFocusedDistanceLocation] = useState<PlanDistanceLocation | null>(null);
+  if ((isFocused || !sortByDistance) && lastFocusedDistanceLocation !== distanceLocation.location) {
+    setLastFocusedDistanceLocation(distanceLocation.location);
+  }
 
   const bangumiById = useMemo(
     () => new Map((data?.data.bangumis ?? []).map((bangumi) => [bangumi.id, bangumi])),
@@ -269,9 +297,15 @@ export default function PlanDetailScreen() {
     () => (showIncompleteOnly ? resolvedItems.filter((resolved) => !resolved.item.completed) : resolvedItems),
     [resolvedItems, showIncompleteOnly],
   );
-  const visibleItems = sortByDistance
-    ? sortPlanPointsByDistance(filteredItems, distanceLocation.location)
-    : filteredItems;
+  const displayedDistanceLocation = isFocused ? distanceLocation.location : lastFocusedDistanceLocation;
+  const distancePending = sortByDistance && displayedDistanceLocation === null;
+  // Reuse the visible projection through blur when the saved plan and location are unchanged.
+  const visibleItems = useMemo(
+    () => sortByDistance && displayedDistanceLocation
+      ? sortPlanPointsByDistance(filteredItems, displayedDistanceLocation)
+      : filteredItems,
+    [displayedDistanceLocation, filteredItems, sortByDistance],
+  );
 
   const toggleSorting = useCallback(() => {
     if (!hasPlanPoints) return;
@@ -338,9 +372,10 @@ export default function PlanDetailScreen() {
         theme={theme}
         sorting={sorting}
         showDistance={sortByDistance}
+        distancePending={distancePending}
       />
     ),
-    [planId, router, sortByDistance, sorting, theme, togglePoint, toggleSelectedPoint],
+    [distancePending, planId, router, sortByDistance, sorting, theme, togglePoint, toggleSelectedPoint],
   );
 
   const keyExtractor = useCallback((item: ResolvedItem) => item.id, []);
@@ -604,6 +639,7 @@ export default function PlanDetailScreen() {
             <StableReorderableList
               data={visibleItems}
               enabled={sorting}
+              rowExtraData={sortByDistance}
               itemHeight={PLAN_POINT_ROW_HEIGHT}
               keyExtractor={keyExtractor}
               renderItem={renderListItem}

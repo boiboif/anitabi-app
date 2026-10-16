@@ -38,6 +38,9 @@ const POINT_CAMERA_BOTTOM_PADDING = 24;
 const MAP_TAP_PAN_ONLY_ZOOM_THRESHOLD = 17;
 const CARD_LIST_KEEP_ZOOM_THRESHOLD = 18;
 const KEEP_ZOOM_VIEWPORT_MARGIN_RATIO = 0.5;
+const PLAN_IMAGE_POINT_COUNT_THRESHOLD = 50;
+const LARGE_PLAN_IMAGE_ZOOM_THRESHOLD = 17;
+
 type PointFocusSource = 'map-tap' | 'card-list' | 'refocus';
 
 function findPoint(bangumis: Bangumi[], reference: MapPointReference | null): Point | null {
@@ -365,6 +368,9 @@ export default function PlanMapScreen() {
             styleIndex={styleIndex}
             show3DBuildings={show3DBuildings}
             showPointImageMarkers={showPointImageMarkers}
+            planPointImageZoomThreshold={
+              plan.items.length > PLAN_IMAGE_POINT_COUNT_THRESHOLD ? LARGE_PLAN_IMAGE_ZOOM_THRESHOLD : undefined
+            }
             locationPuckActive={isLocationPuckActive}
             locationPuckRevision={locationPuckRevision}
             scaleBarPosition={{ left: 14, bottom: bottomOverlayHeight + 12 }}

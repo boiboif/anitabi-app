@@ -50,6 +50,7 @@ export type StableReorderableListRenderItem<T> = {
 type StableReorderableListProps<T> = {
   data: T[];
   enabled: boolean;
+  rowExtraData?: boolean;
   itemHeight: number;
   keyExtractor: (item: T) => string;
   renderItem: (params: StableReorderableListRenderItem<T>) => ReactElement;
@@ -327,6 +328,7 @@ function StableRow<T>({ item, itemKey, itemHeight, activeKey, dragHandle, render
 export default function StableReorderableList<T>({
   data,
   enabled,
+  rowExtraData = false,
   itemHeight,
   keyExtractor,
   renderItem,
@@ -366,6 +368,8 @@ export default function StableReorderableList<T>({
   const autoscrollSpeed = useSharedValue(0);
   const viewportTop = useSharedValue(0);
   const viewportHeight = useSharedValue(0);
+  // A worklet must capture only the count, not the full list of resolved points.
+  const itemCount = data.length;
 
   useLayoutEffect(() => {
     order.value = keys;
@@ -380,19 +384,19 @@ export default function StableReorderableList<T>({
       'worklet';
       if (!activeKey.value || autoscrollSpeed.value === 0) return;
       const elapsedSeconds = Math.min(timeSincePreviousFrame ?? 16.67, maxFrameDurationMs) / 1000;
-      const maximumOffset = Math.max(0, data.length * itemHeight + contentPaddingBottom - viewportHeight.value);
+      const maximumOffset = Math.max(0, itemCount * itemHeight + contentPaddingBottom - viewportHeight.value);
       const nextOffset = clamp(scrollOffset.value + autoscrollSpeed.value * elapsedSeconds, 0, maximumOffset);
       const delta = nextOffset - scrollOffset.value;
       if (delta === 0) return;
       scrollOffset.value = nextOffset;
-      updateTargetIndex(itemHeight, data.length, dragPreviewHeight, previewTop, scrollOffset, targetIndex);
+      updateTargetIndex(itemHeight, itemCount, dragPreviewHeight, previewTop, scrollOffset, targetIndex);
       scrollTo(scrollRef, 0, nextOffset, false);
     },
     [
       activeKey,
       autoscrollSpeed,
       contentPaddingBottom,
-      data.length,
+      itemCount,
       dragPreviewHeight,
       itemHeight,
       maxFrameDurationMs,
@@ -548,7 +552,7 @@ export default function StableReorderableList<T>({
         data={data}
         renderItem={renderRow}
         keyExtractor={keyExtractor}
-        extraData={enabled}
+        extraData={`${enabled}:${rowExtraData}`}
         recycleItems
         getFixedItemSize={getFixedItemSize}
         renderScrollComponent={renderScrollComponent}
