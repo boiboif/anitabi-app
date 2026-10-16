@@ -90,8 +90,8 @@ jobs:
           fi
 
           echo "EAS_ENVIRONMENT=$EXPO_UPDATE_CHANNEL" >> "$GITHUB_ENV"
-          echo "APP_NATIVE_VERSION=$released_display_version" >> "$GITHUB_ENV"
-          echo "Publishing Android and iOS runtime=$app_version, displayVersion=$released_display_version to channel=$EXPO_UPDATE_CHANNEL"
+          echo "APP_NATIVE_VERSION=$app_version" >> "$GITHUB_ENV"
+          echo "Publishing Android and iOS appVersion=$app_version, release=$released_display_version to channel=$EXPO_UPDATE_CHANNEL"
 
       - name: Validate Expo update config
         shell: bash

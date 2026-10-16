@@ -32,6 +32,22 @@ Node 使用 Expo 58 支持的版本，例如 22.13+（22.x）或 24.3+（24.x）
 - 媒体库新函数签名遗漏 `accessPrivileges` 扩展字段，使用属性窄化保留 iOS 原有的完整读取授权判断及仅写入降级流程。AppState 初始值允许为空，去掉过窄注解，保留后台恢复逻辑。
 - 保留 React Compiler、现有 Babel 生产环境 console 移除、Sentry Metro 配置和 `inlineRequires`。应用环境继续使用 `APP_VARIANT` / `EXPO_UPDATE_CHANNEL`，不依赖现在由 CLI 设置的 `NODE_ENV` 区分测试与生产。
 
+## Windows Android 原生编译路径
+
+首次在 Windows 构建 SDK 58 时，`:app:buildCMakeDebug[arm64-v8a]` 因 `RNGestureHandlerDetectorShadowNode.cpp.o` 的路径过长失败。生成的目标相对路径为 271 字符，完整路径为 336 字符。SDK 58 的 Expo Gradle 插件通过 [上游变更 #47791](https://github.com/expo/expo/pull/47791) 将 `CMAKE_OBJECT_PATH_MAX` 默认设为 `1024`，本机构建缓存也确认了该值；但 Android SDK CMake 3.22.1 附带的 Ninja 在该路径上仍报 260 字符限制。
+
+新增 `with-android-cmake-path-limit` 配置插件，在 Windows 主机的 app CMake 参数中设置 `-DCMAKE_OBJECT_PATH_MAX=240`。Expo 插件明确支持由模块参数覆盖其默认值。按 [CMake 官方说明](https://cmake.org/cmake/help/v3.22/variable/CMAKE_OBJECT_PATH_MAX.html)，该参数会让 CMake 对过长的目标文件路径使用哈希缩短；其他主机保留默认参数。配置由 prebuild 注入，不修改 `node_modules` 或全局 Android 工具链。
+
+重新执行 `yarn android` 时，现有脚本会先运行 prebuild，再编译；新 CMake 参数会改变构建配置。插件的重复应用、已有原生配置保留及签名插件组合均已通过独立检查，仍需实际重跑构建确认。日志中的跨 C:/D: 硬链接失败已回退到文件复制，不是本次中断原因。
+
+## Android 测试/预览版本号与语言配置
+
+[Android Test Build #38895433646](https://github.com/boiboif/anitabi-app/actions/runs/38895433646/job/116954662144) 使用提交 `85ff991`，在 `Generate Android project` 阶段失败，尚未进入 APK 编译。`expo-localization@58.0.4` 的 `setResourceConfigurations()` 只匹配数字和点组成的 `versionName`，无法处理工作流原有的 `0.7.0-test.35.1`；`0.7.0-preview.1` 同样会失败。该正则由 SDK 58 的[防重复配置变更 #48092](https://github.com/expo/expo/pull/48092) 引入。
+
+按项目决定，不给依赖打补丁。测试、Android 发布、双端发布工作流统一将基础 `appVersion` 写入 `APP_NATIVE_VERSION`（当前为 `0.7.0`），热更新工作流也使用同一基础版本。测试包名称/包名、Release 标签、产物名称、发布清单的 `displayVersion` 和递增构建号保留各自的区分信息；`runtimeVersion` 的 `-sdk58` 兼容标识保留。
+
+`expo-localization` 保持官方 58.0.4，保留其 `zh-Hans` 同时包含 `zh-rCN` 资源的修复。基础版本号可通过原插件的资源配置转换；完整 prebuild 与远程 APK 构建仍待重新运行确认。
+
 ## Sentry 导航计时限制
 
 SDK 58 移除了旧导航容器接口与 `__unsafe_action__`。核对 `@sentry/react-native@8.28.0` 和当时最新稳定版 8.31.0 后，`expoRouterIntegration()` 仍依赖已不存在的 `expo-router/build/global-state/router-store`，无法恢复原有自动导航计时。此次移除旧导航 integration 和容器注册，保留 Sentry 初始化、JS 异常、原生崩溃配置、根组件包装、0.2 采样率与 `sendDefaultPii: false`。

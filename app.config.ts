@@ -143,6 +143,7 @@ const config: ExpoConfig = {
     ],
     ['@rnmapbox/maps'],
     './plugins/with-android-release-signing',
+    './plugins/with-android-cmake-path-limit',
     [
       'expo-location',
       {

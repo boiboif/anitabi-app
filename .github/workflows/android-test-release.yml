@@ -57,7 +57,7 @@ jobs:
         run: |
           app_version="$(npx expo config --type public --json | node -e 'let input=""; process.stdin.on("data", chunk => { input += chunk; }); process.stdin.on("end", () => process.stdout.write(JSON.parse(input).version));')"
           version_code=$((GITHUB_RUN_NUMBER * 100 + GITHUB_RUN_ATTEMPT))
-          native_version="${app_version}-test.${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}"
+          native_version="$app_version"
           safe_ref="$(printf '%s' "$GITHUB_REF_NAME" | sed -E 's/[^A-Za-z0-9._-]+/-/g')"
           short_sha="${GITHUB_SHA:0:7}"
           asset_name="anitabi-test-${safe_ref}-${short_sha}.apk"
