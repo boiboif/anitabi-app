@@ -78,6 +78,7 @@
     "eslint": "^9.0.0",
     "eslint-config-expo": "~57.0.2",
     "prettier": "^3.9.10",
+    "sharp": "0.35.5",
     "typescript": "~6.0.3",
     "vitepress": "^1.6.4"
   },
@@ -86,6 +87,9 @@
     "android": "node scripts/run-android-dev.cjs",
     "ios": "expo run:ios",
     "lint": "expo lint",
+    "icons:generate": "node scripts/generate-app-icons.mjs",
+    "icons:check": "node scripts/generate-app-icons.mjs --check",
+    "icons:test": "node --test scripts/tests/app-icon-assets.test.mjs",
     "backup:map-data": "node scripts/generate-map-data-backup.mjs",
     "download:images": "node scripts/download-images.mjs",
     "adb-connect": "adb connect 127.0.0.1",

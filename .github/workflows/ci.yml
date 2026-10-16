@@ -32,6 +32,9 @@ jobs:
       - name: Lint
         run: yarn lint
 
+      - name: Check icon assets
+        run: yarn icons:check && yarn icons:test
+
       - name: Typecheck
         run: npx tsc --noEmit
 

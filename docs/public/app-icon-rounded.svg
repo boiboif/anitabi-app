@@ -1,12 +1,6 @@
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <clipPath id="icon-rounded">
-      <rect width="1024" height="1024" rx="224"/>
-    </clipPath>
-  </defs>
-  <g clip-path="url(#icon-rounded)">
-  <rect width="1024" height="1024" fill="url(#sky)"/>
-  <defs>
+
     <linearGradient id="sky" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
       <stop stop-color="#B5E5FA"/>
       <stop offset="0.52" stop-color="#8DCEF1"/>
@@ -17,14 +11,15 @@
       <stop offset="0.46" stop-color="#FF94B8"/>
       <stop offset="1" stop-color="#E9679A"/>
     </radialGradient>
-    <linearGradient id="camera-disc" x1="380" y1="250" x2="650" y2="570" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFFDF8"/>
-      <stop offset="1" stop-color="#F6E9E5"/>
-    </linearGradient>
     <clipPath id="map-area">
       <path d="M-380 716H1404V1404H-380V716Z"/>
     </clipPath>
+    <path id="pin-shape" d="M512 121C340 121 242 254 242 402C242 580 430 728 490 928C498 954 526 954 534 928C594 728 782 580 782 402C782 254 684 121 512 121Z"/>
+    <path id="camera-shape" d="M392 356C392 342 404 330 418 330H465L484 298H540L559 330H606C620 330 632 342 632 356V464C632 478 620 490 606 490H418C404 490 392 478 392 464V356ZM565 406A53 53 0 1 0 459 406A53 53 0 1 0 565 406Z"/>
+    <clipPath id="icon-rounded"><rect width="1024" height="1024" rx="224"/></clipPath>
   </defs>
+  <g clip-path="url(#icon-rounded)">
+<rect id="icon-background" width="1024" height="1024" fill="url(#sky)"/>
   <path d="M-380 716H1404V1404H-380V716Z" fill="#C4EAF4"/>
   <g clip-path="url(#map-area)">
     <path d="M-380 716H485L75 1404H-380V716Z" fill="#99DCEF"/>
@@ -35,9 +30,11 @@
     <path d="M-380 766H1404V783H-380V766Z" fill="#FFFDF5"/>
     <path d="M-380 900H1404V932H-380V900Z" fill="#FFFDF5"/>
   </g>
-  <g transform="translate(72 12) scale(0.86)">
-  <path d="M512 121C340 121 242 254 242 402C242 580 430 728 490 928C498 954 526 954 534 928C594 728 782 580 782 402C782 254 684 121 512 121Z" fill="url(#pin-surface)" stroke="url(#pin-surface)" stroke-width="38" stroke-linejoin="round"/>
-  <g transform="translate(512 395) scale(1.13) translate(-512 -395)"><path d="M392 356C392 342 404 330 418 330H465L484 298H540L559 330H606C620 330 632 342 632 356V464C632 478 620 490 606 490H418C404 490 392 478 392 464V356ZM565 406A53 53 0 1 0 459 406A53 53 0 1 0 565 406Z" fill="#FFF9F0" fill-rule="evenodd"/></g>
+  <g id="pin" transform="translate(72 12) scale(0.86)">
+    <use href="#pin-shape" fill="url(#pin-surface)" stroke="url(#pin-surface)" stroke-width="38" stroke-linejoin="round"/>
+    <g id="camera" transform="translate(512 395) scale(1.13) translate(-512 -395)">
+      <use href="#camera-shape" fill="#FFF9F0" fill-rule="evenodd"/>
+    </g>
   </g>
   </g>
 </svg>

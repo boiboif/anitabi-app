@@ -57,6 +57,7 @@ const config: ExpoConfig = {
       backgroundColor: '#8DCEF1',
       backgroundImage: './assets/images/anitabi-icon-adaptive-background.png',
       foregroundImage: './assets/images/anitabi-icon-adaptive-foreground.png',
+      monochromeImage: './assets/images/anitabi-icon-adaptive-monochrome.png',
     },
     predictiveBackGestureEnabled: false,
     package: appIdentifier,
@@ -130,10 +131,12 @@ const config: ExpoConfig = {
       'expo-splash-screen',
       {
         backgroundColor: '#FFFFFF',
-        image: './assets/images/anitabi-icon-adaptive-foreground.png',
-        imageWidth: 180,
+        image: './assets/images/anitabi-splash-icon.png',
+        imageWidth: 100,
+        resizeMode: 'contain',
         dark: {
           backgroundColor: '#000000',
+          image: './assets/images/anitabi-splash-icon.png',
         },
       },
     ],
