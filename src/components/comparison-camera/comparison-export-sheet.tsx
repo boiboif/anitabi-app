@@ -1,4 +1,5 @@
 import { StrictButton as Button } from '@/components/ui/strict-button';
+import { ThemeChoiceChip } from '@/components/ui/theme-choice-chip';
 import { ThemeSwitch } from '@/components/ui/theme-switch';
 import {
   COMPARISON_BORDER_COLORS,
@@ -12,7 +13,7 @@ import {
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { useImperativeHandle, useRef, useState, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Pressable } from 'react-native';
+import { ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView, ScrollView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, useTheme, View, XStack, YStack } from 'tamagui';
@@ -31,50 +32,6 @@ type Props = {
   ready: boolean;
   saving: boolean;
 };
-
-function ChoiceRow<T extends string>({
-  label,
-  value,
-  options,
-  onChange,
-  inline = false,
-}: {
-  label: string;
-  value: T;
-  options: { value: T; label: string }[];
-  onChange: (value: T) => void;
-  inline?: boolean;
-}) {
-  return (
-    <View
-      flexDirection={inline ? 'row' : 'column'}
-      items={inline ? 'center' : undefined}
-      minH={inline ? 46 : undefined}
-      gap={8}
-      py={inline ? 0 : 8}
-    >
-      <Text flex={inline ? 1 : undefined} minW={0} color="$color12" fontSize="$body">
-        {label}
-      </Text>
-      <XStack gap={8} flexWrap={inline ? 'nowrap' : 'wrap'} accessibilityRole="radiogroup" accessibilityLabel={label}>
-        {options.map((option) => (
-          <Pressable
-            key={option.value}
-            accessibilityRole="radio"
-            accessibilityState={{ checked: value === option.value }}
-            onPress={() => onChange(option.value)}
-          >
-            <XStack minH={36} px={10} items="center" rounded={8} bg={value === option.value ? '$color4' : '$color2'}>
-              <Text color={value === option.value ? '$primary' : '$color11'} fontSize="$footnote">
-                {option.label}
-              </Text>
-            </XStack>
-          </Pressable>
-        ))}
-      </XStack>
-    </View>
-  );
-}
 
 function ToggleRow({
   label,
@@ -190,7 +147,7 @@ export default function ComparisonExportSheet({ sheetRef, onExport, onDismiss, r
                 {t('comparisonExportAppearance', { defaultValue: '外观' })}
               </Text>
               <View bg="$color1" rounded={10} px={12} py={8} gap={4}>
-                <ChoiceRow
+                <ThemeChoiceChip.Group
                   inline
                   label={t('comparisonExportLayout')}
                   value={settings.layout}
@@ -206,7 +163,7 @@ export default function ComparisonExportSheet({ sheetRef, onExport, onDismiss, r
                   onChange={(matchPhotoRatio) => onChange({ ...settings, matchPhotoRatio })}
                 />
                 {settings.matchPhotoRatio ? (
-                  <ChoiceRow
+                  <ThemeChoiceChip.Group
                     inline
                     label={t('comparisonExportReferenceFit')}
                     value={settings.referenceFit}
@@ -234,69 +191,52 @@ export default function ComparisonExportSheet({ sheetRef, onExport, onDismiss, r
                   accessibilityLabel={t('comparisonExportBorderWidth')}
                   onValueChange={(borderWidth) => onChange({ ...settings, borderWidth })}
                 />
-                <Text color="$color12" fontSize="$body">
-                  {t('comparisonExportBorderColor', { defaultValue: '边框颜色' })}
-                </Text>
-                <XStack gap={8} py={8}>
-                  {COMPARISON_BORDER_COLORS.map((color) => {
+                <ThemeChoiceChip.Group
+                  label={t('comparisonExportBorderColor', { defaultValue: '边框颜色' })}
+                  value={settings.borderColor}
+                  onChange={(borderColor) => onChange({ ...settings, borderColor })}
+                  options={COMPARISON_BORDER_COLORS.map((color) => {
                     const label =
                       color === 'white'
                         ? t('comparisonExportWhite', { defaultValue: '白色' })
                         : color === 'black'
                           ? t('comparisonExportBlack', { defaultValue: '黑色' })
                           : t('comparisonExportTheme', { defaultValue: '主题色' });
-                    return (
-                      <Pressable
-                        key={color}
-                        accessibilityRole="radio"
-                        accessibilityState={{ checked: settings.borderColor === color }}
-                        onPress={() => onChange({ ...settings, borderColor: color })}
-                      >
-                        <XStack
-                          minH={36}
-                          px={10}
-                          gap={6}
-                          items="center"
-                          rounded={8}
-                          bg={settings.borderColor === color ? '$color4' : '$color2'}
-                        >
-                          <View
-                            width={14}
-                            height={14}
-                            rounded={7}
-                            bg={resolveComparisonBorderColor(color, theme.primary.val)}
-                            borderWidth={1}
-                            borderColor="$color6"
-                          />
-                          <Text color={settings.borderColor === color ? '$primary' : '$color11'} fontSize="$footnote">
-                            {label}
-                          </Text>
-                        </XStack>
-                      </Pressable>
-                    );
+                    return {
+                      value: color,
+                      label,
+                      leading: (
+                        <View
+                          width={14}
+                          height={14}
+                          rounded={7}
+                          bg={resolveComparisonBorderColor(color, theme.primary.val)}
+                          borderWidth={1}
+                          borderColor="$color6"
+                        />
+                      ),
+                    };
                   })}
-                </XStack>
-                <XStack minH={46} items="center" gap={8}>
-                  <Text flex={1} color="$color12" fontSize="$body">
-                    {t('comparisonExportBorderScope')}
-                  </Text>
-                  {(['showOuterBorder', 'showInnerBorder'] as const).map((field) => (
-                    <Pressable
-                      key={field}
-                      accessibilityRole="checkbox"
-                      accessibilityState={{ checked: settings[field] }}
-                      onPress={() => onChange({ ...settings, [field]: !settings[field] })}
-                    >
-                      <XStack minH={36} px={10} items="center" rounded={8} bg={settings[field] ? '$color4' : '$color2'}>
-                        <Text color={settings[field] ? '$primary' : '$color11'} fontSize="$footnote">
-                          {t(
-                            field === 'showOuterBorder' ? 'comparisonExportOuterBorder' : 'comparisonExportInnerBorder',
-                          )}
-                        </Text>
-                      </XStack>
-                    </Pressable>
-                  ))}
-                </XStack>
+                />
+                <ThemeChoiceChip.Group
+                  inline
+                  multiple
+                  label={t('comparisonExportBorderScope')}
+                  value={(['showOuterBorder', 'showInnerBorder'] as const).filter((field) => settings[field])}
+                  options={(['showOuterBorder', 'showInnerBorder'] as const).map((field) => ({
+                    value: field,
+                    label: t(
+                      field === 'showOuterBorder' ? 'comparisonExportOuterBorder' : 'comparisonExportInnerBorder',
+                    ),
+                  }))}
+                  onChange={(fields) =>
+                    onChange({
+                      ...settings,
+                      showOuterBorder: fields.includes('showOuterBorder'),
+                      showInnerBorder: fields.includes('showInnerBorder'),
+                    })
+                  }
+                />
               </View>
             </View>
             <View gap={10}>
