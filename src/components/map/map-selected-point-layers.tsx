@@ -160,11 +160,12 @@ const IMAGE_ID = 'selected-plan-point-artwork';
 
 type PlanLayerProps = {
   selected: SelectedMapPointData | null;
+  mapReady: boolean;
   showImage: boolean;
   onHitRectsChange: (key: string, rects: MarkerHitRect[]) => void;
 };
 
-export function SelectedPlanMapPointLayer({ selected, showImage, onHitRectsChange }: PlanLayerProps) {
+export function SelectedPlanMapPointLayer({ selected, mapReady, showImage, onHitRectsChange }: PlanLayerProps) {
   const imageRef = useRef<ComponentRef<typeof MapboxImage>>(null);
   const frameRef = useRef<number | null>(null);
   const theme = useTheme();
@@ -195,13 +196,15 @@ export function SelectedPlanMapPointLayer({ selected, showImage, onHitRectsChang
 
   return (
     <>
-      {selected && artworkKey ? (
-        <Images
-          onImageMissing={(name) => {
-            if (name === IMAGE_ID) refreshArtwork();
-          }}
-        >
-          <MapboxImage name={IMAGE_ID} ref={imageRef}>
+      <Images
+        onImageMissing={(name) => {
+          if (name === IMAGE_ID) refreshArtwork();
+        }}
+      >
+        <MapboxImage name={IMAGE_ID} ref={imageRef}>
+          {/* Register the native image before replacing its child. On Android,
+              Fresco only loads once that child is attached to Mapbox's offscreen view. */}
+          {mapReady && selected && artworkKey ? (
             <SelectedMapPointArtwork
               key={artworkKey}
               point={selected.point}
@@ -210,9 +213,11 @@ export function SelectedPlanMapPointLayer({ selected, showImage, onHitRectsChang
               onRendered={refreshArtwork}
               onHitRectsChange={(rects) => onHitRectsChange(artworkKey, rects)}
             />
-          </MapboxImage>
-        </Images>
-      ) : null}
+          ) : (
+            <View key="pending-artwork" collapsable={false} width={1} height={1} />
+          )}
+        </MapboxImage>
+      </Images>
       <ShapeSource id="selected-map-point-source" shape={shape}>
         <SymbolLayer
           id={SELECTED_MAP_POINT_LAYER_ID}

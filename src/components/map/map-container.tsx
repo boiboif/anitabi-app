@@ -512,6 +512,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
         {isPlanMode ? (
           <SelectedPlanMapPointLayer
             selected={selectedPointData}
+            mapReady={loadedStyleIndex === styleIndex}
             showImage={showPointImageMarkers}
             onHitRectsChange={(key, rects) => {
               selectedHitRectsRef.current = { key, rects };
