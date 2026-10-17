@@ -116,13 +116,25 @@ export function PlanShareCard({
           </YStack>
 
           {qrValue ? (
-            <YStack width={156} items="center" justify="center" gap={7}>
-              <View p={6} bg="white" borderWidth={1} borderColor="#F1DCE3" rounded={12}>
-                <View width={140} height={140}>
+            <YStack width={156} items="center" justify="center" gap={displayOnly ? 10 : 7}>
+              <View
+                p={displayOnly ? 2 : 6}
+                bg="white"
+                borderWidth={1}
+                borderColor="#F1DCE3"
+                rounded={displayOnly ? 16 : 12}
+                overflow={displayOnly ? 'hidden' : undefined}
+              >
+                <View
+                  width={140}
+                  height={140}
+                  rounded={displayOnly ? 12 : undefined}
+                  overflow={displayOnly ? 'hidden' : undefined}
+                >
                   <QRCode
                     value={qrValue}
                     size={140}
-                    quietZone={displayOnly ? 8 : 0}
+                    quietZone={displayOnly ? 4 : 0}
                     ecl={displayOnly ? 'H' : 'M'}
                     backgroundColor="white"
                     color="#211A1E"
@@ -136,17 +148,19 @@ export function PlanShareCard({
                       width={36}
                       height={36}
                       bg="white"
-                      rounded={6}
+                      rounded={8}
                       items="center"
                       justify="center"
                       pointerEvents="none"
                     >
-                      <Image
-                        source={APP_ICON}
-                        contentFit="contain"
-                        style={{ width: 28, height: 28 }}
-                        onDisplay={onDownloadIconDisplay}
-                      />
+                      <View width={28} height={28} rounded={6} overflow="hidden">
+                        <Image
+                          source={APP_ICON}
+                          contentFit="contain"
+                          style={{ width: '100%', height: '100%' }}
+                          onDisplay={onDownloadIconDisplay}
+                        />
+                      </View>
                     </View>
                   ) : null}
                 </View>
