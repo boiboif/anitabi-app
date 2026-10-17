@@ -56,26 +56,40 @@ function renderedImageIds(props) {
 }
 
 test('large plans start at zoom 16 and still require a settled viewport', () => {
-  assert.deepEqual(renderedImageIds({ zoom: 15.9, zoomThresholdOverride: 16 }), []);
-  assert.deepEqual(renderedImageIds({ bounds: null, zoomThresholdOverride: 16 }), []);
-  assert.deepEqual(renderedImageIds({ zoom: 16, zoomThresholdOverride: 16 }), [
-    'point_img_at-cutoff',
-    'point_img_other-work',
-  ]);
+  const props = {
+    zoomThresholdOverride: 16,
+    densityZoomThresholdOverride: 17,
+    bangumis: [...bangumis, { id: 3, points: [{ id: 'high', geo: [35, 139], image: 'high.jpg', priority: 12 }] }],
+  };
+  assert.deepEqual(renderedImageIds({ ...props, zoom: 15.9 }), []);
+  assert.deepEqual(renderedImageIds({ ...props, zoom: 16, bounds: null }), []);
+  assert.deepEqual(renderedImageIds({ ...props, zoom: 16 }), ['point_img_high']);
 });
 
-test('the relaxed threshold also increases large-plan image density at zoom 17', () => {
-  assert.deepEqual(renderedImageIds({ zoom: 17, zoomThresholdOverride: 16 }), [
+test('lowering the visibility threshold preserves the original large-plan density curve', () => {
+  for (const zoom of [17, 17.5, 18, 19, 20]) {
+    assert.deepEqual(
+      renderedImageIds({ zoom, zoomThresholdOverride: 16, densityZoomThresholdOverride: 17 }),
+      renderedImageIds({ zoom, zoomThresholdOverride: 17 }),
+      `image selection should match the original density at zoom ${zoom}`,
+    );
+  }
+  assert.deepEqual(renderedImageIds({ zoom: 17, zoomThresholdOverride: 16, densityZoomThresholdOverride: 17 }), [
     'point_img_at-cutoff',
-    'point_img_low',
     'point_img_other-work',
   ]);
 });
 
 test('large plan work filters still limit registered images', () => {
-  assert.deepEqual(renderedImageIds({ zoom: 16, zoomThresholdOverride: 16, selectedBangumiIds: [1] }), [
-    'point_img_at-cutoff',
-  ]);
+  assert.deepEqual(
+    renderedImageIds({
+      zoom: 17,
+      zoomThresholdOverride: 16,
+      densityZoomThresholdOverride: 17,
+      selectedBangumiIds: [1],
+    }),
+    ['point_img_at-cutoff'],
+  );
 });
 
 test('small plans retain images at low zoom without viewport bounds or priority filtering', () => {

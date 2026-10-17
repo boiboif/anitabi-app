@@ -26,6 +26,7 @@ type Props = {
   filteredBangumiId?: number | null;
   ignoreZoomThreshold?: boolean;
   zoomThresholdOverride?: number;
+  densityZoomThresholdOverride?: number;
 };
 
 type ImageMarkerCandidate = {
@@ -214,6 +215,7 @@ export default function PointImageMarkers({
   filteredBangumiId,
   ignoreZoomThreshold = false,
   zoomThresholdOverride,
+  densityZoomThresholdOverride,
 }: Props) {
   const storedFilteredBangumiId = useMapBrowse((state) => state.filteredBangumiId);
   const storedSelectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
@@ -230,9 +232,10 @@ export default function PointImageMarkers({
   const zoomThreshold =
     zoomThresholdOverride ??
     (isFilterActive ? FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE : MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE);
-  // zoom >= threshold 开始出图；稀疏曲线以 threshold + 偏移 为基准级（最低 priority 门槛为 3），
+  // 出图阈值与稀疏度基准可独立调整，避免提前出图时增加相同 zoom 下的图片数量。
+  // 稀疏曲线以 density threshold + 偏移 为基准级（最低 priority 门槛为 3），
   // 之后每降低一级 zoom，最低 priority 门槛翻倍。
-  const imagePriorityBaseZoom = zoomThreshold + MAP_IMAGE_PRIORITY_BASE_ZOOM_OFFSET;
+  const imagePriorityBaseZoom = (densityZoomThresholdOverride ?? zoomThreshold) + MAP_IMAGE_PRIORITY_BASE_ZOOM_OFFSET;
   const belowZoomThreshold = !ignoreZoomThreshold && (imageZoom < zoomThreshold || !imageBounds);
   const minimumImagePriority = ignoreZoomThreshold ? 0 : 3 * 2 ** (imagePriorityBaseZoom - imageZoom);
 

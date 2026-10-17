@@ -40,6 +40,7 @@ const CARD_LIST_KEEP_ZOOM_THRESHOLD = 18;
 const KEEP_ZOOM_VIEWPORT_MARGIN_RATIO = 0.5;
 const PLAN_IMAGE_POINT_COUNT_THRESHOLD = 50;
 const LARGE_PLAN_IMAGE_ZOOM_THRESHOLD = 16;
+const LARGE_PLAN_IMAGE_DENSITY_ZOOM_THRESHOLD = 17;
 
 type PointFocusSource = 'map-tap' | 'card-list' | 'refocus';
 
@@ -371,6 +372,7 @@ export default function PlanMapScreen() {
             planPointImageZoomThreshold={
               plan.items.length > PLAN_IMAGE_POINT_COUNT_THRESHOLD ? LARGE_PLAN_IMAGE_ZOOM_THRESHOLD : undefined
             }
+            planPointImageDensityZoomThreshold={LARGE_PLAN_IMAGE_DENSITY_ZOOM_THRESHOLD}
             locationPuckActive={isLocationPuckActive}
             locationPuckRevision={locationPuckRevision}
             scaleBarPosition={{ left: 14, bottom: bottomOverlayHeight + 12 }}
