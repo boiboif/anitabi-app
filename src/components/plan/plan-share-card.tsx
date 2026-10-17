@@ -19,11 +19,22 @@ type Props = {
   shareUrl?: string;
   displayOnly?: boolean;
   onImageLoadEnd?: () => void;
+  onDownloadIconDisplay?: () => void;
 };
 
 const VISIBLE_POINT_COUNT = 5;
+const APP_DOWNLOAD_URL = 'https://boiboif.github.io/anitabi-app/download';
+const APP_ICON = require('@/assets/images/anitabi-icon.png');
 
-export function PlanShareCard({ title, points, totalCount, shareUrl, displayOnly = false, onImageLoadEnd }: Props) {
+export function PlanShareCard({
+  title,
+  points,
+  totalCount,
+  shareUrl,
+  displayOnly = false,
+  onImageLoadEnd,
+  onDownloadIconDisplay,
+}: Props) {
   const { t, i18n } = useTranslation();
   const bangumis = Array.from(new Map(points.map(({ bangumi }) => [bangumi.id, bangumi])).values());
   const workNames = bangumis.map(
@@ -33,6 +44,7 @@ export function PlanShareCard({ title, points, totalCount, shareUrl, displayOnly
   const remainingWorks = Math.max(0, workNames.length - visibleWorkNames.length);
   const imagePath = points.find(({ point }) => point.image)?.point.image || bangumis.find((item) => item.cover)?.cover;
   const imageUrl = imagePath ? buildImageUrl(imagePath, 'plan=h360') : undefined;
+  const qrValue = displayOnly ? APP_DOWNLOAD_URL : shareUrl;
 
   return (
     <YStack width={360} height={480} bg="white" overflow="hidden" rounded={24}>
@@ -103,13 +115,46 @@ export function PlanShareCard({ title, points, totalCount, shareUrl, displayOnly
             ) : null}
           </YStack>
 
-          {shareUrl && !displayOnly ? (
+          {qrValue ? (
             <YStack width={156} items="center" justify="center" gap={7}>
               <View p={6} bg="white" borderWidth={1} borderColor="#F1DCE3" rounded={12}>
-                <QRCode value={shareUrl} size={140} quietZone={0} ecl="M" backgroundColor="white" color="#211A1E" />
+                <View width={140} height={140}>
+                  <QRCode
+                    value={qrValue}
+                    size={140}
+                    quietZone={displayOnly ? 8 : 0}
+                    ecl={displayOnly ? 'H' : 'M'}
+                    backgroundColor="white"
+                    color="#211A1E"
+                  />
+                  {displayOnly ? (
+                    // Keep the logo's display callback available before view-shot captures the card.
+                    <View
+                      position="absolute"
+                      l={52}
+                      t={52}
+                      width={36}
+                      height={36}
+                      bg="white"
+                      rounded={6}
+                      items="center"
+                      justify="center"
+                      pointerEvents="none"
+                    >
+                      <Image
+                        source={APP_ICON}
+                        contentFit="contain"
+                        style={{ width: 28, height: 28 }}
+                        onDisplay={onDownloadIconDisplay}
+                      />
+                    </View>
+                  ) : null}
+                </View>
               </View>
               <Text color="#6C5E65" fontSize={9} lineHeight={12} text="center">
-                {t('scanToImportPilgrimagePlan', { defaultValue: '扫码导入巡礼计划' })}
+                {displayOnly
+                  ? t('scanToDownloadAnitabi', { defaultValue: '扫码下载 Anitabi' })
+                  : t('scanToImportPilgrimagePlan', { defaultValue: '扫码导入巡礼计划' })}
               </Text>
             </YStack>
           ) : (

@@ -27,6 +27,7 @@ export default function PlanShareScreen() {
   const { width } = useWindowDimensions();
   const cardRef = useRef<ViewInstance>(null);
   const [imageReady, setImageReady] = useState(false);
+  const [downloadIconReady, setDownloadIconReady] = useState(false);
   const [sharing, setSharing] = useState<'image' | 'file' | null>(null);
   const showDisplayOnly = displayOnly === '1';
 
@@ -42,7 +43,7 @@ export default function PlanShareScreen() {
   }, [data, plan]);
   const hasRemoteImage =
     points.some(({ point }) => Boolean(point.image)) || points.some(({ bangumi }) => Boolean(bangumi.cover));
-  const cardIsReady = Boolean(data) && (!hasRemoteImage || imageReady);
+  const cardIsReady = Boolean(data) && (!hasRemoteImage || imageReady) && (!showDisplayOnly || downloadIconReady);
   const scale = Math.min(1, Math.max(0.74, (width - 24) / 360));
 
   const shareImage = async () => {
@@ -109,6 +110,7 @@ export default function PlanShareScreen() {
                 shareUrl={showDisplayOnly ? undefined : bundle.url}
                 displayOnly={showDisplayOnly}
                 onImageLoadEnd={() => setImageReady(true)}
+                onDownloadIconDisplay={() => setDownloadIconReady(true)}
               />
             </NativeView>
           </NativeView>
@@ -121,7 +123,7 @@ export default function PlanShareScreen() {
             </Text>
             <Text color="$color11" fontSize="$footnote" lineHeight={18}>
               {t('thisPlanIsTooLargeToIncludeAnImportableQrCodeShareThePlanFileIfTheRecipientNeedsToImportIt', {
-                defaultValue: '计划内容较多，图片中不包含可导入二维码。如需让对方导入，请分享计划文件。',
+                defaultValue: '图片中的二维码用于下载 Anitabi。如需让对方导入巡礼计划，请另行分享计划文件。',
               })}
             </Text>
           </YStack>

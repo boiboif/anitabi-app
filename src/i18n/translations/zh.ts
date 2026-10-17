@@ -280,7 +280,7 @@ const zh = {
   sharePilgrimagePlan: '分享巡礼计划',
   thisImageIsForDisplayOnly: '这张图片仅供展示',
   thisPlanIsTooLargeToIncludeAnImportableQrCodeShareThePlanFileIfTheRecipientNeedsToImportIt:
-    '计划内容较多，图片中不包含可导入二维码。如需让对方导入，请分享计划文件。',
+    '图片中的二维码用于下载 Anitabi。如需让对方导入巡礼计划，请另行分享计划文件。',
   shareImage: '分享图片',
   loadingImage: '正在加载图片…',
   done: '完成',
@@ -296,6 +296,7 @@ const zh = {
   locations: '巡礼点',
   countMoreLocations: '还有 {{count}} 个点位',
   scanToImportPilgrimagePlan: '扫码导入巡礼计划',
+  scanToDownloadAnitabi: '扫码下载 Anitabi',
   planYourPilgrimageWithAnitabi: '使用 Anitabi\n规划巡礼路线',
   animePilgrimageMap: '动画巡礼地图',
   projectHomepage: '项目主页',

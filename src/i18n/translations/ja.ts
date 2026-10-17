@@ -292,7 +292,7 @@ const ja = {
   sharePilgrimagePlan: '巡礼プランを共有',
   thisImageIsForDisplayOnly: 'この画像は表示専用です',
   thisPlanIsTooLargeToIncludeAnImportableQrCodeShareThePlanFileIfTheRecipientNeedsToImportIt:
-    'スポット数が多いため、画像に読み込み用QRコードは含まれません。相手が読み込む場合はプランファイルを共有してください。',
+    '画像のQRコードはAnitabiのダウンロード用です。巡礼プランを読み込むには、別途プランファイルを共有してください。',
   shareImage: '画像を共有',
   loadingImage: '画像を読み込み中…',
   done: '完了',
@@ -308,6 +308,7 @@ const ja = {
   locations: '巡礼スポット',
   countMoreLocations: 'ほか{{count}}スポット',
   scanToImportPilgrimagePlan: 'スキャンして巡礼プランを読み込む',
+  scanToDownloadAnitabi: 'スキャンしてAnitabiをダウンロード',
   planYourPilgrimageWithAnitabi: 'Anitabiで\n巡礼ルートを計画',
   animePilgrimageMap: 'アニメ聖地巡礼マップ',
   projectHomepage: 'プロジェクトホーム',

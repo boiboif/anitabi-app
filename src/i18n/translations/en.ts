@@ -290,7 +290,7 @@ const en = {
   sharePilgrimagePlan: 'Share pilgrimage plan',
   thisImageIsForDisplayOnly: 'This image is for display only',
   thisPlanIsTooLargeToIncludeAnImportableQrCodeShareThePlanFileIfTheRecipientNeedsToImportIt:
-    'This plan is too large to include an importable QR code. Share the plan file if the recipient needs to import it.',
+    'The QR code opens the Anitabi download page. To let someone import this plan, share the plan file separately.',
   shareImage: 'Share image',
   loadingImage: 'Loading image…',
   done: 'Done',
@@ -306,6 +306,7 @@ const en = {
   locations: 'Locations',
   countMoreLocations: '{{count}} more locations',
   scanToImportPilgrimagePlan: 'Scan to import pilgrimage plan',
+  scanToDownloadAnitabi: 'Scan to download Anitabi',
   planYourPilgrimageWithAnitabi: 'Plan your pilgrimage\nwith Anitabi',
   animePilgrimageMap: 'Anime pilgrimage map',
   projectHomepage: 'Project homepage',
