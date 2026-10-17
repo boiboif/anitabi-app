@@ -11,7 +11,11 @@ export function getBangumiTitle(bangumi: Bangumi, languageTag?: string): string 
 
 export function getBangumiMapLabel(bangumi: Bangumi, languageTag?: string): string {
   const language = languageTag ? resolveLanguageTag(languageTag) : getCurrentLanguage();
-  return language === 'ja' ? bangumi.tAbbr || bangumi.title || '' : getBangumiTitle(bangumi, language);
+  return language === 'ja'
+    ? bangumi.tAbbr || bangumi.title || ''
+    : language === 'zh-CN'
+      ? bangumi.abbr || bangumi.cn || bangumi.title || ''
+      : getBangumiTitle(bangumi, language);
 }
 
 export function getPointTitle(point: Point, languageTag?: string): string {
