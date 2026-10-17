@@ -22,6 +22,7 @@ import { type MapPointReference } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
 import { usePlans } from '@/store/use-plans';
 import type { MapViewportState } from '@/utils/map-viewport';
+import { getPlanPointMembership } from '@/utils/plan-point-membership';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import type { Camera } from '@rnmapbox/maps';
 import { ArrowLeft, List } from '@tamagui/lucide-icons-2';
@@ -127,15 +128,7 @@ export default function PlanMapScreen() {
     () => new Map(data?.data.bangumis.map((bangumi, index) => [bangumi.id, { bangumi, index }] as const)),
     [data],
   );
-  const planPointMembership = useMemo(
-    () =>
-      JSON.stringify(
-        (plan?.items.map((item) => [item.bangumiId, item.pointId] as const) ?? []).sort(
-          (a, b) => a[0] - b[0] || a[1].localeCompare(b[1]),
-        ),
-      ),
-    [plan?.items],
-  );
+  const planPointMembership = useMemo(() => getPlanPointMembership(plan?.items ?? []), [plan?.items]);
   const bangumis = useMemo<Bangumi[]>(() => {
     if (!data) return [];
 

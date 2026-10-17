@@ -10,7 +10,8 @@
 
 真机反复从大巡礼计划进入地图、返回后，日志出现
 `ScreenStackHeaderConfigViewManager.removeViewAt` → `toolbar.addView` →
-`The specified child already has a parent`，随后 ReactHost 销毁运行实例，界面持续无法响应。
+`The specified child already has a parent`，随后 ReactHost 销毁运行实例。
+用户实际反馈的现象是停顿几秒后恢复；这次捕获的异常不能解释全部停顿。
 
 退出动画期间，Android 可能已从父节点的子列表移除视图，却仍保留其 parent，直到
 `endViewTransition` 完成。重新构造页头会再次添加该视图，引发异常。
