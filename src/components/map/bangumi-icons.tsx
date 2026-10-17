@@ -82,7 +82,9 @@ async function persistCroppedIcons(spriteMeta: SpriteMeta, icons: Map<number, st
         const failedCopy = copies.find((copy) => copy.status === 'rejected');
         if (failedCopy?.status === 'rejected') throw failedCopy.reason;
       }
-      new File(dir, 'meta.json').writeSync(JSON.stringify({ fingerprint: spriteMeta.fingerprint, ids: spriteMeta.ids }));
+      new File(dir, 'meta.json').writeSync(
+        JSON.stringify({ fingerprint: spriteMeta.fingerprint, ids: spriteMeta.ids }),
+      );
       return;
     } catch {
       try {
@@ -159,6 +161,22 @@ const BANGUMI_ICON_PRIORITY_FILTER = [
   true,
 ] as unknown as ComponentProps<typeof SymbolLayer>['filter'];
 
+const BANGUMI_ICON_LAYER_ID = 'bangumi-icons-layer';
+const BANGUMI_LABEL_STYLE = {
+  symbolSortKey: ['get', 'order'],
+  textField: ['get', 'label'],
+  textFont: ['DIN Pro Bold', 'Arial Unicode MS Bold'],
+  textColor: ['get', 'color'],
+  textSize: 11,
+  textMaxWidth: 7,
+  textLineHeight: 1.1,
+  textHaloBlur: 0,
+  textAllowOverlap: true,
+  textIgnorePlacement: true,
+  textOffset: [0, 1],
+  textAnchor: 'top',
+} satisfies NonNullable<ComponentProps<typeof SymbolLayer>['style']>;
+
 // ===========================================================================
 // Component
 // ===========================================================================
@@ -179,35 +197,35 @@ function BangumiIconLayer({ sourceID }: { sourceID?: string }) {
       : BANGUMI_ICON_PRIORITY_FILTER;
 
   return (
-    <SymbolLayer
-      id="bangumi-icons-layer"
-      sourceID={sourceID}
-      // Wait for the point layer and insert above it; a shared upper anchor leaves their order ambiguous.
-      aboveLayerID={MAP_POINT_LAYER_ID}
-      filter={bangumiIconFilter}
-      maxZoomLevel={MAP_ICON_ZOOM_THRESHOLD}
-      style={{
-        iconImage: ['get', 'iconImage'],
-        iconSize: ICON_SCALE,
-        iconAllowOverlap: true,
-        iconIgnorePlacement: true,
-        iconAnchor: 'center',
-        symbolSortKey: ['get', 'order'],
-        textField: ['get', 'label'],
-        textFont: ['DIN Pro Bold', 'Arial Unicode MS Bold'],
-        textColor: ['get', 'color'],
-        textSize: 11,
-        textMaxWidth: 7,
-        textLineHeight: 1.1,
-        textHaloColor: '#fff',
-        textHaloWidth: 1,
-        textHaloBlur: 0,
-        textAllowOverlap: true,
-        textIgnorePlacement: true,
-        textOffset: [0, 1],
-        textAnchor: 'top',
-      }}
-    />
+    <>
+      <SymbolLayer
+        id={BANGUMI_ICON_LAYER_ID}
+        sourceID={sourceID}
+        // Wait for the point layer and insert above it; a shared upper anchor leaves their order ambiguous.
+        aboveLayerID={MAP_POINT_LAYER_ID}
+        filter={bangumiIconFilter}
+        maxZoomLevel={MAP_ICON_ZOOM_THRESHOLD}
+        style={{
+          ...BANGUMI_LABEL_STYLE,
+          iconImage: ['get', 'iconImage'],
+          iconSize: ICON_SCALE,
+          iconAllowOverlap: true,
+          iconIgnorePlacement: true,
+          iconAnchor: 'center',
+          textHaloColor: '#fff',
+          textHaloWidth: 1,
+        }}
+      />
+      <SymbolLayer
+        id="bangumi-labels-foreground-layer"
+        sourceID={sourceID}
+        aboveLayerID={BANGUMI_ICON_LAYER_ID}
+        filter={bangumiIconFilter}
+        maxZoomLevel={MAP_ICON_ZOOM_THRESHOLD}
+        // A small same-color halo thickens the existing glyphs over their white outline.
+        style={{ ...BANGUMI_LABEL_STYLE, textHaloColor: ['get', 'color'], textHaloWidth: 0.3 }}
+      />
+    </>
   );
 }
 
