@@ -1,10 +1,10 @@
-import { buildImageUrl } from '@/services/handlers';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
+import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { MapPinned } from '@tamagui/lucide-icons-2';
 import { Image } from 'expo-image';
-import QRCode from 'react-native-qrcode-svg';
 import { useTranslation } from 'react-i18next';
+import QRCode from 'react-native-qrcode-svg';
 import { Text, View, XStack, YStack } from 'tamagui';
 
 export type PlanShareCardPoint = {
@@ -19,22 +19,13 @@ type Props = {
   shareUrl?: string;
   displayOnly?: boolean;
   onImageLoadEnd?: () => void;
-  onDownloadIconDisplay?: () => void;
 };
 
 const VISIBLE_POINT_COUNT = 5;
 const APP_DOWNLOAD_URL = 'https://boiboif.github.io/anitabi-app/download';
 const APP_ICON = require('@/assets/images/anitabi-icon.png');
 
-export function PlanShareCard({
-  title,
-  points,
-  totalCount,
-  shareUrl,
-  displayOnly = false,
-  onImageLoadEnd,
-  onDownloadIconDisplay,
-}: Props) {
+export function PlanShareCard({ title, points, totalCount, shareUrl, displayOnly = false, onImageLoadEnd }: Props) {
   const { t, i18n } = useTranslation();
   const bangumis = Array.from(new Map(points.map(({ bangumi }) => [bangumi.id, bangumi])).values());
   const workNames = bangumis.map(
@@ -138,31 +129,10 @@ export function PlanShareCard({
                     ecl={displayOnly ? 'H' : 'M'}
                     backgroundColor="white"
                     color="#211A1E"
+                    logo={displayOnly ? APP_ICON : undefined}
+                    logoBorderRadius={displayOnly ? 12 : undefined}
+                    logoSize={displayOnly ? 40 : undefined}
                   />
-                  {displayOnly ? (
-                    // Keep the logo's display callback available before view-shot captures the card.
-                    <View
-                      position="absolute"
-                      l={52}
-                      t={52}
-                      width={36}
-                      height={36}
-                      bg="white"
-                      rounded={8}
-                      items="center"
-                      justify="center"
-                      pointerEvents="none"
-                    >
-                      <View width={28} height={28} rounded={6} overflow="hidden">
-                        <Image
-                          source={APP_ICON}
-                          contentFit="contain"
-                          style={{ width: '100%', height: '100%' }}
-                          onDisplay={onDownloadIconDisplay}
-                        />
-                      </View>
-                    </View>
-                  ) : null}
                 </View>
               </View>
               <Text color="#6C5E65" fontSize={9} lineHeight={12} text="center">

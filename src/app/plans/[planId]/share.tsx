@@ -9,8 +9,8 @@ import { Toast } from '@boiboif/react-native-toast';
 import { FileJson, Share2 } from '@tamagui/lucide-icons-2';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
-import { View as NativeView, ScrollView, useWindowDimensions, type ViewInstance } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { View as NativeView, ScrollView, useWindowDimensions, type ViewInstance } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
 import { Spinner, Text, View, YStack, useTheme } from 'tamagui';
 
@@ -27,7 +27,6 @@ export default function PlanShareScreen() {
   const { width } = useWindowDimensions();
   const cardRef = useRef<ViewInstance>(null);
   const [imageReady, setImageReady] = useState(false);
-  const [downloadIconReady, setDownloadIconReady] = useState(false);
   const [sharing, setSharing] = useState<'image' | 'file' | null>(null);
   const showDisplayOnly = displayOnly === '1';
 
@@ -43,7 +42,7 @@ export default function PlanShareScreen() {
   }, [data, plan]);
   const hasRemoteImage =
     points.some(({ point }) => Boolean(point.image)) || points.some(({ bangumi }) => Boolean(bangumi.cover));
-  const cardIsReady = Boolean(data) && (!hasRemoteImage || imageReady) && (!showDisplayOnly || downloadIconReady);
+  const cardIsReady = Boolean(data) && (!hasRemoteImage || imageReady);
   const scale = Math.min(1, Math.max(0.74, (width - 24) / 360));
 
   const shareImage = async () => {
@@ -110,7 +109,6 @@ export default function PlanShareScreen() {
                 shareUrl={showDisplayOnly ? undefined : bundle.url}
                 displayOnly={showDisplayOnly}
                 onImageLoadEnd={() => setImageReady(true)}
-                onDownloadIconDisplay={() => setDownloadIconReady(true)}
               />
             </NativeView>
           </NativeView>
