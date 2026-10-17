@@ -5,10 +5,9 @@ import type { Bangumi, Point } from '@/services/types';
 import { getMapPointCircleStyle } from '@/utils/map-point-style';
 import { getSelectedMapPointSource, type SelectedMapPointData } from '@/utils/selected-map-point-source';
 import { CircleLayer, Images, Image as MapboxImage, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
-import { Image } from 'expo-image';
 import { useCallback, useEffect, useMemo, useRef, type ComponentRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { LayoutRectangle } from 'react-native';
+import { Image, type LayoutRectangle } from 'react-native';
 import { Text, useTheme, View, YStack } from 'tamagui';
 
 export type MarkerHitRect = { left: number; top: number; right: number; bottom: number };
@@ -106,10 +105,12 @@ function SelectedMapPointArtwork({ point, bangumi, showImage, onRendered, onHitR
           <Image
             key={point.image}
             source={{ uri: buildImageUrl(point.image, 'plan=h160') }}
-            cachePolicy="memory-disk"
-            contentFit="cover"
-            transition={0}
-            onDisplay={onRendered}
+            // Share Mapbox's native image pipeline and Android's Fresco thumbnail cache.
+            resizeMode="cover"
+            resizeMethod="scale"
+            fadeDuration={0}
+            onLayout={onRendered}
+            onLoad={onRendered}
             style={{ width: 120, aspectRatio: 16 / 9 }}
           />
         </View>
