@@ -54,14 +54,27 @@ function renderedImageIds(props) {
   return Object.keys(images.props.images).sort();
 }
 
-test('large plans wait for zoom 17 and a settled viewport before registering ordinary images', () => {
-  assert.deepEqual(renderedImageIds({ zoom: 16.9, zoomThresholdOverride: 17 }), []);
-  assert.deepEqual(renderedImageIds({ bounds: null, zoomThresholdOverride: 17 }), []);
-  assert.deepEqual(renderedImageIds({ zoomThresholdOverride: 17 }), ['point_img_at-cutoff', 'point_img_other-work']);
+test('large plans start at zoom 16 and still require a settled viewport', () => {
+  assert.deepEqual(renderedImageIds({ zoom: 15.9, zoomThresholdOverride: 16 }), []);
+  assert.deepEqual(renderedImageIds({ bounds: null, zoomThresholdOverride: 16 }), []);
+  assert.deepEqual(renderedImageIds({ zoom: 16, zoomThresholdOverride: 16 }), [
+    'point_img_at-cutoff',
+    'point_img_other-work',
+  ]);
+});
+
+test('the relaxed threshold also increases large-plan image density at zoom 17', () => {
+  assert.deepEqual(renderedImageIds({ zoom: 17, zoomThresholdOverride: 16 }), [
+    'point_img_at-cutoff',
+    'point_img_low',
+    'point_img_other-work',
+  ]);
 });
 
 test('large plan work filters still limit registered images', () => {
-  assert.deepEqual(renderedImageIds({ zoomThresholdOverride: 17, selectedBangumiIds: [1] }), ['point_img_at-cutoff']);
+  assert.deepEqual(renderedImageIds({ zoom: 16, zoomThresholdOverride: 16, selectedBangumiIds: [1] }), [
+    'point_img_at-cutoff',
+  ]);
 });
 
 test('small plans retain images at low zoom without viewport bounds or priority filtering', () => {
