@@ -187,12 +187,12 @@ type Props = {
 };
 
 function BangumiIconLayer({ sourceID }: { sourceID?: string }) {
-  const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
+  const filteredBangumiId = useMapBrowse((state) => state.filteredBangumiId);
   const selectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
 
   // 官网在作品详情或多作品筛选模式下隐藏整个作品 icon 图层。
   const bangumiIconFilter: ComponentProps<typeof SymbolLayer>['filter'] =
-    openedBangumiDetailsId !== null || selectedMapBangumiIds.length > 0
+    filteredBangumiId !== null || selectedMapBangumiIds.length > 0
       ? ['==', ['get', 'bangumiId'], -1]
       : BANGUMI_ICON_PRIORITY_FILTER;
 

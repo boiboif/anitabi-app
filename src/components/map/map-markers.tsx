@@ -16,7 +16,7 @@ type Props = {
   bangumis: Bangumi[];
   onPointSelect?: (point: Point, bangumi: Bangumi, screenPoint: { x: number; y: number }) => void;
   selectedBangumiIds?: number[];
-  openedBangumiDetailsId?: number | null;
+  filteredBangumiId?: number | null;
   showAllPoints?: boolean;
   maxVisualDiameter?: number;
 };
@@ -63,25 +63,25 @@ const POINT_PRIORITY_FILTER = [
 
 type PointLayerProps = Pick<
   Props,
-  'selectedBangumiIds' | 'openedBangumiDetailsId' | 'showAllPoints' | 'maxVisualDiameter'
+  'selectedBangumiIds' | 'filteredBangumiId' | 'showAllPoints' | 'maxVisualDiameter'
 > & { sourceID?: string };
 
 function PointMarkerLayer({
   sourceID,
   selectedBangumiIds,
-  openedBangumiDetailsId,
+  filteredBangumiId,
   showAllPoints = false,
   maxVisualDiameter,
 }: PointLayerProps) {
-  const activeOpenedBangumiDetailsId = useMapBrowse((state) =>
-    openedBangumiDetailsId === undefined ? state.openedBangumiDetailsId : openedBangumiDetailsId,
+  const activeFilteredBangumiId = useMapBrowse((state) =>
+    filteredBangumiId === undefined ? state.filteredBangumiId : filteredBangumiId,
   );
   const activeSelectedBangumiIds = useMapBangumiFilter((state) => selectedBangumiIds ?? state.selectedBangumiIds);
 
   const pointFilter: ComponentProps<typeof CircleLayer>['filter'] = useMemo(() => {
-    if (activeOpenedBangumiDetailsId !== null) {
+    if (activeFilteredBangumiId !== null) {
       // 筛选模式：只显示选中番剧的点 + 不限制 density
-      return ['all', ['==', ['get', 'bangumiId'], activeOpenedBangumiDetailsId]] satisfies ComponentProps<
+      return ['all', ['==', ['get', 'bangumiId'], activeFilteredBangumiId]] satisfies ComponentProps<
         typeof CircleLayer
       >['filter'];
     }
@@ -92,7 +92,7 @@ function PointMarkerLayer({
     }
     if (showAllPoints) return undefined;
     return POINT_PRIORITY_FILTER;
-  }, [activeOpenedBangumiDetailsId, activeSelectedBangumiIds, showAllPoints]);
+  }, [activeFilteredBangumiId, activeSelectedBangumiIds, showAllPoints]);
 
   const circleStyle = useMemo(() => getMapPointCircleStyle(maxVisualDiameter), [maxVisualDiameter]);
 
@@ -111,7 +111,7 @@ export default function MapMarkers({
   bangumis,
   onPointSelect,
   selectedBangumiIds,
-  openedBangumiDetailsId,
+  filteredBangumiId,
   showAllPoints = false,
   maxVisualDiameter,
 }: Props) {
@@ -145,7 +145,7 @@ export default function MapMarkers({
       <ShapeSource id="anitabi-points" shape={geoJSON} onPress={handlePress}>
         <PointMarkerLayer
           selectedBangumiIds={selectedBangumiIds}
-          openedBangumiDetailsId={openedBangumiDetailsId}
+          filteredBangumiId={filteredBangumiId}
           showAllPoints={showAllPoints}
           maxVisualDiameter={maxVisualDiameter}
         />

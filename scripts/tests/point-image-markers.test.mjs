@@ -10,6 +10,7 @@ const compiled = ts.transpileModule(source, {
 }).outputText;
 
 const jsx = (type, props) => ({ type, props });
+const mapBrowseState = { openedBangumiDetailsId: null, filteredBangumiId: null };
 const modules = {
   react: { memo: (component) => component, useMemo: (calculate) => calculate() },
   'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'Fragment' },
@@ -20,7 +21,7 @@ const modules = {
     SELECTED_MAP_POINT_LAYER_ID: 'selected-map-point',
   },
   '@/services/handlers': { buildImageUrl: (path) => path },
-  '@/store/use-map-browse': { useMapBrowse: (select) => select({ openedBangumiDetailsId: null }) },
+  '@/store/use-map-browse': { useMapBrowse: (select) => select(mapBrowseState) },
   '@/store/use-map-bangumi-filter': { useMapBangumiFilter: (select) => select({ selectedBangumiIds: [] }) },
   '@/utils/map-image-sort': {
     getStableMapImageSortKeys: (_byLatitude, count) => new Uint32Array(count).fill(1),
@@ -89,4 +90,20 @@ test('small plans retain images at low zoom without viewport bounds or priority 
 test('home map retains its existing zoom 18 threshold', () => {
   assert.deepEqual(renderedImageIds({ zoom: 17 }), []);
   assert.deepEqual(renderedImageIds({ zoom: 18 }), ['point_img_at-cutoff', 'point_img_other-work']);
+});
+
+test('opening details leaves home images unchanged until the detail filter is activated', () => {
+  try {
+    mapBrowseState.openedBangumiDetailsId = 1;
+    assert.deepEqual(renderedImageIds({ zoom: 18 }), ['point_img_at-cutoff', 'point_img_other-work']);
+    mapBrowseState.filteredBangumiId = 1;
+    assert.deepEqual(renderedImageIds({ zoom: 18 }), ['point_img_at-cutoff']);
+    // Plan maps explicitly opt out of the home detail filter.
+    assert.deepEqual(renderedImageIds({ zoom: 18, filteredBangumiId: null, selectedBangumiIds: [2] }), [
+      'point_img_other-work',
+    ]);
+  } finally {
+    mapBrowseState.openedBangumiDetailsId = null;
+    mapBrowseState.filteredBangumiId = null;
+  }
 });

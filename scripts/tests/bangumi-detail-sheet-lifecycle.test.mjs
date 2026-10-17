@@ -28,6 +28,7 @@ function createHarness(platform = 'android') {
   let openedId = null;
   let dismissCalls = 0;
   let clearCalls = 0;
+  const mapActivations = [];
   const restoredOffsets = [];
   const nativeSheet = {
     dismiss: async () => {
@@ -45,7 +46,12 @@ function createHarness(platform = 'android') {
     Platform: { OS: platform },
     DEFAULT_BANGUMI_DETAIL_DETENT_INDEX: 1,
     BANGUMI_DETAIL_SHEET_DETENTS: [0.25, 0.8],
-    useMapBrowse: { getState: () => ({ openedBangumiDetailsId: openedId }) },
+    useMapBrowse: {
+      getState: () => ({
+        openedBangumiDetailsId: openedId,
+        activateBangumiDetailsMap: (bangumiId) => mapActivations.push(bangumiId),
+      }),
+    },
     useIsFocused: () => focused,
     useNavigation: () => ({
       isFocused: () => {
@@ -138,11 +144,90 @@ function createHarness(platform = 'android') {
       return clearCalls;
     },
     restoredOffsets,
+    mapActivations,
   };
 }
 
 const workA = { id: 10, title: 'A', points: [] };
 const workB = { id: 20, title: 'B', points: [] };
+
+test('opening and the expanded detent leave map activation pending until a valid lower detent', () => {
+  const app = createHarness();
+  const opened = app.select(workA);
+  opened.handleSheetWillPresent();
+  opened.handleSheetPresent();
+  assert.deepEqual(app.mapActivations, []);
+
+  for (const index of [1, -1, 2, 0.5, NaN]) opened.handleDetentChange({ nativeEvent: { index } });
+  assert.deepEqual(app.mapActivations, []);
+  opened.handleDetentChange({ nativeEvent: { index: 0 } });
+  assert.deepEqual(app.mapActivations, [workA.id]);
+  assert.equal(app.render().initialDetentIndex, 0);
+  opened.handleDetentChange({ nativeEvent: { index: 1 } });
+  assert.deepEqual(app.mapActivations, [workA.id]);
+});
+
+test('late lower-detent events after route blur cannot activate the map', () => {
+  const app = createHarness();
+  const opened = app.select(workA);
+  opened.handleSheetPresent();
+  app.setNavigationFocus(false);
+  opened.handleDetentChange({ nativeEvent: { index: 0 } });
+  assert.deepEqual(app.mapActivations, []);
+  app.focus(false);
+  opened.handleDetentChange({ nativeEvent: { index: 0 } });
+  assert.deepEqual(app.mapActivations, []);
+});
+
+test('interactive dismissal and explicit close reject lower-detent events', () => {
+  const interactive = createHarness();
+  const dragging = interactive.select(workA);
+  dragging.handleSheetPresent();
+  dragging.handleSheetWillDismiss();
+  dragging.handleDetentChange({ nativeEvent: { index: 0 } });
+  assert.deepEqual(interactive.mapActivations, []);
+  dragging.handleSheetDismiss();
+  assert.equal(interactive.clearCalls, 1);
+
+  const explicit = createHarness();
+  const closing = explicit.select(workA);
+  closing.handleSheetPresent();
+  explicit.select(undefined);
+  closing.handleDetentChange({ nativeEvent: { index: 0 } });
+  closing.handleSheetDismiss();
+  assert.deepEqual(explicit.mapActivations, []);
+});
+
+test('old work and unmounted-session lower-detent callbacks cannot activate their replacement', () => {
+  const app = createHarness();
+  const old = app.select(workA);
+  old.handleSheetPresent();
+  const closing = app.select(workB);
+  old.handleDetentChange({ nativeEvent: { index: 0 } });
+  assert.deepEqual(app.mapActivations, []);
+  closing.handleSheetDismiss();
+  const replacement = app.render();
+  replacement.handleSheetPresent();
+  old.handleDetentChange({ nativeEvent: { index: 0 } });
+  assert.deepEqual(app.mapActivations, []);
+  replacement.handleDetentChange({ nativeEvent: { index: 0 } });
+  assert.deepEqual(app.mapActivations, [workB.id]);
+});
+
+test('restoring a lower-detent session does not activate again merely on presentation', () => {
+  const app = createHarness();
+  const opened = app.select(workA);
+  opened.handleSheetPresent();
+  opened.handleDetentChange({ nativeEvent: { index: 0 } });
+  const closing = app.focus(false);
+  closing.handleSheetDismiss();
+  app.render();
+  const restored = app.focus(true);
+  assert.equal(restored.initialDetentIndex, 0);
+  restored.handleSheetWillPresent();
+  restored.handleSheetPresent();
+  assert.deepEqual(app.mapActivations, [workA.id]);
+});
 
 test('returning to a selected work opens using render focus before navigation commits', () => {
   const app = createHarness();

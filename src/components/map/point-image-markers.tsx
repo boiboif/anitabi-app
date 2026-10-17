@@ -23,7 +23,7 @@ type Props = {
   bounds: Bounds | null;
   onPointSelect?: (point: Point, bangumi: Bangumi, screenPoint: { x: number; y: number }) => void;
   selectedBangumiIds?: number[];
-  openedBangumiDetailsId?: number | null;
+  filteredBangumiId?: number | null;
   ignoreZoomThreshold?: boolean;
   zoomThresholdOverride?: number;
 };
@@ -211,16 +211,15 @@ export default function PointImageMarkers({
   bounds,
   onPointSelect,
   selectedBangumiIds,
-  openedBangumiDetailsId,
+  filteredBangumiId,
   ignoreZoomThreshold = false,
   zoomThresholdOverride,
 }: Props) {
-  const storedOpenedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
+  const storedFilteredBangumiId = useMapBrowse((state) => state.filteredBangumiId);
   const storedSelectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
-  const activeOpenedBangumiDetailsId =
-    openedBangumiDetailsId === undefined ? storedOpenedBangumiDetailsId : openedBangumiDetailsId;
+  const activeFilteredBangumiId = filteredBangumiId === undefined ? storedFilteredBangumiId : filteredBangumiId;
   const activeSelectedBangumiIds = selectedBangumiIds ?? storedSelectedMapBangumiIds;
-  const isFilterActive = activeOpenedBangumiDetailsId !== null || activeSelectedBangumiIds.length > 0;
+  const isFilterActive = activeFilteredBangumiId !== null || activeSelectedBangumiIds.length > 0;
   // useDebounce depends on reference identity. Keep zoom and bounds in one stable
   // snapshot so an update cannot combine a new zoom with an old viewport.
   const viewport = useMemo(() => ({ zoom, bounds }), [zoom, bounds]);
@@ -251,16 +250,15 @@ export default function PointImageMarkers({
     const inBounds = getVisibleCandidates(imageMarkerIndex.candidates, imageMarkerIndex.byLatitude, imageBounds);
     const selectedIds = new Set(activeSelectedBangumiIds);
     return inBounds.filter((item) => {
-      if (activeOpenedBangumiDetailsId !== null && item.bangumi.id !== activeOpenedBangumiDetailsId) return false;
-      if (activeOpenedBangumiDetailsId === null && selectedIds.size > 0 && !selectedIds.has(item.bangumi.id))
-        return false;
+      if (activeFilteredBangumiId !== null && item.bangumi.id !== activeFilteredBangumiId) return false;
+      if (activeFilteredBangumiId === null && selectedIds.size > 0 && !selectedIds.has(item.bangumi.id)) return false;
       return ignoreZoomThreshold || !(item.point.priority < minimumImagePriority);
     });
   }, [
     imageMarkerIndex,
     imageBounds,
     activeSelectedBangumiIds,
-    activeOpenedBangumiDetailsId,
+    activeFilteredBangumiId,
     ignoreZoomThreshold,
     minimumImagePriority,
   ]);

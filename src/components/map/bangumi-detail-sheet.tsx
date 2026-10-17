@@ -329,6 +329,9 @@ function useBangumiDetailSheet(requestedBangumi: Bangumi | undefined, onDetailsD
       setSavedDetent((previous) =>
         previous.bangumiId === bangumiId && previous.index === index ? previous : { bangumiId, index },
       );
+      if (index === 0 && bangumiId !== undefined) {
+        useMapBrowse.getState().activateBangumiDetailsMap(bangumiId);
+      }
     }
   };
 
@@ -468,9 +471,11 @@ function BangumiDetailSheet() {
         key: section.key,
         collapsedHeader: { ...header, expanded: false },
         expandedHeader: { ...header, expanded: true },
-        pointItems: section.data.map(
-          (point): FlatPointItem => ({ type: ITEM_TYPE_POINT, id: `point-${point.id}-${point.name}`, point }),
-        ),
+        pointItems: section.data.map((point): FlatPointItem => ({
+          type: ITEM_TYPE_POINT,
+          id: `point-${point.id}-${point.name}`,
+          point,
+        })),
       };
     });
   }, [accordionMode, i18n.language, i18n.resolvedLanguage, selectedBangumi, t]);
