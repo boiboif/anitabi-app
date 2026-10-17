@@ -1,0 +1,126 @@
+diff --git a/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/Screen.kt b/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/Screen.kt
+--- a/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/Screen.kt
++++ b/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/Screen.kt
+@@ -83,8 +83,10 @@ class Screen(
+     var isBeingRemoved = false
+         private set
+ 
+-    // Keeps `startTransitionRecursive` / `endTransitionRecursive` calls paired. Should be used on UI thread only.
++    // Tracks native removal transition start/finish calls on the UI thread.
+     private var isRemovalTransitionStarted = false
++    private var isEndingRemovalTransition = false
++    private val removalTransitionViews = ArrayList<Pair<ViewGroup, View>>()
+ 
+     // Props for controlling modal presentation
+     var isSheetGrabberVisible: Boolean = false
+@@ -469,24 +471,21 @@ class Screen(
+     }
+ 
+     fun endRemovalTransition() {
+-        if (isRemovalTransitionStarted) {
+-            isRemovalTransitionStarted = false
+-            isBeingRemoved = false
+-            endTransitionRecursive(this)
++        if (!isRemovalTransitionStarted || isEndingRemovalTransition) {
++            return
+         }
+-    }
+-
+-    private fun endTransitionRecursive(parent: ViewGroup) {
+-        parent.children.forEach { childView ->
+-            parent.endViewTransition(childView)
+-
+-            if (childView is ScreenStackHeaderConfig) {
+-                endTransitionRecursive(childView.toolbar)
+-            }
+-
+-            if (childView is ViewGroup) {
+-                endTransitionRecursive(childView)
++        isEndingRemovalTransition = true
++        // Detach callbacks can synchronously re-enter transition cleanup.
++        val viewsToFinish = removalTransitionViews.toList()
++        removalTransitionViews.clear()
++        try {
++            for ((parent, child) in viewsToFinish.asReversed()) {
++                parent.endViewTransition(child)
+             }
++        } finally {
++            isRemovalTransitionStarted = false
++            isBeingRemoved = false
++            isEndingRemovalTransition = false
+         }
+     }
+ 
+@@ -506,7 +505,10 @@ class Screen(
+                     // TODO: find a better way to handle this scenario
+                     it.addView(View(context))
+                 } else {
+-                    child?.let { view -> it.startViewTransition(view) }
++                    child?.let { view ->
++                        it.startViewTransition(view)
++                        removalTransitionViews.add(it to view)
++                    }
+                 }
+ 
+                 if (child is ScreenStackHeaderConfig) {
+diff --git a/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStack.kt b/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStack.kt
+--- a/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStack.kt
++++ b/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStack.kt
+@@ -83,6 +83,8 @@ class ScreenStack(
+             return
+         }
+ 
++        // Finish descendants before Android detaches the fragment's root view.
++        view.fragment.screen.endRemovalTransition()
+         super.endViewTransition(view)
+ 
+         disappearingTransitioningChildren.remove(view)
+diff --git a/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfig.kt b/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfig.kt
+--- a/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfig.kt
++++ b/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/ScreenStackHeaderConfig.kt
+@@ -7,7 +7,8 @@ import android.graphics.PorterDuffColorFilter
+ import android.text.TextUtils
+ import android.util.TypedValue
+ import android.view.Gravity
+ import android.view.View.OnClickListener
++import android.view.ViewParent
+ import android.widget.ImageView
+ import android.widget.TextView
+ import androidx.appcompat.app.ActionBar
+@@ -214,6 +215,18 @@ class ScreenStackHeaderConfig(
+     private val screen: Screen?
+         get() = parent as? Screen
+ 
++    // A nested header can still be attached while an ancestor screen is exiting.
++    private fun isInRemovalTransition(): Boolean {
++        var ancestor: ViewParent? = parent
++        while (ancestor != null) {
++            if (ancestor is Screen && ancestor.isBeingRemoved) {
++                return true
++            }
++            ancestor = ancestor.parent
++        }
++        return false
++    }
++
+     private val screenStack: ScreenStack?
+         get() = screen?.container as? ScreenStack
+ 
+@@ -239,7 +252,7 @@ class ScreenStackHeaderConfig(
+         }
+         val isTop = stack.topScreen == parent
+ 
+-        if (!isAttachedToWindow || !isTop || isDestroyed) {
++        if (!isAttachedToWindow || !isTop || isDestroyed || isInRemovalTransition()) {
+             return
+         }
+ 
+@@ -406,7 +419,7 @@ class ScreenStackHeaderConfig(
+     }
+ 
+     private fun maybeUpdate() {
+-        if (parent != null && !isDestroyed && screen?.isBeingRemoved == false) {
++        if (parent != null) {
+             onUpdate()
+         }
+     }
