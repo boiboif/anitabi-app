@@ -159,8 +159,13 @@ const PointImageLayer = memo(
     }
     const geojson = { type: 'FeatureCollection', features } as GeoJSON.FeatureCollection;
 
-    const handlePress = (e: { features: GeoJSON.Feature[]; point: { x: number; y: number } }) => {
-      const feature = e.features?.[0];
+    const handlePress = (event: { features: GeoJSON.Feature[]; point: { x: number; y: number } }) => {
+      // e.features里包含了点击区域内重叠的点位，需要根据sortKey排序，取sortKey最大的点位, sortKey越大层级越高
+      const feature = event.features?.reduce<GeoJSON.Feature | null>((acc, curr) => {
+        const accVal = acc?.properties?.sortKey ?? -Infinity;
+        const currVal = curr?.properties?.sortKey ?? -Infinity;
+        return currVal > accVal ? curr : acc;
+      }, null);
       if (!feature?.properties) return;
       const pointId = feature.properties.id as string | undefined;
       const bangumiId = feature.properties.bangumiId as number | undefined;
@@ -170,7 +175,7 @@ const PointImageLayer = memo(
         if (b.id !== bangumiId) continue;
         for (const p of b.points) {
           if (p.id === pointId) {
-            onPointSelect?.(p, b, e.point);
+            onPointSelect?.(p, b, event.point);
             return;
           }
         }
