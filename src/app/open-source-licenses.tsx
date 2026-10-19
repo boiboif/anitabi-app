@@ -153,7 +153,7 @@ export default function OpenSourceLicensesScreen() {
                 </XStack>
               </Pressable>
             </Link>
-          ) : null
+          ) : undefined
         }
         ListEmptyComponent={
           <YStack width="100%" maxW={MaxContentWidth} self="center" items="center" px="$4" py="$8" gap="$3">

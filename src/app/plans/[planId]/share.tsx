@@ -9,8 +9,8 @@ import { Toast } from '@boiboif/react-native-toast';
 import { FileJson, Share2 } from '@tamagui/lucide-icons-2';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
-import { View as NativeView, ScrollView, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { View as NativeView, ScrollView, useWindowDimensions, type ViewInstance } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
 import { Spinner, Text, View, YStack, useTheme } from 'tamagui';
 
@@ -25,7 +25,7 @@ export default function PlanShareScreen() {
   const data = useMapData((state) => state.data);
   const theme = useTheme();
   const { width } = useWindowDimensions();
-  const cardRef = useRef<NativeView>(null);
+  const cardRef = useRef<ViewInstance>(null);
   const [imageReady, setImageReady] = useState(false);
   const [sharing, setSharing] = useState<'image' | 'file' | null>(null);
   const showDisplayOnly = displayOnly === '1';
@@ -121,7 +121,7 @@ export default function PlanShareScreen() {
             </Text>
             <Text color="$color11" fontSize="$footnote" lineHeight={18}>
               {t('thisPlanIsTooLargeToIncludeAnImportableQrCodeShareThePlanFileIfTheRecipientNeedsToImportIt', {
-                defaultValue: '计划内容较多，图片中不包含可导入二维码。如需让对方导入，请分享计划文件。',
+                defaultValue: '图片中的二维码用于下载 Anitabi。如需让对方导入巡礼计划，请另行分享计划文件。',
               })}
             </Text>
           </YStack>

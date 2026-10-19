@@ -2,7 +2,7 @@ import PlanPickerProvider from '@/components/plan/plan-picker-provider';
 import i18n, { resolveLanguagePreference } from '@/i18n';
 import { AppUpdateManagerContext } from '@/hooks/use-app-update-manager';
 import { useAppUpdates } from '@/hooks/use-app-updates';
-import { Sentry, sentryNavigationIntegration } from '@/services/sentry';
+import { Sentry } from '@/services/sentry';
 import { useLanguagePreference } from '@/store/use-language-preference';
 import { useMapData } from '@/store/use-map-data';
 import { usePlans } from '@/store/use-plans';
@@ -19,7 +19,6 @@ import {
   ErrorBoundary as ExpoErrorBoundary,
   Stack,
   ThemeProvider,
-  useNavigationContainerRef,
   type ErrorBoundaryProps,
 } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -80,7 +79,6 @@ function RootLayout() {
   const theme = resolveTheme(colorScheme, preference);
   const initializeMapData = useMapData((state) => state.initialize);
   const initializeFirstInstallDemo = usePlans((state) => state.initializeFirstInstallDemo);
-  const navigationContainerRef = useNavigationContainerRef();
   const appUpdates = useAppUpdates();
   const didFinishInitialLayout = useRef(false);
 
@@ -105,10 +103,6 @@ function RootLayout() {
     void i18n.changeLanguage(resolveLanguagePreference('system', locales[0]?.languageTag));
   }, [languagePreference, locales]);
 
-  useEffect(() => {
-    sentryNavigationIntegration.registerNavigationContainer(navigationContainerRef);
-  }, [navigationContainerRef]);
-
   return (
     <SafeAreaProvider>
       <GestureHandlerRootView style={{ flex: 1 }} onLayout={handleRootLayout}>
@@ -126,6 +120,8 @@ function RootLayout() {
                   <Stack
                     screenOptions={{
                       headerShown: false,
+                      // Screens currently lay out below an opaque native header.
+                      headerTransparent: false,
                       animation: 'ios_from_right',
                       orientation: 'portrait',
                     }}

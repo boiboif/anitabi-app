@@ -10,7 +10,7 @@ import SearchBox from '@/components/ui/search-box';
 import { useMapLocate } from '@/hooks/use-map-locate';
 import { useThemedMapStyle } from '@/hooks/use-themed-map-style';
 import { FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE, MAP_TOP_CONTROLS_TOP_OFFSET } from '@/lib/constants';
-import { getPointFlyToZoom } from '@/lib/map-camera';
+import { getBangumiOverviewBounds, getPointFlyToZoom } from '@/lib/map-camera';
 import type { Bangumi } from '@/services/types';
 import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
 import { useMapBrowse } from '@/store/use-map-browse';
@@ -18,7 +18,7 @@ import { useMapData } from '@/store/use-map-data';
 import type { MapViewportState } from '@/utils/map-viewport';
 import type { Camera } from '@rnmapbox/maps';
 import { Dices } from '@tamagui/lucide-icons-2';
-import { useRouter } from 'expo-router';
+import { useIsFocused, useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -59,6 +59,8 @@ export default function HomeScreen() {
   const data = useMapData((state) => state.data);
   const progress = useMapData((state) => state.progress);
   const router = useRouter();
+  const isRouteFocused = useIsFocused();
+  const navigation = useNavigation();
   const [cameraState, setCameraState] = useState<CameraState>({
     zoom: 4.6,
     bounds: null,
@@ -100,38 +102,50 @@ export default function HomeScreen() {
     () => bangumis?.find((bangumi) => bangumi.id === openedBangumiDetailsId) ?? null,
     [bangumis, openedBangumiDetailsId],
   );
-  const mapCameraRequestData = useMemo(() => {
-    if (!mapCameraRequest) return null;
-    const bangumi = bangumis?.find((item) => item.id === mapCameraRequest.bangumiId);
-    const point = bangumi?.points.find((item) => item.id === mapCameraRequest.pointId);
-    return bangumi && point ? { request: mapCameraRequest, point } : null;
-  }, [bangumis, mapCameraRequest]);
-
   useEffect(() => {
-    if (!mapCameraRequestData) {
-      if (data && mapCameraRequest) {
-        completeMapCameraRequest(mapCameraRequest.id);
-      }
+    if (
+      !mapCameraRequest ||
+      !data ||
+      !isRouteFocused ||
+      !navigation.isFocused() ||
+      useMapBrowse.getState().mapCameraRequest?.id !== mapCameraRequest.id
+    )
+      return;
+    const request = mapCameraRequest;
+    const bangumi = bangumis.find((item) => item.id === request.bangumiId);
+    if (!bangumi) {
+      completeMapCameraRequest(request.id);
       return;
     }
-    const { request, point } = mapCameraRequestData;
     const camera = cameraRef.current;
-
     if (!isCameraReady || !camera) return;
-
-    const { density } = point;
-    const [lat, lng] = point.geo;
-
-    const zoomLevel = getPointFlyToZoom(density);
-
-    camera.setCamera({
-      centerCoordinate: [lng, lat],
-      zoomLevel,
-      animationMode: 'flyTo',
-      animationDuration: 1500,
-    });
+    if (request.kind === 'bangumi-overview') {
+      const bounds = getBangumiOverviewBounds(bangumi.points);
+      if (bounds) {
+        if (bounds.ne[0] === bounds.sw[0] && bounds.ne[1] === bounds.sw[1]) {
+          camera.setCamera({
+            centerCoordinate: bounds.ne,
+            zoomLevel: 14,
+            animationMode: 'flyTo',
+            animationDuration: 500,
+          });
+        } else {
+          camera.fitBounds(bounds.ne, bounds.sw, [60, 60, 60, 60], 500);
+        }
+      }
+    } else {
+      const point = bangumi.points.find((item) => item.id === request.pointId);
+      if (point) {
+        camera.setCamera({
+          centerCoordinate: [point.geo[1], point.geo[0]],
+          zoomLevel: getPointFlyToZoom(point.density),
+          animationMode: 'flyTo',
+          animationDuration: 1500,
+        });
+      }
+    }
     completeMapCameraRequest(request.id);
-  }, [completeMapCameraRequest, data, isCameraReady, mapCameraRequest, mapCameraRequestData, openedBangumiDetailsId]);
+  }, [bangumis, completeMapCameraRequest, data, isCameraReady, isRouteFocused, mapCameraRequest, navigation]);
 
   const handleRandomPoint = useCallback(() => {
     let cached = randomPointCandidatesRef.current;

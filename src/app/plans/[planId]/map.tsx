@@ -22,6 +22,7 @@ import { type MapPointReference } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
 import { usePlans } from '@/store/use-plans';
 import type { MapViewportState } from '@/utils/map-viewport';
+import { getPlanPointMembership } from '@/utils/plan-point-membership';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import type { Camera } from '@rnmapbox/maps';
 import { ArrowLeft, List } from '@tamagui/lucide-icons-2';
@@ -38,6 +39,10 @@ const POINT_CAMERA_BOTTOM_PADDING = 24;
 const MAP_TAP_PAN_ONLY_ZOOM_THRESHOLD = 17;
 const CARD_LIST_KEEP_ZOOM_THRESHOLD = 18;
 const KEEP_ZOOM_VIEWPORT_MARGIN_RATIO = 0.5;
+const PLAN_IMAGE_POINT_COUNT_THRESHOLD = 50;
+const LARGE_PLAN_IMAGE_ZOOM_THRESHOLD = 16;
+const LARGE_PLAN_IMAGE_DENSITY_ZOOM_THRESHOLD = 17;
+
 type PointFocusSource = 'map-tap' | 'card-list' | 'refocus';
 
 function findPoint(bangumis: Bangumi[], reference: MapPointReference | null): Point | null {
@@ -123,15 +128,7 @@ export default function PlanMapScreen() {
     () => new Map(data?.data.bangumis.map((bangumi, index) => [bangumi.id, { bangumi, index }] as const)),
     [data],
   );
-  const planPointMembership = useMemo(
-    () =>
-      JSON.stringify(
-        (plan?.items.map((item) => [item.bangumiId, item.pointId] as const) ?? []).sort(
-          (a, b) => a[0] - b[0] || a[1].localeCompare(b[1]),
-        ),
-      ),
-    [plan?.items],
-  );
+  const planPointMembership = useMemo(() => getPlanPointMembership(plan?.items ?? []), [plan?.items]);
   const bangumis = useMemo<Bangumi[]>(() => {
     if (!data) return [];
 
@@ -365,6 +362,10 @@ export default function PlanMapScreen() {
             styleIndex={styleIndex}
             show3DBuildings={show3DBuildings}
             showPointImageMarkers={showPointImageMarkers}
+            planPointImageZoomThreshold={
+              plan.items.length > PLAN_IMAGE_POINT_COUNT_THRESHOLD ? LARGE_PLAN_IMAGE_ZOOM_THRESHOLD : undefined
+            }
+            planPointImageDensityZoomThreshold={LARGE_PLAN_IMAGE_DENSITY_ZOOM_THRESHOLD}
             locationPuckActive={isLocationPuckActive}
             locationPuckRevision={locationPuckRevision}
             scaleBarPosition={{ left: 14, bottom: bottomOverlayHeight + 12 }}

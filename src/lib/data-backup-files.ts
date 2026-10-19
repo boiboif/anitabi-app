@@ -38,7 +38,7 @@ export async function exportDataBackup(data: BackupData, appVersion: string): Pr
   const file = new File(Paths.cache, name);
   try {
     file.create({ overwrite: true });
-    file.write(content);
+    file.writeSync(content);
     await Sharing.shareAsync(file.uri, {
       dialogTitle: i18n.t('exportDataBackup'),
       mimeType: 'application/json',

@@ -15,11 +15,12 @@ import {
   type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
-  ScrollView,
+  type ScrollViewInstance,
   type ScrollViewProps,
   type StyleProp,
   StyleSheet,
   View,
+  type ViewInstance,
   type ViewStyle,
 } from 'react-native';
 import { GestureDetector, type PanGestureConfig, usePanGesture } from 'react-native-gesture-handler';
@@ -49,6 +50,7 @@ export type StableReorderableListRenderItem<T> = {
 type StableReorderableListProps<T> = {
   data: T[];
   enabled: boolean;
+  rowExtraData?: boolean;
   itemHeight: number;
   keyExtractor: (item: T) => string;
   renderItem: (params: StableReorderableListRenderItem<T>) => ReactElement;
@@ -312,12 +314,9 @@ function SortableDragHandleInner({
 const SortableDragHandle = memo(SortableDragHandleInner);
 
 function StableRow<T>({ item, itemKey, itemHeight, activeKey, dragHandle, renderItem }: StableRowProps<T>) {
-  const animatedStyle = useAnimatedStyle(
-    () => ({
-      opacity: activeKey.value === itemKey ? 0.55 : 1,
-    }),
-    [itemKey],
-  );
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: activeKey.value === itemKey ? 0.55 : 1,
+  }));
 
   return (
     <Animated.View style={[styles.row, { height: itemHeight }, animatedStyle]}>
@@ -329,6 +328,7 @@ function StableRow<T>({ item, itemKey, itemHeight, activeKey, dragHandle, render
 export default function StableReorderableList<T>({
   data,
   enabled,
+  rowExtraData = false,
   itemHeight,
   keyExtractor,
   renderItem,
@@ -354,8 +354,8 @@ export default function StableReorderableList<T>({
   );
   const [draggingKey, setDraggingKey] = useState<string | null>(null);
   const [previewKey, setPreviewKey] = useState<string | null>(null);
-  const viewportRef = useRef<View>(null);
-  const scrollRef = useAnimatedRef<ScrollView>();
+  const viewportRef = useRef<ViewInstance>(null);
+  const scrollRef = useAnimatedRef<ScrollViewInstance>();
   const positions = useSharedValue<PositionMap>({});
   const order = useSharedValue<string[]>(EMPTY_KEYS);
   const activeKey = useSharedValue<string | null>(null);
@@ -368,6 +368,8 @@ export default function StableReorderableList<T>({
   const autoscrollSpeed = useSharedValue(0);
   const viewportTop = useSharedValue(0);
   const viewportHeight = useSharedValue(0);
+  // A worklet must capture only the count, not the full list of resolved points.
+  const itemCount = data.length;
 
   useLayoutEffect(() => {
     order.value = keys;
@@ -382,19 +384,19 @@ export default function StableReorderableList<T>({
       'worklet';
       if (!activeKey.value || autoscrollSpeed.value === 0) return;
       const elapsedSeconds = Math.min(timeSincePreviousFrame ?? 16.67, maxFrameDurationMs) / 1000;
-      const maximumOffset = Math.max(0, data.length * itemHeight + contentPaddingBottom - viewportHeight.value);
+      const maximumOffset = Math.max(0, itemCount * itemHeight + contentPaddingBottom - viewportHeight.value);
       const nextOffset = clamp(scrollOffset.value + autoscrollSpeed.value * elapsedSeconds, 0, maximumOffset);
       const delta = nextOffset - scrollOffset.value;
       if (delta === 0) return;
       scrollOffset.value = nextOffset;
-      updateTargetIndex(itemHeight, data.length, dragPreviewHeight, previewTop, scrollOffset, targetIndex);
+      updateTargetIndex(itemHeight, itemCount, dragPreviewHeight, previewTop, scrollOffset, targetIndex);
       scrollTo(scrollRef, 0, nextOffset, false);
     },
     [
       activeKey,
       autoscrollSpeed,
       contentPaddingBottom,
-      data.length,
+      itemCount,
       dragPreviewHeight,
       itemHeight,
       maxFrameDurationMs,
@@ -416,7 +418,7 @@ export default function StableReorderableList<T>({
       opacity: activeKey.value && from !== to ? 1 : 0,
       transform: [{ translateY: insertionIndex * itemHeight - scrollOffset.value - 1 }],
     };
-  }, [itemHeight]);
+  });
 
   const previewStyle = useAnimatedStyle(() => ({
     opacity: activeKey.value ? 1 : 0,
@@ -460,11 +462,11 @@ export default function StableReorderableList<T>({
 
   const renderScrollComponent = useCallback(
     (props: ScrollViewProps) => {
-      const listScrollRef = (props as ScrollViewProps & { ref?: Ref<ScrollView> }).ref;
+      const listScrollRef = (props as ScrollViewProps & { ref?: Ref<ScrollViewInstance> }).ref;
       return (
         <Animated.ScrollView
           {...props}
-          ref={(node: ScrollView | null) => {
+          ref={(node: ScrollViewInstance | null) => {
             scrollRef(node);
             assignRef(listScrollRef, node);
           }}
@@ -550,7 +552,7 @@ export default function StableReorderableList<T>({
         data={data}
         renderItem={renderRow}
         keyExtractor={keyExtractor}
-        extraData={enabled}
+        extraData={`${enabled}:${rowExtraData}`}
         recycleItems
         getFixedItemSize={getFixedItemSize}
         renderScrollComponent={renderScrollComponent}

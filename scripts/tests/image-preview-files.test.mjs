@@ -49,7 +49,7 @@ function setup({ cached = true, failCopy = false, afterCopy } = {}) {
     }
     open() {
       assert.ok(this.exists, 'File was opened before the asynchronous copy finished');
-      return { readBytes: () => files.get(this.uri), close() {} };
+      return { readBytesSync: () => files.get(this.uri), close() {} };
     }
     rename(name) {
       const previous = this.uri;

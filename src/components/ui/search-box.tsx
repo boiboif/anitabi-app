@@ -2,7 +2,7 @@ import { Search, X } from '@tamagui/lucide-icons-2';
 import { BlurView } from 'expo-blur';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useRef, type ComponentProps, type ReactNode } from 'react';
-import { Keyboard, Pressable, StyleSheet, TouchableWithoutFeedback } from 'react-native';
+import { Keyboard, Pressable, StyleSheet, TouchableWithoutFeedback, type TextInputInstance } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { getTokens, styled, TamaguiElement, useThemeName, View } from 'tamagui';
 import { ThemeInput } from '@/components/ui/theme-input';
@@ -55,7 +55,9 @@ export default function SearchBox({
     useCallback(() => {
       if (!focusOnRoute) return;
       const timer = setTimeout(() => {
-        ref.current?.focus();
+        // Tamagui 2's native ref type still names View; StyledInput supplies the focusable instance.
+        const input = ref.current as Pick<TextInputInstance, 'focus'> | null;
+        input?.focus();
       }, 300);
       return () => clearTimeout(timer);
     }, [focusOnRoute]),

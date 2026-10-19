@@ -2,7 +2,7 @@ import { CAMERA_RATIO_OPTIONS, formatCameraRatio, type CameraRatioPreference } f
 import { getOutsidePressRegions, type WindowRect } from '@/lib/outside-press-regions';
 import { ChevronLeft } from '@tamagui/lucide-icons-2';
 import { type ComponentRef, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
-import { BackHandler, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
+import { BackHandler, Pressable, StyleSheet, useWindowDimensions, type TextLayoutEvent } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import Animated, {
   Easing,
@@ -32,7 +32,9 @@ type MeasurableView =
   | { measureInWindow: (callback: (x: number, y: number, width: number, height: number) => void) => void }
   | { getBoundingClientRect: () => { left: number; top: number; width: number; height: number } };
 
-function measureView(view: MeasurableView | null, onMeasure: (rect: WindowRect) => void) {
+function measureView(element: ComponentRef<typeof View> | null, onMeasure: (rect: WindowRect) => void) {
+  // Tamagui 2 still types native refs as View components; the runtime ref exposes these instance methods.
+  const view = element as MeasurableView | null;
   if (!view) return;
   if ('measureInWindow' in view) {
     view.measureInWindow((x, y, width, height) => onMeasure({ x, y, width, height }));
@@ -201,7 +203,7 @@ export default function CameraRatioPicker({
           numberOfLines={compactAutomatic ? 2 : 1}
           lineHeight={compactAutomatic ? 12 : undefined}
           text="center"
-          onTextLayout={({ nativeEvent: { lines } }) => {
+          onTextLayout={({ nativeEvent: { lines } }: TextLayoutEvent) => {
             const textWidth = Math.max(0, ...lines.map((line) => line.width));
             if (!lines.length || textWidth <= 0) return;
             const textHeight =

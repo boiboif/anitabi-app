@@ -233,7 +233,8 @@ function useBangumiDetailSheet(requestedBangumi: Bangumi | undefined, onDetailsD
   const isSheetDismissingRef = useRef(false);
   const bangumiId = session.bangumi?.id;
 
-  if (!session.bangumi && isRouteFocused && navigation.isFocused() && requestedBangumi) {
+  // Render uses the focus context; navigation.isFocused() can still read the previous state.
+  if (!session.bangumi && isRouteFocused && requestedBangumi) {
     setSession({ bangumi: requestedBangumi, key: session.key + 1 });
   }
 
@@ -328,6 +329,9 @@ function useBangumiDetailSheet(requestedBangumi: Bangumi | undefined, onDetailsD
       setSavedDetent((previous) =>
         previous.bangumiId === bangumiId && previous.index === index ? previous : { bangumiId, index },
       );
+      if (index === 0 && bangumiId !== undefined) {
+        useMapBrowse.getState().activateBangumiDetailsMap(bangumiId);
+      }
     }
   };
 
@@ -467,9 +471,11 @@ function BangumiDetailSheet() {
         key: section.key,
         collapsedHeader: { ...header, expanded: false },
         expandedHeader: { ...header, expanded: true },
-        pointItems: section.data.map(
-          (point): FlatPointItem => ({ type: ITEM_TYPE_POINT, id: `point-${point.id}-${point.name}`, point }),
-        ),
+        pointItems: section.data.map((point): FlatPointItem => ({
+          type: ITEM_TYPE_POINT,
+          id: `point-${point.id}-${point.name}`,
+          point,
+        })),
       };
     });
   }, [accordionMode, i18n.language, i18n.resolvedLanguage, selectedBangumi, t]);

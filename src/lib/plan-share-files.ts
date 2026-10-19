@@ -13,7 +13,7 @@ export async function sharePlanFile(plan: ItineraryPlan): Promise<void> {
   await ensureSharingAvailable();
   const file = new File(Paths.cache, sanitizePlanFileName(plan.title));
   file.create({ overwrite: true });
-  file.write(createSharedPlanFileContent(plan));
+  file.writeSync(createSharedPlanFileContent(plan));
   try {
     await Sharing.shareAsync(file.uri, {
       dialogTitle: i18n.t('shareTitledPilgrimagePlan', { defaultValue: '分享“{{title}}”巡礼计划', title: plan.title }),

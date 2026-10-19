@@ -23,8 +23,10 @@ type Props = {
   bounds: Bounds | null;
   onPointSelect?: (point: Point, bangumi: Bangumi, screenPoint: { x: number; y: number }) => void;
   selectedBangumiIds?: number[];
-  openedBangumiDetailsId?: number | null;
+  filteredBangumiId?: number | null;
   ignoreZoomThreshold?: boolean;
+  zoomThresholdOverride?: number;
+  densityZoomThresholdOverride?: number;
 };
 
 type ImageMarkerCandidate = {
@@ -157,8 +159,13 @@ const PointImageLayer = memo(
     }
     const geojson = { type: 'FeatureCollection', features } as GeoJSON.FeatureCollection;
 
-    const handlePress = (e: { features: GeoJSON.Feature[]; point: { x: number; y: number } }) => {
-      const feature = e.features?.[0];
+    const handlePress = (event: { features: GeoJSON.Feature[]; point: { x: number; y: number } }) => {
+      // e.features里包含了点击区域内重叠的点位，需要根据sortKey排序，取sortKey最大的点位, sortKey越大层级越高
+      const feature = event.features?.reduce<GeoJSON.Feature | null>((acc, curr) => {
+        const accVal = acc?.properties?.sortKey ?? -Infinity;
+        const currVal = curr?.properties?.sortKey ?? -Infinity;
+        return currVal > accVal ? curr : acc;
+      }, null);
       if (!feature?.properties) return;
       const pointId = feature.properties.id as string | undefined;
       const bangumiId = feature.properties.bangumiId as number | undefined;
@@ -168,7 +175,7 @@ const PointImageLayer = memo(
         if (b.id !== bangumiId) continue;
         for (const p of b.points) {
           if (p.id === pointId) {
-            onPointSelect?.(p, b, e.point);
+            onPointSelect?.(p, b, event.point);
             return;
           }
         }
@@ -210,15 +217,16 @@ export default function PointImageMarkers({
   bounds,
   onPointSelect,
   selectedBangumiIds,
-  openedBangumiDetailsId,
+  filteredBangumiId,
   ignoreZoomThreshold = false,
+  zoomThresholdOverride,
+  densityZoomThresholdOverride,
 }: Props) {
-  const storedOpenedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
+  const storedFilteredBangumiId = useMapBrowse((state) => state.filteredBangumiId);
   const storedSelectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
-  const activeOpenedBangumiDetailsId =
-    openedBangumiDetailsId === undefined ? storedOpenedBangumiDetailsId : openedBangumiDetailsId;
+  const activeFilteredBangumiId = filteredBangumiId === undefined ? storedFilteredBangumiId : filteredBangumiId;
   const activeSelectedBangumiIds = selectedBangumiIds ?? storedSelectedMapBangumiIds;
-  const isFilterActive = activeOpenedBangumiDetailsId !== null || activeSelectedBangumiIds.length > 0;
+  const isFilterActive = activeFilteredBangumiId !== null || activeSelectedBangumiIds.length > 0;
   // useDebounce depends on reference identity. Keep zoom and bounds in one stable
   // snapshot so an update cannot combine a new zoom with an old viewport.
   const viewport = useMemo(() => ({ zoom, bounds }), [zoom, bounds]);
@@ -226,12 +234,13 @@ export default function PointImageMarkers({
   const imageZoom = ignoreZoomThreshold ? zoom : (settledViewport?.zoom ?? zoom);
   const imageBounds = ignoreZoomThreshold ? bounds : (settledViewport?.bounds ?? null);
 
-  const zoomThreshold = isFilterActive
-    ? FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE
-    : MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE;
-  // zoom >= threshold 开始出图；稀疏曲线以 threshold + 偏移 为基准级（最低 priority 门槛为 3），
+  const zoomThreshold =
+    zoomThresholdOverride ??
+    (isFilterActive ? FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE : MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE);
+  // 出图阈值与稀疏度基准可独立调整，避免提前出图时增加相同 zoom 下的图片数量。
+  // 稀疏曲线以 density threshold + 偏移 为基准级（最低 priority 门槛为 3），
   // 之后每降低一级 zoom，最低 priority 门槛翻倍。
-  const imagePriorityBaseZoom = zoomThreshold + MAP_IMAGE_PRIORITY_BASE_ZOOM_OFFSET;
+  const imagePriorityBaseZoom = (densityZoomThresholdOverride ?? zoomThreshold) + MAP_IMAGE_PRIORITY_BASE_ZOOM_OFFSET;
   const belowZoomThreshold = !ignoreZoomThreshold && (imageZoom < zoomThreshold || !imageBounds);
   const minimumImagePriority = ignoreZoomThreshold ? 0 : 3 * 2 ** (imagePriorityBaseZoom - imageZoom);
 
@@ -249,16 +258,15 @@ export default function PointImageMarkers({
     const inBounds = getVisibleCandidates(imageMarkerIndex.candidates, imageMarkerIndex.byLatitude, imageBounds);
     const selectedIds = new Set(activeSelectedBangumiIds);
     return inBounds.filter((item) => {
-      if (activeOpenedBangumiDetailsId !== null && item.bangumi.id !== activeOpenedBangumiDetailsId) return false;
-      if (activeOpenedBangumiDetailsId === null && selectedIds.size > 0 && !selectedIds.has(item.bangumi.id))
-        return false;
+      if (activeFilteredBangumiId !== null && item.bangumi.id !== activeFilteredBangumiId) return false;
+      if (activeFilteredBangumiId === null && selectedIds.size > 0 && !selectedIds.has(item.bangumi.id)) return false;
       return ignoreZoomThreshold || !(item.point.priority < minimumImagePriority);
     });
   }, [
     imageMarkerIndex,
     imageBounds,
     activeSelectedBangumiIds,
-    activeOpenedBangumiDetailsId,
+    activeFilteredBangumiId,
     ignoreZoomThreshold,
     minimumImagePriority,
   ]);

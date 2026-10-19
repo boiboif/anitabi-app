@@ -5,10 +5,9 @@ import type { Bangumi, Point } from '@/services/types';
 import { getMapPointCircleStyle } from '@/utils/map-point-style';
 import { getSelectedMapPointSource, type SelectedMapPointData } from '@/utils/selected-map-point-source';
 import { CircleLayer, Images, Image as MapboxImage, ShapeSource, SymbolLayer } from '@rnmapbox/maps';
-import { Image } from 'expo-image';
 import { useCallback, useEffect, useMemo, useRef, type ComponentRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { LayoutRectangle } from 'react-native';
+import { Image, type LayoutRectangle } from 'react-native';
 import { Text, useTheme, View, YStack } from 'tamagui';
 
 export type MarkerHitRect = { left: number; top: number; right: number; bottom: number };
@@ -106,10 +105,12 @@ function SelectedMapPointArtwork({ point, bangumi, showImage, onRendered, onHitR
           <Image
             key={point.image}
             source={{ uri: buildImageUrl(point.image, 'plan=h160') }}
-            cachePolicy="memory-disk"
-            contentFit="cover"
-            transition={0}
-            onDisplay={onRendered}
+            // Share Mapbox's native image pipeline and Android's Fresco thumbnail cache.
+            resizeMode="cover"
+            resizeMethod="scale"
+            fadeDuration={0}
+            onLayout={onRendered}
+            onLoad={onRendered}
             style={{ width: 120, aspectRatio: 16 / 9 }}
           />
         </View>
@@ -159,11 +160,12 @@ const IMAGE_ID = 'selected-plan-point-artwork';
 
 type PlanLayerProps = {
   selected: SelectedMapPointData | null;
+  mapReady: boolean;
   showImage: boolean;
   onHitRectsChange: (key: string, rects: MarkerHitRect[]) => void;
 };
 
-export function SelectedPlanMapPointLayer({ selected, showImage, onHitRectsChange }: PlanLayerProps) {
+export function SelectedPlanMapPointLayer({ selected, mapReady, showImage, onHitRectsChange }: PlanLayerProps) {
   const imageRef = useRef<ComponentRef<typeof MapboxImage>>(null);
   const frameRef = useRef<number | null>(null);
   const theme = useTheme();
@@ -194,13 +196,15 @@ export function SelectedPlanMapPointLayer({ selected, showImage, onHitRectsChang
 
   return (
     <>
-      {selected && artworkKey ? (
-        <Images
-          onImageMissing={(name) => {
-            if (name === IMAGE_ID) refreshArtwork();
-          }}
-        >
-          <MapboxImage name={IMAGE_ID} ref={imageRef}>
+      <Images
+        onImageMissing={(name) => {
+          if (name === IMAGE_ID) refreshArtwork();
+        }}
+      >
+        <MapboxImage name={IMAGE_ID} ref={imageRef}>
+          {/* Register the native image before replacing its child. On Android,
+              Fresco only loads once that child is attached to Mapbox's offscreen view. */}
+          {mapReady && selected && artworkKey ? (
             <SelectedMapPointArtwork
               key={artworkKey}
               point={selected.point}
@@ -209,9 +213,11 @@ export function SelectedPlanMapPointLayer({ selected, showImage, onHitRectsChang
               onRendered={refreshArtwork}
               onHitRectsChange={(rects) => onHitRectsChange(artworkKey, rects)}
             />
-          </MapboxImage>
-        </Images>
-      ) : null}
+          ) : (
+            <View key="pending-artwork" collapsable={false} width={1} height={1} />
+          )}
+        </MapboxImage>
+      </Images>
       <ShapeSource id="selected-map-point-source" shape={shape}>
         <SymbolLayer
           id={SELECTED_MAP_POINT_LAYER_ID}

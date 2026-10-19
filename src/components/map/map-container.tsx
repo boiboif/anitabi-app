@@ -42,6 +42,10 @@ type Props = {
   styleIndex: number;
   show3DBuildings: boolean;
   showPointImageMarkers: boolean;
+  /** Plan maps without a threshold keep every point image visible. */
+  planPointImageZoomThreshold?: number;
+  /** Keeps image density independent of the plan's visibility threshold. */
+  planPointImageDensityZoomThreshold?: number;
   /** Reports the viewport after camera events stop for 250ms. */
   onCameraChange?: (state: MapViewportState) => void;
   /** Reports the viewport immediately so point selection can use the current camera state. */
@@ -102,6 +106,8 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     styleIndex,
     show3DBuildings,
     showPointImageMarkers,
+    planPointImageZoomThreshold,
+    planPointImageDensityZoomThreshold,
     onCameraChange,
     onViewportChange,
     onMapReady,
@@ -126,18 +132,12 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   const [loadedStyleIndex, setLoadedStyleIndex] = useState<number | null>(null);
   const loadedStyleIndexRef = useRef<number | null>(null);
   const navigation = useNavigation();
-  const storedOpenedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const storedSelectedMapPoint = useMapBrowse((state) => state.selectedMapPoint);
   const lastPopupMapPoint = useMapBrowse((state) => state.lastPopupMapPoint);
   const openBangumiDetails = useMapBrowse((state) => state.openBangumiDetails);
   const selectMapPoint = useMapBrowse((state) => state.selectMapPoint);
   const clearSelectedMapPoint = useMapBrowse((state) => state.clearSelectedMapPoint);
-  const openedBangumiDetailsId = isPlanMode ? null : storedOpenedBangumiDetailsId;
   const activeSelectedPoint = isPlanMode ? (selectedPoint ?? null) : storedSelectedMapPoint;
-  const selectedBangumi = useMemo(
-    () => bangumis.find((bangumi) => bangumi.id === openedBangumiDetailsId) ?? null,
-    [bangumis, openedBangumiDetailsId],
-  );
   const selectedPointData = useMemo(() => {
     if (!activeSelectedPoint) return null;
     const bangumi = bangumis.find((item) => item.id === activeSelectedPoint.bangumiId);
@@ -424,53 +424,6 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     [openBangumiDetails],
   );
 
-  // 筛选模式：自动将地图缩放到选中番剧的所有巡礼点范围
-  useEffect(() => {
-    const cam = cameraRef.current;
-    if (!cam) return;
-
-    if (!selectedBangumi) {
-      return;
-    }
-
-    const bangumi = bangumis.find((b) => b.id === selectedBangumi.id);
-    if (!bangumi || bangumi.points.length === 0) return;
-
-    const validPoints = bangumi.points.filter((p) => !(p.geo[0] === 0 && p.geo[1] === 0));
-    if (validPoints.length === 0) return;
-
-    let minLat = Infinity,
-      maxLat = -Infinity;
-    let minLng = Infinity,
-      maxLng = -Infinity;
-
-    for (const p of validPoints) {
-      const [lat, lng] = p.geo;
-      if (lat < minLat) minLat = lat;
-      if (lat > maxLat) maxLat = lat;
-      if (lng < minLng) minLng = lng;
-      if (lng > maxLng) maxLng = lng;
-    }
-
-    // 单点 → 中心定位 + 固定 zoom
-    if (minLat === maxLat && minLng === maxLng) {
-      cam.setCamera({
-        centerCoordinate: [minLng, minLat],
-        zoomLevel: 14,
-        animationDuration: 500,
-        animationMode: 'flyTo',
-      });
-      return;
-    }
-
-    cam.fitBounds(
-      [maxLng, maxLat], // ne
-      [minLng, minLat], // sw
-      [60, 60, 60, 60], // padding [top, right, bottom, left]
-      500,
-    );
-  }, [bangumis, selectedBangumi]);
-
   return (
     <MapMarkerSelectionContext.Provider value={isPlanMode ? activeSelectedPoint : null}>
       <MapView
@@ -538,7 +491,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
         <MapMarkers
           bangumis={bangumis}
           selectedBangumiIds={isPlanMode ? (selectedBangumiIds ?? []) : undefined}
-          openedBangumiDetailsId={isPlanMode ? null : undefined}
+          filteredBangumiId={isPlanMode ? null : undefined}
           showAllPoints={isPlanMode}
           maxVisualDiameter={maxPointMarkerDiameter}
           onPointSelect={handlePointSelect}
@@ -552,8 +505,10 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
             zoom={zoom}
             bounds={bounds}
             selectedBangumiIds={isPlanMode ? (selectedBangumiIds ?? []) : undefined}
-            openedBangumiDetailsId={isPlanMode ? null : undefined}
-            ignoreZoomThreshold={isPlanMode}
+            filteredBangumiId={isPlanMode ? null : undefined}
+            ignoreZoomThreshold={isPlanMode && planPointImageZoomThreshold === undefined}
+            zoomThresholdOverride={isPlanMode ? planPointImageZoomThreshold : undefined}
+            densityZoomThresholdOverride={isPlanMode ? planPointImageDensityZoomThreshold : undefined}
             onPointSelect={handlePointSelect}
           />
         )}
@@ -561,6 +516,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
         {isPlanMode ? (
           <SelectedPlanMapPointLayer
             selected={selectedPointData}
+            mapReady={loadedStyleIndex === styleIndex}
             showImage={showPointImageMarkers}
             onHitRectsChange={(key, rects) => {
               selectedHitRectsRef.current = { key, rects };

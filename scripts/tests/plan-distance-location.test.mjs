@@ -27,6 +27,8 @@ function createHarness({ enabled = true, focused = true, active = true } = {}) {
   const listeners = new Set();
   const watches = [];
   const timers = new Map();
+  const errors = [];
+  const onError = (error) => errors.push(error);
   let elapsed = 0;
   let nextTimerId = 0;
   let cursor = 0;
@@ -84,7 +86,7 @@ function createHarness({ enabled = true, focused = true, active = true } = {}) {
   };
   const modules = {
     react,
-    'expo-router/react-navigation': { useIsFocused: () => focused },
+    'expo-router': { useIsFocused: () => focused },
     'react-native': { AppState },
     '@/utils/plan-point-distances': {
       isValidCoordinate: (lat, lng) =>
@@ -139,7 +141,7 @@ function createHarness({ enabled = true, focused = true, active = true } = {}) {
     if (!mounted || !dirty) return;
     dirty = false;
     cursor = 0;
-    result = context.exports.usePlanDistanceLocation(enabled);
+    result = context.exports.usePlanDistanceLocation(enabled, onError);
     while (effects.length) effects.shift()();
   };
   const flush = async () => {
@@ -152,6 +154,7 @@ function createHarness({ enabled = true, focused = true, active = true } = {}) {
   return {
     config,
     watches,
+    errors,
     flush,
     get result() {
       return result;
@@ -308,6 +311,7 @@ test('denied permission is not prompted again on resume; explicit retry can requ
   h.config.requestPermission = async () => denied;
   await h.flush();
   assert.equal(h.result.error, 'permission');
+  assert.deepEqual(h.errors, ['permission']);
   h.appState('background');
   h.appState('active');
   await h.flush();
@@ -339,6 +343,7 @@ test('system services disabled reports a recoverable error without starting a wa
   h.config.servicesEnabled = false;
   await h.flush();
   assert.equal(h.result.error, 'services');
+  assert.deepEqual(h.errors, ['services']);
   assert.equal(h.watches.length, 0);
   h.config.servicesEnabled = true;
   h.result.retry();
@@ -394,6 +399,7 @@ test('native callback error removes the watch and explicit retry starts a fresh 
   await h.flush();
   assert.equal(h.result.location, null);
   assert.equal(h.result.error, 'unavailable');
+  assert.deepEqual(h.errors, ['unavailable']);
   assert.equal(h.watches[0].removes, 1);
   h.result.retry();
   await h.flush();
@@ -440,6 +446,7 @@ test('watch creation rejection is reported and a later retry can recover', async
   h.config.createWatch = () => Promise.reject(new Error('native startup failed'));
   await h.flush();
   assert.equal(h.result.error, 'unavailable');
+  assert.deepEqual(h.errors, ['unavailable']);
   assert.equal(h.result.isLocating, false);
   h.config.createWatch = null;
   h.result.retry();
@@ -470,6 +477,7 @@ test('no usable first fix times out after 20 seconds, removes the watch and allo
   watch.callback(fix());
   await h.flush();
   assert.equal(h.result.location, null, 'a late fix cannot revive the timed-out attempt');
+  assert.deepEqual(h.errors, ['unavailable']);
   h.result.retry();
   await h.flush();
   assert.equal(h.watches.length, 2);
@@ -493,6 +501,7 @@ test('the first valid fix cancels its deadline while normal location updates con
   await h.flush();
   assert.equal(h.result.location.latitude, 34);
   assert.equal(h.result.error, null);
+  assert.deepEqual(h.errors, []);
   assert.equal(h.watches[0].removes, 0);
   h.unmount();
 });
@@ -556,6 +565,7 @@ for (const action of ['unmount', 'disable', 'blur', 'background']) {
     await h.flush();
     assert.equal(h.result.error, null);
     assert.equal(h.result.location, null);
+    assert.deepEqual(h.errors, []);
     assert.equal(h.watches[0].removes, 1);
     if (action !== 'unmount') h.unmount();
   });

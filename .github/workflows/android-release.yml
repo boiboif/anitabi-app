@@ -189,7 +189,7 @@ jobs:
           fi
 
           asset_name="anitabi-app-${tag}-android.apk"
-          native_app_version="${tag#v}"
+          native_app_version="$APP_VERSION"
           echo "EXPO_UPDATE_CHANNEL=$update_channel" >> "$GITHUB_ENV"
           echo "APP_NATIVE_VERSION=$native_app_version" >> "$GITHUB_ENV"
           echo "MANIFEST_PATH=$manifest_path" >> "$GITHUB_ENV"

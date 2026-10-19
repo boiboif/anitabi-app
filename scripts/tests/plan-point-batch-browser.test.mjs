@@ -94,6 +94,7 @@ function createHarness(screen = 'browser') {
   let tree;
   let dismisses = 0;
   let searchBacks = 0;
+  let repeatedRemovals = 0;
   const openedWorks = [];
   const react = {
     useState(initial) {
@@ -147,8 +148,6 @@ function createHarness(screen = 'browser') {
         focusEffect = effect;
       },
       useRouter: () => ({ back: () => searchBacks++ }),
-    },
-    'expo-router/react-navigation': {
       usePreventRemove: (enabled, callback) => {
         removal = { enabled, callback };
       },
@@ -196,6 +195,9 @@ function createHarness(screen = 'browser') {
     get searchBacks() {
       return searchBacks;
     },
+    get repeatedRemovals() {
+      return repeatedRemovals;
+    },
     get listenerCount() {
       return backListeners.size;
     },
@@ -218,7 +220,7 @@ function createHarness(screen = 'browser') {
     },
     removeRoute() {
       const prevented = removal.enabled;
-      if (prevented) removal.callback({ data: { action: { type: 'GO_BACK' } } });
+      if (prevented) removal.callback({ repeat: () => repeatedRemovals++ });
       render();
       return prevented;
     },
@@ -312,6 +314,7 @@ test('native-stack removal returns to work selection once, then allows normal ro
   assert.equal(browser.removeRoute(), true);
   assert.equal(browser.find('ThemeInput').props.value, 'Work');
   assert.equal(browser.lists().length, 1);
+  assert.equal(browser.repeatedRemovals, 0, 'returning to works must not repeat the blocked route exit');
   assert.equal(browser.removeRoute(), false);
 });
 

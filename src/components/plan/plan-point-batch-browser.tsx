@@ -7,8 +7,7 @@ import { useMapData } from '@/store/use-map-data';
 import { groupPointsForDetails } from '@/utils/plan-point-batches';
 import { FlashList } from '@shopify/flash-list';
 import { ChevronLeft } from '@tamagui/lucide-icons-2';
-import { useFocusEffect, useIsFocused } from 'expo-router';
-import { usePreventRemove } from 'expo-router/react-navigation';
+import { useFocusEffect, useIsFocused, usePreventRemove } from 'expo-router';
 import { type ReactNode, useCallback, useState } from 'react';
 import { BackHandler, Keyboard, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -42,6 +41,7 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
 
   // Group browsing is a local step within the add-points route. Use the native
   // stack's supported removal guard for its header back button and swipe back.
+  // Do not repeat the blocked removal: this back action only returns to works.
   usePreventRemove(isFocused && isBrowsingGroups, () => setBangumiId(undefined));
   useFocusEffect(
     useCallback(() => {

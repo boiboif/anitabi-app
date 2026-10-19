@@ -52,7 +52,7 @@ function createHarness() {
     'react-i18next': { useTranslation: () => ({ i18n: { resolvedLanguage: 'zh-CN' } }) },
     '@/i18n': { resolveLanguageTag: () => 'zh-CN' },
     '@/lib/map-styles': { MAP_STYLES: [{ url: 'fixture', key: 'streets' }] },
-    '@/store/use-map-browse': { useMapBrowse: (selector) => selector({ openedBangumiDetailsId: null }) },
+    '@/store/use-map-browse': { useMapBrowse: (selector) => selector({ filteredBangumiId: null }) },
     '@/components/map/map-marker-selection': { MapMarkerSelectionContext: { Provider: 'Provider' } },
     '@rnmapbox/maps': { MapView: 'MapView', Camera: 'Camera' },
   };

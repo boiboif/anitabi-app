@@ -1,6 +1,8 @@
 # Expo HAS CHANGED
 
-Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before writing any code.
+Read the exact versioned docs at https://docs.expo.dev/versions/v58.0.0/ before writing any code.
+
+Some official Expo skills still describe SDK 57 APIs. When they conflict with SDK 58 documentation, follow the versioned documentation; see `docs/development/expo-sdk-58-migration.md` for known differences.
 
 ## Fixes, History, and Design Intent
 
@@ -25,6 +27,12 @@ Read the exact versioned docs at https://docs.expo.dev/versions/v57.0.0/ before 
 - Use inline styles only when a value is dynamic or cannot be expressed with Tamagui props.
 - Keep mobile typography compact and preserve a clear hierarchy; do not increase font sizes without a specific design reason.
 - Do not start, restart, or verify a local development server after routine UI changes unless the user explicitly requests it.
+
+## Third-Party Patch Approval
+
+- Before performing any operation that creates, modifies, deletes, regenerates, or applies a patch to a third-party library, obtain the user's explicit approval and wait for their response.
+- This requirement also covers directly editing third-party source code in `node_modules` or vendored dependencies, and running commands or scripts that perform these operations.
+- A general request to implement, fix, upgrade, or verify something does not implicitly authorize third-party patching. Approval applies only to the explicitly authorized scope; obtain approval again before expanding that scope.
 
 ## Build and Packaging Approval
 

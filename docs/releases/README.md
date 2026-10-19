@@ -39,7 +39,7 @@
 versionCode = max(ANDROID_VERSION_CODE_OFFSET, latest.buildNumber, preview.buildNumber) + 1
 ```
 
-因此 production 和 preview 共用一个严格递增的 Android 构建号序列，同一个基础版本也可以发布多个构建。客户端会优先比较 `buildNumber`，而不是只比较 `version`。首次迁移时，应将 offset 设为不小于旧 EAS APK 的最大 versionCode；之后每次成功发布都会自动 `+1`。
+因此 production 和 preview 共用一个严格递增的 Android 构建号序列，同一个基础版本也可以发布多个构建。客户端先比较基础版本，版本相同时再比较 `buildNumber`。首次迁移时，应将 offset 设为不小于旧 EAS APK 的最大 versionCode；之后每次成功发布都会自动 `+1`。
 
 ## 整包发版
 
@@ -91,11 +91,11 @@ production 发版流程如下：
 4. Actions 使用旧 EAS keystore 构建签名 APK，创建 `v<version>` GitHub Release。
 5. Actions 自动生成并提交 `docs/releases/latest.json`。客户端随后可发现该 APK。
 
-`preview` 使用独立的 EAS `preview` channel、GitHub prerelease tag 和 `docs/releases/preview.json`，不会影响 production 用户。工作流会查询当前版本已有的 `v<version>-preview.N` Release，取最大 `N` 后自动 `+1`。当前已有 `preview.1` 到 `preview.8` 时，下一次会生成 `preview.9`。该完整标签会写入 APK 的 Android `versionName` 和清单的 `displayVersion`，因此应用内可以显示 `0.0.4-preview.1` 到 `0.0.4-preview.2` 的准确升级关系；Android `versionCode` 仍独立递增。
+`preview` 使用独立的 EAS `preview` channel、GitHub prerelease tag 和 `docs/releases/preview.json`，不会影响 production 用户。工作流会查询当前版本已有的 `v<version>-preview.N` Release，取最大 `N` 后自动 `+1`。当前已有 `preview.1` 到 `preview.8` 时，下一次会生成 `preview.9`。该完整标签保留于 Release、产物名称和清单的 `displayVersion`，用于显示待升级版本；APK 的 Android `versionName` 统一使用基础版本，Android `versionCode` 仍独立递增。
 
 production 始终使用精确 tag `v<version>`，例如 `v0.0.1`。如果同名 GitHub Release 或 Git tag 已存在，工作流会在 Android 构建前直接报错；正式发版前必须先修改 `app.config.ts` 的 `appVersion`。
 
-清单中的 `version` 是基础版本，用于运行时兼容和版本比较；`displayVersion` 是用户看到的完整发布版本。工作流构建 production 时 Android `versionName` 为基础版本，构建 preview 时为 `<version>-preview.N`。`buildNumber` 对应 Android `versionCode`，客户端整包更新优先比较它，因此同一个基础版本可以发布多个构建。
+清单中的 `version` 是基础版本，用于运行时兼容和版本比较；`displayVersion` 是待升级目标的完整发布版本。测试、production 和 preview 整包的原生版本统一使用基础版本，不附加 `test.N` 或 `preview.N`，避免原生生成插件无法识别带后缀的版本号。`buildNumber` 对应 Android `versionCode`，客户端在基础版本相同时比较它，因此同一个基础版本可以发布多个构建。
 
 手动生成清单的命令仍然可用。GitHub Release 创建完成后运行：
 
@@ -151,9 +151,9 @@ yarn release:manifest --from-github --min-supported-build-number 1001
 npx eas-cli@21.8.0 update --channel production --environment production --platform all --message "更新说明" --non-interactive
 ```
 
-工作流只能从 `main` 分支运行，并会在发布前检查 `app.config.ts` 的基础版本是否与目标 channel 最新整包清单中的 `version` 相同。`runtimeVersion` 固定使用基础版本，不包含 `preview.N` 展示后缀；版本不一致时热更新无法被已安装应用接收，工作流会直接报错。应先发布对应版本整包，再发布该版本的热更新。
+工作流只能从 `main` 分支运行，并会在发布前检查 `app.config.ts` 的基础版本是否与目标 channel 最新整包清单中的 `version` 相同；基础版本不一致时工作流会直接报错。SDK 58 的 `runtimeVersion` 使用 `${appVersion}-sdk58`（当前为 `0.7.0-sdk58`），不包含 `preview.N` 展示后缀。SDK 57 的旧包使用 `0.7.0`，不会接收 SDK 58 的热更新。工作流的版本检查只比较基础版本，不能证明已经发布相同 runtime 的原生包；升级 SDK 后必须先发布使用新 runtime 的整包，再发布热更新。
 
-`preview` 和 `production` 分别使用独立的 EAS channel、EAS environment 和整包更新清单。工作流会自动创建首次使用的 EAS channel；Preview 热更新固定注入 `docs/releases/preview.json`，Production 热更新使用 `docs/releases/latest.json`，并将清单中的 `displayVersion` 保留到更新配置中，不会互相串线。热更新会同时发布 Android 和 iOS Update，各平台只会接收与自身 runtime version 匹配的更新。
+`preview` 和 `production` 分别使用独立的 EAS channel、EAS environment 和整包更新清单。工作流会自动创建首次使用的 EAS channel；Preview 热更新固定注入 `docs/releases/preview.json`，Production 热更新使用 `docs/releases/latest.json`，更新配置中的应用版本统一使用基础版本。清单的 `displayVersion` 继续用于待升级版本展示。热更新会同时发布 Android 和 iOS Update，各平台只会接收与自身 runtime version 匹配的更新。
 
 应用启动时静默检查并下载 EAS Update，下载完成后提示重启生效。修改原生依赖、权限、Expo config plugin、Android/iOS 原生配置或需要变更 `versionCode` 时，必须走整包发版。
 

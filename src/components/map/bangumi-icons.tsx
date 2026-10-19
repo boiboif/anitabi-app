@@ -82,7 +82,7 @@ async function persistCroppedIcons(spriteMeta: SpriteMeta, icons: Map<number, st
         const failedCopy = copies.find((copy) => copy.status === 'rejected');
         if (failedCopy?.status === 'rejected') throw failedCopy.reason;
       }
-      new File(dir, 'meta.json').write(JSON.stringify({ fingerprint: spriteMeta.fingerprint, ids: spriteMeta.ids }));
+      new File(dir, 'meta.json').writeSync(JSON.stringify({ fingerprint: spriteMeta.fingerprint, ids: spriteMeta.ids }));
       return;
     } catch {
       try {
@@ -169,12 +169,12 @@ type Props = {
 };
 
 function BangumiIconLayer({ sourceID }: { sourceID?: string }) {
-  const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
+  const filteredBangumiId = useMapBrowse((state) => state.filteredBangumiId);
   const selectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
 
   // 官网在作品详情或多作品筛选模式下隐藏整个作品 icon 图层。
   const bangumiIconFilter: ComponentProps<typeof SymbolLayer>['filter'] =
-    openedBangumiDetailsId !== null || selectedMapBangumiIds.length > 0
+    filteredBangumiId !== null || selectedMapBangumiIds.length > 0
       ? ['==', ['get', 'bangumiId'], -1]
       : BANGUMI_ICON_PRIORITY_FILTER;
 
@@ -267,7 +267,7 @@ function BangumiIcons({ bangumis, onIconPress }: Props) {
           const target = cacheFile('sprite.png');
           if (target.exists) target.delete();
           tmp.rename('sprite.png');
-          cacheFile('meta.json').write(JSON.stringify({ ids: resp.ids }));
+          cacheFile('meta.json').writeSync(JSON.stringify({ ids: resp.ids }));
           if (!cacheLoaded && !cancelled) {
             setSpriteMeta({ ids, url: target.contentUri ?? target.uri, fingerprint: target.md5 ?? undefined });
           }

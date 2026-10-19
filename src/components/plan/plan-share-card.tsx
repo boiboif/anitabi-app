@@ -1,10 +1,10 @@
-import { buildImageUrl } from '@/services/handlers';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
+import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { MapPinned } from '@tamagui/lucide-icons-2';
 import { Image } from 'expo-image';
-import QRCode from 'react-native-qrcode-svg';
 import { useTranslation } from 'react-i18next';
+import QRCode from 'react-native-qrcode-svg';
 import { Text, View, XStack, YStack } from 'tamagui';
 
 export type PlanShareCardPoint = {
@@ -22,6 +22,8 @@ type Props = {
 };
 
 const VISIBLE_POINT_COUNT = 5;
+const APP_DOWNLOAD_URL = 'https://boiboif.github.io/anitabi-app/download';
+const APP_ICON = require('@/assets/images/anitabi-icon.png');
 
 export function PlanShareCard({ title, points, totalCount, shareUrl, displayOnly = false, onImageLoadEnd }: Props) {
   const { t, i18n } = useTranslation();
@@ -33,6 +35,7 @@ export function PlanShareCard({ title, points, totalCount, shareUrl, displayOnly
   const remainingWorks = Math.max(0, workNames.length - visibleWorkNames.length);
   const imagePath = points.find(({ point }) => point.image)?.point.image || bangumis.find((item) => item.cover)?.cover;
   const imageUrl = imagePath ? buildImageUrl(imagePath, 'plan=h360') : undefined;
+  const qrValue = displayOnly ? APP_DOWNLOAD_URL : shareUrl;
 
   return (
     <YStack width={360} height={480} bg="white" overflow="hidden" rounded={24}>
@@ -103,13 +106,39 @@ export function PlanShareCard({ title, points, totalCount, shareUrl, displayOnly
             ) : null}
           </YStack>
 
-          {shareUrl && !displayOnly ? (
-            <YStack width={156} items="center" justify="center" gap={7}>
-              <View p={6} bg="white" borderWidth={1} borderColor="#F1DCE3" rounded={12}>
-                <QRCode value={shareUrl} size={140} quietZone={0} ecl="M" backgroundColor="white" color="#211A1E" />
+          {qrValue ? (
+            <YStack width={156} items="center" justify="center" gap={displayOnly ? 10 : 7}>
+              <View
+                p={displayOnly ? 2 : 6}
+                bg="white"
+                borderWidth={1}
+                borderColor="#F1DCE3"
+                rounded={displayOnly ? 16 : 12}
+                overflow={displayOnly ? 'hidden' : undefined}
+              >
+                <View
+                  width={140}
+                  height={140}
+                  rounded={displayOnly ? 12 : undefined}
+                  overflow={displayOnly ? 'hidden' : undefined}
+                >
+                  <QRCode
+                    value={qrValue}
+                    size={140}
+                    quietZone={displayOnly ? 4 : 0}
+                    ecl={displayOnly ? 'H' : 'M'}
+                    backgroundColor="white"
+                    color="#211A1E"
+                    logo={displayOnly ? APP_ICON : undefined}
+                    logoBorderRadius={displayOnly ? 12 : undefined}
+                    logoSize={displayOnly ? 40 : undefined}
+                  />
+                </View>
               </View>
               <Text color="#6C5E65" fontSize={9} lineHeight={12} text="center">
-                {t('scanToImportPilgrimagePlan', { defaultValue: '扫码导入巡礼计划' })}
+                {displayOnly
+                  ? t('scanToDownloadAnitabi', { defaultValue: '扫码下载 Anitabi' })
+                  : t('scanToImportPilgrimagePlan', { defaultValue: '扫码导入巡礼计划' })}
               </Text>
             </YStack>
           ) : (

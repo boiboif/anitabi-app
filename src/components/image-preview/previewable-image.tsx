@@ -1,8 +1,8 @@
 import ImagePreview, { type ImagePreviewBounds, type PreviewImage } from '@/components/image-preview/image-preview';
 import { getPreviewContainerOrigin, type PreviewTouchCoordinates } from '@/utils/image-preview-source';
 import { Image, type ImageProps, type ImageSource } from 'expo-image';
-import { memo, type ComponentProps, useEffect, useRef, useState } from 'react';
-import type { LayoutRectangle, StyleProp, View as NativeView, ViewStyle } from 'react-native';
+import { memo, type ComponentProps, type ComponentRef, useEffect, useRef, useState } from 'react';
+import type { LayoutRectangle, StyleProp, ViewInstance, ViewStyle } from 'react-native';
 import { GestureDetector, Pressable, useTapGesture } from 'react-native-gesture-handler';
 import { View } from 'tamagui';
 
@@ -77,7 +77,7 @@ function PreviewableImageContent({
   onLayout,
   ...imageProps
 }: PreviewableImageProps) {
-  const containerRef = useRef<NativeView>(null);
+  const containerRef = useRef<Pick<ViewInstance, 'measureInWindow'> | null>(null);
   const containerLayoutRef = useRef<LayoutRectangle | null>(null);
   const imageLayoutRef = useRef<LayoutRectangle | null>(null);
   const dimensionsRef = useRef<{ width: number; height: number } | null>(null);
@@ -132,7 +132,10 @@ function PreviewableImageContent({
   };
 
   const triggerProps = {
-    ref: containerRef,
+    ref: (node: ViewInstance | ComponentRef<typeof View> | null) => {
+      // Both trigger variants expose native measurement; Tamagui 2's ref type still names the View component.
+      containerRef.current = node as Pick<ViewInstance, 'measureInWindow'> | null;
+    },
     onLayout: (event) => {
       containerLayoutRef.current = event.nativeEvent.layout;
     },
@@ -142,7 +145,7 @@ function PreviewableImageContent({
     accessibilityRole: previewUri ? 'button' : 'image',
     accessibilityLabel,
     accessibilityHint,
-  } satisfies ComponentProps<typeof View>;
+  } satisfies ComponentProps<typeof Pressable>;
   const image = (
     <Image
       {...imageProps}
@@ -175,6 +178,8 @@ function PreviewableImageContent({
       ) : (
         <TapPreviewTrigger
           {...triggerProps}
+          // Tamagui 2's style declarations do not include all of RN 0.88's StyleProp values.
+          style={containerStyle as ComponentProps<typeof View>['style']}
           enabled={!!previewUri}
           maxDistance={maxPressDistance}
           onPress={openPreview}

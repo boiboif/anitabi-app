@@ -53,7 +53,7 @@ export async function preparePreviewImage(uri: string, signal: AbortSignal) {
     const handle = file.open(FileMode.ReadOnly);
     const format = (() => {
       try {
-        return getImageFileFormat(handle.readBytes(Math.min(file.size, 32)));
+        return getImageFileFormat(handle.readBytesSync(Math.min(file.size, 32)));
       } finally {
         handle.close();
       }

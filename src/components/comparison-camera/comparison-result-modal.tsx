@@ -22,7 +22,7 @@ import { File } from 'expo-file-system';
 import { Image } from 'expo-image';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as MediaLibrary from 'expo-media-library';
-import { useEffect, useRef, useState } from 'react';
+import { type ComponentRef, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -221,7 +221,7 @@ export default function ComparisonResultModal({
   const [saving, setSaving] = useState(false);
   const savingGate = useRef(false);
   const sheetRef = useRef<ComparisonExportSheetHandle>(null);
-  const footerRef = useRef<NativeView>(null);
+  const footerRef = useRef<ComponentRef<typeof NativeView>>(null);
   const [exportSettings, updateExportSettings] = useState(getComparisonExportSettings);
   const [configurationOpen, setConfigurationOpen] = useState(false);
   const [previousVisible, setPreviousVisible] = useState(visible);
@@ -353,7 +353,8 @@ export default function ComparisonResultModal({
       let canOrganizeAlbum = false;
       if (Platform.OS === 'ios') {
         const readPermission = await MediaLibrary.requestPermissionsAsync(false, ['photo']);
-        canOrganizeAlbum = readPermission.granted && readPermission.accessPrivileges === 'all';
+        canOrganizeAlbum =
+          readPermission.granted && 'accessPrivileges' in readPermission && readPermission.accessPrivileges === 'all';
         permission = canOrganizeAlbum ? readPermission : await MediaLibrary.requestPermissionsAsync(true, ['photo']);
       } else {
         permission = await MediaLibrary.requestPermissionsAsync(true, ['photo']);

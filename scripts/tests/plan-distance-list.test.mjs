@@ -37,16 +37,54 @@ function findNode(tree, predicate) {
   return undefined;
 }
 
+function legendListProps(props) {
+  const jsx = {
+    jsx: (type, nodeProps) => ({ type, props: nodeProps }),
+    jsxs: (type, nodeProps) => ({ type, props: nodeProps }),
+  };
+  const StableReorderableList = loadSource('../../src/components/ui/stable-reorderable-list.tsx', {
+    '@legendapp/list/react-native': { LegendList: 'LegendList' },
+    react: {
+      memo: (component) => component,
+      useCallback: (callback) => callback,
+      useLayoutEffect() {},
+      useMemo: (factory) => factory(),
+      useRef: (value) => ({ current: value }),
+      useState: (value) => [value, () => {}],
+    },
+    'react/jsx-runtime': jsx,
+    'react-native': { StyleSheet: { create: (styles) => styles }, View: 'View' },
+    'react-native-gesture-handler': { GestureDetector: 'GestureDetector', usePanGesture: () => null },
+    'react-native-reanimated': {
+      __esModule: true,
+      default: { View: 'Animated.View', ScrollView: 'Animated.ScrollView' },
+      scrollTo() {},
+      useAnimatedRef: () => () => {},
+      useAnimatedStyle: () => ({}),
+      useFrameCallback: () => ({ isActive: false, setActive() {} }),
+      useSharedValue: (value) => ({ value }),
+    },
+    'react-native-worklets': { scheduleOnRN() {} },
+  }).default;
+  const list = findNode(StableReorderableList(props), (node) => node.type === 'LegendList');
+  assert.ok(list, 'the wrapper renders LegendList');
+  return list.props;
+}
+
 function createHarness() {
   const params = { planId: 'plan' };
   let dirty = true;
   let tree;
   let cursor = 0;
   let effects = [];
+  let isFocused = true;
   let locationEnabled = false;
+  let locationFix = { latitude: 35, longitude: 139 };
+  let locationErrorHandler;
   const slots = [];
   const contexts = [];
-  const calls = { reorder: [], toggle: [], remove: [], navigate: [], writes: [], alerts: [], settings: 0 };
+  const planSubscribers = new Set();
+  const calls = { reorder: [], toggle: [], remove: [], navigate: [], writes: [], alerts: [], toasts: [], settings: 0, distanceSorts: 0 };
   const geo = { far: [36, 139], near: [35.001, 139], completed: [35, 139], invalid: [0, 0] };
   const plan = {
     id: 'plan',
@@ -81,6 +119,7 @@ function createHarness() {
           (patch) => {
             planState = { ...planState, ...patch };
             dirty = true;
+            for (const subscriber of planSubscribers) subscriber();
           },
           () => planState,
         );
@@ -104,6 +143,10 @@ function createHarness() {
   };
   const usePlans = (selector) => selector({ ...planState, ...planActions });
   usePlans.getState = planStore.getState;
+  usePlans.subscribe = (subscriber) => {
+    planSubscribers.add(subscriber);
+    return () => planSubscribers.delete(subscriber);
+  };
   const router = {
     navigate(destination) {
       calls.navigate.push(destination);
@@ -159,6 +202,12 @@ function createHarness() {
         });
       }
     },
+    useLayoutEffect(run, dependencies) {
+      react.useEffect(run, dependencies);
+    },
+    startTransition(update) {
+      update();
+    },
   };
   const theme = { primary: { val: '#123' }, color8: { val: '#456' }, background: { val: '#fff' } };
   const jsx = {
@@ -184,7 +233,8 @@ function createHarness() {
     'react-native': { Alert: { alert: (...args) => calls.alerts.push(args) }, Linking: {}, Pressable: 'Pressable' },
     'react-native-safe-area-context': { useSafeAreaInsets: () => ({ bottom: 0 }) },
     tamagui,
-    'expo-router': { Stack: { Screen: 'Screen' }, useLocalSearchParams: () => params, useRouter: () => router },
+    'expo-router': { Stack: { Screen: 'Screen' }, useIsFocused: () => isFocused, useLocalSearchParams: () => params, useRouter: () => router },
+    '@boiboif/react-native-toast': { Toast: { show: (message) => calls.toasts.push(message) } },
     '@tamagui/lucide-icons-2': { Square: 'Square', SquareCheckBig: 'SquareCheckBig' },
     '@/components/ui/action-sheet': { ActionSheet: 'ActionSheet' },
     '@/components/point/point-list-card': { __esModule: true, default: 'PointListCard' },
@@ -192,12 +242,13 @@ function createHarness() {
     '@/components/ui/stable-reorderable-list': { __esModule: true, default: 'StableReorderableList' },
     '@/components/ui/strict-button': { StrictButton: 'Button' },
     '@/hooks/use-plan-distance-location': {
-      usePlanDistanceLocation: (enabled) => {
+      usePlanDistanceLocation: (enabled, onError) => {
         locationEnabled = enabled;
+        locationErrorHandler = onError;
         return {
-          location: enabled ? { latitude: 35, longitude: 139 } : null,
+          location: enabled && isFocused ? locationFix : null,
           error: null,
-          isLocating: false,
+          isLocating: enabled && isFocused && locationFix === null,
           retry() {},
         };
       },
@@ -209,7 +260,13 @@ function createHarness() {
     '@/services/handlers': { buildImageUrl: () => undefined },
     '@/store/use-map-data': { useMapData: (selector) => selector(mapState) },
     '@/store/use-plans': { usePlans },
-    '@/utils/plan-point-distances': distances,
+    '@/utils/plan-point-distances': {
+      ...distances,
+      sortPlanPointsByDistance: (...args) => {
+        calls.distanceSorts++;
+        return distances.sortPlanPointsByDistance(...args);
+      },
+    },
   }).default;
   const render = () => {
     let iterations = 0;
@@ -245,6 +302,26 @@ function createHarness() {
     get locationEnabled() {
       return locationEnabled;
     },
+    get locationActive() {
+      return locationEnabled && isFocused;
+    },
+    setFocused(focused) {
+      isFocused = focused;
+      if (!focused) locationFix = null;
+      dirty = true;
+      render();
+    },
+    setLocationFix(fix) {
+      locationFix = fix;
+      dirty = true;
+      render();
+    },
+    failLocation(error) {
+      assert.equal(locationEnabled, true, 'distance mode must be active before location fails');
+      locationFix = null;
+      locationErrorHandler(error);
+      render();
+    },
     get list() {
       return findNode(render(), (node) => node.type === 'StableReorderableList');
     },
@@ -269,6 +346,7 @@ function createHarness() {
     replaceItems(items) {
       planState = { ...planState, plans: [{ ...planState.plans[0], items }] };
       dirty = true;
+      for (const subscriber of planSubscribers) subscriber();
       render();
     },
     select(id) {
@@ -311,6 +389,147 @@ test('page distance toggle composes with incomplete filtering without saving ord
     originalIds,
   );
 });
+
+test('distance mode retains the saved order and locating labels until the first fix arrives', () => {
+  const page = createHarness();
+  page.setLocationFix(null);
+  const originalIds = page.plan.items.map((item) => item.key);
+  page.toggle.props.onCheckedChange(true);
+
+  assert.equal(page.toggle.props.checked, true);
+  assert.equal(page.locationEnabled, true);
+  assert.deepEqual(plain(page.list.props.data.map((item) => item.id)), originalIds);
+  for (const id of ['far', 'near', 'completed', 'snapshot', 'invalid']) {
+    assert.equal(page.card(id).props.meta, 'planDistanceLocating');
+  }
+  assert.equal(page.calls.writes.length, 0);
+
+  page.setLocationFix({ latitude: 35, longitude: 139 });
+  assert.deepEqual(plain(page.list.props.data.map((item) => item.id)), [
+    '1:completed', '1:near', '1:snapshot', '1:far', '1:invalid',
+  ]);
+  assert.equal(page.card('near').props.meta, 'planDistanceMeters');
+  assert.equal(page.card('invalid').props.meta, 'planDistanceUnknown');
+  assert.deepEqual(page.plan.items.map((item) => item.key), originalIds);
+  assert.equal(page.calls.writes.length, 0);
+});
+
+test('distance state refreshes mounted LegendList rows while their item data reference stays stable', () => {
+  const page = createHarness();
+  page.setLocationFix(null);
+  const before = legendListProps(page.list.props);
+
+  page.toggle.props.onCheckedChange(true);
+  const locating = legendListProps(page.list.props);
+  assert.equal(locating.data, before.data, 'locating does not replace the saved-order list data');
+  assert.notEqual(locating.extraData, before.extraData, 'mounted rows must observe the distance toggle');
+
+  page.failLocation('unavailable');
+  const failed = legendListProps(page.list.props);
+  assert.equal(failed.data, before.data);
+  assert.equal(failed.extraData, before.extraData, 'failure restores the ordinary row state');
+  assert.equal(page.calls.toasts.at(-1), 'planDistanceLocationFailed');
+});
+
+test('add navigation keeps the last distance projection during blur, then refocus waits for a new fix', () => {
+  const page = createHarness();
+  page.toggle.props.onCheckedChange(true);
+  const sortedBeforeBlur = page.list.props.data;
+  const sortsBeforeBlur = page.calls.distanceSorts;
+  const nearDistance = page.card('near').props.meta;
+  assert.equal(nearDistance, 'planDistanceMeters');
+
+  page.headerButton('addLocations').props.onPress();
+  assert.deepEqual(plain(page.calls.navigate), [
+    { pathname: '/plans/[planId]/add', params: { planId: 'plan' } },
+  ]);
+  page.setFocused(false);
+  assert.equal(page.locationActive, false);
+  assert.equal(page.toggle.props.checked, true);
+  assert.equal(page.list.props.data, sortedBeforeBlur, 'blur does not clone or resort unchanged list data');
+  assert.equal(page.calls.distanceSorts, sortsBeforeBlur);
+  assert.equal(page.card('near').props.meta, nearDistance);
+
+  const added = { ...page.plan.items[0], key: '1:far-copy', addedAt: 999 };
+  page.replaceItems([added, ...page.plan.items]);
+  assert.equal(page.calls.distanceSorts, sortsBeforeBlur + 1, 'a blurred store update uses the last valid location');
+  assert.deepEqual(plain(page.list.props.data.map((item) => item.id)), [
+    '1:completed', '1:near', '1:snapshot', '1:far-copy', '1:far', '1:invalid',
+  ]);
+  assert.equal(page.card('near').props.meta, nearDistance, 'blurred store updates retain distance labels');
+
+  page.setFocused(true);
+  assert.equal(page.locationActive, true);
+  assert.deepEqual(plain(page.list.props.data.map((item) => item.id)), [
+    '1:far-copy', '1:far', '1:near', '1:completed', '1:snapshot', '1:invalid',
+  ]);
+  assert.equal(page.card('near').props.meta, 'planDistanceLocating');
+  assert.equal(page.calls.distanceSorts, sortsBeforeBlur + 1);
+
+  const waitingList = page.list.props.data;
+  page.setFocused(false);
+  assert.equal(page.list.props.data, waitingList, 'leaving again before a new fix stays in the waiting state');
+  assert.equal(page.card('near').props.meta, 'planDistanceLocating');
+  page.setFocused(true);
+
+  page.setLocationFix({ latitude: 36, longitude: 139 });
+  assert.deepEqual(plain(page.list.props.data.map((item) => item.id).slice(0, 2)), ['1:far-copy', '1:far']);
+  assert.equal(page.card('far').props.meta, 'planDistanceMeters');
+  assert.equal(page.card('invalid').props.meta, 'planDistanceUnknown');
+  assert.equal(page.calls.reorder.length, 0);
+  assert.equal(page.calls.writes.length, 0);
+});
+
+for (const [name, navigate] of [
+  ['map button', (page) => page.headerButton('mapMode').props.onPress()],
+  ['point card', (page) => page.card('near').props.onPress()],
+]) {
+  test(`${name} navigation keeps distance rows stable during blur`, () => {
+    const page = createHarness();
+    page.toggle.props.onCheckedChange(true);
+    const sortedBeforeBlur = page.list.props.data;
+    navigate(page);
+    assert.equal(page.calls.navigate.at(-1).pathname, '/plans/[planId]/map');
+
+    page.setFocused(false);
+    assert.equal(page.locationActive, false);
+    assert.equal(page.list.props.data, sortedBeforeBlur);
+    assert.equal(page.card('near').props.meta, 'planDistanceMeters');
+    assert.equal(page.toggle.props.checked, true);
+  });
+}
+
+test('only a point without valid coordinates shows unknown distance after location succeeds', () => {
+  const page = createHarness();
+  page.toggle.props.onCheckedChange(true);
+
+  assert.equal(page.list.props.data.at(-1).id, '1:invalid');
+  assert.equal(page.card('invalid').props.meta, 'planDistanceUnknown');
+  assert.equal(page.card('snapshot').props.meta, 'planDistanceMeters');
+  assert.equal(page.card('far').props.meta, 'planDistanceKilometers');
+});
+
+for (const [error, toast] of [
+  ['permission', 'planDistancePermissionRequired'],
+  ['services', 'planDistanceServicesDisabled'],
+  ['unavailable', 'planDistanceLocationFailed'],
+]) {
+  test(`location ${error} turns distance mode off and shows the existing Toast`, () => {
+    const page = createHarness();
+    page.setLocationFix(null);
+    const originalIds = page.plan.items.map((item) => item.key);
+    page.toggle.props.onCheckedChange(true);
+    assert.equal(page.card('near').props.meta, 'planDistanceLocating');
+
+    page.failLocation(error);
+    assert.equal(page.toggle.props.checked, false);
+    assert.equal(page.locationEnabled, false);
+    assert.deepEqual(plain(page.list.props.data.map((item) => item.id)), originalIds);
+    assert.equal(page.card('near').props.meta, undefined);
+    assert.deepEqual(page.calls.toasts, [toast]);
+    assert.equal(page.calls.writes.length, 0);
+  });
+}
 
 test('manual sorting closes distance mode and restores the complete saved order before any explicit reorder', () => {
   const page = createHarness();

@@ -4,7 +4,7 @@ import { getForegroundPermissionsAsync, hasServicesEnabledAsync, requestForegrou
 import { useMapData } from '@/store/use-map-data';
 import { useFocusEffect } from 'expo-router';
 import { type RefObject, useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, AppState, type AppStateStatus } from 'react-native';
+import { Alert, AppState } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 const CURRENT_LOCATION_TIMEOUT_MS = 10_000;
@@ -219,7 +219,7 @@ export function useMapLocate(cameraRef: RefObject<Camera | null>) {
 
       void activateLocation();
 
-      let previousAppState: AppStateStatus = AppState.currentState;
+      let previousAppState = AppState.currentState;
       const appStateSubscription = AppState.addEventListener('change', (nextAppState) => {
         const becameActive = previousAppState !== 'active' && nextAppState === 'active';
         previousAppState = nextAppState;

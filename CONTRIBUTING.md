@@ -17,13 +17,13 @@
 
 ## 开发环境
 
-项目使用 Expo SDK 57、React Native 0.86、React 19.2 和 Yarn。
+项目使用 Expo SDK 58、React Native 0.88、React 19.3 和 Yarn。
 
 技术栈概览：
 
 | 类别 | 技术 |
 | ---- | ---- |
-| 框架 | Expo SDK 57 / React Native 0.86 / React 19.2 |
+| 框架 | Expo SDK 58 / React Native 0.88 / React 19.3 |
 | 路由 | expo-router（文件路由） |
 | 地图 | @rnmapbox/maps |
 | UI | Tamagui（styled-components 设计系统） |
@@ -36,7 +36,7 @@
 
 ### 前置要求
 
-- Node.js >= 18
+- Node.js 22.13+（22.x）或 24.3+（24.x）；完整引擎范围见 `expo/package.json`
 - Expo CLI：`npx expo --version`
 - iOS 开发：Xcode（macOS）
 - Android 开发：Android Studio + 模拟器，或真机 ADB 无线调试

@@ -123,7 +123,7 @@ jobs:
             TAG="v${APP_VERSION}-preview.${PREVIEW_NUMBER}"
           fi
 
-          NATIVE_VERSION="${TAG#v}"
+          NATIVE_VERSION="$APP_VERSION"
           UPDATE_CHANNEL="$RELEASE_TYPE"
           ANDROID_ASSET_NAME="anitabi-app-${TAG}-android.apk"
           IOS_ASSET_NAME="anitabi-app-${TAG}-unsigned.ipa"
