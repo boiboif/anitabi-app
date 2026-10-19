@@ -1,21 +1,11 @@
+import { ThemeInput } from '@/components/ui/theme-input';
 import { Search, X } from '@tamagui/lucide-icons-2';
 import { BlurView } from 'expo-blur';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useRef, type ComponentProps, type ReactNode } from 'react';
-import { Keyboard, Pressable, StyleSheet, TouchableWithoutFeedback, type TextInputInstance } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { getTokens, styled, TamaguiElement, useThemeName, View } from 'tamagui';
-import { ThemeInput } from '@/components/ui/theme-input';
-
-const StyledInput = styled(ThemeInput, {
-  rounded: 28,
-  paddingInlineStart: 40,
-  height: 44,
-  fontSize: '$subtitle',
-  borderColor: '$color4',
-  borderWidth: StyleSheet.hairlineWidth,
-  bg: 'transparent',
-});
+import { Keyboard, Pressable, TouchableWithoutFeedback, type TextInputInstance } from 'react-native';
+import { getTokens, TamaguiElement, useThemeName, View } from 'tamagui';
 
 type Props = {
   placeholder?: string;
@@ -25,7 +15,7 @@ type Props = {
   onPress?: () => void;
   /** 路由跳转后延迟 focus（与原生 autoFocus 不同，等转场动画结束后才调起键盘） */
   focusOnRoute?: boolean;
-} & ComponentProps<typeof StyledInput>;
+} & ComponentProps<typeof ThemeInput>;
 
 export default function SearchBox({
   placeholder,
@@ -87,11 +77,17 @@ export default function SearchBox({
             {left ?? <Search size={18} color="$primary" strokeWidth={3} />}
           </View>
 
-          <StyledInput
+          <ThemeInput
             placeholder={placeholder ?? t('cityWorkOrLocation', { defaultValue: '城市、作品、地标' })}
             readOnly={readOnly}
             ref={ref}
             style={right || showClear ? { paddingRight: 40 } : undefined}
+            rounded={28}
+            paddingInlineStart={40}
+            height={44}
+            fontSize="$subtitle"
+            borderColor="$color4"
+            bg="transparent"
             {...props}
           />
 

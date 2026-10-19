@@ -1,5 +1,7 @@
 import type { PlanMapResolvedPoint } from '@/components/plan/plan-map-point-types';
 import PointListCard from '@/components/point/point-list-card';
+import CardListItem from '@/components/ui/card-list-item';
+import { getCardListItemHeight } from '@/lib/card-list-layout';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
@@ -20,7 +22,8 @@ type Props = {
   onToggleCompleted: (resolved: PlanMapResolvedPoint) => void;
 };
 
-const PLAN_POINT_ROW_SIZE = 104;
+const PLAN_POINT_CARD_HEIGHT = 96;
+const PLAN_POINT_ROW_SIZE = getCardListItemHeight(PLAN_POINT_CARD_HEIGHT);
 const SCROLL_IDLE_DELAY = 140;
 const LOCATE_BUTTON_HIDE_DELAY = 2500;
 
@@ -54,7 +57,7 @@ const PlanMapPointRow = memo(function PlanMapPointRow({
   const selected = useStore(selectionStore, (state) => state.key === item.key);
 
   return (
-    <View>
+    <CardListItem>
       <PointListCard
         point={point}
         bangumi={bangumi}
@@ -63,7 +66,7 @@ const PlanMapPointRow = memo(function PlanMapPointRow({
         description={point.mark}
         showMediaLabels
         sequenceNumber={planIndex + 1}
-        height={96}
+        height={PLAN_POINT_CARD_HEIGHT}
         imageWidth={132}
         opacity={item.completed ? 0.58 : 1}
         selected={selected}
@@ -99,7 +102,7 @@ const PlanMapPointRow = memo(function PlanMapPointRow({
           </Pressable>
         }
       />
-    </View>
+    </CardListItem>
   );
 });
 
@@ -157,7 +160,7 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
       // TrueSheet adds native scroll padding at the 0.6 detent. The list's
       // JS scroll limit does not include it, so let Android clamp this offset.
       // Use FlashList's layout coordinates, which account for native row
-      // measurements, rather than accumulating a nominal 104px per row.
+      // measurements, rather than accumulating the estimated row height.
       scrollView.scrollTo({ y: Math.max(0, measuredOffset ?? precedingIndex * PLAN_POINT_ROW_SIZE), animated });
       return true;
     },
@@ -494,7 +497,10 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
               </Text>
             </YStack>
           }
-          contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 4, paddingBottom: 28 }}
+          contentContainerStyle={{
+            paddingHorizontal: 12,
+            paddingBottom: 28,
+          }}
         />
       </GestureHandlerRootView>
     </TrueSheet>

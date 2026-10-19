@@ -3,8 +3,8 @@ import { usePlans } from '@/store/use-plans';
 import type { PlanPointEntry } from '@/utils/plan-point-batches';
 import { Toast } from '@boiboif/react-native-toast';
 import { Check, ListPlus } from '@tamagui/lucide-icons-2';
-import { Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Pressable } from 'react-native';
 import { Text, useTheme, XStack } from 'tamagui';
 
 type Props = {
@@ -61,7 +61,7 @@ export default function AddPointBatchButton({ entries, title, label, planId, com
       }}
       style={({ pressed }) => ({ opacity: disabled ? 0.5 : pressed ? 0.65 : 1 })}
     >
-      <XStack minH={compact ? 28 : 36} px={compact ? '$1.5' : '$2.5'} gap="$1" items="center" rounded="$2" bg="$color2">
+      <XStack minH={compact ? 28 : 36} px={compact ? '$1.5' : '$2.5'} gap="$1" items="center" rounded="$2">
         {allAdded ? <Check size={16} color={theme.primary.val} /> : <ListPlus size={16} color={theme.primary.val} />}
         <Text color="$primary" fontSize="$footnote" fontWeight="600">
           {buttonLabel}

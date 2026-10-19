@@ -1,5 +1,7 @@
 import PointListCard from '@/components/point/point-list-card';
 import RemoveFavoriteButton from '@/components/point/remove-favorite-button';
+import CardListItem from '@/components/ui/card-list-item';
+import { getCardListBoundarySpacing } from '@/lib/card-list-layout';
 import { type FavoritePoint } from '@/lib/favorite-storage';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import type { Bangumi, Point } from '@/services/types';
@@ -121,7 +123,11 @@ export default function FavoriteBangumiScreen() {
   const bottomInset = safeAreaInsets.bottom + BottomTabInset + 16;
 
   const renderFavorite = useCallback(
-    ({ item }: { item: ResolvedFavorite }) => <FavoriteCard item={item} onPress={() => openPoint(item)} />,
+    ({ item }: { item: ResolvedFavorite }) => (
+      <CardListItem>
+        <FavoriteCard item={item} onPress={() => openPoint(item)} />
+      </CardListItem>
+    ),
     [openPoint],
   );
   const keyExtractor = useCallback((item: ResolvedFavorite) => item.favorite.key, []);
@@ -139,7 +145,7 @@ export default function FavoriteBangumiScreen() {
           contentInset={{ bottom: bottomInset }}
           contentContainerStyle={{
             paddingHorizontal: getTokens().space['3'].val,
-            paddingTop: getTokens().space['3'].val,
+            paddingTop: getCardListBoundarySpacing(getTokens().space['3'].val),
           }}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={

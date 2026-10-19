@@ -1,9 +1,11 @@
-import { ActionSheet, type ActionSheetRef } from '@/components/ui/action-sheet';
-import PointListCard from '@/components/point/point-list-card';
 import PlanListSettingsSheet from '@/components/plan/plan-list-settings-sheet';
+import PointListCard, { POINT_LIST_CARD_HEIGHT } from '@/components/point/point-list-card';
+import { ActionSheet, type ActionSheetRef } from '@/components/ui/action-sheet';
+import CardListItem from '@/components/ui/card-list-item';
 import StableReorderableList, { type StableReorderableListRenderItem } from '@/components/ui/stable-reorderable-list';
 import { StrictButton as Button } from '@/components/ui/strict-button';
 import { usePlanDistanceLocation, type PlanDistanceLocationError } from '@/hooks/use-plan-distance-location';
+import { getCardListItemHeight } from '@/lib/card-list-layout';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { sharePlanFile } from '@/lib/plan-share-files';
 import { createPlanShareBundle } from '@/lib/plan-sharing';
@@ -20,18 +22,28 @@ import {
   FileJson,
   GripVertical,
   Image as ImageIcon,
-  SlidersHorizontal,
-  Square,
-  SquareCheckBig,
   MapPinned,
   MoreHorizontal,
   Pencil,
   Plus,
   Share2,
+  SlidersHorizontal,
+  Square,
+  SquareCheckBig,
   Trash2,
 } from '@tamagui/lucide-icons-2';
 import { Stack, useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
-import { type ReactNode, createContext, startTransition, useCallback, useContext, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import {
+  createContext,
+  startTransition,
+  useCallback,
+  useContext,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -131,73 +143,75 @@ function DraggablePointRow({
   const { t, i18n } = useTranslation();
   const { item, point, bangumi } = resolved;
   const distance = resolved.distanceMeters;
-  const distanceLabel =
-    distancePending
-      ? t('planDistanceLocating', { defaultValue: '正在获取当前位置…' })
-      : typeof distance !== 'number'
-        ? t('planDistanceUnknown', { defaultValue: '距离未知' })
-        : distance < 1_000
-          ? t('planDistanceMeters', { defaultValue: '约 {{distance}} 米', distance: Math.round(distance) })
-          : t('planDistanceKilometers', {
-              defaultValue: '约 {{distance}} 公里',
-              distance: (distance / 1_000).toFixed(1),
-            });
+  const distanceLabel = distancePending
+    ? t('planDistanceLocating', { defaultValue: '正在获取当前位置…' })
+    : typeof distance !== 'number'
+      ? t('planDistanceUnknown', { defaultValue: '距离未知' })
+      : distance < 1_000
+        ? t('planDistanceMeters', { defaultValue: '约 {{distance}} 米', distance: Math.round(distance) })
+        : t('planDistanceKilometers', {
+            defaultValue: '约 {{distance}} 公里',
+            distance: (distance / 1_000).toFixed(1),
+          });
 
   return (
-    <PointListCard
-      point={point}
-      bangumi={bangumi}
-      title={point ? getPointTitle(point, i18n.resolvedLanguage) : item.snapshot.pointName}
-      subtitle={bangumi ? getBangumiTitle(bangumi, i18n.resolvedLanguage) : item.snapshot.bangumiName}
-      description={point?.mark || item.snapshot.pointMark}
-      meta={showDistance ? distanceLabel : undefined}
-      image={point?.image || item.snapshot.pointImage}
-      cover={bangumi?.cover || item.snapshot.bangumiCover}
-      previewEnabled={!sorting}
-      imageSource={resolved.imageSource}
-      imageRecyclingKey={resolved.id}
-      imageColor={bangumi?.color || item.snapshot.bangumiColor}
-      sequenceNumber={resolved.sequenceNumber}
-      showMediaLabels
-      opacity={item.completed ? 0.58 : 1}
-      disabled={sorting || !point || !bangumi}
-      onPress={onPress}
-      leading={sorting ? <SelectPointButton planId={planId} item={item} onSelect={onSelect} /> : null}
-      trailing={sorting ? dragHandle : null}
-      statusAction={
-        !sorting ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={
-              item.completed
-                ? t('markIncomplete', { defaultValue: '取消完成' })
-                : t('markComplete', { defaultValue: '标记完成' })
-            }
-            hitSlop={12}
-            onPress={(event) => {
-              event.stopPropagation();
-              onToggle();
-            }}
-            style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-          >
-            <View width={30} height={30} rounded="$9" bg="$color2" items="center" justify="center">
-              <Check
-                size={20}
-                color={item.completed ? theme.primary.val : theme.color8.val}
-                strokeWidth={item.completed ? 3.5 : 3}
-              />
-            </View>
-          </Pressable>
-        ) : null
-      }
-      showCamera={!sorting && Boolean(point && bangumi)}
-      showNavigation={!sorting && Boolean(point && bangumi)}
-    />
+    <CardListItem>
+      <PointListCard
+        point={point}
+        bangumi={bangumi}
+        title={point ? getPointTitle(point, i18n.resolvedLanguage) : item.snapshot.pointName}
+        subtitle={bangumi ? getBangumiTitle(bangumi, i18n.resolvedLanguage) : item.snapshot.bangumiName}
+        description={point?.mark || item.snapshot.pointMark}
+        meta={showDistance ? distanceLabel : undefined}
+        image={point?.image || item.snapshot.pointImage}
+        cover={bangumi?.cover || item.snapshot.bangumiCover}
+        previewEnabled={!sorting}
+        imageSource={resolved.imageSource}
+        imageRecyclingKey={resolved.id}
+        imageColor={bangumi?.color || item.snapshot.bangumiColor}
+        sequenceNumber={resolved.sequenceNumber}
+        showMediaLabels
+        opacity={item.completed ? 0.58 : 1}
+        disabled={sorting || !point || !bangumi}
+        onPress={onPress}
+        leading={sorting ? <SelectPointButton planId={planId} item={item} onSelect={onSelect} /> : null}
+        trailing={sorting ? dragHandle : null}
+        statusAction={
+          !sorting ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                item.completed
+                  ? t('markIncomplete', { defaultValue: '取消完成' })
+                  : t('markComplete', { defaultValue: '标记完成' })
+              }
+              hitSlop={12}
+              onPress={(event) => {
+                event.stopPropagation();
+                onToggle();
+              }}
+              style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+            >
+              <View width={30} height={30} rounded="$9" items="center" justify="center">
+                <Check
+                  size={20}
+                  color={item.completed ? theme.primary.val : theme.color8.val}
+                  strokeWidth={item.completed ? 3.5 : 3}
+                />
+              </View>
+            </Pressable>
+          ) : null
+        }
+        showCamera={!sorting && Boolean(point && bangumi)}
+        showNavigation={!sorting && Boolean(point && bangumi)}
+      />
+    </CardListItem>
   );
 }
 
-const PLAN_POINT_ROW_HEIGHT = 117;
-const DRAG_PREVIEW_HEIGHT = 79;
+const PLAN_POINT_ROW_HEIGHT = getCardListItemHeight(POINT_LIST_CARD_HEIGHT);
+const DRAG_PREVIEW_CARD_HEIGHT = 72;
+const DRAG_PREVIEW_HEIGHT = getCardListItemHeight(DRAG_PREVIEW_CARD_HEIGHT);
 const REORDER_AUTOSCROLL_THRESHOLD = 72;
 const REORDER_AUTOSCROLL_MAX_SPEED = 840;
 const REORDER_MAX_FRAME_DURATION_MS = 34;
@@ -245,16 +259,19 @@ export default function PlanDetailScreen() {
   const selectedItems = (plan?.items ?? []).filter(
     (item) => selection.planId === planId && selection.points.get(item.key) === item.addedAt,
   );
-  const handleDistanceLocationError = useCallback((error: PlanDistanceLocationError) => {
-    setSortByDistance(false);
-    Toast.show(
-      error === 'permission'
-        ? t('planDistancePermissionRequired', { defaultValue: '请允许使用位置后查看距离' })
-        : error === 'services'
-          ? t('planDistanceServicesDisabled', { defaultValue: '请开启系统定位服务后重试' })
-          : t('planDistanceLocationFailed', { defaultValue: '暂时无法获取位置，请重试' }),
-    );
-  }, [t]);
+  const handleDistanceLocationError = useCallback(
+    (error: PlanDistanceLocationError) => {
+      setSortByDistance(false);
+      Toast.show(
+        error === 'permission'
+          ? t('planDistancePermissionRequired', { defaultValue: '请允许使用位置后查看距离' })
+          : error === 'services'
+            ? t('planDistanceServicesDisabled', { defaultValue: '请开启系统定位服务后重试' })
+            : t('planDistanceLocationFailed', { defaultValue: '暂时无法获取位置，请重试' }),
+      );
+    },
+    [t],
+  );
   const distanceLocation = usePlanDistanceLocation(
     sortByDistance && hasPlanPoints && !sorting,
     handleDistanceLocationError,
@@ -301,9 +318,10 @@ export default function PlanDetailScreen() {
   const distancePending = sortByDistance && displayedDistanceLocation === null;
   // Reuse the visible projection through blur when the saved plan and location are unchanged.
   const visibleItems = useMemo(
-    () => sortByDistance && displayedDistanceLocation
-      ? sortPlanPointsByDistance(filteredItems, displayedDistanceLocation)
-      : filteredItems,
+    () =>
+      sortByDistance && displayedDistanceLocation
+        ? sortPlanPointsByDistance(filteredItems, displayedDistanceLocation)
+        : filteredItems,
     [displayedDistanceLocation, filteredItems, sortByDistance],
   );
 
@@ -384,23 +402,25 @@ export default function PlanDetailScreen() {
     (resolved: ResolvedItem) => {
       const { item, point, bangumi } = resolved;
       return (
-        <PointListCard
-          point={point}
-          bangumi={bangumi}
-          title={point ? getPointTitle(point, i18n.resolvedLanguage) : item.snapshot.pointName}
-          subtitle={bangumi ? getBangumiTitle(bangumi, i18n.resolvedLanguage) : item.snapshot.bangumiName}
-          image={point?.image || item.snapshot.pointImage}
-          cover={bangumi?.cover || item.snapshot.bangumiCover}
-          previewEnabled={false}
-          imageSource={resolved.imageSource}
-          imageColor={bangumi?.color || item.snapshot.bangumiColor}
-          sequenceNumber={resolved.sequenceNumber}
-          showMediaLabels
-          opacity={item.completed ? 0.58 : 1}
-          disabled
-          height={72}
-          imageWidth={72}
-        />
+        <CardListItem>
+          <PointListCard
+            point={point}
+            bangumi={bangumi}
+            title={point ? getPointTitle(point, i18n.resolvedLanguage) : item.snapshot.pointName}
+            subtitle={bangumi ? getBangumiTitle(bangumi, i18n.resolvedLanguage) : item.snapshot.bangumiName}
+            image={point?.image || item.snapshot.pointImage}
+            cover={bangumi?.cover || item.snapshot.bangumiCover}
+            previewEnabled={false}
+            imageSource={resolved.imageSource}
+            imageColor={bangumi?.color || item.snapshot.bangumiColor}
+            sequenceNumber={resolved.sequenceNumber}
+            showMediaLabels
+            opacity={item.completed ? 0.58 : 1}
+            disabled
+            height={DRAG_PREVIEW_CARD_HEIGHT}
+            imageWidth={72}
+          />
+        </CardListItem>
       );
     },
     [i18n.resolvedLanguage],
@@ -547,6 +567,7 @@ export default function PlanDetailScreen() {
                 chromeless
                 circular
                 size="$3"
+                color="$color12"
                 icon={<Plus size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />}
                 onPress={() =>
                   router.navigate({ pathname: '/plans/[planId]/add', params: { planId: plan.id } } as never)
@@ -557,6 +578,7 @@ export default function PlanDetailScreen() {
                 chromeless
                 circular
                 size="$3"
+                color="$color12"
                 icon={<MoreHorizontal size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />}
                 onPress={() => menuSheetRef.current?.present()}
                 aria-label={t('moreActions', { defaultValue: '更多操作' })}
@@ -567,7 +589,7 @@ export default function PlanDetailScreen() {
       />
       <YStack flex={1} bg="$background">
         <XStack>
-          <YStack flex={3} px="$4" pb="$2" gap="$1">
+          <YStack flex={3} px="$4" pb="$1" gap="$1">
             <YStack gap="$1">
               <Text fontSize="$heading" fontWeight="700" color="$color12">
                 {plan.title}
@@ -617,7 +639,10 @@ export default function PlanDetailScreen() {
             <Button
               size="$2"
               fontSize="$caption"
-              color="$red10"
+              color={selectedItems.length === 0 ? '$color6' : '$red9'}
+              bg="$color2"
+              variant="outlined"
+              borderColor={selectedItems.length === 0 ? '$color4' : '$red9'}
               disabled={selectedItems.length === 0}
               onPress={confirmRemoveSelected}
               accessibilityLabel={t('planDeleteSelectedLocations', { defaultValue: '删除所选点位' })}

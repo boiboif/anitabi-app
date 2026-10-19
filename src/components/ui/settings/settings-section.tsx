@@ -17,7 +17,7 @@ export function SettingsSection({ title, children, hideTitleWhenSingle = false }
           {title}
         </Text>
       ) : null}
-      <View bg="$backgroundHover" rounded="$4" overflow="hidden" style={{ borderCurve: 'continuous' }}>
+      <View bg="$background" rounded="$4" overflow="hidden" style={{ borderCurve: 'continuous' }}>
         <View px="$3">{children}</View>
       </View>
     </View>

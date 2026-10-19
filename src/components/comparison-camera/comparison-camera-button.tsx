@@ -1,9 +1,9 @@
 import type { Bangumi, Point } from '@/services/types';
 import { Camera } from '@tamagui/lucide-icons-2';
 import { type Href, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import type { GestureResponderEvent } from 'react-native';
 import { Pressable } from 'react-native';
-import { useTranslation } from 'react-i18next';
 import { Text, useTheme, View, XStack } from 'tamagui';
 
 type Props = {
@@ -42,14 +42,7 @@ export default function ComparisonCameraButton({
       style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
     >
       {compact ? (
-        <View
-          width={compactSize}
-          height={compactSize}
-          rounded="$9"
-          bg={bare ? 'transparent' : '$color2'}
-          items="center"
-          justify="center"
-        >
+        <View width={compactSize} height={compactSize} rounded="$9" items="center" justify="center">
           <Camera size={compactSize * (bare ? 0.58 : 0.5)} color={theme.primary.val} />
         </View>
       ) : (

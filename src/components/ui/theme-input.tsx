@@ -20,7 +20,7 @@ const ThemeInputFrame = styled(Input, {
     borderColor: '$color5',
     opacity: 0.6,
   },
-  placeholderTextColor: '$color10',
+  placeholderTextColor: '$color8',
 });
 
 export const ThemeInput = ThemeInputFrame.styleable((props, ref) => {

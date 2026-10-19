@@ -9,8 +9,8 @@ import { createMapViewportContainsPoint, type MapViewportState } from '@/utils/m
 import { X } from '@tamagui/lucide-icons-2';
 import { Image } from 'expo-image';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, type ScrollViewInstance } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Pressable, ScrollView, StyleSheet, type ScrollViewInstance } from 'react-native';
 import { GetThemeValueForKey, Text, useTheme, View } from 'tamagui';
 
 // ===========================================================================

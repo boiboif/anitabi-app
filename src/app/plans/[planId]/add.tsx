@@ -1,7 +1,9 @@
-import PointListCard from '@/components/point/point-list-card';
 import PlanPointBatchBrowser from '@/components/plan/plan-point-batch-browser';
+import PointListCard from '@/components/point/point-list-card';
+import CardListItem from '@/components/ui/card-list-item';
 import { StrictButton as Button } from '@/components/ui/strict-button';
 import { type FavoritePoint } from '@/lib/favorite-storage';
+import { getCardListBoundarySpacing } from '@/lib/card-list-layout';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { BLOCK_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';
 import type { Bangumi, Point } from '@/services/types';
@@ -13,10 +15,10 @@ import { FlashList } from '@shopify/flash-list';
 import { Check, MapPin, Plus } from '@tamagui/lucide-icons-2';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Text, View, XStack, YStack, useTheme } from 'tamagui';
+import { Text, View, XStack, YStack, getTokens, useTheme } from 'tamagui';
 
 type AvailableFavorite = {
   favorite: FavoritePoint;
@@ -105,7 +107,7 @@ export default function AddPlanPointsScreen() {
     ({ item }: { item: AddPointListItem }) => {
       if (item.type === 'date') {
         return (
-          <View bg="$background" px="$4" py="$2">
+          <View bg="$background" px="$4" pt="$2" pb={getCardListBoundarySpacing(getTokens().space['2'].val)}>
             <Text fontSize="$body" lineHeight={20} fontWeight="700" color="$color11">
               {item.label}
             </Text>
@@ -123,7 +125,7 @@ export default function AddPlanPointsScreen() {
       };
 
       return (
-        <View px="$3">
+        <CardListItem horizontalInset="$3">
           <PointListCard
             point={item.item.point}
             bangumi={item.item.bangumi}
@@ -169,7 +171,7 @@ export default function AddPlanPointsScreen() {
               </Pressable>
             }
           />
-        </View>
+        </CardListItem>
       );
     },
     [addPoint, existingKeys, i18n.language, i18n.resolvedLanguage, planId, removePoint, t, theme.primary.val],
@@ -194,12 +196,11 @@ export default function AddPlanPointsScreen() {
             pressStyle={{ opacity: 0.65 }}
           >
             <View
-              minH={40}
-              px="$2"
-              rounded="$2"
+              bg={source === option.key ? '$color3' : 'transparent'}
+              px="$3"
+              py="$2"
+              rounded={source === option.key ? '$9' : undefined}
               items="center"
-              justify="center"
-              bg={source === option.key ? '$color3' : '$color2'}
             >
               <Text fontSize="$footnote" fontWeight="600" color={source === option.key ? '$primary' : '$color11'}>
                 {option.label}

@@ -1,6 +1,7 @@
-import PointListCard from '@/components/point/point-list-card';
 import PreviewableImage from '@/components/image-preview/previewable-image';
 import AddPointBatchButton from '@/components/plan/add-point-batch-button';
+import PointListCard from '@/components/point/point-list-card';
+import CardListItem from '@/components/ui/card-list-item';
 import { getCategoryMessage, translateMessage } from '@/i18n/messages';
 import { getBangumiTitle } from '@/lib/localized-data';
 import { buildImageUrl } from '@/services/handlers';
@@ -636,7 +637,7 @@ function BangumiDetailSheet() {
       if (!selectedBangumi) return null;
 
       return (
-        <View mx="$2">
+        <CardListItem horizontalInset="$2">
           <PointListCard
             point={item.point}
             bangumi={selectedBangumi}
@@ -650,7 +651,7 @@ function BangumiDetailSheet() {
             showFavorite
             showAddToPlan
           />
-        </View>
+        </CardListItem>
       );
     },
     [
@@ -706,7 +707,7 @@ function BangumiDetailSheet() {
             onScroll={handleFlashListScroll}
             ListHeaderComponent={
               <>
-                <View px="$2" mb="$4" display="flex" flexDirection="row" rounded="$4" gap="$2.5">
+                <View px="$2" mb="$2" display="flex" flexDirection="row" rounded="$4" gap="$2.5">
                   <PreviewableImage
                     source={{ uri: coverUri }}
                     previewUri={coverUri || undefined}
@@ -767,7 +768,7 @@ function BangumiDetailSheet() {
                     </View>
                   ) : null}
                 </View>
-                <View px="$2" pb="$3" self="flex-start">
+                <View px="$2" pb="$2" self="flex-start">
                   <AddPointBatchButton
                     entries={selectedBangumi?.points.map((point) => ({ point, bangumi: selectedBangumi })) ?? []}
                     title={localizedBangumiTitle}

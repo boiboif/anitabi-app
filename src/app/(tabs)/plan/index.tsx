@@ -1,8 +1,10 @@
-import { ActionSheet, type ActionSheetRef } from '@/components/ui/action-sheet';
 import PlanListCard from '@/components/plan/plan-list-card';
 import PlanSortButton from '@/components/plan/plan-sort-button';
+import { ActionSheet, type ActionSheetRef } from '@/components/ui/action-sheet';
+import CardListItem from '@/components/ui/card-list-item';
 import { StrictButton as Button } from '@/components/ui/strict-button';
 import { usePlanImportActions } from '@/hooks/use-plan-import-actions';
+import { getCardListBoundarySpacing } from '@/lib/card-list-layout';
 import { sharePlanFile } from '@/lib/plan-share-files';
 import { createPlanShareBundle } from '@/lib/plan-sharing';
 import type { ItineraryPlan } from '@/lib/plan-storage';
@@ -25,16 +27,12 @@ import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Text, View, XStack, YStack, useTheme } from 'tamagui';
+import { Text, View, XStack, YStack, getTokens, useTheme } from 'tamagui';
 
 const emptyListStyle = { flex: 1 } as const;
 
 function planKeyExtractor(plan: ItineraryPlan) {
   return plan.id;
-}
-
-function PlanSeparator() {
-  return <View height={12} />;
 }
 
 type EmptyPlansProps = {
@@ -58,6 +56,7 @@ const PlanHeaderActions = memo(function PlanHeaderActions({ onImport, onCreate }
         chromeless
         circular
         size="$3"
+        color="$color12"
         icon={<ScanLine size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />}
         aria-label={t('importPilgrimagePlan', { defaultValue: '导入巡礼计划' })}
         onPress={onImport}
@@ -66,6 +65,7 @@ const PlanHeaderActions = memo(function PlanHeaderActions({ onImport, onCreate }
         chromeless
         circular
         size="$3"
+        color="$color12"
         icon={<Plus size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />}
         aria-label={t('newPlan', { defaultValue: '新建计划' })}
         onPress={onCreate}
@@ -78,7 +78,12 @@ const PlanListHeader = memo(function PlanListHeader({ onImport, onCreate }: Plan
   const { t } = useTranslation();
 
   return (
-    <XStack minH={36} items="flex-start" justify="space-between" mb="$3">
+    <XStack
+      minH={36}
+      items="flex-start"
+      justify="space-between"
+      mb={getCardListBoundarySpacing(getTokens().space['3'].val)}
+    >
       <Text fontSize="$heading" lineHeight={30} fontWeight="700" color="$color12" px="$1">
         {t('pilgrimagePlans', { defaultValue: '巡礼计划' })}
       </Text>
@@ -130,16 +135,21 @@ export default function PlansScreen() {
     setTimeout(() => void menuSheetRef.current?.present(), 0);
   }, []);
   const renderPlan = useCallback<ListRenderItem<ItineraryPlan>>(
-    ({ item }) => <PlanListCard plan={item} onPress={openPlan} onMorePress={openPlanMenu} />,
+    ({ item }) => (
+      <CardListItem>
+        <PlanListCard plan={item} onPress={openPlan} onMorePress={openPlanMenu} />
+      </CardListItem>
+    ),
     [openPlan, openPlanMenu],
   );
   const renderEmptyPlans = useCallback(() => <EmptyPlans onCreate={openCreatePlan} />, [openCreatePlan]);
   const pagePaddingTop = useMemo(
-    () => Platform.select({
-      android: insets.top + TopLevelPageTopPadding,
-      ios: TopLevelPageTopPadding,
-      default: TopLevelPageTopPadding,
-    }),
+    () =>
+      Platform.select({
+        android: insets.top + TopLevelPageTopPadding,
+        ios: TopLevelPageTopPadding,
+        default: TopLevelPageTopPadding,
+      }),
     [insets.top],
   );
   const contentContainerStyle = useMemo(
@@ -230,7 +240,6 @@ export default function PlansScreen() {
           maintainVisibleContentPosition={{ disabled: true }}
           keyExtractor={planKeyExtractor}
           renderItem={renderPlan}
-          ItemSeparatorComponent={PlanSeparator}
           ListEmptyComponent={renderEmptyPlans}
           ListEmptyComponentStyle={emptyListStyle}
           contentInset={contentInset}

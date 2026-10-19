@@ -1,6 +1,8 @@
 import BangumiListCard from '@/components/bangumi/bangumi-list-card';
 import PointListCard from '@/components/point/point-list-card';
+import CardListItem from '@/components/ui/card-list-item';
 import SearchBox from '@/components/ui/search-box';
+import { getCardListBoundarySpacing } from '@/lib/card-list-layout';
 import { translateMessage, type TranslationMessage } from '@/i18n/messages';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapBrowse } from '@/store/use-map-browse';
@@ -181,14 +183,20 @@ const Search = () => {
     ({ item }: { item: SearchListItem }) => {
       switch (item.type) {
         case 'bangumi':
-          return <BangumiListCard bangumi={item.data} onPress={() => handleBangumiPress(item.data)} />;
+          return (
+            <CardListItem>
+              <BangumiListCard bangumi={item.data} onPress={() => handleBangumiPress(item.data)} />
+            </CardListItem>
+          );
         case 'point':
           return (
-            <PointCard
-              point={item.data}
-              bangumi={item.bangumi}
-              onPress={() => handlePointPress(item.data, item.bangumi)}
-            />
+            <CardListItem>
+              <PointCard
+                point={item.data}
+                bangumi={item.bangumi}
+                onPress={() => handlePointPress(item.data, item.bangumi)}
+              />
+            </CardListItem>
           );
       }
     },
@@ -208,7 +216,13 @@ const Search = () => {
     <Pressable disabled={!Keyboard.isVisible()} style={{ flex: 1 }} onPress={Keyboard.dismiss}>
       <View flex={1} pt={insets.top === 0 ? '$2' : insets.top} mt="$2" bg="$background">
         <View px="$3">
-          <SearchBox focusOnRoute value={inputText} onChangeText={handleInputTextChange} allowClear />
+          <SearchBox
+            focusOnRoute
+            value={inputText}
+            onChangeText={handleInputTextChange}
+            allowClear
+            placeholderTextColor="$color10"
+          />
         </View>
 
         {/* Tab 切换栏 — 搜索时隐藏 */}
@@ -257,7 +271,7 @@ const Search = () => {
             extraData={query}
             contentContainerStyle={{
               paddingHorizontal: getTokens().space['3'].val,
-              paddingTop: getTokens().space['3'].val,
+              paddingTop: getCardListBoundarySpacing(getTokens().space['3'].val),
               paddingBottom: insets.bottom + 16,
             }}
             maintainVisibleContentPosition={{

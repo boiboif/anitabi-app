@@ -1,17 +1,18 @@
 import FavoritePointButton from '@/components/point/favorite-point-button';
 import PointCardActions from '@/components/point/point-card-actions';
-import PointSequenceBadge from '@/components/point/point-sequence-badge';
 import PointImage from '@/components/point/point-image';
+import PointSequenceBadge from '@/components/point/point-sequence-badge';
 import { formatDuration } from '@/lib/formatDuration';
+import { CARD_LIST_SHADOW } from '@/lib/card-list-layout';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import type { Bangumi, Point } from '@/services/types';
 import type { ImageSource } from 'expo-image';
 import { useMemo, type ReactNode } from 'react';
-import { Pressable, type AccessibilityState } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Pressable, type AccessibilityState } from 'react-native';
 import { getTokens, Text, useTheme, View, XStack, YStack } from 'tamagui';
 
-const DEFAULT_CARD_HEIGHT = 110;
+export const POINT_LIST_CARD_HEIGHT = 110;
 
 type Props = {
   /** 巡礼点数据，用于生成默认文案、图片和操作参数。 */
@@ -76,7 +77,7 @@ type Props = {
   showNavigation?: boolean;
   /** 底部操作按钮尺寸，默认为 30。 */
   actionSize?: number;
-  /** 卡片及图片高度，默认为 116。 */
+  /** 卡片及图片高度，默认为 POINT_LIST_CARD_HEIGHT，不含列表项留白。 */
   height?: number;
   /** 图片宽度，默认为 150。 */
   imageWidth?: number;
@@ -114,7 +115,7 @@ export default function PointListCard({
   showCamera = false,
   showNavigation = false,
   actionSize = 30,
-  height = DEFAULT_CARD_HEIGHT,
+  height = POINT_LIST_CARD_HEIGHT,
   imageWidth = 150,
 }: Props) {
   const { t, i18n } = useTranslation();
@@ -147,12 +148,11 @@ export default function PointListCard({
 
   return (
     <View
-      bg="$color2"
+      bg="$color1"
       rounded="$4"
-      mb="$2"
       overflow="hidden"
       position="relative"
-      boxShadow="0 1px 4px $shadowColor"
+      boxShadow={CARD_LIST_SHADOW}
       opacity={opacity}
     >
       <XStack height={height}>

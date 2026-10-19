@@ -1,14 +1,16 @@
 import PointListCard from '@/components/point/point-list-card';
 import RemoveFavoriteButton from '@/components/point/remove-favorite-button';
+import CardListItem from '@/components/ui/card-list-item';
 import { StrictButton as Button } from '@/components/ui/strict-button';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
+import { CARD_LIST_SHADOW, getCardListBoundarySpacing } from '@/lib/card-list-layout';
 import { BLOCK_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';
 import { buildImageUrl } from '@/services/handlers';
 import { useFavoritePoints } from '@/store/use-favorite-points';
 import { useMapBrowse } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
-import { resolveFavoritePoints, type ResolvedFavoritePoint } from '@/utils/resolve-favorite-points';
 import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
+import { resolveFavoritePoints, type ResolvedFavoritePoint } from '@/utils/resolve-favorite-points';
 import { FlashList } from '@shopify/flash-list';
 import { MapPin } from '@tamagui/lucide-icons-2';
 import { Image } from 'expo-image';
@@ -110,9 +112,9 @@ function BangumiGridCard({ group, onPress }: { group: BangumiGroup; onPress: () 
   const theme = useTheme();
 
   return (
-    <View flex={1} mx="$1" mb="$2">
+    <CardListItem grid>
       <Pressable onPress={onPress}>
-        <YStack bg="$color2" rounded="$4" overflow="hidden" boxShadow="0 1px 4px $shadowColor">
+        <YStack bg="$color1" rounded="$4" overflow="hidden" boxShadow={CARD_LIST_SHADOW}>
           <Image
             source={group.cover ? { uri: buildImageUrl(group.cover, 'plan=h360') } : undefined}
             style={{ width: '100%', height: 150, backgroundColor: group.color || theme.color9.val }}
@@ -128,7 +130,7 @@ function BangumiGridCard({ group, onPress }: { group: BangumiGroup; onPress: () 
           </View>
         </YStack>
       </Pressable>
-    </View>
+    </CardListItem>
   );
 }
 
@@ -252,7 +254,7 @@ export default function FavoritesScreen() {
           );
         case 'date':
           return (
-            <View bg="$background" px="$4" pb="$2">
+            <View bg="$background" px="$4" pb={getCardListBoundarySpacing(getTokens().space['2'].val)}>
               <Text fontSize="$body" lineHeight={20} fontWeight="700" color="$color11">
                 {item.label}
               </Text>
@@ -260,9 +262,9 @@ export default function FavoritesScreen() {
           );
         case 'favorite':
           return (
-            <View px="$3">
+            <CardListItem horizontalInset="$3">
               <FavoriteCard item={item.item} onPress={() => openPoint(item.item)} />
-            </View>
+            </CardListItem>
           );
       }
     },
@@ -274,7 +276,11 @@ export default function FavoritesScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.background?.val, ...contentPlatformStyle, paddingBottom: 0 }}>
       <View bg="$background" width="100%" maxW={MaxContentWidth} flex={1}>
-        <XStack mx="$3" mb="$3" gap="$1">
+        <XStack
+          mx="$3"
+          mb={view === 'bangumi' ? getCardListBoundarySpacing(getTokens().space['3'].val) : '$3'}
+          gap="$1"
+        >
           {(
             [
               ['bangumi', 'byWork', '按番剧'],
@@ -331,7 +337,7 @@ export default function FavoritesScreen() {
             stickyHeaderIndices={stickyHeaderIndices}
             numColumns={view === 'bangumi' ? 3 : 1}
             contentContainerStyle={{
-              paddingHorizontal: view === 'bangumi' ? getTokens().space['2'].val : 0,
+              paddingHorizontal: view === 'bangumi' ? getCardListBoundarySpacing(getTokens().space['3'].val) : 0,
               paddingBottom: insets.bottom,
             }}
             ListFooterComponent={

@@ -17,6 +17,7 @@ export default function PlanSortButton({ sortOrder, onPress }: Props) {
       chromeless
       circular
       size="$3"
+      color="$color8"
       icon={
         sortOrder === 'desc' ? (
           <ArrowDownWideNarrow size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} color="$color11" />

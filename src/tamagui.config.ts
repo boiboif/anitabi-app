@@ -6,7 +6,7 @@ import { createFont, createTamagui } from 'tamagui';
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const TopLevelPageTopPadding = Platform.select({ ios: 36, default: 8 }) ?? 8;
 export const MaxContentWidth = 800;
-export const LightPageBackground = '#FFFBFC';
+export const LightPageBackground = '#FFF';
 
 // Keep this scale intentionally small; reuse a semantic role before adding another size.
 const semanticFontSizes = {

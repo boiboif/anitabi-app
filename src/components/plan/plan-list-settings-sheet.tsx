@@ -42,9 +42,14 @@ const PlanListSettingsSheet = forwardRef<TrueSheet, Props>(function PlanListSett
           />
         </XStack>
         <XStack minH={48} gap="$3" items="center" justify="space-between">
-          <Text flex={1} fontSize="$body" color="$color12">
-            {t('planSortByDistance', { defaultValue: '距离由近到远' })}
-          </Text>
+          <YStack justify="center">
+            <Text fontSize="$body" color="$color12">
+              {t('planSortByDistance', { defaultValue: '距离由近到远' })}
+            </Text>
+            <Text fontSize="$caption" color="$color10">
+              {t('planDistanceStraightLine', { defaultValue: '显示直线距离，不改变计划顺序' })}
+            </Text>
+          </YStack>
           <ThemeSwitch
             checked={sortByDistance}
             disabled={disabled}
@@ -52,9 +57,6 @@ const PlanListSettingsSheet = forwardRef<TrueSheet, Props>(function PlanListSett
             accessibilityLabel={t('planSortByDistance', { defaultValue: '距离由近到远' })}
           />
         </XStack>
-        <Text fontSize="$caption" color="$color10">
-          {t('planDistanceStraightLine', { defaultValue: '显示直线距离，不改变计划顺序' })}
-        </Text>
       </YStack>
     </TrueSheet>
   );

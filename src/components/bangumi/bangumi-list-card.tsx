@@ -1,11 +1,12 @@
 import PreviewableImage from '@/components/image-preview/previewable-image';
 import { getCategoryMessage, translateMessage } from '@/i18n/messages';
 import { getBangumiTitle } from '@/lib/localized-data';
+import { CARD_LIST_SHADOW } from '@/lib/card-list-layout';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi } from '@/services/types';
 import dayjs from 'dayjs';
-import { Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Pressable } from 'react-native';
 import { getTokens, Text, useTheme, View } from 'tamagui';
 
 export default function BangumiListCard({ bangumi, onPress }: { bangumi: Bangumi; onPress: () => void }) {
@@ -18,14 +19,13 @@ export default function BangumiListCard({ bangumi, onPress }: { bangumi: Bangumi
   const coverUri = buildImageUrl(bangumi.cover ?? '');
   return (
     <View
-      bg="$color2"
+      bg="$color1"
       p="$2"
-      mb="$2"
       display="flex"
       flexDirection="row"
       rounded="$4"
       shadowColor="$shadowColor"
-      boxShadow="0 1px 4px $shadowColor"
+      boxShadow={CARD_LIST_SHADOW}
       gap="$2.5"
     >
       <PreviewableImage

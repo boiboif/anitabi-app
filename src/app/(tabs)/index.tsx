@@ -20,8 +20,8 @@ import type { Camera } from '@rnmapbox/maps';
 import { Dices } from '@tamagui/lucide-icons-2';
 import { useIsFocused, useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Alert, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, View, YStack } from 'tamagui';
 
@@ -206,6 +206,7 @@ export default function HomeScreen() {
               router.navigate('/search');
             }}
             readOnly
+            placeholderTextColor="$color10"
           />
         </View>
 

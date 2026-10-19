@@ -3,8 +3,8 @@ import { ThemeInput } from '@/components/ui/theme-input';
 import { usePlans } from '@/store/use-plans';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { Text, YStack, useTheme } from 'tamagui';
 
 export default function CreatePlanScreen() {
@@ -60,7 +60,6 @@ export default function CreatePlanScreen() {
               bg="$primary"
               color="white"
               disabled={!title.trim()}
-              accessibilityState={{ disabled: !title.trim() }}
               opacity={!title.trim() ? 0.5 : 1}
               onPress={submit}
             >

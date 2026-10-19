@@ -1,18 +1,20 @@
 import BangumiListCard from '@/components/bangumi/bangumi-list-card';
 import AddPointBatchButton from '@/components/plan/add-point-batch-button';
+import CardListItem from '@/components/ui/card-list-item';
 import { StrictButton as Button } from '@/components/ui/strict-button';
-import { ThemeInput } from '@/components/ui/theme-input';
 import { getBangumiTitle } from '@/lib/localized-data';
+import { getCardListBoundarySpacing } from '@/lib/card-list-layout';
 import { useMapData } from '@/store/use-map-data';
 import { groupPointsForDetails } from '@/utils/plan-point-batches';
 import { FlashList } from '@shopify/flash-list';
 import { ChevronLeft } from '@tamagui/lucide-icons-2';
 import { useFocusEffect, useIsFocused, usePreventRemove } from 'expo-router';
 import { type ReactNode, useCallback, useState } from 'react';
-import { BackHandler, Keyboard, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { BackHandler, Keyboard, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Spinner, Text, useTheme, View, XStack, YStack } from 'tamagui';
+import { Spinner, Text, getTokens, useTheme, View, XStack, YStack } from 'tamagui';
+import SearchBox from '../ui/search-box';
 
 export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
   const { t, i18n } = useTranslation();
@@ -99,7 +101,7 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         ListHeaderComponent={
-          <YStack px="$4" pt="$2" pb="$3" gap="$2">
+          <YStack px="$4" pt="$2" pb={getCardListBoundarySpacing(getTokens().space['3'].val)} gap="$2">
             <Pressable accessibilityRole="button" onPress={() => setBangumiId(undefined)} hitSlop={8}>
               <XStack minH={40} items="center" gap="$1">
                 <ChevronLeft size={18} color={theme.primary.val} />
@@ -117,22 +119,24 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
           </YStack>
         }
         renderItem={({ item }) => (
-          <XStack mx="$3" mb="$2" p="$3" gap="$2" items="center" rounded="$3" bg="$color2">
-            <YStack flex={1} gap="$1">
-              <Text fontSize="$body" color="$color12" fontWeight={item.key === 'all' ? '600' : '400'}>
-                {item.title}
-              </Text>
-              <Text fontSize="$caption" color="$color10">
-                {t('locationCount', { defaultValue: '{{count}} 个点位', count: item.data.length })}
-              </Text>
-            </YStack>
-            <AddPointBatchButton
-              planId={planId}
-              entries={item.data.map((point) => ({ point, bangumi: selectedBangumi }))}
-              title={`${selectedTitle} · ${item.title}`}
-              label={item.key === 'all' ? t('addAllToPlan', { defaultValue: '全部加入' }) : undefined}
-            />
-          </XStack>
+          <CardListItem horizontalInset="$3">
+            <XStack p="$3" gap="$2" items="center" rounded="$3" bg="$color2">
+              <YStack flex={1} gap="$1">
+                <Text fontSize="$body" color="$color12" fontWeight={item.key === 'all' ? '600' : '400'}>
+                  {item.title}
+                </Text>
+                <Text fontSize="$caption" color="$color10">
+                  {t('locationCount', { defaultValue: '{{count}} 个点位', count: item.data.length })}
+                </Text>
+              </YStack>
+              <AddPointBatchButton
+                planId={planId}
+                entries={item.data.map((point) => ({ point, bangumi: selectedBangumi }))}
+                title={`${selectedTitle} · ${item.title}`}
+                label={item.key === 'all' ? t('addAllToPlan', { defaultValue: '全部加入' }) : undefined}
+              />
+            </XStack>
+          </CardListItem>
         )}
       />
     );
@@ -148,14 +152,15 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
         accessibilityElementsHidden={isBrowsingGroups}
         importantForAccessibility={isBrowsingGroups ? 'no-hide-descendants' : 'auto'}
       >
-        <YStack px="$4" pt="$2" pb="$3" gap="$2">
-          <ThemeInput
+        <YStack px="$4" pt="$2" pb={getCardListBoundarySpacing(getTokens().space['3'].val)} gap="$2">
+          <SearchBox
             value={query}
             onChangeText={setQuery}
             placeholder={t('searchWorksForPlan', { defaultValue: '搜索作品名称或城市' })}
             accessibilityLabel={t('searchWorksForPlan', { defaultValue: '搜索作品名称或城市' })}
             autoCorrect={false}
             returnKeyType="search"
+            placeholderTextColor="$color10"
           />
           <Text fontSize="$caption" color="$color10">
             {t('chooseWorkForBatchPlan', { defaultValue: '选择作品，将全部点位或某个已有分组加入当前计划。' })}
@@ -170,7 +175,7 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
           keyboardDismissMode="on-drag"
           contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
           renderItem={({ item }) => (
-            <View px="$3">
+            <CardListItem horizontalInset="$3">
               <BangumiListCard
                 bangumi={item}
                 onPress={() => {
@@ -178,7 +183,7 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
                   setBangumiId(item.id);
                 }}
               />
-            </View>
+            </CardListItem>
           )}
           ListEmptyComponent={
             <YStack minH={180} px="$4" gap="$3" items="center" justify="center">

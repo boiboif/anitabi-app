@@ -1,5 +1,7 @@
 import PointListCard from '@/components/point/point-list-card';
 import RemoveFavoriteButton from '@/components/point/remove-favorite-button';
+import CardListItem from '@/components/ui/card-list-item';
+import { getCardListBoundarySpacing } from '@/lib/card-list-layout';
 import { type FavoritePoint } from '@/lib/favorite-storage';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import type { Bangumi, Point } from '@/services/types';
@@ -7,9 +9,10 @@ import { useFavoritePoints } from '@/store/use-favorite-points';
 import { useMapBrowse } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
 import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
+import { FlashList } from '@shopify/flash-list';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo } from 'react';
-import { Platform, ScrollView } from 'react-native';
+import { Platform } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, View, useTheme } from 'tamagui';
@@ -119,9 +122,14 @@ export default function FavoriteBangumiScreen() {
     [focusPointFromList, router],
   );
   const bottomInset = safeAreaInsets.bottom + BottomTabInset + 16;
+  const renderFavorite = ({ item }: { item: ResolvedFavorite }) => (
+    <CardListItem horizontalInset="$3">
+      <FavoriteCard item={item} onPress={() => openPoint(item)} />
+    </CardListItem>
+  );
   const contentPlatformStyle = Platform.select({
     android: {
-      paddingTop: 24,
+      paddingTop: getCardListBoundarySpacing(24),
       paddingLeft: safeAreaInsets.left,
       paddingRight: safeAreaInsets.right,
       paddingBottom: bottomInset,
@@ -131,29 +139,25 @@ export default function FavoriteBangumiScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, headerTitleAlign: 'center', title }} />
-      <ScrollView
-        style={{ flex: 1, backgroundColor: theme.background?.val }}
-        contentInset={{ bottom: bottomInset }}
-        contentContainerStyle={contentPlatformStyle}
-      >
-        <View bg="$background" width="100%" maxW={MaxContentWidth} flex={1} px="$3">
-          {loading ? (
-            <View minH={240} items="center" justify="center">
-              <Text color="$color11">{t('loadingFavorites', { defaultValue: '加载收藏数据...' })}</Text>
-            </View>
-          ) : favorites.length === 0 ? (
+      <View bg="$background" width="100%" maxW={MaxContentWidth} flex={1}>
+        <FlashList
+          data={loading ? [] : favorites}
+          renderItem={renderFavorite}
+          keyExtractor={(item) => item.favorite.key}
+          style={{ flex: 1, backgroundColor: theme.background?.val }}
+          contentInset={{ bottom: bottomInset }}
+          contentContainerStyle={contentPlatformStyle}
+          ListEmptyComponent={
             <View minH={240} items="center" justify="center">
               <Text color="$color11">
-                {t('thisWorkHasNoFavoriteLocations', { defaultValue: '该番剧没有收藏的巡礼点' })}
+                {loading
+                  ? t('loadingFavorites', { defaultValue: '加载收藏数据...' })
+                  : t('thisWorkHasNoFavoriteLocations', { defaultValue: '该番剧没有收藏的巡礼点' })}
               </Text>
             </View>
-          ) : (
-            favorites.map((item) => (
-              <FavoriteCard key={item.favorite.key} item={item} onPress={() => openPoint(item)} />
-            ))
-          )}
-        </View>
-      </ScrollView>
+          }
+        />
+      </View>
     </>
   );
 }
