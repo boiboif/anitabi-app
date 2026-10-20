@@ -6,14 +6,14 @@
 
 按 [Expo SDK 58 发布说明](https://expo.dev/changelog/sdk-58)、[版本文档](https://docs.expo.dev/versions/v58.0.0/) 和 `expo@58.0.12/bundledNativeModules.json` 对齐依赖：
 
-| 依赖 | 迁移后版本 |
-| --- | --- |
-| Expo | 58.0.12 |
-| React / React Native | 19.3.0 / 0.88.0 |
-| Expo Router | 58.0.21 |
-| Reanimated / Worklets | 4.7.1 / 0.13.0 |
-| Gesture Handler | 3.3.0 |
-| Sentry React Native | 8.28.0 |
+| 依赖                    | 迁移后版本       |
+| ----------------------- | ---------------- |
+| Expo                    | 58.0.12          |
+| React / React Native    | 19.3.0 / 0.88.0  |
+| Expo Router             | 58.0.21          |
+| Reanimated / Worklets   | 4.7.1 / 0.13.0   |
+| Gesture Handler         | 3.3.0            |
+| Sentry React Native     | 8.28.0           |
 | i18next / react-i18next | 26.4.7 / 17.0.19 |
 
 其余 Expo 包使用 SDK 58 推荐范围，具体锁定版本见 `yarn.lock`。Gesture Handler、SVG、view-shot 已恢复官方版本检查；FlashList 保持已有的 2.3.3（官方推荐 2.3.2），继续作为唯一 `expo.install.exclude` 项。
@@ -48,16 +48,36 @@ Node 使用 Expo 58 支持的版本，例如 22.13+（22.x）或 24.3+（24.x）
 
 `expo-localization` 保持官方 58.0.4，保留其 `zh-Hans` 同时包含 `zh-rCN` 资源的修复。基础版本号可通过原插件的资源配置转换；完整 prebuild 与远程 APK 构建仍待重新运行确认。
 
+## Android Release 二维码识别与 R8（2026-10-20）
+
+同一台 Android 16 手机、同一张巡礼计划二维码图片：v0.7.0 正式包可从相册导入，SDK 58 的 Release 测试包报 `MLKit is not available on this device. Barcode scanning requires Google Play Services.`。设备已安装并启用 Google Play 商店和服务。
+
+两份设备日志的差异是：旧包成功选择本地 `com.google.mlkit.dynamite.barcode` 模型；新包在冷启动时发现三个注册器缺少无参构造方法：
+
+- `com.google.mlkit.common.internal.CommonComponentRegistrar`
+- `com.google.mlkit.vision.barcode.internal.BarcodeRegistrar`
+- `com.google.mlkit.vision.common.internal.VisionCommonRegistrar`
+
+`ComponentDiscovery` 抛出 `NoSuchMethodException: <init> []` 后，实时 `BarcodeAnalyzer` 初始化也失败。`expo-camera` 的相册入口将初始化等多种异常统一转换成上述 Google 服务提示，不能仅凭弹窗判断服务是否缺失。
+
+已对比 v0.7.0 锁定的 `expo-camera 57.0.6` 与当前 `58.0.11`：图片识别方法、扫码可用性检查和 bundled barcode-scanning 17.3.0 一致。直接读取设备上两份 APK 的全部 DEX，确认旧包三个注册器均有 public 无参构造方法，新包的三个类仍存在但构造方法已全部移除，与运行日志直接对应。
+
+SDK 迁移的 AGP 从 8.12.0 升至 9.2.1。[AGP 9.0 变更说明](https://developer.android.com/build/releases/agp-9-0-0-release-notes)明确记录 `android.r8.strictFullModeForKeepRules` 默认改为 `true`，`-keep class A` 不再隐式保留默认构造方法。ML Kit 传递依赖的 `firebase-components 16.1.0` 恰好只有保留注册器类的旧规则；[Firebase 官方修复 #6044](https://github.com/firebase/firebase-android-sdk/pull/6044) 已补齐显式无参构造方法。[R8 官方说明](https://developer.android.com/topic/performance/app-optimization/full-mode#retain-the-default-constructor)也要求为这类反射实例化保留默认构造方法。
+
+在 `app.config.ts` 的 `expo-build-properties.android.extraProguardRules` 中补充 Firebase 官方的两条规则，随 prebuild 写入项目自己的 `proguard-rules.pro`，继续启用 Release 混淆与资源压缩。规则仅保护组件注册器及其无参构造方法，不修改依赖源码。
+
+修复包待重新构建并在同机验收：冷启动不再出现上述注册器错误、相机实时扫描可用、同一张图片可从相册导入。静态检查不能代替 Release 包复测；本次原生规则变更不能通过 OTA 生效。v0.8.0 正式发布继续暂停。
+
 ## 开发期警告跟踪（2026-10-16）
 
 以下是 SDK 58 迁移后设备调试与 Metro 重载时发现的问题。上游版本结论以 2026-10-16 的核对结果为准；“代码已修复”不代表已经完成设备回归。
 
-| 问题 | 来源 | 当前处理与状态 |
-| --- | --- | --- |
-| 渲染期间调用 `navigation.isFocused()` | 地图作品详情弹层 | 项目代码已修复，保留事件回调的即时焦点检查；待设备回归 |
-| Reanimated 原生端忽略依赖数组 | 拖拽列表、卡片轮播 | 已删除项目内三处无效参数；待拖拽和滑动回归 |
-| 同一条 Reanimated 警告来自图片缩放 | `react-native-zoom-toolkit@5.1.1` | 官方最新版仍有旧写法，保留警告，等待上游修复 |
-| `router-store.js` 不存在，Metro 回退解析 | `@sentry/react-native@8.28.0` | 已停用默认 `ExpoRouter` 运行时集成，静态解析警告仍可能出现，等待上游修复 |
+| 问题                                     | 来源                              | 当前处理与状态                                                           |
+| ---------------------------------------- | --------------------------------- | ------------------------------------------------------------------------ |
+| 渲染期间调用 `navigation.isFocused()`    | 地图作品详情弹层                  | 项目代码已修复，保留事件回调的即时焦点检查；待设备回归                   |
+| Reanimated 原生端忽略依赖数组            | 拖拽列表、卡片轮播                | 已删除项目内三处无效参数；待拖拽和滑动回归                               |
+| 同一条 Reanimated 警告来自图片缩放       | `react-native-zoom-toolkit@5.1.1` | 官方最新版仍有旧写法，保留警告，等待上游修复                             |
+| `router-store.js` 不存在，Metro 回退解析 | `@sentry/react-native@8.28.0`     | 已停用默认 `ExpoRouter` 运行时集成，静态解析警告仍可能出现，等待上游修复 |
 
 项目决定：不为这些依赖添加补丁，不全局屏蔽警告，不通过降级 Expo 配套依赖或关闭 package exports 校验隐藏问题。未来升级前重新核对官方发布版本及具体修复。
 

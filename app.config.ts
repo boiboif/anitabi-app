@@ -92,6 +92,12 @@ const config: ExpoConfig = {
           enableMinifyInReleaseBuilds: true,
           enableShrinkResourcesInReleaseBuilds: true,
           useLegacyPackaging: true,
+          extraProguardRules: [
+            // ML Kit discovers registrars by manifest metadata and invokes their no-arg constructors.
+            // Match Firebase's fixed consumer rules: https://github.com/firebase/firebase-android-sdk/pull/6044
+            '-keep class * implements com.google.firebase.components.ComponentRegistrar { void <init>(); }',
+            '-keep,allowshrinking interface com.google.firebase.components.ComponentRegistrar',
+          ].join('\n'),
         },
       },
     ],
