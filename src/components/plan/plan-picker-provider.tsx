@@ -10,7 +10,7 @@ import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { Plus, Square, SquareCheckBig, X } from '@tamagui/lucide-icons-2';
 import { createContext, type ReactNode, use, useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, ScrollView } from 'react-native';
+import { Pressable, ScrollView, StyleSheet } from 'react-native';
 import { getTokens, Text, useTheme, View, XStack, YStack } from 'tamagui';
 
 type PlanPickerContextValue = {
@@ -288,7 +288,7 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
               <YStack overflow="hidden" rounded="$3" bg="$background">
                 {sortedPlans.map((plan, index) => (
                   <View key={plan.id}>
-                    {index > 0 ? <View ml="$3" bg="$color4" height={1} /> : null}
+                    {index > 0 ? <View mx="$3" bg="$color4" height={StyleSheet.hairlineWidth} /> : null}
                     <PlanRow
                       title={plan.title}
                       count={plan.items.length}

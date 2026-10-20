@@ -5,8 +5,8 @@ import { formatDuration } from '@/lib/formatDuration';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapBrowse } from '@/store/use-map-browse';
-import { Linking, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Linking, Pressable } from 'react-native';
 import { getTokens, Text, useTheme, View } from 'tamagui';
 
 type Props = {
@@ -34,7 +34,7 @@ export default function PopupCard({ point, bangumi, bangumiTitlePressEnabled = t
   const innerRadius = getTokens().radius['2'].val;
 
   return (
-    <View bg="$color2" rounded="$3" boxShadow="0 2px 8px rgba(0,0,0,0.4)" width={220}>
+    <View bg="$background" rounded="$3" boxShadow="0 2px 8px rgba(0,0,0,0.4)" width={220}>
       {/* 图片 + EP / 时间覆盖层 */}
       <PointImage
         image={point.image}

@@ -2,8 +2,8 @@ import BangumiListCard from '@/components/bangumi/bangumi-list-card';
 import AddPointBatchButton from '@/components/plan/add-point-batch-button';
 import CardListItem from '@/components/ui/card-list-item';
 import { StrictButton as Button } from '@/components/ui/strict-button';
-import { getBangumiTitle } from '@/lib/localized-data';
 import { getCardListBoundarySpacing } from '@/lib/card-list-layout';
+import { getBangumiTitle } from '@/lib/localized-data';
 import { useMapData } from '@/store/use-map-data';
 import { groupPointsForDetails } from '@/utils/plan-point-batches';
 import { FlashList } from '@shopify/flash-list';
@@ -13,7 +13,7 @@ import { type ReactNode, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BackHandler, Keyboard, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Spinner, Text, getTokens, useTheme, View, XStack, YStack } from 'tamagui';
+import { getTokens, Spinner, Text, useTheme, View, XStack, YStack } from 'tamagui';
 import SearchBox from '../ui/search-box';
 
 export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
@@ -152,7 +152,7 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
         accessibilityElementsHidden={isBrowsingGroups}
         importantForAccessibility={isBrowsingGroups ? 'no-hide-descendants' : 'auto'}
       >
-        <YStack px="$4" pt="$2" pb={getCardListBoundarySpacing(getTokens().space['3'].val)} gap="$2">
+        <YStack px="$4" pt="$2.5" pb={getCardListBoundarySpacing(getTokens().space['3'].val)} gap="$2">
           <SearchBox
             value={query}
             onChangeText={setQuery}

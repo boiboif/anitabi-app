@@ -26,7 +26,7 @@ import { Dices } from '@tamagui/lucide-icons-2';
 import { useIsFocused, useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, StyleSheet, TouchableOpacity } from 'react-native';
+import { Alert, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, View, YStack } from 'tamagui';
 
@@ -45,13 +45,15 @@ function buildRandomPointCandidates(bangumis: Bangumi[]): RandomPointCandidate[]
 function RandomPointButton({ onPress }: { onPress: () => void }) {
   const theme = useTheme();
   return (
-    <TouchableOpacity
-      style={[styles.randomButton, { backgroundColor: theme.background.val }]}
-      activeOpacity={0.7}
+    <Pressable
+      style={({ pressed }) => [
+        styles.randomButton,
+        { backgroundColor: theme.background.val, opacity: pressed ? 0.7 : 1 },
+      ]}
       onPress={onPress}
     >
       <Dices size={MAP_CONTROL_ICON_SIZE} color="$color11" />
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 

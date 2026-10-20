@@ -2,8 +2,8 @@ import PlanPointBatchBrowser from '@/components/plan/plan-point-batch-browser';
 import PointListCard from '@/components/point/point-list-card';
 import CardListItem from '@/components/ui/card-list-item';
 import { StrictButton as Button } from '@/components/ui/strict-button';
-import { type FavoritePoint } from '@/lib/favorite-storage';
 import { getCardListBoundarySpacing } from '@/lib/card-list-layout';
+import { type FavoritePoint } from '@/lib/favorite-storage';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { BLOCK_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';
 import type { Bangumi, Point } from '@/services/types';
@@ -180,7 +180,7 @@ export default function AddPlanPointsScreen() {
   return (
     <>
       <Stack.Screen options={{ title: t('addLocations', { defaultValue: '添加巡礼点' }) }} />
-      <XStack bg="$pageBackground" px="$3" py="$2" gap="$2">
+      <XStack bg="$pageBackground" px="$3" pt="$3" gap="$2">
         {(
           [
             { key: 'favorites', label: t('fromFavoriteLocations', { defaultValue: '从收藏添加' }) },

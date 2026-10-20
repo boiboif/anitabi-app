@@ -1,8 +1,8 @@
 import type { Bangumi, Point } from '@/services/types';
 import { getFavoritePointKey, useFavoritePoints } from '@/store/use-favorite-points';
 import { Heart } from '@tamagui/lucide-icons-2';
-import { Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Pressable } from 'react-native';
 import { useTheme, View } from 'tamagui';
 
 type Props = {

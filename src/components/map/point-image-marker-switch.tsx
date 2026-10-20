@@ -1,6 +1,6 @@
 import { MAP_CONTROL_ICON_SIZE, MAP_CONTROL_SIZE } from '@/lib/constants';
 import { Image, ImageOff } from '@tamagui/lucide-icons-2';
-import { StyleSheet, TouchableOpacity } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from 'tamagui';
 
@@ -18,16 +18,15 @@ export default function PointImageMarkerSwitch({ visible, onChange }: Props) {
     : t('showLocationImages', { defaultValue: '显示点位图片' });
 
   return (
-    <TouchableOpacity
-      style={[styles.button, { backgroundColor: theme.background.val }]}
-      activeOpacity={0.7}
+    <Pressable
+      style={({ pressed }) => [styles.button, { backgroundColor: theme.background.val, opacity: pressed ? 0.7 : 1 }]}
       onPress={() => onChange(!visible)}
       accessibilityRole="switch"
       accessibilityLabel={label}
       accessibilityState={{ checked: visible }}
     >
       <Icon size={MAP_CONTROL_ICON_SIZE} color="$color11" />
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 

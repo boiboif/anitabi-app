@@ -181,7 +181,7 @@ function PlanMapPointCard({
       r="$3"
       b={bottomInset + PLAN_MAP_POINT_CARD_BOTTOM_OFFSET}
       z={30}
-      bg="$color2"
+      bg="$background"
       rounded="$4"
       boxShadow={
         themeName === 'dark'

@@ -1,6 +1,6 @@
 import { MAP_CONTROL_ICON_SIZE, MAP_CONTROL_SIZE } from '@/lib/constants';
 import { Locate } from '@tamagui/lucide-icons-2';
-import { StyleSheet, TouchableOpacity } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Spinner, useTheme } from 'tamagui';
 
@@ -13,9 +13,11 @@ export default function LocateButton({ onPress, loading = false }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   return (
-    <TouchableOpacity
-      style={[styles.button, { backgroundColor: theme.background.val }]}
-      activeOpacity={0.7}
+    <Pressable
+      style={({ pressed }) => [
+        styles.button,
+        { backgroundColor: theme.background.val, opacity: pressed && !loading ? 0.7 : 1 },
+      ]}
       disabled={loading}
       onPress={onPress}
       accessibilityRole="button"
@@ -23,7 +25,7 @@ export default function LocateButton({ onPress, loading = false }: Props) {
       accessibilityState={{ busy: loading, disabled: loading }}
     >
       {loading ? <Spinner size="small" color="$color11" /> : <Locate size={MAP_CONTROL_ICON_SIZE} color="$color11" />}
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 const styles = StyleSheet.create({

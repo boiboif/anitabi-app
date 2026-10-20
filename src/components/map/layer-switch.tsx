@@ -1,9 +1,9 @@
-import { MAP_CONTROL_ICON_SIZE, MAP_CONTROL_SIZE } from '@/lib/constants';
+import { MAP_CONTROL_SIZE } from '@/lib/constants';
 import { MAP_STYLES } from '@/lib/map-styles';
 import { Layers } from '@tamagui/lucide-icons-2';
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, TouchableOpacity } from 'react-native';
-import { Text, useTheme } from 'tamagui';
+import { Pressable, StyleSheet } from 'react-native';
+import { Text, useTheme, YStack } from 'tamagui';
 
 type Props = {
   styleIndex: number;
@@ -14,23 +14,27 @@ export default function LayerSwitch({ styleIndex, onChange }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   return (
-    <TouchableOpacity
-      style={[styles.button, { backgroundColor: theme.background.val }]}
-      activeOpacity={0.7}
+    <Pressable
+      style={({ pressed }) => [styles.button, { backgroundColor: theme.background.val, opacity: pressed ? 0.7 : 1 }]}
       onPress={() => onChange((styleIndex + 1) % MAP_STYLES.length)}
     >
-      <Layers size={MAP_CONTROL_ICON_SIZE} color="$color11" />
-      <Text
-        fontSize="$caption"
-        color="$color11"
-        text="center"
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.3}
-      >
-        {t(MAP_STYLES[styleIndex].label.key, { defaultValue: MAP_STYLES[styleIndex].label.defaultValue })}
-      </Text>
-    </TouchableOpacity>
+      <YStack width="100%" items="center" justify="center" gap={0} pointerEvents="none">
+        <Layers size={18} color="$color11" />
+        <Text
+          maxW="100%"
+          fontSize={9}
+          lineHeight={11}
+          fontWeight="600"
+          color="$color11"
+          text="center"
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.3}
+        >
+          {t(MAP_STYLES[styleIndex].label.key, { defaultValue: MAP_STYLES[styleIndex].label.defaultValue })}
+        </Text>
+      </YStack>
+    </Pressable>
   );
 }
 
