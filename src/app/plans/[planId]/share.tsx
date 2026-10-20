@@ -78,7 +78,7 @@ export default function PlanShareScreen() {
 
   if (!plan || !bundle) {
     return (
-      <YStack flex={1} items="center" justify="center" bg="$background">
+      <YStack flex={1} items="center" justify="center" bg="$pageBackground">
         <Text color="$color11">
           {t('thePlanDoesNotExistOrHasBeenDeleted', { defaultValue: '计划不存在或已被删除' })}
         </Text>
@@ -91,15 +91,10 @@ export default function PlanShareScreen() {
       <Stack.Screen options={{ title: t('sharePilgrimagePlan', { defaultValue: '分享巡礼计划' }) }} />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        style={{ flex: 1, backgroundColor: theme.background?.val }}
+        style={{ flex: 1, backgroundColor: theme.pageBackground?.val }}
         contentContainerStyle={{ alignItems: 'center', padding: 12, paddingBottom: 32, gap: 16 }}
       >
-        <View
-          width={360 * scale}
-          height={480 * scale}
-          rounded={24 * scale}
-          boxShadow="0 3px 14px rgba(75, 43, 55, 0.10)"
-        >
+        <View width={360 * scale} height={480 * scale} rounded={24 * scale}>
           <NativeView style={{ width: 360, height: 480, transform: [{ scale }], transformOrigin: 'top left' }}>
             <NativeView ref={cardRef} collapsable={false}>
               <PlanShareCard
@@ -115,7 +110,7 @@ export default function PlanShareScreen() {
         </View>
 
         {showDisplayOnly ? (
-          <YStack width="100%" maxW={520} p="$3" rounded="$4" bg="$color2" gap="$1">
+          <YStack width="100%" maxW={520} p="$3" rounded="$4" bg="$background" gap="$1">
             <Text color="$color12" fontSize="$body" fontWeight="700">
               {t('thisImageIsForDisplayOnly', { defaultValue: '这张图片仅供展示' })}
             </Text>

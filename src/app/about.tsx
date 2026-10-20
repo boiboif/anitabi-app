@@ -129,7 +129,7 @@ export default function AboutScreen() {
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
-      style={{ flex: 1, backgroundColor: theme.background?.val }}
+      style={{ flex: 1, backgroundColor: theme.pageBackground?.val }}
       contentContainerStyle={{
         flexDirection: 'row',
         justifyContent: 'center',
@@ -137,7 +137,7 @@ export default function AboutScreen() {
         ...contentPlatformStyle,
       }}
     >
-      <View bg="$background" width="100%" maxW={MaxContentWidth} flex={1} px="$4" gap="$5">
+      <View bg="$pageBackground" width="100%" maxW={MaxContentWidth} flex={1} px="$4" gap="$5">
         <SettingsSection title={t('openSource', { defaultValue: '开源' })} hideTitleWhenSingle>
           <SettingCell
             icon={Scale}

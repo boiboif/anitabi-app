@@ -108,7 +108,7 @@ export default function DataBackupScreen() {
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
-      style={{ flex: 1, backgroundColor: theme.background?.val }}
+      style={{ flex: 1, backgroundColor: theme.pageBackground?.val }}
       contentContainerStyle={{ alignItems: 'center', paddingBottom: insets.bottom + 24 }}
     >
       <YStack width="100%" maxW={MaxContentWidth} px="$4" pt="$4" gap="$5">

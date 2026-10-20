@@ -214,7 +214,7 @@ const Search = () => {
 
   return (
     <Pressable disabled={!Keyboard.isVisible()} style={{ flex: 1 }} onPress={Keyboard.dismiss}>
-      <View flex={1} pt={insets.top === 0 ? '$2' : insets.top} mt="$2" bg="$background">
+      <View flex={1} pt={insets.top === 0 ? '$2' : insets.top} mt="$2" bg="$pageBackground">
         <View px="$3">
           <SearchBox
             focusOnRoute

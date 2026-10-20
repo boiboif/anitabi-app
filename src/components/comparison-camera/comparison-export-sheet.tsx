@@ -146,7 +146,7 @@ export default function ComparisonExportSheet({ sheetRef, onExport, onDismiss, r
               <Text color="$color10" fontSize="$caption" fontWeight="600">
                 {t('comparisonExportAppearance', { defaultValue: '外观' })}
               </Text>
-              <View bg="$color1" rounded={10} px={12} py={8} gap={4}>
+              <View bg="$background" rounded={10} px={12} py={8} gap={4}>
                 <ThemeChoiceChip.Group
                   inline
                   label={t('comparisonExportLayout')}
@@ -243,7 +243,7 @@ export default function ComparisonExportSheet({ sheetRef, onExport, onDismiss, r
               <Text color="$color10" fontSize="$caption" fontWeight="600">
                 {t('comparisonExportMetadata', { defaultValue: '元数据' })}
               </Text>
-              <View bg="$color1" rounded={10} px={12} pb={12}>
+              <View bg="$background" rounded={10} px={12} pb={12}>
                 <ToggleRow
                   label={t('comparisonExportShowName', { defaultValue: '显示巡礼者名字' })}
                   checked={settings.showName}
@@ -268,7 +268,7 @@ export default function ComparisonExportSheet({ sheetRef, onExport, onDismiss, r
               <Text color="$color10" fontSize="$caption" fontWeight="600">
                 {t('comparisonExportContent', { defaultValue: '显示内容' })}
               </Text>
-              <View bg="$color1" rounded={10} px={12}>
+              <View bg="$background" rounded={10} px={12}>
                 {options.map((option) => (
                   <ToggleRow
                     key={option.field}

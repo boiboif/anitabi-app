@@ -6,7 +6,11 @@ import { createFont, createTamagui } from 'tamagui';
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const TopLevelPageTopPadding = Platform.select({ ios: 36, default: 8 }) ?? 8;
 export const MaxContentWidth = 800;
-export const LightPageBackground = '#FFF';
+// Shared with native navigation so headers and scene backgrounds match the page canvas.
+export const PageBackground = {
+  light: '#F7F7F7',
+  dark: '#101010',
+} as const;
 
 // Keep this scale intentionally small; reuse a semantic role before adding another size.
 const semanticFontSizes = {
@@ -70,7 +74,16 @@ const themes = {
   ...generatedThemes,
   light: {
     ...generatedThemes.light,
-    background: LightPageBackground,
+    pageBackground: PageBackground.light,
+    background: '#FFFFFF',
+  },
+  dark: {
+    ...generatedThemes.dark,
+    pageBackground: PageBackground.dark,
+    background: '#1C1C1C',
+    backgroundHover: '#242424',
+    backgroundPress: '#2A2A2A',
+    backgroundFocus: '#242424',
   },
 };
 

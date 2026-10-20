@@ -69,7 +69,7 @@ export default function OpenSourceLicensesScreen() {
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <LicenseListItem item={item} />}
         contentInsetAdjustmentBehavior="automatic"
-        style={{ flex: 1, backgroundColor: theme.background?.val }}
+        style={{ flex: 1, backgroundColor: theme.pageBackground?.val }}
         contentContainerStyle={{
           paddingLeft: safeAreaInsets.left,
           paddingRight: safeAreaInsets.right,

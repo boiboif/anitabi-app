@@ -25,8 +25,8 @@ import {
 } from 'react-native';
 import { GestureDetector, type PanGestureConfig, usePanGesture } from 'react-native-gesture-handler';
 import Animated, {
-  scrollTo,
   type FrameInfo,
+  scrollTo,
   type SharedValue,
   useAnimatedRef,
   useAnimatedStyle,
@@ -617,7 +617,6 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
   },
   dragPreview: {
-    elevation: 16,
     position: 'absolute',
     top: 0,
     zIndex: 2000,

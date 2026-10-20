@@ -26,7 +26,7 @@ export default function CreatePlanScreen() {
     <>
       <Stack.Screen options={{ title: t('newPlan', { defaultValue: '新建计划' }), presentation: 'modal' }} />
       <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: theme.background?.val }}
+        style={{ flex: 1, backgroundColor: theme.pageBackground?.val }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ padding: 20, gap: 18 }}>

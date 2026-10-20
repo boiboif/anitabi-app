@@ -15,15 +15,7 @@ export default function RemoveFavoriteButton({ onPress }: { onPress: () => void 
       onPress={onPress}
       style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
     >
-      <View
-        width={36}
-        height={36}
-        rounded="$9"
-        bg="$color2"
-        items="center"
-        justify="center"
-        boxShadow="0 1px 3px $shadowColor"
-      >
+      <View width={36} height={36} rounded="$9" bg="$color2" items="center" justify="center">
         <Heart size={18} color={theme.primary.val} fill={theme.primary.val} />
       </View>
     </Pressable>

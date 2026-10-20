@@ -1,13 +1,13 @@
 import PlanPickerProvider from '@/components/plan/plan-picker-provider';
-import i18n, { resolveLanguagePreference } from '@/i18n';
 import { AppUpdateManagerContext } from '@/hooks/use-app-update-manager';
 import { useAppUpdates } from '@/hooks/use-app-updates';
+import i18n, { resolveLanguagePreference } from '@/i18n';
 import { Sentry } from '@/services/sentry';
 import { useLanguagePreference } from '@/store/use-language-preference';
 import { useMapData } from '@/store/use-map-data';
 import { usePlans } from '@/store/use-plans';
 import { useThemePreference } from '@/store/use-theme-preference';
-import tamaguiConfig, { LightPageBackground } from '@/tamagui.config';
+import tamaguiConfig, { PageBackground } from '@/tamagui.config';
 import { Toast } from '@boiboif/react-native-toast';
 import { TrueSheetProvider } from '@lodev09/react-native-true-sheet';
 import Mapbox from '@rnmapbox/maps';
@@ -21,8 +21,8 @@ import {
   ThemeProvider,
   type ErrorBoundaryProps,
 } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 import { lazy, Suspense, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useColorScheme } from 'react-native';
@@ -44,8 +44,16 @@ const LightNavigationTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    background: LightPageBackground,
-    card: LightPageBackground,
+    background: PageBackground.light,
+    card: PageBackground.light,
+  },
+};
+const DarkNavigationTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    background: PageBackground.dark,
+    card: PageBackground.dark,
   },
 };
 
@@ -107,7 +115,7 @@ function RootLayout() {
     <SafeAreaProvider>
       <GestureHandlerRootView style={{ flex: 1 }} onLayout={handleRootLayout}>
         <TamaguiProvider config={tamaguiConfig} defaultTheme={theme}>
-          <ThemeProvider value={theme === 'dark' ? DarkTheme : LightNavigationTheme}>
+          <ThemeProvider value={theme === 'dark' ? DarkNavigationTheme : LightNavigationTheme}>
             <TrueSheetProvider>
               <PlanPickerProvider>
                 <AppUpdateManagerContext.Provider value={appUpdates}>

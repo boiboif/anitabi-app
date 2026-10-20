@@ -30,11 +30,11 @@ export default function LanguageScreen() {
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: theme.background?.val }}
+      style={{ flex: 1, backgroundColor: theme.pageBackground?.val }}
       contentInset={insets}
       contentContainerStyle={{ flexDirection: 'row', justifyContent: 'center' }}
     >
-      <View bg="$background" width="100%" maxW={MaxContentWidth} flex={1} px="$3" pt="$3">
+      <View bg="$pageBackground" width="100%" maxW={MaxContentWidth} flex={1} px="$3" pt="$3">
         <SettingsSection title={t('language', { defaultValue: '语言' })} hideTitleWhenSingle>
           {LANGUAGE_OPTIONS.map((option, index) => (
             <SettingCell

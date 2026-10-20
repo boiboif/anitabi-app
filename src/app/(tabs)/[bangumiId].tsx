@@ -139,12 +139,12 @@ export default function FavoriteBangumiScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, headerTitleAlign: 'center', title }} />
-      <View bg="$background" width="100%" maxW={MaxContentWidth} flex={1}>
+      <View bg="$pageBackground" width="100%" maxW={MaxContentWidth} flex={1}>
         <FlashList
           data={loading ? [] : favorites}
           renderItem={renderFavorite}
           keyExtractor={(item) => item.favorite.key}
-          style={{ flex: 1, backgroundColor: theme.background?.val }}
+          style={{ flex: 1, backgroundColor: theme.pageBackground?.val }}
           contentInset={{ bottom: bottomInset }}
           contentContainerStyle={contentPlatformStyle}
           ListEmptyComponent={

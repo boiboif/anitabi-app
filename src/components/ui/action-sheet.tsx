@@ -106,13 +106,13 @@ export const ActionSheet = forwardRef<ActionSheetRef, ActionSheetProps>(function
           </YStack>
         ) : null}
         {primaryAction ? (
-          <YStack overflow="hidden" rounded="$3" bg="$color1">
+          <YStack overflow="hidden" rounded="$3" bg="$background">
             <ActionRow action={primaryAction} onActivate={activateAction} />
           </YStack>
         ) : null}
 
         {sections.map((section, sectionIndex) => (
-          <YStack key={section.title ?? `section-${sectionIndex}`} overflow="hidden" rounded="$3" bg="$color1">
+          <YStack key={section.title ?? `section-${sectionIndex}`} overflow="hidden" rounded="$3" bg="$background">
             {section.title ? (
               <Text px="$3" pt="$2.5" pb="$1" fontSize="$caption" color="$color10">
                 {section.title}

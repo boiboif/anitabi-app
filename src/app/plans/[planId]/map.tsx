@@ -14,7 +14,7 @@ import type { PlanMapResolvedPoint } from '@/components/plan/plan-map-point-type
 import { StrictButton as Button } from '@/components/ui/strict-button';
 import { useMapLocate } from '@/hooks/use-map-locate';
 import { useThemedMapStyle } from '@/hooks/use-themed-map-style';
-import { MAP_TOP_CONTROLS_TOP_OFFSET } from '@/lib/constants';
+import { MAP_CONTROL_ICON_SIZE, MAP_CONTROL_SIZE, MAP_TOP_CONTROLS_TOP_OFFSET } from '@/lib/constants';
 import { getPointFlyToZoom } from '@/lib/map-camera';
 import { ICON_BUTTON_ICON_SIZE, SELECTED_MAP_POINT_DOT_DIAMETER } from '@/lib/ui-sizes';
 import type { Bangumi, Point } from '@/services/types';
@@ -30,7 +30,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Text, View, YStack } from 'tamagui';
+import { Text, useTheme, View, YStack } from 'tamagui';
 
 type CameraState = MapViewportState;
 
@@ -94,6 +94,7 @@ function findCircularPoint(
 
 export default function PlanMapScreen() {
   const { t } = useTranslation();
+  const theme = useTheme();
   const { planId, bangumiId, pointId } = useLocalSearchParams<{
     planId: string;
     bangumiId?: string;
@@ -424,13 +425,13 @@ export default function PlanMapScreen() {
           >
             <Button
               circular
-              width={44}
-              height={44}
+              width={MAP_CONTROL_SIZE}
+              height={MAP_CONTROL_SIZE}
               p="$0"
-              bg="$color1"
+              style={{ backgroundColor: theme.background.val }}
               borderWidth={0}
               boxShadow="0 0 4px rgba(0,0,0,0.2)"
-              icon={<List size={24} strokeWidth={2.1} color="$color11" />}
+              icon={<List size={MAP_CONTROL_ICON_SIZE} strokeWidth={2.1} color="$color11" />}
               onPress={() => pointListSheetRef.current?.present()}
               aria-label={t('viewPlanLocations', { defaultValue: '查看计划点位' })}
             />
@@ -463,7 +464,7 @@ export default function PlanMapScreen() {
           {progress && <LoadingBadge progress={progress} insets={insets} />}
         </>
       ) : (
-        <YStack flex={1} bg="$background" items="center" justify="center">
+        <YStack flex={1} bg="$pageBackground" items="center" justify="center">
           <Text color="$color11">
             {t('thePlanDoesNotExistOrHasBeenDeleted', { defaultValue: '计划不存在或已被删除' })}
           </Text>

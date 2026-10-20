@@ -95,7 +95,7 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
     groupList = (
       <FlashList
         data={choices}
-        style={{ flex: 1, backgroundColor: theme.background.val }}
+        style={{ flex: 1, backgroundColor: theme.pageBackground.val }}
         keyExtractor={(item) => item.key}
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
@@ -120,7 +120,7 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
         }
         renderItem={({ item }) => (
           <CardListItem horizontalInset="$3">
-            <XStack p="$3" gap="$2" items="center" rounded="$3" bg="$color2">
+            <XStack p="$3" gap="$2" items="center" rounded="$3" bg="$background">
               <YStack flex={1} gap="$1">
                 <Text fontSize="$body" color="$color12" fontWeight={item.key === 'all' ? '600' : '400'}>
                   {item.title}
@@ -143,7 +143,7 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
   }
 
   return (
-    <View flex={1} position="relative" bg="$background">
+    <View flex={1} position="relative" bg="$pageBackground">
       {/* Keep the work list mounted at its original size to retain its scroll position. */}
       <View
         flex={1}
@@ -200,7 +200,7 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
         />
       </View>
       {groupList && (
-        <View position="absolute" t={0} r={0} b={0} l={0} bg="$background">
+        <View position="absolute" t={0} r={0} b={0} l={0} bg="$pageBackground">
           {groupList}
         </View>
       )}

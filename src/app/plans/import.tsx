@@ -79,7 +79,7 @@ export default function ImportPlanScreen() {
       />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        style={{ flex: 1, backgroundColor: theme.background?.val }}
+        style={{ flex: 1, backgroundColor: theme.pageBackground?.val }}
         contentContainerStyle={{ padding: 20, paddingBottom: 36, gap: 18 }}
       >
         {error ? (
@@ -118,7 +118,7 @@ export default function ImportPlanScreen() {
               </Text>
             </YStack>
 
-            <YStack rounded="$4" bg="$color2" overflow="hidden">
+            <YStack rounded="$4" bg="$background" overflow="hidden">
               <XStack minH={62} px="$3" items="center" gap="$3">
                 <YStack width={34} height={34} rounded="$9" bg="$color3" items="center" justify="center">
                   <MapPinned size={18} color="$primary" />
@@ -162,7 +162,7 @@ export default function ImportPlanScreen() {
                 onPress={() => setAlsoFavorite((current) => !current)}
                 style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
               >
-                <XStack minH={44} px="$3" items="center" justify="space-between" rounded="$3" bg="$color2">
+                <XStack minH={44} px="$3" items="center" justify="space-between" rounded="$3" bg="$background">
                   <Text fontSize="$body" color="$color12">
                     {t('favoriteImportedLocations', { defaultValue: '导入同时收藏' })}
                   </Text>

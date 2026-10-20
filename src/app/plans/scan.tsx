@@ -142,7 +142,7 @@ export default function ScanPlanScreen() {
 
   if (!permission.granted) {
     return (
-      <YStack flex={1} bg="$background" px="$6" items="center" justify="center" gap="$3">
+      <YStack flex={1} bg="$pageBackground" px="$6" items="center" justify="center" gap="$3">
         <Stack.Screen options={{ headerShown: false }} />
         <ScanLine size={36} color="$primary" strokeWidth={1.8} />
         <Text color="$color12" fontSize="$subtitle" fontWeight="700" text="center">
@@ -180,7 +180,7 @@ export default function ScanPlanScreen() {
 
   if (cameraError) {
     return (
-      <YStack flex={1} bg="$background" px="$6" items="center" justify="center" gap="$3">
+      <YStack flex={1} bg="$pageBackground" px="$6" items="center" justify="center" gap="$3">
         <Stack.Screen options={{ headerShown: false }} />
         <Text color="$color12" fontSize="$subtitle" fontWeight="700" text="center">
           {t('couldNotOpenCamera', { defaultValue: '无法打开相机' })}

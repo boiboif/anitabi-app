@@ -419,6 +419,7 @@ export default function PlanDetailScreen() {
             disabled
             height={DRAG_PREVIEW_CARD_HEIGHT}
             imageWidth={72}
+            boxShadow="0 2px 4px $shadowColor"
           />
         </CardListItem>
       );
@@ -428,7 +429,7 @@ export default function PlanDetailScreen() {
 
   if (!plan) {
     return (
-      <View flex={1} items="center" justify="center" bg="$background">
+      <View flex={1} items="center" justify="center" bg="$pageBackground">
         <Text color="$color11">
           {t('thePlanDoesNotExistOrHasBeenDeleted', { defaultValue: '计划不存在或已被删除' })}
         </Text>
@@ -522,7 +523,7 @@ export default function PlanDetailScreen() {
           headerShown: true,
           title: '',
           headerShadowVisible: false,
-          headerStyle: { backgroundColor: theme.background?.val },
+          headerStyle: { backgroundColor: theme.pageBackground?.val },
           headerTintColor: theme.color12?.val,
           headerBackButtonDisplayMode: 'minimal',
           headerRight: () => (
@@ -587,7 +588,7 @@ export default function PlanDetailScreen() {
           ),
         }}
       />
-      <YStack flex={1} bg="$background">
+      <YStack flex={1} bg="$pageBackground">
         <XStack>
           <YStack flex={3} px="$4" pb="$1" gap="$1">
             <YStack gap="$1">
@@ -680,7 +681,7 @@ export default function PlanDetailScreen() {
               maxFrameDurationMs={REORDER_MAX_FRAME_DURATION_MS}
               contentPaddingHorizontal={12}
               contentPaddingBottom={insets.bottom + 30}
-              style={{ flex: 1, backgroundColor: theme.background?.val }}
+              style={{ flex: 1, backgroundColor: theme.pageBackground?.val }}
             />
           </PlanSelectionContext.Provider>
         )}

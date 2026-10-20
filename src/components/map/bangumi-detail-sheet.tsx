@@ -102,7 +102,7 @@ function AccordionControls({
   const { t } = useTranslation();
   return (
     <View
-      bg="$color1"
+      bg="$color2"
       opacity={hidden ? 0 : 1}
       flexDirection="row"
       items="center"
@@ -608,10 +608,10 @@ function BangumiDetailSheet() {
         return (
           <Pressable
             android_ripple={{ color: theme.color5.val }}
-            style={{ height: SECTION_HEADER_HEIGHT, backgroundColor: theme.color1.val }}
+            style={{ height: SECTION_HEADER_HEIGHT, backgroundColor: theme.color2.val }}
             onPress={() => toggleSection(item.sectionKey)}
           >
-            <View position="absolute" t={-1} l={0} r={0} height={2} bg="$color1" />
+            <View position="absolute" t={-1} l={0} r={0} height={2} bg="$color2" />
             <View flexDirection="row" items="center" px="$2" height={SECTION_HEADER_HEIGHT} gap="$1">
               <Text fontWeight="600" fontSize="$body" color="$color12" flex={1} numberOfLines={1}>
                 {item.title}
@@ -660,7 +660,7 @@ function BangumiDetailSheet() {
       localizedBangumiTitle,
       selectedBangumi,
       sheetRef,
-      theme.color1.val,
+      theme.color2.val,
       theme.color5.val,
       toggleSection,
     ],
@@ -679,7 +679,7 @@ function BangumiDetailSheet() {
       detents={BANGUMI_DETAIL_SHEET_DETENTS}
       scrollable
       dimmed={false}
-      backgroundColor={theme.color1.val}
+      backgroundColor={theme.color2.val}
       cornerRadius={getTokens().radius['4'].val}
       grabberOptions={{ color: theme.primary.val, adaptive: false, topMargin: 12 }}
       onDidPresent={handleSheetPresent}

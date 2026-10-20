@@ -18,7 +18,7 @@ export default function ProfileScreen() {
   const [isClearingCache, setIsClearingCache] = useState(false);
   const insets = {
     ...safeAreaInsets,
-    bottom: safeAreaInsets.bottom + BottomTabInset + 16,
+    bottom: safeAreaInsets.bottom + BottomTabInset + 32,
   };
 
   const contentPlatformStyle = Platform.select({
@@ -74,11 +74,11 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: theme.background?.val }}
+      style={{ flex: 1, backgroundColor: theme.pageBackground?.val }}
       contentInset={insets}
       contentContainerStyle={{ flexDirection: 'row', justifyContent: 'center', ...contentPlatformStyle }}
     >
-      <View bg="$background" width="100%" maxW={MaxContentWidth} flex={1} px="$4" gap="$5">
+      <View bg="$pageBackground" width="100%" maxW={MaxContentWidth} flex={1} px="$4" gap="$5">
         <Text fontSize="$heading" lineHeight={30} fontWeight="700" color="$color12" px="$1" mb="$1">
           {t('me', { defaultValue: '我的' })}
         </Text>

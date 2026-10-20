@@ -4,6 +4,9 @@ export const MAP_ICON_ZOOM_THRESHOLD = 13;
 export const MAP_COMPASS_TOP_OFFSET = 100;
 export const MAP_TOP_CONTROLS_TOP_OFFSET = MAP_COMPASS_TOP_OFFSET + 56;
 
+export const MAP_CONTROL_SIZE = 40;
+export const MAP_CONTROL_ICON_SIZE = 22;
+
 export const MAP_POINT_LAYER_ID = 'points';
 
 /** Ordinary marker layers stay below the selected point, including after asynchronous mounting. */

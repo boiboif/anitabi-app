@@ -1,5 +1,4 @@
 import type { ItineraryPlan } from '@/lib/plan-storage';
-import { CARD_LIST_SHADOW } from '@/lib/card-list-layout';
 import { buildImageUrl } from '@/services/handlers';
 import { CalendarDays, MoreHorizontal } from '@tamagui/lucide-icons-2';
 import { Image } from 'expo-image';
@@ -25,7 +24,7 @@ export default memo(function PlanListCard({ plan, onPress, onMorePress }: Props)
   const completed = plan.items.filter((item) => item.completed).length;
 
   return (
-    <View bg="$color1" rounded="$4" overflow="hidden" boxShadow={CARD_LIST_SHADOW}>
+    <View bg="$background" rounded="$4" overflow="hidden">
       <Pressable accessibilityRole="button" accessibilityLabel={plan.title} onPress={() => onPress(plan.id)}>
         <XStack height={CARD_HEIGHT} gap="$2">
           <View

@@ -1,7 +1,6 @@
 import PreviewableImage from '@/components/image-preview/previewable-image';
 import { getCategoryMessage, translateMessage } from '@/i18n/messages';
 import { getBangumiTitle } from '@/lib/localized-data';
-import { CARD_LIST_SHADOW } from '@/lib/card-list-layout';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi } from '@/services/types';
 import dayjs from 'dayjs';
@@ -18,16 +17,7 @@ export default function BangumiListCard({ bangumi, onPress }: { bangumi: Bangumi
   const originalTitle = bangumi.title && bangumi.title !== localizedTitle ? bangumi.title : null;
   const coverUri = buildImageUrl(bangumi.cover ?? '');
   return (
-    <View
-      bg="$color1"
-      p="$2"
-      display="flex"
-      flexDirection="row"
-      rounded="$4"
-      shadowColor="$shadowColor"
-      boxShadow={CARD_LIST_SHADOW}
-      gap="$2.5"
-    >
+    <View bg="$background" p="$2" display="flex" flexDirection="row" rounded="$4" gap="$2.5">
       <PreviewableImage
         recyclingKey={String(bangumi.id)}
         source={{ uri: coverUri }}

@@ -3,11 +3,10 @@ import PointCardActions from '@/components/point/point-card-actions';
 import PointImage from '@/components/point/point-image';
 import PointSequenceBadge from '@/components/point/point-sequence-badge';
 import { formatDuration } from '@/lib/formatDuration';
-import { CARD_LIST_SHADOW } from '@/lib/card-list-layout';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import type { Bangumi, Point } from '@/services/types';
 import type { ImageSource } from 'expo-image';
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, type ComponentProps, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, type AccessibilityState } from 'react-native';
 import { getTokens, Text, useTheme, View, XStack, YStack } from 'tamagui';
@@ -47,6 +46,8 @@ type Props = {
   disabled?: boolean;
   /** 整张卡片的透明度，默认为 1。 */
   opacity?: number;
+  /** 可选阴影，默认不显示；拖拽预览等浮起状态由调用方传入。 */
+  boxShadow?: ComponentProps<typeof View>['boxShadow'];
   /** 是否显示选中描边。 */
   selected?: boolean;
   /** 卡片主体的无障碍操作说明。 */
@@ -100,6 +101,7 @@ export default function PointListCard({
   onPress,
   disabled = false,
   opacity = 1,
+  boxShadow,
   selected = false,
   accessibilityLabel,
   accessibilityState,
@@ -147,14 +149,7 @@ export default function PointListCard({
   const timeLabel = typeof point?.s === 'number' && point.s >= 0 ? formatDuration(point.s) : undefined;
 
   return (
-    <View
-      bg="$color1"
-      rounded="$4"
-      overflow="hidden"
-      position="relative"
-      boxShadow={CARD_LIST_SHADOW}
-      opacity={opacity}
-    >
+    <View bg="$background" rounded="$4" overflow="hidden" position="relative" opacity={opacity} boxShadow={boxShadow}>
       <XStack height={height}>
         {leading}
         <XStack flex={1} height={height} gap="$2">

@@ -5,7 +5,7 @@ import { Redirect, Stack } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Pressable, ScrollView, type ViewInstance } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Text, YStack } from 'tamagui';
+import { Text, useTheme, YStack } from 'tamagui';
 
 // Stable sample IDs cover landscape, portrait and tall images without using business data.
 const EXAMPLES: PreviewImage[] = [
@@ -34,6 +34,7 @@ const EXAMPLES: PreviewImage[] = [
 
 export default function ImagePreviewDemo() {
   const { t } = useTranslation();
+  const theme = useTheme();
   const thumbnails = useRef<Record<string, ViewInstance | null>>({});
   const bounds = useRef<Record<string, ImagePreviewBounds>>({});
   const [session, setSession] = useState<{ images: PreviewImage[]; initialIndex: number; transition: boolean } | null>(
@@ -57,6 +58,7 @@ export default function ImagePreviewDemo() {
     <>
       <Stack.Screen options={{ headerShown: true, title: t('imagePreviewDemo') }} />
       <ScrollView
+        style={{ backgroundColor: theme.pageBackground.val }}
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={{ padding: 20, gap: 20, paddingBottom: 40 }}
       >

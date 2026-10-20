@@ -163,7 +163,10 @@ export default function PlansScreen() {
     () => ({ top: 0, right: insets.right, bottom: 0, left: insets.left }),
     [insets.left, insets.right],
   );
-  const listStyle = useMemo(() => ({ flex: 1, backgroundColor: theme.background?.val }), [theme.background?.val]);
+  const listStyle = useMemo(
+    () => ({ flex: 1, backgroundColor: theme.pageBackground?.val }),
+    [theme.pageBackground?.val],
+  );
 
   const shareSelectedPlan = useCallback(() => {
     if (!selectedPlan) return;
@@ -231,7 +234,7 @@ export default function PlansScreen() {
 
   return (
     <>
-      <YStack flex={1} bg="$background" pt={pagePaddingTop}>
+      <YStack flex={1} bg="$pageBackground" pt={pagePaddingTop}>
         <View mx="$4">
           <PlanListHeader onImport={openImportSheet} onCreate={openCreatePlan} />
         </View>

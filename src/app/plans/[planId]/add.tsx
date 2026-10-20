@@ -107,7 +107,7 @@ export default function AddPlanPointsScreen() {
     ({ item }: { item: AddPointListItem }) => {
       if (item.type === 'date') {
         return (
-          <View bg="$background" px="$4" pt="$2" pb={getCardListBoundarySpacing(getTokens().space['2'].val)}>
+          <View bg="$pageBackground" px="$4" pt="$2" pb={getCardListBoundarySpacing(getTokens().space['2'].val)}>
             <Text fontSize="$body" lineHeight={20} fontWeight="700" color="$color11">
               {item.label}
             </Text>
@@ -180,7 +180,7 @@ export default function AddPlanPointsScreen() {
   return (
     <>
       <Stack.Screen options={{ title: t('addLocations', { defaultValue: '添加巡礼点' }) }} />
-      <XStack bg="$background" px="$3" py="$2" gap="$2">
+      <XStack bg="$pageBackground" px="$3" py="$2" gap="$2">
         {(
           [
             { key: 'favorites', label: t('fromFavoriteLocations', { defaultValue: '从收藏添加' }) },
@@ -218,7 +218,7 @@ export default function AddPlanPointsScreen() {
           items="center"
           justify="center"
           gap="$3"
-          bg="$background"
+          bg="$pageBackground"
           px="$4"
           pb={insets.bottom + 24}
         >
@@ -243,7 +243,7 @@ export default function AddPlanPointsScreen() {
           stickyHeaderIndices={stickyHeaderIndices}
           extraData={existingKeys}
           contentInsetAdjustmentBehavior="automatic"
-          style={{ flex: 1, backgroundColor: theme.background?.val }}
+          style={{ flex: 1, backgroundColor: theme.pageBackground?.val }}
           contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
           showsVerticalScrollIndicator={false}
         />

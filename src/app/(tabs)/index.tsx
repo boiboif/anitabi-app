@@ -9,7 +9,12 @@ import PointImageMarkerSwitch from '@/components/map/point-image-marker-switch';
 import SearchBox from '@/components/ui/search-box';
 import { useMapLocate } from '@/hooks/use-map-locate';
 import { useThemedMapStyle } from '@/hooks/use-themed-map-style';
-import { FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE, MAP_TOP_CONTROLS_TOP_OFFSET } from '@/lib/constants';
+import {
+  FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE,
+  MAP_CONTROL_ICON_SIZE,
+  MAP_CONTROL_SIZE,
+  MAP_TOP_CONTROLS_TOP_OFFSET,
+} from '@/lib/constants';
 import { getBangumiOverviewBounds, getPointFlyToZoom } from '@/lib/map-camera';
 import type { Bangumi } from '@/services/types';
 import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
@@ -41,11 +46,11 @@ function RandomPointButton({ onPress }: { onPress: () => void }) {
   const theme = useTheme();
   return (
     <TouchableOpacity
-      style={[styles.randomButton, { backgroundColor: theme.color1.val }]}
+      style={[styles.randomButton, { backgroundColor: theme.background.val }]}
       activeOpacity={0.7}
       onPress={onPress}
     >
-      <Dices size={24} color="$color11" />
+      <Dices size={MAP_CONTROL_ICON_SIZE} color="$color11" />
     </TouchableOpacity>
   );
 }
@@ -247,9 +252,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   randomButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: MAP_CONTROL_SIZE,
+    height: MAP_CONTROL_SIZE,
+    borderRadius: MAP_CONTROL_SIZE / 2,
     alignItems: 'center',
     justifyContent: 'center',
     boxShadow: '0 0 4px 0 rgba(0, 0, 0, 0.2)',

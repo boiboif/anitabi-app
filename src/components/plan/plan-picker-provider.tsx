@@ -200,12 +200,12 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
         detents={[0.6, 0.9]}
         scrollable
         scrollableOptions={{ scrollingExpandsSheet: false }}
-        backgroundColor={theme.color1.val}
+        backgroundColor={theme.color2.val}
         cornerRadius={getTokens().radius['4'].val}
         grabberOptions={{ color: theme.primary.val, adaptive: false, topMargin: 12 }}
         headerStyle={{ paddingTop: 26 }}
         header={
-          <YStack px="$4" pt="$3" pb="$2" gap="$3" bg="$color1">
+          <YStack px="$4" pt="$3" pb="$2" gap="$3" bg="$color2">
             <XStack items="center" justify="space-between">
               <Text fontSize="$title" fontWeight="700" color="$color12">
                 {t('joinPilgrimagePlan', { defaultValue: '加入巡礼计划' })}
@@ -242,7 +242,7 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
             px="$4"
             pt="$2"
             pb="$4"
-            bg="$color1"
+            bg="$color2"
             onLayout={(event) => setPickerFooterHeight(event.nativeEvent.layout.height)}
           >
             <Pressable
@@ -285,7 +285,7 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
                 <Text color="$color11">{t('noPilgrimagePlansYet', { defaultValue: '还没有巡礼计划' })}</Text>
               </View>
             ) : (
-              <YStack overflow="hidden" rounded="$3" bg="$color2">
+              <YStack overflow="hidden" rounded="$3" bg="$background">
                 {sortedPlans.map((plan, index) => (
                   <View key={plan.id}>
                     {index > 0 ? <View ml="$3" bg="$color4" height={1} /> : null}
@@ -316,7 +316,7 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
       <TrueSheet
         ref={createSheetRef}
         detents={['auto']}
-        backgroundColor={theme.color1.val}
+        backgroundColor={theme.color2.val}
         cornerRadius={getTokens().radius['4'].val}
         grabberOptions={{ color: theme.primary.val, adaptive: false, topMargin: 12 }}
         style={{ paddingTop: 26 }}

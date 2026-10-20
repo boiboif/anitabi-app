@@ -2,8 +2,8 @@ import PointListCard from '@/components/point/point-list-card';
 import RemoveFavoriteButton from '@/components/point/remove-favorite-button';
 import CardListItem from '@/components/ui/card-list-item';
 import { StrictButton as Button } from '@/components/ui/strict-button';
+import { getCardListBoundarySpacing } from '@/lib/card-list-layout';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
-import { CARD_LIST_SHADOW, getCardListBoundarySpacing } from '@/lib/card-list-layout';
 import { BLOCK_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';
 import { buildImageUrl } from '@/services/handlers';
 import { useFavoritePoints } from '@/store/use-favorite-points';
@@ -114,7 +114,7 @@ function BangumiGridCard({ group, onPress }: { group: BangumiGroup; onPress: () 
   return (
     <CardListItem grid>
       <Pressable onPress={onPress}>
-        <YStack bg="$color1" rounded="$4" overflow="hidden" boxShadow={CARD_LIST_SHADOW}>
+        <YStack bg="$background" rounded="$4" overflow="hidden">
           <Image
             source={group.cover ? { uri: buildImageUrl(group.cover, 'plan=h360') } : undefined}
             style={{ width: '100%', height: 150, backgroundColor: group.color || theme.color9.val }}
@@ -254,7 +254,7 @@ export default function FavoritesScreen() {
           );
         case 'date':
           return (
-            <View bg="$background" px="$4" pb={getCardListBoundarySpacing(getTokens().space['2'].val)}>
+            <View bg="$pageBackground" px="$4" pb={getCardListBoundarySpacing(getTokens().space['2'].val)}>
               <Text fontSize="$body" lineHeight={20} fontWeight="700" color="$color11">
                 {item.label}
               </Text>
@@ -274,8 +274,8 @@ export default function FavoritesScreen() {
   const keyExtractor = useCallback((item: FavoriteListItem) => item.id, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background?.val, ...contentPlatformStyle, paddingBottom: 0 }}>
-      <View bg="$background" width="100%" maxW={MaxContentWidth} flex={1}>
+    <View style={{ flex: 1, backgroundColor: theme.pageBackground?.val, ...contentPlatformStyle, paddingBottom: 0 }}>
+      <View bg="$pageBackground" width="100%" maxW={MaxContentWidth} flex={1}>
         <XStack
           mx="$3"
           mb={view === 'bangumi' ? getCardListBoundarySpacing(getTokens().space['3'].val) : '$3'}

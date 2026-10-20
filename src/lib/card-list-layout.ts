@@ -1,10 +1,8 @@
-export const CARD_LIST_SHADOW = '0 1px 3px $shadowColor';
-
-/** Transparent room for CARD_LIST_SHADOW on each side of a row. */
+/** Transparent spacing on each side of a row; retained for consistent list geometry. */
 export const CARD_LIST_ITEM_INSET = 4;
 export const CARD_LIST_GAP = CARD_LIST_ITEM_INSET * 2;
 
-/** Includes the row's shadow room; use for fixed sizes and scroll estimates. */
+/** Includes the row's spacing; use for fixed sizes and scroll estimates. */
 export function getCardListItemHeight(cardHeight: number): number {
   return cardHeight + CARD_LIST_GAP;
 }

@@ -21,7 +21,7 @@ export default function EditPlanScreen() {
 
   if (!plan) {
     return (
-      <View flex={1} items="center" justify="center" bg="$background">
+      <View flex={1} items="center" justify="center" bg="$pageBackground">
         <Text color="$color11">
           {t('thePlanDoesNotExistOrHasBeenDeleted', { defaultValue: '计划不存在或已被删除' })}
         </Text>
@@ -40,7 +40,7 @@ export default function EditPlanScreen() {
     <>
       <Stack.Screen options={{ title: t('editPlan', { defaultValue: '编辑计划' }) }} />
       <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: theme.background?.val }}
+        style={{ flex: 1, backgroundColor: theme.pageBackground?.val }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ padding: 20, gap: 18 }}>

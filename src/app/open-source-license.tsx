@@ -41,7 +41,7 @@ export default function OpenSourceLicenseScreen() {
       <Stack.Screen options={{ title: library?.name ?? t('licenseDetails', { defaultValue: '许可证详情' }) }} />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        style={{ flex: 1, backgroundColor: theme.background?.val }}
+        style={{ flex: 1, backgroundColor: theme.pageBackground?.val }}
         contentContainerStyle={{
           flexDirection: 'row',
           justifyContent: 'center',
@@ -102,13 +102,7 @@ export default function OpenSourceLicenseScreen() {
               </YStack>
 
               {library.licenses.map((license, index) => (
-                <YStack
-                  key={`${license.name ?? 'license'}-${index}`}
-                  bg="$backgroundHover"
-                  rounded="$4"
-                  p="$4"
-                  gap="$3"
-                >
+                <YStack key={`${license.name ?? 'license'}-${index}`} bg="$background" rounded="$4" p="$4" gap="$3">
                   <YStack gap="$1">
                     <Text selectable fontSize="$subtitle" lineHeight={24} fontWeight="600" color="$color12">
                       {license.name ??
