@@ -1,8 +1,8 @@
 {
-  "version": "0.7.0",
-  "displayVersion": "0.7.0",
-  "title": "v0.7.0",
-  "releaseNotes": "【巡礼相机升级】\n新增拍摄比例选择，默认自动匹配巡礼图；优化界面布局，横竖构图更自由。\n导出时可添加名字、拍摄时间、地点等巡礼信息，生成专属巡礼图；权限允许时保存至 Anitabi 相册，方便收藏与分享。\n\n【新增备份】\n收藏与巡礼计划可导出备份，恢复时支持合并或覆盖，保留点位顺序与完成状态。\n\n【修复与改进】\n优化作品详情关闭动画，修复计划列表筛选闪动，并改进多处使用细节。",
+  "version": "0.8.0",
+  "displayVersion": "0.8.0",
+  "title": "v0.8.0",
+  "releaseNotes": "【全新应用图标】\nAnitabi 换上全新设计的应用图标，并同步更新开屏展示。\n\n【巡礼计划升级】\n支持按作品或分组批量添加点位，自动跳过已有点位。\n可查看直线距离并由近到远排序，支持多选、全选与批量删除。\n\n【巡礼照片导出】\n支持上下、左右布局切换，参考图比例与填充方式可选，四周和中间边框可独立设置。\n改进预览切换、名字输入和滑块操作等细节。\n\n【性能与体验优化】\n优化多点位计划的列表、批量添加、距离排序与分享处理，改善大计划反复进入地图时的卡顿。\n打磨地图定位、点位图片点击和作品详情切换，统一卡片、页面与地图按钮样式。\n修复旋转与 3D 地图点位统计、计划地图图片和搜索列表滚动问题。\n\n【分类备份】\n可选择备份收藏、巡礼计划或两者，恢复时仅影响备份中包含的数据类别。",
   "releaseNotesHistory": [
     {
       "version": "0.4.0",
@@ -26,13 +26,19 @@
       "version": "0.7.0",
       "displayVersion": "0.7.0",
       "notes": "【巡礼相机升级】\n新增拍摄比例选择，默认自动匹配巡礼图；优化界面布局，横竖构图更自由。\n导出时可添加名字、拍摄时间、地点等巡礼信息，生成专属巡礼图；权限允许时保存至 Anitabi 相册，方便收藏与分享。\n\n【新增备份】\n收藏与巡礼计划可导出备份，恢复时支持合并或覆盖，保留点位顺序与完成状态。\n\n【修复与改进】\n优化作品详情关闭动画，修复计划列表筛选闪动，并改进多处使用细节。",
+      "importance": "major"
+    },
+    {
+      "version": "0.8.0",
+      "displayVersion": "0.8.0",
+      "notes": "【全新应用图标】\nAnitabi 换上全新设计的应用图标，并同步更新开屏展示。\n\n【巡礼计划升级】\n支持按作品或分组批量添加点位，自动跳过已有点位。\n可查看直线距离并由近到远排序，支持多选、全选与批量删除。\n\n【巡礼照片导出】\n支持上下、左右布局切换，参考图比例与填充方式可选，四周和中间边框可独立设置。\n改进预览切换、名字输入和滑块操作等细节。\n\n【性能与体验优化】\n优化多点位计划的列表、批量添加、距离排序与分享处理，改善大计划反复进入地图时的卡顿。\n打磨地图定位、点位图片点击和作品详情切换，统一卡片、页面与地图按钮样式。\n修复旋转与 3D 地图点位统计、计划地图图片和搜索列表滚动问题。\n\n【分类备份】\n可选择备份收藏、巡礼计划或两者，恢复时仅影响备份中包含的数据类别。",
       "importance": "major",
-      "buildNumber": 1025
+      "buildNumber": 1026
     }
   ],
-  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.7.0/anitabi-app-v0.7.0-android.apk",
-  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.7.0",
+  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.8.0/anitabi-app-v0.8.0-android.apk",
+  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.8.0",
   "mandatory": false,
-  "buildNumber": 1025,
-  "fileName": "anitabi-app-v0.7.0-android.apk"
+  "buildNumber": 1026,
+  "fileName": "anitabi-app-v0.8.0-android.apk"
 }
