@@ -104,6 +104,7 @@ Issues, code improvements, documentation updates, and product suggestions are we
 
 If Anitabi App helps with your pilgrimages, you can buy me a coffee to support its continued development and maintenance.
 
-| WeChat Pay | Alipay |
-| :---: | :---: |
-| <img src="docs/public/donate/wechat.png" width="200" alt="WeChat Pay payment QR code" /> | <img src="docs/public/donate/alipay.png" width="200" alt="Alipay payment QR code" /> |
+<p>
+  <img src="docs/public/donate/wechat.png" width="200" alt="WeChat Pay payment QR code" />
+  <img src="docs/public/donate/alipay.png" width="200" alt="Alipay payment QR code" />
+</p>
