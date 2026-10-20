@@ -12,7 +12,7 @@ export function isValidCoordinate(latitude: number, longitude: number): boolean 
   );
 }
 
-function distanceMeters(latitude: number, longitude: number, targetLatitude: number, targetLongitude: number): number {
+export function distanceMeters(latitude: number, longitude: number, targetLatitude: number, targetLongitude: number): number {
   const a =
     Math.sin(((targetLatitude - latitude) * RAD) / 2) ** 2 +
     Math.cos(latitude * RAD) *

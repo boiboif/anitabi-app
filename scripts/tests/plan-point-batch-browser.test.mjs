@@ -4,6 +4,7 @@ import test from 'node:test';
 import vm from 'node:vm';
 import ts from 'typescript';
 import dayjs from 'dayjs';
+import * as cardListLayout from '../../src/lib/card-list-layout.ts';
 
 function loadSource(path, modules) {
   const compiled = ts.transpileModule(readFileSync(new URL(path, import.meta.url), 'utf8'), {
@@ -28,11 +29,18 @@ function loadSource(path, modules) {
 }
 
 const jsx = (type, props, key) => ({ type, props, key });
-const theme = { primary: { val: 'blue' }, background: { val: 'white' }, color9: { val: 'gray' } };
+const theme = {
+  primary: { val: 'blue' },
+  background: { val: 'white' },
+  pageBackground: { val: 'white' },
+  color9: { val: 'gray' },
+};
 const tokens = { radius: { 4: { val: 12 } }, space: { 3: { val: 12 } } };
 const t = (key, options) => options?.defaultValue ?? key;
 const translation = { t, i18n: { resolvedLanguage: 'en', language: 'en' } };
 const commonModules = {
+  '@/components/ui/card-list-item': { default: 'CardListItem' },
+  '@/lib/card-list-layout': cardListLayout,
   'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'Fragment' },
   'react-i18next': { useTranslation: () => translation },
   'react-native-safe-area-context': { useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) },
@@ -92,6 +100,8 @@ function createHarness(screen = 'browser') {
   let cleanup;
   let removal;
   let tree;
+  let planId = 'trip';
+  let plans = [];
   let dismisses = 0;
   let searchBacks = 0;
   let repeatedRemovals = 0;
@@ -131,10 +141,12 @@ function createHarness(screen = 'browser') {
     '@/components/ui/theme-input': { ThemeInput: 'ThemeInput' },
     '@/components/point/point-list-card': { default: 'PointListCard' },
     '@/components/ui/search-box': { default: 'SearchBox' },
+    '../ui/search-box': { default: 'SearchBox' },
     '@/i18n/messages': cardModules['@/i18n/messages'],
     '@/store/use-map-data': {
       useMapData: (select) => select({ data: { data: { bangumis: works } }, status: 'ready' }),
     },
+    '@/store/use-plans': { usePlans: (select) => select({ plans }) },
     '@/store/use-map-browse': {
       useMapBrowse: (select) =>
         select({ openBangumiDetails: (id) => openedWorks.push(id), focusPointFromList: () => {} }),
@@ -170,7 +182,7 @@ function createHarness(screen = 'browser') {
   ).default;
   function render() {
     cursor = 0;
-    tree = Component({ planId: 'trip' });
+    tree = Component({ planId });
     if (focusEffect !== lastFocusEffect || focused !== lastFocused) {
       cleanup?.();
       cleanup = focused ? focusEffect?.() : undefined;
@@ -186,6 +198,20 @@ function createHarness(screen = 'browser') {
     lists,
     render,
     openedWorks,
+    setPlans(next) {
+      plans = next;
+      render();
+    },
+    setPlanId(next) {
+      planId = next;
+      render();
+    },
+    groupButtons() {
+      const list = lists()[1];
+      return Array.from(list.props.data, (item) =>
+        nodes(list.props.renderItem({ item })).find((node) => node.type === 'AddPointBatchButton'),
+      );
+    },
     get tree() {
       return tree;
     },
@@ -205,7 +231,7 @@ function createHarness(screen = 'browser') {
       return removal.enabled;
     },
     search(value) {
-      find('ThemeInput').props.onChangeText(value);
+      find('SearchBox').props.onChangeText(value);
       render();
     },
     selectWork(work) {
@@ -236,8 +262,10 @@ function createHarness(screen = 'browser') {
 
 test('search and the plan browser render the same work card while retaining their own selection action', () => {
   const search = createHarness('search');
-  const searchCard = search.lists()[0].props.renderItem({ item: { type: 'bangumi', data: works[0] } });
-  assert.equal(searchCard.type, BangumiListCard);
+  const searchCard = nodes(search.lists()[0].props.renderItem({ item: { type: 'bangumi', data: works[0] } })).find(
+    (node) => node.type === BangumiListCard,
+  );
+  assert.ok(searchCard);
   searchCard.props.onPress();
   assert.deepEqual(search.openedWorks, [1]);
   assert.equal(search.searchBacks, 1);
@@ -281,7 +309,7 @@ test('Android back returns to the retained work list and query before allowing a
   const retainedList = browser.lists()[0];
   assert.equal(retainedList.path, originalList.path, 'the work list keeps its React position, rather than remounting');
   assert.equal(retainedList.key, originalList.key);
-  assert.equal(browser.find('ThemeInput').props.value, 'Work A');
+  assert.equal(browser.find('SearchBox').props.value, 'Work A');
   const hiddenWorks = nodes(browser.tree).find((node) => node.props?.accessibilityElementsHidden);
   assert.equal(hiddenWorks.props.pointerEvents, 'none');
   assert.equal(hiddenWorks.props.importantForAccessibility, 'no-hide-descendants');
@@ -296,7 +324,7 @@ test('Android back returns to the retained work list and query before allowing a
   assert.equal(browser.hardwareBack(), true);
   assert.equal(browser.lists().length, 1);
   assert.equal(browser.lists()[0].path, originalList.path);
-  assert.equal(browser.find('ThemeInput').props.value, 'Work A');
+  assert.equal(browser.find('SearchBox').props.value, 'Work A');
   assert.deepEqual(
     Array.from(browser.lists()[0].props.data, (work) => work.id),
     [1],
@@ -312,7 +340,7 @@ test('native-stack removal returns to work selection once, then allows normal ro
   browser.selectWork(works[1]);
   assert.equal(browser.preventsRemoval, true);
   assert.equal(browser.removeRoute(), true);
-  assert.equal(browser.find('ThemeInput').props.value, 'Work');
+  assert.equal(browser.find('SearchBox').props.value, 'Work');
   assert.equal(browser.lists().length, 1);
   assert.equal(browser.repeatedRemovals, 0, 'returning to works must not repeat the blocked route exit');
   assert.equal(browser.removeRoute(), false);
@@ -341,8 +369,68 @@ test('the existing choose-another-work action also retains the query and work li
     .find((node) => node.type === 'Pressable')
     .props.onPress();
   browser.render();
-  assert.equal(browser.find('ThemeInput').props.value, 'Work B');
+  assert.equal(browser.find('SearchBox').props.value, 'Work B');
   assert.equal(browser.lists().length, 1);
   assert.equal(browser.listenerCount, 0);
   assert.equal(browser.preventsRemoval, false);
+});
+
+test('group buttons share one member Set instead of scanning plan items for each group', () => {
+  const browser = createHarness();
+  let reads = 0;
+  const planItems = ['1:a', '2:c'].map((key) => ({
+    get key() {
+      reads += 1;
+      return key;
+    },
+  }));
+  browser.setPlans([{ id: 'trip', items: planItems }]);
+  assert.equal(reads, 0, 'the retained work list does not build membership before a work is selected');
+  browser.selectWork(works[0]);
+  assert.equal(reads, planItems.length);
+  const buttons = browser.groupButtons();
+  assert.equal(buttons.length, 3);
+  const shared = buttons[0].props.planPointKeys;
+  assert.deepEqual(Array.from(shared), ['1:a', '2:c']);
+  for (const button of buttons) {
+    assert.equal(button.props.planId, 'trip');
+    assert.equal(button.props.planPointKeys, shared);
+    assert.ok(button.props.entries.every((entry) => entry.bangumi === works[0]));
+  }
+  assert.equal(reads, planItems.length, 'rendering every group does not rescan plan membership');
+  assert.deepEqual(
+    Array.from(buttons[0].props.entries, (entry) => entry.point),
+    works[0].points,
+  );
+});
+
+test('shared group membership follows item addition, removal and the selected plan', () => {
+  const browser = createHarness();
+  const first = { key: '1:a', completed: true };
+  browser.setPlans([
+    { id: 'trip', items: [first] },
+    { id: 'other', items: [{ key: '2:c' }] },
+  ]);
+  browser.selectWork(works[0]);
+  const original = browser.groupButtons()[0].props.planPointKeys;
+  assert.deepEqual(Array.from(original), ['1:a']);
+
+  browser.setPlans([{ id: 'trip', items: [first, { key: '1:b', completed: false }] }]);
+  const added = browser.groupButtons();
+  assert.notEqual(added[0].props.planPointKeys, original);
+  assert.ok(added.every((button) => button.props.planPointKeys === added[0].props.planPointKeys));
+  assert.deepEqual(Array.from(added[0].props.planPointKeys), ['1:a', '1:b']);
+
+  browser.setPlans([
+    { id: 'trip', items: [{ key: '1:b' }] },
+    { id: 'other', items: [{ key: '2:c' }] },
+  ]);
+  assert.deepEqual(Array.from(browser.groupButtons()[0].props.planPointKeys), ['1:b']);
+  browser.setPlanId('other');
+  assert.deepEqual(Array.from(browser.groupButtons()[0].props.planPointKeys), ['2:c']);
+  assert.ok(browser.groupButtons().every((button) => button.props.planId === 'other'));
+  browser.setPlanId('missing');
+  assert.deepEqual(Array.from(browser.groupButtons()[0].props.planPointKeys), []);
+  browser.setPlanId('trip');
+  assert.deepEqual(Array.from(browser.groupButtons()[0].props.planPointKeys), ['1:b']);
 });

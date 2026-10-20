@@ -27,7 +27,16 @@ import {
 } from '@rnmapbox/maps';
 import { useDebounceFn } from 'ahooks';
 import { useFocusEffect, useNavigation } from 'expo-router';
-import { type ComponentProps, forwardRef, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type ComponentProps,
+  forwardRef,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import type { EdgeInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
@@ -163,13 +172,25 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   const selectedMarkerKey = selectedPointData
     ? getSelectedPlanMarkerKey(selectedPointData.bangumi.id, selectedPointData.point.id, showPointImageMarkers)
     : null;
-  const selectedMarkerKeyRef = useRef(selectedMarkerKey);
+  const pointSelectionRef = useRef<{
+    isPlanMode: boolean;
+    selectedPointData: typeof selectedPointData;
+    selectedMarkerKey: string | null;
+    onPointSelect: Props['onPointSelect'];
+    onMapPress: Props['onMapPress'];
+  } | null>(null);
   const hasFocusedMapRef = useRef(false);
   const ignoreNextFocusCameraEventRef = useRef(false);
 
-  useEffect(() => {
-    selectedMarkerKeyRef.current = selectedMarkerKey;
-  }, [selectedMarkerKey]);
+  // Native source press handlers must stay stable: changing onPress makes
+  // ShapeSource serialize its entire GeoJSON even when the points are unchanged.
+  // Publish only committed values, before native events can observe the new UI.
+  useLayoutEffect(() => {
+    pointSelectionRef.current = { isPlanMode, selectedPointData, selectedMarkerKey, onPointSelect, onMapPress };
+    return () => {
+      pointSelectionRef.current = null;
+    };
+  }, [isPlanMode, onMapPress, onPointSelect, selectedMarkerKey, selectedPointData]);
 
   useEffect(() => {
     if (
@@ -353,15 +374,17 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
 
   const getSelectedArtworkPress = useCallback(
     async (screenPoint: { x: number; y: number }): Promise<MapPointReference | null> => {
-      const selected = selectedPointData;
+      const selection = pointSelectionRef.current;
+      const selected = selection?.selectedPointData;
+      const markerKey = selection?.selectedMarkerKey;
       const hitRects = selectedHitRectsRef.current;
       const map = mapViewRef.current;
-      if (!isPlanMode || !selected || !selectedMarkerKey || hitRects?.key !== selectedMarkerKey || !map) return null;
+      if (!selection?.isPlanMode || !selected || !markerKey || hitRects?.key !== markerKey || !map) return null;
 
       try {
         // Project on each press so camera movement cannot leave the selected artwork's hit area behind.
         const [anchorX, anchorY] = await map.getPointInView([selected.point.geo[1], selected.point.geo[0]]);
-        if (selectedMarkerKeyRef.current !== selectedMarkerKey) return null;
+        if (pointSelectionRef.current?.selectedMarkerKey !== markerKey || mapViewRef.current !== map) return null;
         if (
           hitRects.rects.some(
             ({ left, top, right, bottom }) =>
@@ -378,7 +401,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
       }
       return null;
     },
-    [isPlanMode, selectedMarkerKey, selectedPointData],
+    [],
   );
 
   // Browse point presses do not inspect the selected artwork. Keeping this
@@ -394,27 +417,32 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     (point: Bangumi['points'][number], bangumi: Bangumi, screenPoint?: { x: number; y: number }) => {
       const reference = { bangumiId: bangumi.id, pointId: point.id };
       if (!screenPoint) {
-        onPointSelect?.(reference);
+        pointSelectionRef.current?.onPointSelect?.(reference);
         return;
       }
+      const map = mapViewRef.current;
       void getSelectedArtworkPress(screenPoint).then((selectedPress) => {
-        onPointSelect?.(selectedPress ?? reference);
+        if (mapViewRef.current !== map) return;
+        pointSelectionRef.current?.onPointSelect?.(selectedPress ?? reference);
       });
     },
-    [getSelectedArtworkPress, onPointSelect],
+    [getSelectedArtworkPress],
   );
   const handlePointSelect = isPlanMode ? handlePlanPointSelect : handleBrowsePointSelect;
 
   const handlePlanMapPress = useCallback(
     (event: GeoJSON.Feature<GeoJSON.Point, { screenPointX: number; screenPointY: number }>) => {
+      const map = mapViewRef.current;
       void getSelectedArtworkPress({ x: event.properties.screenPointX, y: event.properties.screenPointY }).then(
         (selectedPress) => {
-          if (selectedPress) onPointSelect?.(selectedPress);
-          else onMapPress?.();
+          if (mapViewRef.current !== map) return;
+          const selection = pointSelectionRef.current;
+          if (selectedPress) selection?.onPointSelect?.(selectedPress);
+          else selection?.onMapPress?.();
         },
       );
     },
-    [getSelectedArtworkPress, onMapPress, onPointSelect],
+    [getSelectedArtworkPress],
   );
 
   const handleBangumiIconPress = useCallback(

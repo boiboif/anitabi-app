@@ -21,6 +21,7 @@ import type { Bangumi, Point } from '@/services/types';
 import { type MapPointReference } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
 import { usePlans } from '@/store/use-plans';
+import { createBangumiPointLookup } from '@/utils/bangumi-point-lookup';
 import type { MapViewportState } from '@/utils/map-viewport';
 import { getPlanPointMembership } from '@/utils/plan-point-membership';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
@@ -154,11 +155,11 @@ export default function PlanMapScreen() {
 
   const resolvedPlanPoints = useMemo<PlanMapResolvedPoint[]>(() => {
     if (!plan) return [];
-    const bangumiById = new Map(bangumis.map((bangumi) => [bangumi.id, bangumi]));
+    const getBangumiPoints = createBangumiPointLookup(bangumis);
     return plan.items.flatMap((item, planIndex) => {
-      const bangumi = bangumiById.get(item.bangumiId);
-      const point = bangumi?.points.find((candidate) => candidate.id === item.pointId);
-      return bangumi && point ? [{ item, planIndex, bangumi, point }] : [];
+      const entry = getBangumiPoints(item.bangumiId);
+      const point = entry?.pointsById.get(item.pointId);
+      return entry && point ? [{ item, planIndex, bangumi: entry.bangumi, point }] : [];
     });
   }, [bangumis, plan]);
 

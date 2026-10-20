@@ -8,6 +8,13 @@ const source = readFileSync(new URL('../../src/hooks/use-plan-distance-location.
 const compiled = ts.transpileModule(source, {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
 }).outputText;
+const distanceUtils = {};
+vm.runInNewContext(
+  ts.transpileModule(readFileSync(new URL('../../src/utils/plan-point-distances.ts', import.meta.url), 'utf8'), {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
+  }).outputText,
+  { exports: distanceUtils },
+);
 const granted = { granted: true };
 const denied = { granted: false };
 
@@ -21,14 +28,16 @@ function deferred() {
   return { promise, resolve, reject };
 }
 
-function createHarness({ enabled = true, focused = true, active = true } = {}) {
+function createHarness({ enabled = true, focused = true, active = true, platform = 'android' } = {}) {
   const slots = [];
   const effects = [];
   const listeners = new Set();
-  const watches = [];
+  const subscriptions = [];
+  const locationListeners = new Set();
   const timers = new Map();
   const errors = [];
   const onError = (error) => errors.push(error);
+  const startedAt = Date.now();
   let elapsed = 0;
   let nextTimerId = 0;
   let cursor = 0;
@@ -42,7 +51,10 @@ function createHarness({ enabled = true, focused = true, active = true } = {}) {
     getPermission: null,
     requestPermission: async () => granted,
     servicesEnabled: true,
-    createWatch: null,
+    listenerLocation: null,
+    cachedLocation: null,
+    getCachedLocation: null,
+    addListenerError: null,
   };
   const react = {
     useState(initial) {
@@ -87,13 +99,9 @@ function createHarness({ enabled = true, focused = true, active = true } = {}) {
   const modules = {
     react,
     'expo-router': { useIsFocused: () => focused },
-    'react-native': { AppState },
-    '@/utils/plan-point-distances': {
-      isValidCoordinate: (lat, lng) =>
-        Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180,
-    },
+    'react-native': { AppState, Platform: { OS: platform } },
+    '@/utils/plan-point-distances': distanceUtils,
     'expo-location': {
-      Accuracy: { Balanced: 3 },
       getForegroundPermissionsAsync: async () => {
         gets++;
         return config.getPermission ? config.getPermission() : config.permission;
@@ -105,18 +113,26 @@ function createHarness({ enabled = true, focused = true, active = true } = {}) {
         return permission;
       },
       hasServicesEnabledAsync: async () => config.servicesEnabled,
-      watchPositionAsync: (options, callback, onError) => {
-        const watch = {
-          options,
-          callback,
-          onError,
-          removes: 0,
-          remove() {
-            this.removes++;
-          },
-        };
-        watches.push(watch);
-        return config.createWatch ? config.createWatch(watch) : Promise.resolve(watch);
+    },
+    '@rnmapbox/maps': {
+      locationManager: {
+        addListener(callback) {
+          if (config.addListenerError) throw config.addListenerError;
+          subscriptions.push({ callback, removes: 0 });
+          locationListeners.add(callback);
+          // The real singleton immediately replays its in-memory last known fix.
+          if (config.listenerLocation) callback(config.listenerLocation);
+        },
+        removeListener(callback) {
+          locationListeners.delete(callback);
+          const subscription = subscriptions.findLast((entry) => entry.callback === callback && entry.removes === 0);
+          if (subscription) subscription.removes++;
+        },
+        getLastKnownLocation: () =>
+          config.getCachedLocation ? config.getCachedLocation() : Promise.resolve(config.cachedLocation),
+        stop: () => assert.fail('must not stop the shared location manager'),
+        removeAllListeners: () => assert.fail('must not remove other map listeners'),
+        setMinDisplacement: () => assert.fail('must not change shared displacement settings'),
       },
     },
   };
@@ -126,7 +142,11 @@ function createHarness({ enabled = true, focused = true, active = true } = {}) {
       assert.ok(name in modules, `unexpected module: ${name}`);
       return modules[name];
     },
-    Date,
+    Date: class extends Date {
+      static now() {
+        return startedAt + elapsed;
+      }
+    },
     setTimeout(callback, delay) {
       const id = ++nextTimerId;
       timers.set(id, { callback, due: elapsed + delay });
@@ -153,7 +173,7 @@ function createHarness({ enabled = true, focused = true, active = true } = {}) {
   };
   return {
     config,
-    watches,
+    subscriptions,
     errors,
     flush,
     get result() {
@@ -170,6 +190,21 @@ function createHarness({ enabled = true, focused = true, active = true } = {}) {
     },
     get timers() {
       return timers.size;
+    },
+    get locationListeners() {
+      return locationListeners.size;
+    },
+    addOtherLocationListener(callback) {
+      locationListeners.add(callback);
+    },
+    emitLocation(location) {
+      locationListeners.forEach((listener) => listener(location));
+    },
+    get now() {
+      return startedAt + elapsed;
+    },
+    fix(latitude = 35, longitude = 139, timestamp = startedAt + elapsed) {
+      return { timestamp, coords: { latitude, longitude, accuracy: 50 } };
     },
     advanceTime(milliseconds) {
       const target = elapsed + milliseconds;
@@ -201,10 +236,6 @@ function createHarness({ enabled = true, focused = true, active = true } = {}) {
   };
 }
 
-function fix(latitude = 35, longitude = 139, timestamp = Date.now()) {
-  return { timestamp, coords: { latitude, longitude, accuracy: 50 } };
-}
-
 test('off or unfocused modes do not ask for permission or start location; enabled foreground mode watches', async () => {
   const h = createHarness({ enabled: false });
   await h.flush();
@@ -216,28 +247,29 @@ test('off or unfocused modes do not ask for permission or start location; enable
   assert.equal(h.gets, 0);
   h.setFocused(true);
   await h.flush();
-  assert.equal(h.watches.length, 1);
-  assert.equal(h.watches[0].options.accuracy, 3);
+  assert.equal(h.subscriptions.length, 1);
+  assert.equal(h.locationListeners, 1);
   assert.equal(h.requests, 0);
   h.unmount();
   assert.equal(h.listeners, 0);
-  assert.equal(h.watches[0].removes, 1);
+  assert.equal(h.subscriptions[0].removes, 1);
 });
 
 test('accepts fresh coordinates and ignores invalid, stale, future and out-of-order fixes', async () => {
   const h = createHarness();
   await h.flush();
-  const watch = h.watches[0];
-  const now = Date.now();
-  watch.callback(fix(35, 139, now));
+  const watch = h.subscriptions[0];
+  const now = h.now;
+  watch.callback(h.fix(35, 139, now));
   await h.flush();
   for (const bad of [
-    fix(91, 139),
-    fix(35, NaN),
-    fix(34, 139, now - 61_000),
-    fix(34, 139, now + 6_000),
-    fix(34, 139, now - 1),
-    fix(34, 139, NaN),
+    h.fix(91, 139),
+    h.fix(35, NaN),
+    h.fix(34, 139, now - 61_000),
+    h.fix(34, 139, now + 6_000),
+    h.fix(34, 139, now - 1),
+    h.fix(34, 139, NaN),
+    { ...h.fix(), timestamp: undefined },
   ]) {
     watch.callback(bad);
   }
@@ -247,20 +279,174 @@ test('accepts fresh coordinates and ignores invalid, stale, future and out-of-or
   h.unmount();
 });
 
+test('synchronous cached replay during registration supplies the first fix and cancels its deadline', async () => {
+  const h = createHarness();
+  h.config.listenerLocation = h.fix();
+  await h.flush();
+  assert.equal(h.result.location.latitude, 35);
+  assert.equal(h.result.isLocating, false);
+  assert.equal(h.timers, 0);
+  h.advanceTime(20_000);
+  await h.flush();
+  assert.deepEqual(h.errors, []);
+  h.unmount();
+  assert.equal(h.subscriptions[0].removes, 1);
+});
+
+test('a fresh asynchronous cached fix supplies the first position without waiting for a live update', async () => {
+  const h = createHarness();
+  h.config.cachedLocation = h.fix();
+  await h.flush();
+  assert.equal(h.result.location.latitude, 35);
+  assert.equal(h.result.isLocating, false);
+  assert.equal(h.timers, 0);
+  h.unmount();
+});
+
+test('stale synchronous and asynchronous cached fixes keep waiting for a fresh first fix', async () => {
+  const h = createHarness();
+  h.config.listenerLocation = h.fix(35, 139, h.now - 61_000);
+  h.config.cachedLocation = h.config.listenerLocation;
+  await h.flush();
+  assert.equal(h.result.location, null);
+  assert.equal(h.result.isLocating, true);
+  assert.equal(h.timers, 1);
+  h.subscriptions[0].callback(h.fix());
+  await h.flush();
+  assert.equal(h.result.location.latitude, 35);
+  assert.equal(h.timers, 0);
+  h.unmount();
+});
+
+test('consumer cleanup and timeout preserve another map listener on the shared manager', async () => {
+  const h = createHarness();
+  const otherLocations = [];
+  h.addOtherLocationListener((location) => otherLocations.push(location));
+  await h.flush();
+  assert.equal(h.locationListeners, 2);
+  h.advanceTime(20_000);
+  await h.flush();
+  assert.equal(h.result.error, 'unavailable');
+  assert.equal(h.locationListeners, 1);
+  h.emitLocation(h.fix());
+  assert.equal(otherLocations.length, 1);
+  h.result.retry();
+  await h.flush();
+  assert.equal(h.locationListeners, 2);
+  h.setEnabled(false);
+  await h.flush();
+  assert.equal(h.locationListeners, 1);
+  h.emitLocation(h.fix());
+  assert.equal(otherLocations.length, 2);
+  h.unmount();
+  assert.equal(h.locationListeners, 1);
+});
+
+test('same-coordinate heading changes and movement below ten meters do not invalidate distance sorting', async () => {
+  const h = createHarness();
+  await h.flush();
+  h.emitLocation(h.fix());
+  await h.flush();
+  const position = h.result.location;
+  h.advanceTime(1_000);
+  h.emitLocation({ ...h.fix(), coords: { ...h.fix().coords, heading: 90 } });
+  h.emitLocation(h.fix(35.00004));
+  await h.flush();
+  assert.equal(h.result.location, position);
+  assert.equal(h.timers, 0);
+  h.unmount();
+});
+
+test('Android movement bursts publish only the latest eligible location after ten seconds', async () => {
+  const h = createHarness();
+  await h.flush();
+  h.emitLocation(h.fix());
+  await h.flush();
+  h.advanceTime(1_000);
+  h.emitLocation(h.fix(35.0002));
+  h.advanceTime(1_000);
+  h.emitLocation(h.fix(35.0004));
+  await h.flush();
+  assert.equal(h.result.location.latitude, 35);
+  assert.equal(h.timers, 1);
+  h.advanceTime(7_999);
+  await h.flush();
+  assert.equal(h.result.location.latitude, 35);
+  h.advanceTime(1);
+  await h.flush();
+  assert.equal(h.result.location.latitude, 35.0004);
+  assert.equal(h.timers, 0);
+  h.unmount();
+});
+
+test('a latest fix back within ten meters cancels a queued movement instead of publishing an older point', async () => {
+  const h = createHarness();
+  await h.flush();
+  h.emitLocation(h.fix());
+  await h.flush();
+  h.advanceTime(1_000);
+  h.emitLocation(h.fix(35.0002));
+  assert.equal(h.timers, 1);
+  h.advanceTime(1_000);
+  h.emitLocation(h.fix(35.00004));
+  assert.equal(h.timers, 0);
+  h.advanceTime(10_000);
+  await h.flush();
+  assert.equal(h.result.location.latitude, 35);
+  h.unmount();
+});
+
+test('iOS movement over ten meters keeps its existing immediate update behavior', async () => {
+  const h = createHarness({ platform: 'ios' });
+  await h.flush();
+  h.emitLocation(h.fix());
+  await h.flush();
+  h.advanceTime(1_000);
+  h.emitLocation(h.fix(35.0002));
+  await h.flush();
+  assert.equal(h.result.location.latitude, 35.0002);
+  assert.equal(h.timers, 0);
+  h.unmount();
+});
+
+for (const action of ['disable', 'background', 'unmount']) {
+  test(`${action} clears a pending coalesced movement update`, async () => {
+    const h = createHarness();
+    await h.flush();
+    h.emitLocation(h.fix());
+    await h.flush();
+    h.advanceTime(1_000);
+    h.emitLocation(h.fix(35.0002));
+    assert.equal(h.timers, 1);
+    if (action === 'unmount') h.unmount();
+    else if (action === 'background') h.appState('background');
+    else h.setEnabled(false);
+    await h.flush();
+    assert.equal(h.timers, 0);
+    h.advanceTime(20_000);
+    await h.flush();
+    assert.deepEqual(h.errors, []);
+    if (action !== 'unmount') {
+      assert.equal(h.result.location, null);
+      h.unmount();
+    }
+  });
+}
+
 test('background stops and discards old callbacks; foreground restarts and disable releases listeners', async () => {
   const h = createHarness();
   await h.flush();
   h.appState('background');
-  h.watches[0].callback(fix());
+  h.subscriptions[0].callback(h.fix());
   await h.flush();
-  assert.equal(h.watches[0].removes, 1);
+  assert.equal(h.subscriptions[0].removes, 1);
   assert.equal(h.result.location, null);
   h.appState('active');
   await h.flush();
-  assert.equal(h.watches.length, 2);
+  assert.equal(h.subscriptions.length, 2);
   h.setEnabled(false);
   await h.flush();
-  assert.equal(h.watches[1].removes, 1);
+  assert.equal(h.subscriptions[1].removes, 1);
   assert.equal(h.listeners, 0);
   h.unmount();
 });
@@ -273,7 +459,7 @@ test('a screen opened while backgrounded waits until active before requesting pe
   h.appState('active');
   await h.flush();
   assert.equal(h.requests, 1);
-  assert.equal(h.watches.length, 1);
+  assert.equal(h.subscriptions.length, 1);
   h.unmount();
 });
 
@@ -288,17 +474,17 @@ for (const resumeBeforeResolve of [true, false]) {
     h.appState('inactive');
     if (resumeBeforeResolve) h.appState('active');
     await h.flush();
-    assert.equal(h.watches.length, 0);
+    assert.equal(h.subscriptions.length, 0);
     permission.resolve(granted);
     await h.flush();
     if (!resumeBeforeResolve) {
-      assert.equal(h.watches.length, 0);
+      assert.equal(h.subscriptions.length, 0);
       h.appState('active');
       await h.flush();
     }
     assert.equal(h.requests, 1);
-    assert.equal(h.watches.length, 1);
-    h.watches[0].callback(fix());
+    assert.equal(h.subscriptions.length, 1);
+    h.subscriptions[0].callback(h.fix());
     await h.flush();
     assert.equal(h.result.location.latitude, 35);
     h.unmount();
@@ -320,7 +506,7 @@ test('denied permission is not prompted again on resume; explicit retry can requ
   h.result.retry();
   await h.flush();
   assert.equal(h.requests, 2);
-  assert.equal(h.watches.length, 1);
+  assert.equal(h.subscriptions.length, 1);
   h.unmount();
 });
 
@@ -334,7 +520,7 @@ test('returning from system settings rechecks permission without requiring anoth
   h.appState('active');
   await h.flush();
   assert.equal(h.requests, 1);
-  assert.equal(h.watches.length, 1);
+  assert.equal(h.subscriptions.length, 1);
   h.unmount();
 });
 
@@ -344,28 +530,27 @@ test('system services disabled reports a recoverable error without starting a wa
   await h.flush();
   assert.equal(h.result.error, 'services');
   assert.deepEqual(h.errors, ['services']);
-  assert.equal(h.watches.length, 0);
+  assert.equal(h.subscriptions.length, 0);
   h.config.servicesEnabled = true;
   h.result.retry();
   await h.flush();
-  assert.equal(h.watches.length, 1);
+  assert.equal(h.subscriptions.length, 1);
   h.unmount();
 });
 
 for (const action of ['unmount', 'disable', 'blur']) {
-  test(`a watch resolving after ${action} is removed and cannot update location`, async () => {
+  test(`a cached lookup resolving after ${action} cannot update location`, async () => {
     const h = createHarness();
-    const creation = deferred();
-    h.config.createWatch = () => creation.promise;
+    const cache = deferred();
+    h.config.getCachedLocation = () => cache.promise;
     await h.flush();
-    const watch = h.watches[0];
+    const watch = h.subscriptions[0];
     if (action === 'unmount') h.unmount();
     else if (action === 'disable') h.setEnabled(false);
     else h.setFocused(false);
     await h.flush();
-    creation.resolve(watch);
-    await h.flush();
-    watch.callback(fix());
+    cache.resolve(h.fix());
+    watch.callback(h.fix());
     await h.flush();
     assert.equal(watch.removes, 1);
     assert.equal(h.result.location, null);
@@ -374,36 +559,35 @@ for (const action of ['unmount', 'disable', 'blur']) {
   });
 }
 
-test('suspension during native watch creation removes that watch and restarts when active', async () => {
+test('suspension during a cached lookup removes its listener and starts a new session immediately', async () => {
   const h = createHarness();
-  const creation = deferred();
-  h.config.createWatch = () => creation.promise;
+  const cache = deferred();
+  h.config.getCachedLocation = () => cache.promise;
   await h.flush();
   h.appState('background');
   h.appState('active');
-  h.config.createWatch = null;
-  creation.resolve(h.watches[0]);
   await h.flush();
-  assert.equal(h.watches[0].removes, 1);
-  assert.equal(h.watches.length, 2);
-  assert.equal(h.watches[1].removes, 0);
+  assert.equal(h.subscriptions[0].removes, 1);
+  assert.equal(h.subscriptions.length, 2);
+  assert.equal(h.subscriptions[1].removes, 0);
+  h.subscriptions[1].callback(h.fix(34));
+  cache.resolve(h.fix(36, 139, h.now - 1));
+  await h.flush();
+  assert.equal(h.result.location.latitude, 34);
   h.unmount();
 });
 
-test('native callback error removes the watch and explicit retry starts a fresh one', async () => {
+test('cached lookup rejection leaves the live listener available until it supplies a fix', async () => {
   const h = createHarness();
+  h.config.getCachedLocation = () => Promise.reject(new Error('cache unavailable'));
   await h.flush();
-  h.watches[0].callback(fix());
-  h.watches[0].onError('provider unavailable');
-  h.watches[0].callback(fix(34));
+  assert.equal(h.result.error, null);
+  assert.equal(h.result.isLocating, true);
+  assert.deepEqual(h.errors, []);
+  h.subscriptions[0].callback(h.fix());
   await h.flush();
-  assert.equal(h.result.location, null);
-  assert.equal(h.result.error, 'unavailable');
-  assert.deepEqual(h.errors, ['unavailable']);
-  assert.equal(h.watches[0].removes, 1);
-  h.result.retry();
-  await h.flush();
-  assert.equal(h.watches.length, 2);
+  assert.equal(h.result.location.latitude, 35);
+  assert.equal(h.timers, 0);
   h.unmount();
 });
 
@@ -441,27 +625,27 @@ test('a permission check completing after suspension cannot open a system prompt
   h.unmount();
 });
 
-test('watch creation rejection is reported and a later retry can recover', async () => {
+test('listener registration failure is reported and a later retry can recover', async () => {
   const h = createHarness();
-  h.config.createWatch = () => Promise.reject(new Error('native startup failed'));
+  h.config.addListenerError = new Error('native startup failed');
   await h.flush();
   assert.equal(h.result.error, 'unavailable');
   assert.deepEqual(h.errors, ['unavailable']);
   assert.equal(h.result.isLocating, false);
-  h.config.createWatch = null;
+  h.config.addListenerError = null;
   h.result.retry();
   await h.flush();
-  assert.equal(h.watches.length, 2);
+  assert.equal(h.subscriptions.length, 1);
   h.unmount();
 });
 
 test('no usable first fix times out after 20 seconds, removes the watch and allows explicit retry', async () => {
   const h = createHarness();
   await h.flush();
-  const watch = h.watches[0];
+  const watch = h.subscriptions[0];
   assert.equal(h.timers, 1);
-  watch.callback(fix(91));
-  watch.callback(fix(35, 139, Date.now() - 61_000));
+  watch.callback(h.fix(91));
+  watch.callback(h.fix(35, 139, h.now - 61_000));
   h.advanceTime(19_999);
   await h.flush();
   assert.equal(h.result.isLocating, true);
@@ -474,14 +658,14 @@ test('no usable first fix times out after 20 seconds, removes the watch and allo
   assert.equal(h.result.location, null);
   assert.equal(watch.removes, 1);
   assert.equal(h.timers, 0);
-  watch.callback(fix());
+  watch.callback(h.fix());
   await h.flush();
   assert.equal(h.result.location, null, 'a late fix cannot revive the timed-out attempt');
   assert.deepEqual(h.errors, ['unavailable']);
   h.result.retry();
   await h.flush();
-  assert.equal(h.watches.length, 2);
-  h.watches[1].callback(fix());
+  assert.equal(h.subscriptions.length, 2);
+  h.subscriptions[1].callback(h.fix());
   await h.flush();
   assert.equal(h.result.error, null);
   assert.equal(h.result.location.latitude, 35);
@@ -493,58 +677,58 @@ test('the first valid fix cancels its deadline while normal location updates con
   const h = createHarness();
   await h.flush();
   h.advanceTime(19_000);
-  h.watches[0].callback(fix());
+  h.subscriptions[0].callback(h.fix());
   await h.flush();
   assert.equal(h.timers, 0);
   h.advanceTime(60_000);
-  h.watches[0].callback(fix(34));
+  h.subscriptions[0].callback(h.fix(34));
   await h.flush();
   assert.equal(h.result.location.latitude, 34);
   assert.equal(h.result.error, null);
   assert.deepEqual(h.errors, []);
-  assert.equal(h.watches[0].removes, 0);
+  assert.equal(h.subscriptions[0].removes, 0);
   h.unmount();
 });
 
-test('a native watch whose creation outlasts the deadline is removed when it eventually resolves', async () => {
+test('a cached lookup outlasting the first-fix deadline cannot revive its expired session', async () => {
   const h = createHarness();
-  const creation = deferred();
-  h.config.createWatch = () => creation.promise;
+  const cache = deferred();
+  h.config.getCachedLocation = () => cache.promise;
   await h.flush();
   h.advanceTime(20_000);
   await h.flush();
   assert.equal(h.result.error, 'unavailable');
-  assert.equal(h.watches[0].removes, 0, 'the unresolved native subscription has no removal handle yet');
-  h.watches[0].callback(fix());
-  creation.resolve(h.watches[0]);
+  assert.equal(h.subscriptions[0].removes, 1);
+  h.subscriptions[0].callback(h.fix());
+  cache.resolve(h.fix());
   await h.flush();
-  assert.equal(h.watches[0].removes, 1);
+  assert.equal(h.subscriptions[0].removes, 1);
   assert.equal(h.result.location, null);
   assert.equal(h.result.isLocating, false);
-  assert.equal(h.watches.length, 1);
+  assert.equal(h.subscriptions.length, 1);
   assert.equal(h.timers, 0);
   h.unmount();
 });
 
-test('retry can succeed before a timed-out creation resolves without letting the old watch affect it', async () => {
+test('retry can succeed before a timed-out cache resolves without accepting its old result', async () => {
   const h = createHarness();
-  const creation = deferred();
-  h.config.createWatch = () => creation.promise;
+  const cache = deferred();
+  h.config.getCachedLocation = () => cache.promise;
   await h.flush();
   h.advanceTime(20_000);
   await h.flush();
-  h.config.createWatch = null;
+  h.config.getCachedLocation = null;
   h.result.retry();
   await h.flush();
-  h.watches[1].callback(fix(34));
+  h.subscriptions[1].callback(h.fix(34));
   await h.flush();
-  creation.resolve(h.watches[0]);
-  h.watches[0].callback(fix(36));
+  cache.resolve(h.fix(36));
+  h.subscriptions[0].callback(h.fix(36));
   await h.flush();
   assert.equal(h.result.location.latitude, 34);
   assert.equal(h.result.error, null);
-  assert.equal(h.watches[0].removes, 1);
-  assert.equal(h.watches[1].removes, 0);
+  assert.equal(h.subscriptions[0].removes, 1);
+  assert.equal(h.subscriptions[1].removes, 0);
   assert.equal(h.timers, 0);
   h.unmount();
 });
@@ -561,12 +745,12 @@ for (const action of ['unmount', 'disable', 'blur', 'background']) {
     await h.flush();
     assert.equal(h.timers, 0);
     h.advanceTime(60_000);
-    h.watches[0].callback(fix());
+    h.subscriptions[0].callback(h.fix());
     await h.flush();
     assert.equal(h.result.error, null);
     assert.equal(h.result.location, null);
     assert.deepEqual(h.errors, []);
-    assert.equal(h.watches[0].removes, 1);
+    assert.equal(h.subscriptions[0].removes, 1);
     if (action !== 'unmount') h.unmount();
   });
 }
@@ -587,22 +771,22 @@ test('the first-fix deadline starts after permission resolution, not during the 
   assert.equal(h.requests, 1);
   permission.resolve(granted);
   await h.flush();
-  assert.equal(h.watches.length, 1);
+  assert.equal(h.subscriptions.length, 1);
   assert.equal(h.timers, 1);
   h.advanceTime(19_999);
   await h.flush();
   assert.equal(h.result.isLocating, true);
-  h.watches[0].callback(fix());
+  h.subscriptions[0].callback(h.fix());
   await h.flush();
   assert.equal(h.result.location.latitude, 35);
   assert.equal(h.timers, 0);
   h.unmount();
 });
 
-test('resuming while native creation is still pending starts a new bounded wait and timeout cancels its queued restart', async () => {
+test('resuming while an old cache is pending starts a separate bounded session', async () => {
   const h = createHarness();
-  const creation = deferred();
-  h.config.createWatch = () => creation.promise;
+  const cache = deferred();
+  h.config.getCachedLocation = () => cache.promise;
   await h.flush();
   h.advanceTime(10_000);
   h.appState('background');
@@ -617,10 +801,11 @@ test('resuming while native creation is still pending starts a new bounded wait 
   h.advanceTime(20_000);
   await h.flush();
   assert.equal(h.result.error, 'unavailable');
-  creation.resolve(h.watches[0]);
+  cache.resolve(h.fix());
   await h.flush();
-  assert.equal(h.watches[0].removes, 1);
-  assert.equal(h.watches.length, 1, 'a timed-out queued restart must not create a replacement watch');
+  assert.equal(h.subscriptions[0].removes, 1);
+  assert.equal(h.subscriptions.length, 2, 'resume subscribes immediately without waiting for the old cache');
+  assert.equal(h.subscriptions[1].removes, 1);
   assert.equal(h.result.isLocating, false);
   assert.equal(h.timers, 0);
   h.unmount();

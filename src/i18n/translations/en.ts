@@ -40,6 +40,11 @@ const en = {
   backupAndRestore: 'Backup & restore',
   backupAndRestoreDescription: 'Export or restore favorites and pilgrimage plans',
   backupCurrentData: 'Current data',
+  backupExportScope: 'Choose data to back up',
+  backupFavoriteData: 'Favorites',
+  backupPlanData: 'Plans',
+  backupFavoriteCounts: '{{favoriteCount}} favorites',
+  backupPlanCounts: '{{planCount}} plans',
   backupDataCounts: '{{favoriteCount}} favorites · {{planCount}} plans',
   backupPlanPointCounts: '{{pointCount}} locations in plans, {{completedCount}} completed',
   exportDataBackup: 'Export backup',
@@ -47,21 +52,22 @@ const en = {
   restoreDataFromFile: 'Restore from file',
   restoreDataFromFileDescription: 'Choose a backup, review its contents, and select a restore mode',
   backupScopeDescription:
-    'Includes all favorites, plan names and descriptions, location order, completion status, timestamps, information snapshots, and plan list sorting. Images are stored as references; image files and map caches are excluded.',
+    'Only selected categories are backed up. Plans include names, descriptions, location order, completion status, timestamps, information snapshots, and plan list sorting. Images are stored as references; image files and map caches are excluded.',
   backupProcessing: 'Processing backup data',
   backupFileSummary: 'Backup contents',
   backupExportedAt: 'Backup date: {{date}}',
+  backupRestoreScopeDescription: 'Only categories included in the backup will be restored. Other data stays unchanged.',
   backupRestoreMode: 'Restore mode',
   backupMerge: 'Merge',
   backupMergeDescription:
     'Keep current data and add missing favorites, plans, and locations. Existing locations keep their completion status and order; new locations are appended.',
   backupOverwrite: 'Overwrite',
   backupOverwriteDescription:
-    'Replace all current favorites and plans with the backup, restoring its status, order, and timestamps.',
+    'Replace categories included in the backup, restoring their status, order, and timestamps. Other categories stay unchanged.',
   backupStartRestore: 'Restore data',
   backupConfirmOverwrite: 'Confirm overwrite',
   backupOverwriteWarning:
-    'Your current {{favoriteCount}} favorites and {{planCount}} plans will be replaced. Data absent from the backup will be deleted. This cannot be undone.',
+    'Your current {{dataCounts}} will be replaced. Within the included categories, data absent from the backup will be deleted. This cannot be undone.',
   backupRestoreSucceeded:
     'Restored. You now have {{favoriteCount}} favorites and {{planCount}} plans with {{pointCount}} locations.',
   backupInvalidData: 'The backup has an invalid format or invalid data. Nothing was restored.',

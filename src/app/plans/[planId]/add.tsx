@@ -10,6 +10,7 @@ import type { Bangumi, Point } from '@/services/types';
 import { useFavoritePoints } from '@/store/use-favorite-points';
 import { useMapData } from '@/store/use-map-data';
 import { usePlans } from '@/store/use-plans';
+import { groupFavoriteItemsByDate } from '@/utils/favorite-date-groups';
 import { resolveFavoritePoints } from '@/utils/resolve-favorite-points';
 import { FlashList } from '@shopify/flash-list';
 import { Check, MapPin, Plus } from '@tamagui/lucide-icons-2';
@@ -28,18 +29,6 @@ type AvailableFavorite = {
 
 type AddPointListItem =
   { type: 'date'; id: string; label: string } | { type: 'point'; id: string; item: AvailableFavorite };
-
-function getDateGroup(timestamp: number, language: string, todayLabel: string, yesterdayLabel: string): string {
-  const today = new Date();
-  const target = new Date(timestamp);
-  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-  const targetStart = new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime();
-  const days = Math.round((todayStart - targetStart) / 86_400_000);
-
-  if (days === 0) return todayLabel;
-  if (days === 1) return yesterdayLabel;
-  return new Intl.DateTimeFormat(language, { year: 'numeric', month: 'long', day: 'numeric' }).format(target);
-}
 
 function formatFavoriteTime(timestamp: number, language: string): string {
   return new Date(timestamp).toLocaleString(language, {
@@ -75,20 +64,13 @@ export default function AddPlanPointsScreen() {
   }, [data, favorites]);
 
   const groupedAvailable = useMemo(() => {
-    const groups = new Map<string, AvailableFavorite[]>();
-    for (const item of available) {
-      const date = getDateGroup(
-        item.favorite.addedAt,
-        i18n.resolvedLanguage ?? i18n.language,
-        t('today', { defaultValue: '今天' }),
-        t('yesterday', { defaultValue: '昨天' }),
-      );
-      const items = groups.get(date) ?? [];
-      items.push(item);
-      groups.set(date, items);
-    }
-    return Array.from(groups.entries());
-  }, [available, i18n.language, i18n.resolvedLanguage, t]);
+    if (source !== 'favorites') return [];
+    return groupFavoriteItemsByDate(available, (item) => item.favorite.addedAt, {
+      language: i18n.resolvedLanguage ?? i18n.language,
+      todayLabel: t('today', { defaultValue: '今天' }),
+      yesterdayLabel: t('yesterday', { defaultValue: '昨天' }),
+    });
+  }, [available, i18n.language, i18n.resolvedLanguage, source, t]);
 
   const listItems = useMemo<AddPointListItem[]>(
     () =>

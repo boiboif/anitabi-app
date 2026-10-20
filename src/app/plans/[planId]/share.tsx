@@ -5,6 +5,7 @@ import { createPlanShareBundle } from '@/lib/plan-sharing';
 import { BLOCK_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';
 import { useMapData } from '@/store/use-map-data';
 import { usePlans } from '@/store/use-plans';
+import { createBangumiPointLookup } from '@/utils/bangumi-point-lookup';
 import { Toast } from '@boiboif/react-native-toast';
 import { FileJson, Share2 } from '@tamagui/lucide-icons-2';
 import { Stack, useLocalSearchParams } from 'expo-router';
@@ -30,14 +31,17 @@ export default function PlanShareScreen() {
   const [sharing, setSharing] = useState<'image' | 'file' | null>(null);
   const showDisplayOnly = displayOnly === '1';
 
-  const bundle = useMemo(() => (plan ? createPlanShareBundle(plan) : null), [plan]);
+  const bundle = useMemo(
+    () => (plan && !showDisplayOnly ? createPlanShareBundle(plan) : null),
+    [plan, showDisplayOnly],
+  );
   const points = useMemo<PlanShareCardPoint[]>(() => {
     if (!plan || !data) return [];
-    const bangumis = new Map(data.data.bangumis.map((bangumi) => [bangumi.id, bangumi]));
+    const getBangumiPoints = createBangumiPointLookup(data.data.bangumis);
     return plan.items.flatMap((item) => {
-      const bangumi = bangumis.get(item.bangumiId);
-      const point = bangumi?.points.find((entry) => entry.id === item.pointId);
-      return bangumi && point ? [{ bangumi, point }] : [];
+      const entry = getBangumiPoints(item.bangumiId);
+      const point = entry?.pointsById.get(item.pointId);
+      return entry && point ? [{ bangumi: entry.bangumi, point }] : [];
     });
   }, [data, plan]);
   const hasRemoteImage =
@@ -76,7 +80,7 @@ export default function PlanShareScreen() {
     }
   };
 
-  if (!plan || !bundle) {
+  if (!plan || (!showDisplayOnly && !bundle)) {
     return (
       <YStack flex={1} items="center" justify="center" bg="$pageBackground">
         <Text color="$color11">
@@ -101,7 +105,7 @@ export default function PlanShareScreen() {
                 title={plan.title}
                 points={points}
                 totalCount={plan.items.length}
-                shareUrl={showDisplayOnly ? undefined : bundle.url}
+                shareUrl={bundle?.url}
                 displayOnly={showDisplayOnly}
                 onImageLoadEnd={() => setImageReady(true)}
               />

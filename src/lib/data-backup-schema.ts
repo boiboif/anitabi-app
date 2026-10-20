@@ -46,3 +46,17 @@ export type DataBackupV1 = {
     planListSortOrder: 'asc' | 'desc';
   };
 };
+
+// Omitted categories are left untouched during restore; an empty array clears
+// that included category in overwrite mode. Plans always include their sorting.
+export type DataBackupV2 = {
+  type: 'anitabi-backup';
+  version: 2;
+  appVersion: string;
+  exportedAt: string;
+  data: {
+    favoritePoints?: BackupFavoritePointV1[];
+    plans?: BackupPlanV1[];
+    planListSortOrder?: 'asc' | 'desc';
+  };
+};

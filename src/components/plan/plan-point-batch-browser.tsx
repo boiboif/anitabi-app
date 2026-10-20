@@ -4,12 +4,14 @@ import CardListItem from '@/components/ui/card-list-item';
 import { StrictButton as Button } from '@/components/ui/strict-button';
 import { getCardListBoundarySpacing } from '@/lib/card-list-layout';
 import { getBangumiTitle } from '@/lib/localized-data';
+import type { Bangumi } from '@/services/types';
 import { useMapData } from '@/store/use-map-data';
+import { usePlans } from '@/store/use-plans';
 import { groupPointsForDetails } from '@/utils/plan-point-batches';
-import { FlashList } from '@shopify/flash-list';
+import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { ChevronLeft } from '@tamagui/lucide-icons-2';
 import { useFocusEffect, useIsFocused, usePreventRemove } from 'expo-router';
-import { type ReactNode, useCallback, useState } from 'react';
+import { type ReactNode, useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BackHandler, Keyboard, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,9 +28,12 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
   const initialize = useMapData((state) => state.initialize);
   const [query, setQuery] = useState('');
   const [bangumiId, setBangumiId] = useState<number>();
+  const workListRef = useRef<FlashListRef<Bangumi>>(null);
   const isFocused = useIsFocused();
   const bangumis = data?.data.bangumis ?? [];
   const selectedBangumi = bangumis.find((bangumi) => bangumi.id === bangumiId);
+  const planItems = usePlans((state) => state.plans.find((plan) => plan.id === planId)?.items);
+  const planPointKeys = selectedBangumi ? new Set(planItems?.map((item) => item.key)) : undefined;
   const isBrowsingGroups = selectedBangumi !== undefined;
   const selectedTitle = selectedBangumi ? getBangumiTitle(selectedBangumi, i18n.resolvedLanguage ?? i18n.language) : '';
   const search = query.trim().toLocaleLowerCase();
@@ -40,6 +45,11 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
           value?.toLocaleLowerCase().includes(search),
         )),
   );
+
+  const handleQueryChange = (value: string) => {
+    setQuery(value);
+    workListRef.current?.scrollToOffset({ offset: 0, animated: false });
+  };
 
   // Group browsing is a local step within the add-points route. Use the native
   // stack's supported removal guard for its header back button and swipe back.
@@ -131,6 +141,7 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
               </YStack>
               <AddPointBatchButton
                 planId={planId}
+                planPointKeys={planPointKeys}
                 entries={item.data.map((point) => ({ point, bangumi: selectedBangumi }))}
                 title={`${selectedTitle} · ${item.title}`}
                 label={item.key === 'all' ? t('addAllToPlan', { defaultValue: '全部加入' }) : undefined}
@@ -155,7 +166,7 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
         <YStack px="$4" pt="$2.5" pb={getCardListBoundarySpacing(getTokens().space['3'].val)} gap="$2">
           <SearchBox
             value={query}
-            onChangeText={setQuery}
+            onChangeText={handleQueryChange}
             placeholder={t('searchWorksForPlan', { defaultValue: '搜索作品名称或城市' })}
             accessibilityLabel={t('searchWorksForPlan', { defaultValue: '搜索作品名称或城市' })}
             autoCorrect={false}
@@ -167,12 +178,14 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
           </Text>
         </YStack>
         <FlashList
+          ref={workListRef}
           data={matchingBangumis}
           style={{ flex: 1 }}
           keyExtractor={(item) => String(item.id)}
           contentInsetAdjustmentBehavior="automatic"
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
+          maintainVisibleContentPosition={{ disabled: true }}
           contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
           renderItem={({ item }) => (
             <CardListItem horizontalInset="$3">
@@ -191,7 +204,7 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
                 {t('noWorksAvailableForPlan', { defaultValue: '没有可添加的作品' })}
               </Text>
               {query ? (
-                <Button color="$primary" onPress={() => setQuery('')}>
+                <Button color="$primary" onPress={() => handleQueryChange('')}>
                   {t('clearWorkSearch', { defaultValue: '清除搜索' })}
                 </Button>
               ) : null}

@@ -21,15 +21,16 @@
 - 首页保留普通点位数据，仅更新单点源，普通圆点由相同样式的选中圆点覆盖。
 - 计划地图保留普通圆点及缩略图数据，通过 `MapMarkerSelectionContext` 仅让绘制层更新透明度表达式，隐藏选中点的普通圆点、白边和缩略图。匹配使用番剧 ID 与点位 ID，避免不同作品中的同名 ID 相互影响。
 - 普通数据源不订阅选中状态；缩略图的视口和密度筛选不依赖选中点。布局、来源数据或番剧筛选变化仍可触发必要的数据更新。
+- 计划地图的普通圆点、缩略图和地图空白点击保持稳定事件回调。选中点、artwork key 和父回调由 `useLayoutEffect` 发布到 ref，事件读取最近一次已提交的数据，避免切点或父回调更新让 `ShapeSource` 再次序列化完整 GeoJSON；未提交的渲染不改变事件快照。异步屏幕投影期间换点、取消选中或切换图片开关时，旧 artwork 命中失效，仍按原逻辑回退到被点击的普通点。地图实例替换或卸载后丢弃旧地图的在途点击。
 - 原有选中点查找、相机事件处理和原生样式求值仍有开销，不能将整个交互称为常数开销，也没有真机帧率对比结果。
 - 未选中时使用空数据源，避免用恒假过滤表达式模拟空选中状态。
 
 ## 回归
 
 ```powershell
-node --test scripts/tests/selected-map-point-source.test.mjs scripts/tests/map-marker-opacity.test.mjs
+node --test scripts/tests/selected-map-point-source.test.mjs scripts/tests/selected-plan-marker-lifecycle.test.mjs scripts/tests/map-viewport-report.test.mjs scripts/tests/map-point-selection-callbacks.test.mjs
 ```
 
-7 项测试覆盖空选中、单点载荷、连续切换、无效坐标、复合 ID 匹配及取消后的透明度恢复。测试不执行原生 Mapbox 样式解析或绘制。
+测试覆盖空选中、单点载荷、连续切换、无效坐标、图片注册生命周期、视口报告和计划地图事件边界。事件测试执行当前组件，分离 render 与 layout commit，检查回调身份、最新已提交数据、丢弃渲染、延迟投影、命中优先级和普通点回退；不执行 React Native 渲染、原生 Mapbox 样式解析或绘制，也不提供设备帧率结论。
 
 设备回归检查冷启动、密集重叠点位置顶、连续快速切换、取消选中、图片开关、无图点位、延迟图片加载、地图样式切换、旋转/倾斜、主题和语言变化。首页同时检查 Popup 的独立按钮操作、隐藏后地图点击是否穿透，以及再次选中时是否闪现上一个点位内容。

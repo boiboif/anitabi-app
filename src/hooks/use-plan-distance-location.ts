@@ -1,16 +1,14 @@
+import { locationManager, type Location as MapboxLocation } from '@rnmapbox/maps';
 import {
-  Accuracy,
   getForegroundPermissionsAsync,
   hasServicesEnabledAsync,
   requestForegroundPermissionsAsync,
-  watchPositionAsync,
   type LocationPermissionResponse,
-  type LocationSubscription,
 } from 'expo-location';
 import { useIsFocused } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { AppState } from 'react-native';
-import { isValidCoordinate, type PlanDistanceLocation } from '@/utils/plan-point-distances';
+import { AppState, Platform } from 'react-native';
+import { distanceMeters, isValidCoordinate, type PlanDistanceLocation } from '@/utils/plan-point-distances';
 
 export type PlanDistanceLocationError = 'permission' | 'services' | 'unavailable';
 type DistanceLocationState = {
@@ -21,8 +19,10 @@ type DistanceLocationState = {
 
 const EMPTY_STATE: DistanceLocationState = { location: null, isLocating: false, error: null };
 const FIRST_LOCATION_TIMEOUT_MS = 20_000;
+const MIN_LOCATION_DISPLACEMENT_METERS = 10;
+const LOCATION_UPDATE_INTERVAL_MS = Platform.OS === 'android' ? 10_000 : 0;
 
-/** A screen-scoped foreground watch; opening distance mode is the permission request intent. */
+/** A foreground Mapbox subscription; opening distance mode is the permission request intent. */
 export function usePlanDistanceLocation(enabled: boolean, onError: (error: PlanDistanceLocationError) => void) {
   const isFocused = useIsFocused();
   const [state, setState] = useState<DistanceLocationState>(EMPTY_STATE);
@@ -44,10 +44,12 @@ export function usePlanDistanceLocation(enabled: boolean, onError: (error: PlanD
     let revision = 0;
     let starting = false;
     let restartRequested = false;
-    let creatingWatch = false;
-    let receivedFirstFix = false;
-    let subscription: LocationSubscription | null = null;
+    let subscription: (() => void) | null = null;
     let firstFixTimeout: ReturnType<typeof setTimeout> | null = null;
+    let updateTimeout: ReturnType<typeof setTimeout> | null = null;
+    let pendingLocation: MapboxLocation | null = null;
+    let publishedLocation: PlanDistanceLocation | null = null;
+    let publishedAt = 0;
     let latestTimestamp = 0;
 
     const clearFirstFixTimeout = () => {
@@ -55,11 +57,18 @@ export function usePlanDistanceLocation(enabled: boolean, onError: (error: PlanD
       firstFixTimeout = null;
     };
 
+    const clearPendingUpdate = () => {
+      if (updateTimeout !== null) clearTimeout(updateTimeout);
+      updateTimeout = null;
+      pendingLocation = null;
+    };
+
     const stopWatch = () => {
       revision++;
       clearFirstFixTimeout();
-      receivedFirstFix = false;
-      subscription?.remove();
+      clearPendingUpdate();
+      publishedLocation = null;
+      subscription?.();
       subscription = null;
     };
 
@@ -70,7 +79,7 @@ export function usePlanDistanceLocation(enabled: boolean, onError: (error: PlanD
         firstFixTimeout = null;
         if (disposed || !active || revision !== timeoutRevision) return;
         // A successful subscription does not guarantee that the provider has a fix.
-        // Invalidating the revision also rejects callbacks from a still-pending watch.
+        // Invalidating the revision also rejects a still-pending cached-location read.
         restartRequested = false;
         stopWatch();
         setState({ location: null, isLocating: false, error: 'unavailable' });
@@ -82,12 +91,6 @@ export function usePlanDistanceLocation(enabled: boolean, onError: (error: PlanD
       if (disposed || !active || subscription) return;
       if (starting) {
         restartRequested = true;
-        // Native creation may still be pending when the app resumes. Bound that
-        // wait too, without timing out a foreground permission dialog.
-        if (creatingWatch && !receivedFirstFix) {
-          setState({ location: null, isLocating: true, error: null });
-          waitForFirstFix();
-        }
         return;
       }
       starting = true;
@@ -129,53 +132,73 @@ export function usePlanDistanceLocation(enabled: boolean, onError: (error: PlanD
           return;
         }
 
-        let failed = false;
-        creatingWatch = true;
-        receivedFirstFix = false;
         // A permission/settings dialog may have cleared the visible loading state.
         setState({ location: null, isLocating: true, error: null });
         waitForFirstFix();
-        const watch = await watchPositionAsync(
-          { accuracy: Accuracy.Balanced, distanceInterval: 10, timeInterval: 10_000 },
-          (location) => {
-            if (!isCurrent() || failed) return;
-            const { latitude, longitude } = location.coords;
-            const age = Date.now() - location.timestamp;
-            if (
-              !isValidCoordinate(latitude, longitude) ||
-              !Number.isFinite(location.timestamp) ||
-              age < -5_000 ||
-              age > 60_000 ||
-              location.timestamp < latestTimestamp
-            ) {
-              return;
+        const handleLocationUpdate = (location: MapboxLocation) => {
+          if (!isCurrent()) return;
+          const { latitude, longitude } = location.coords;
+          const timestamp = location.timestamp;
+          if (!isValidCoordinate(latitude, longitude) || typeof timestamp !== 'number' || !Number.isFinite(timestamp)) {
+            return;
+          }
+          const now = Date.now();
+          const age = now - timestamp;
+          if (age < -5_000 || age > 60_000 || timestamp < latestTimestamp) return;
+          latestTimestamp = timestamp;
+          clearFirstFixTimeout();
+
+          // Keep the previous 10m / Android 10s cadence local to this list. The
+          // shared Mapbox provider must remain free to update the map more often.
+          if (
+            publishedLocation &&
+            distanceMeters(publishedLocation.latitude, publishedLocation.longitude, latitude, longitude) <
+              MIN_LOCATION_DISPLACEMENT_METERS
+          ) {
+            clearPendingUpdate();
+            return;
+          }
+          const delay = LOCATION_UPDATE_INTERVAL_MS - (now - publishedAt);
+          if (publishedLocation && delay > 0) {
+            pendingLocation = location;
+            if (updateTimeout === null) {
+              updateTimeout = setTimeout(() => {
+                updateTimeout = null;
+                const pending = pendingLocation;
+                pendingLocation = null;
+                // Recheck session, freshness and displacement at delivery time.
+                if (pending) handleLocationUpdate(pending);
+              }, delay);
             }
-            latestTimestamp = location.timestamp;
-            receivedFirstFix = true;
-            clearFirstFixTimeout();
-            setState({ location: { latitude, longitude }, isLocating: false, error: null });
-          },
-          () => {
-            if (!isCurrent()) return;
-            failed = true;
-            clearFirstFixTimeout();
-            subscription?.remove();
-            subscription = null;
-            setState({ location: null, isLocating: false, error: 'unavailable' });
-            onError('unavailable');
-          },
-        );
-        // Native watch creation can finish after blur, suspension, disable, or unmount.
-        if (!isCurrent() || failed) watch.remove();
-        else subscription = watch;
+            return;
+          }
+
+          clearPendingUpdate();
+          publishedAt = now;
+          publishedLocation = { latitude, longitude };
+          setState({ location: publishedLocation, isLocating: false, error: null });
+        };
+
+        // addListener can replay a cached fix synchronously, so arm cleanup and
+        // the first-fix deadline before registering. Remove only our own listener.
+        subscription = () => locationManager.removeListener(handleLocationUpdate);
+        locationManager.addListener(handleLocationUpdate);
+        // A slow or unavailable cache must never block live updates or resume.
+        void locationManager
+          .getLastKnownLocation()
+          .then((location) => {
+            if (location) handleLocationUpdate(location);
+          })
+          .catch(() => {
+            // The first-fix deadline still covers an unavailable live provider.
+          });
       } catch {
-        clearFirstFixTimeout();
+        stopWatch();
         if (!disposed && active) {
           setState({ location: null, isLocating: false, error: 'unavailable' });
           onError('unavailable');
         }
       } finally {
-        creatingWatch = false;
         starting = false;
         if (restartRequested) {
           restartRequested = false;

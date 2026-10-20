@@ -12,16 +12,17 @@ type Props = {
   title: string;
   label?: string;
   planId?: string;
+  planPointKeys?: ReadonlySet<string>;
   compact?: boolean;
 };
 
-export default function AddPointBatchButton({ entries, title, label, planId, compact = false }: Props) {
+export default function AddPointBatchButton({ entries, title, label, planId, planPointKeys, compact = false }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const { openBatch } = usePlanPicker();
   const plan = usePlans((state) => (planId ? state.plans.find((item) => item.id === planId) : undefined));
   const addPointsToPlans = usePlans((state) => state.addPointsToPlans);
-  const keys = new Set(plan?.items.map((item) => item.key));
+  const keys = planPointKeys ?? new Set(plan?.items.map((item) => item.key));
   const allAdded = Boolean(
     plan && entries.length > 0 && entries.every(({ point, bangumi }) => keys.has(`${bangumi.id}:${point.id}`)),
   );

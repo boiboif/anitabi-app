@@ -8,7 +8,7 @@ import { usePlanDistanceLocation, type PlanDistanceLocationError } from '@/hooks
 import { getCardListItemHeight } from '@/lib/card-list-layout';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { sharePlanFile } from '@/lib/plan-share-files';
-import { createPlanShareBundle } from '@/lib/plan-sharing';
+import { canSharePlanAsQr } from '@/lib/plan-sharing';
 import { ICON_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
@@ -491,8 +491,7 @@ export default function PlanDetailScreen() {
       );
       return;
     }
-    const bundle = createPlanShareBundle(plan);
-    if (bundle.qrEligible) {
+    if (canSharePlanAsQr(plan)) {
       router.navigate({ pathname: '/plans/[planId]/share', params: { planId: plan.id } } as never);
       return;
     }

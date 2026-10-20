@@ -288,7 +288,11 @@ export function useMapLocate(cameraRef: RefObject<Camera | null>) {
     if (locatingRef.current) return;
 
     try {
-      const { status } = await requestForegroundPermissionsAsync();
+      let { status } = await getForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        // Android permission requests can pause/resume the Activity even when already granted.
+        ({ status } = await requestForegroundPermissionsAsync());
+      }
       hasLocationPermissionRef.current = status === 'granted';
       if (status !== 'granted') {
         Alert.alert(
@@ -308,6 +312,7 @@ export function useMapLocate(cameraRef: RefObject<Camera | null>) {
         return;
       }
 
+      // Keep button recovery separate from remounting the visible puck.
       if (isMountedRef.current) setIsLocationPuckActive(true);
       startLocationUpdates();
 
@@ -319,7 +324,7 @@ export function useMapLocate(cameraRef: RefObject<Camera | null>) {
           // Move immediately to the last position, then silently repair the
           // provider and refine the camera on the next update.
           followNextLocationUntilRef.current = Date.now() + CURRENT_LOCATION_TIMEOUT_MS;
-          recoverLocationProvider({ force: true, remountPuck: true });
+          recoverLocationProvider({ force: true });
         }
         return;
       }
@@ -331,14 +336,14 @@ export function useMapLocate(cameraRef: RefObject<Camera | null>) {
 
         if (!isFreshLocation(cachedLocation)) {
           followNextLocationUntilRef.current = Date.now() + CURRENT_LOCATION_TIMEOUT_MS;
-          recoverLocationProvider({ force: true, remountPuck: true });
+          recoverLocationProvider({ force: true });
         }
         return;
       }
 
       locatingRef.current = true;
       if (isMountedRef.current) setIsLocating(true);
-      recoverLocationProvider({ force: true, remountPuck: true });
+      recoverLocationProvider({ force: true });
 
       const pendingLocation = waitForFreshLocation();
       try {

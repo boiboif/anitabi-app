@@ -11,6 +11,7 @@ import {
   parseDataBackup,
   prepareBackupRestore,
   runBackupWrites,
+  selectBackupData,
 } from '../../src/lib/data-backup.ts';
 
 function favorite(pointId, overrides = {}) {
@@ -44,7 +45,7 @@ function data(overrides = {}) {
 function file(overrides = {}) {
   return {
     type: 'anitabi-backup',
-    version: 1,
+    version: 2,
     appVersion: '0.5.0',
     exportedAt: '2026-10-08T07:30:00.000Z',
     data: data(),
@@ -67,6 +68,106 @@ test('full JSON round trip preserves favorites, empty plans, snapshots, timestam
   assert.deepEqual(getBackupSummary(original), { favoriteCount: 1, planCount: 2, pointCount: 2, completedCount: 1 });
   const date = new Date(2026, 9, 8, 15, 30, 5, 7);
   assert.equal(getBackupFileName(date), 'anitabi-backup-2026-10-08-153005-7.json');
+});
+
+test('selects only requested backup categories and rejects selecting neither category', () => {
+  const current = data();
+  const before = structuredClone(current);
+  assert.deepEqual(selectBackupData(current, { favoritePoints: true, plans: true }), current);
+  assert.deepEqual(selectBackupData(current, { favoritePoints: true, plans: false }), {
+    favoritePoints: current.favoritePoints,
+  });
+  assert.deepEqual(selectBackupData(current, { favoritePoints: false, plans: true }), {
+    plans: current.plans,
+    planListSortOrder: current.planListSortOrder,
+  });
+  assert.throws(
+    () => selectBackupData(current, { favoritePoints: false, plans: false }),
+    (error) => error instanceof BackupError && error.code === 'invalid',
+  );
+  assert.deepEqual(current, before);
+});
+
+test('single-category JSON backups omit unselected data and summarize only included contents', () => {
+  const current = data();
+  for (const selection of [
+    { favoritePoints: true, plans: false },
+    { favoritePoints: false, plans: true },
+  ]) {
+    const selected = selectBackupData(current, selection);
+    const content = createDataBackupContent(selected, '0.5.0');
+    const exported = JSON.parse(content);
+    assert.equal(exported.version, 2);
+    assert.deepEqual(exported.data, selected);
+    assert.deepEqual(parseDataBackup(content).data, selected);
+    assert.deepEqual(Object.keys(exported.data).sort(), Object.keys(selected).sort());
+    assert.deepEqual(
+      getBackupSummary(selected),
+      selection.favoritePoints
+        ? { favoriteCount: 1, planCount: 0, pointCount: 0, completedCount: 0 }
+        : { favoriteCount: 0, planCount: 2, pointCount: 2, completedCount: 1 },
+    );
+  }
+});
+
+test('selected empty categories stay distinct from omitted categories and clear only their own data on overwrite', () => {
+  const current = data();
+  for (const selected of [{ favoritePoints: [] }, { plans: [], planListSortOrder: 'desc' }]) {
+    const parsed = parseDataBackup(createDataBackupContent(selected, '0.5.0')).data;
+    assert.deepEqual(parsed, selected);
+    assert.deepEqual(
+      prepareBackupRestore(current, parsed, 'overwrite'),
+      'favoritePoints' in selected
+        ? { ...current, favoritePoints: [] }
+        : { ...current, plans: [], planListSortOrder: 'desc' },
+    );
+    assert.deepEqual(prepareBackupRestore(current, parsed, 'merge'), current);
+  }
+});
+
+test('partial overwrite and merge preserve the omitted category and keep merge sorting local', () => {
+  const current = data();
+  const incomingFavorite = favorite('new');
+  const incomingPlan = plan('new', [item('new', true)]);
+  const favoritesOnly = { favoritePoints: [incomingFavorite] };
+  const plansOnly = { plans: [incomingPlan], planListSortOrder: 'desc' };
+  assert.deepEqual(prepareBackupRestore(current, favoritesOnly, 'overwrite'), {
+    ...current,
+    favoritePoints: [incomingFavorite],
+  });
+  assert.deepEqual(prepareBackupRestore(current, plansOnly, 'overwrite'), {
+    ...current,
+    plans: [incomingPlan],
+    planListSortOrder: 'desc',
+  });
+  assert.deepEqual(prepareBackupRestore(current, favoritesOnly, 'merge'), {
+    ...current,
+    favoritePoints: [...current.favoritePoints, incomingFavorite],
+  });
+  assert.deepEqual(prepareBackupRestore(current, plansOnly, 'merge'), {
+    ...current,
+    plans: [...current.plans, incomingPlan],
+  });
+});
+
+test('rejects empty contents, invalid selected data and unpaired plans or sort preferences', () => {
+  for (const invalid of [
+    {},
+    { favoritePoints: null },
+    { favoritePoints: [favorite('a', { key: 'wrong' })] },
+    { plans: [] },
+    { planListSortOrder: 'asc' },
+    { favoritePoints: [], plans: [] },
+    { favoritePoints: [], planListSortOrder: 'asc' },
+    { plans: [], planListSortOrder: 'invalid' },
+    { plans: [plan('bad', [], { title: '' })], planListSortOrder: 'asc' },
+  ]) {
+    expectError(file({ data: invalid }), 'invalid');
+    assert.throws(
+      () => createDataBackupContent(invalid, '0.5.0'),
+      (error) => error instanceof BackupError && error.code === 'invalid',
+    );
+  }
 });
 
 test('overwrite exactly restores incoming data, including empty collections and both true and false completion', () => {
@@ -127,7 +228,7 @@ test('merge uses IDs, keeps local metadata and progress in both directions, appe
 
 test('rejects unrelated sharing files, unsupported versions, malformed JSON and incomplete envelopes', () => {
   expectError({ type: 'anitabi-plan', v: 1, t: '分享', i: [[1, 'a']] }, 'wrongType');
-  expectError(file({ version: 2 }), 'unsupportedVersion');
+  expectError(file({ version: 3 }), 'unsupportedVersion');
   for (const value of [
     '{broken',
     'null',
@@ -185,7 +286,7 @@ test('enforces the 20 MB limit in UTF-8 bytes for imports and exports', () => {
 test('uses an independent schema version and rejects missing, nonnumeric and invalid file versions', () => {
   for (const appVersion of ['0.5.0', '99.0.0']) {
     const backup = parseDataBackup(createDataBackupContent(data(), appVersion));
-    assert.equal(backup.version, 1);
+    assert.equal(backup.version, 2);
     assert.equal(backup.appVersion, appVersion);
   }
   for (const version of [undefined, null, '1', 0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
@@ -196,12 +297,76 @@ test('uses an independent schema version and rejects missing, nonnumeric and inv
 test('current-version data bypasses migrations without modifying completion or metadata', () => {
   const original = data();
   const migrations = {
-    1: () => {
+    2: () => {
       throw new Error('Current version must not migrate');
     },
   };
-  assert.strictEqual(migrateBackupData(original, 1, 1, migrations), original);
+  assert.strictEqual(migrateBackupData(original, 2, 2, migrations), original);
   assert.deepEqual(parseDataBackup(JSON.stringify(file())), file());
+});
+
+test('migrates a legacy V1 file without losing metadata or full-backup merge and overwrite behavior', () => {
+  const content = `{
+    "type": "anitabi-backup",
+    "version": 1,
+    "appVersion": "0.5.0",
+    "exportedAt": "2026-10-08T07:30:00.000Z",
+    "data": {
+      "favoritePoints": [{
+        "key": "1:a", "bangumiId": 1, "pointId": "a", "addedAt": 100,
+        "snapshot": { "bangumiName": "作品", "pointName": "地点 a", "pointImage": "/image.jpg", "pointMark": "备注" }
+      }],
+      "plans": [{
+        "id": "p1", "title": "巡礼计划", "description": "行程备注", "createdAt": 200, "updatedAt": 300,
+        "items": [{
+          "key": "1:b", "bangumiId": 1, "pointId": "b", "addedAt": 101, "completed": true,
+          "snapshot": { "bangumiName": "作品", "pointName": "地点 b", "geo": [35.7, 139.7] }
+        }, {
+          "key": "1:a", "bangumiId": 1, "pointId": "a", "addedAt": 100, "completed": false,
+          "snapshot": { "bangumiName": "作品", "pointName": "地点 a", "pointMark": "备注" }
+        }]
+      }, {
+        "id": "empty", "title": "空计划", "createdAt": 200, "updatedAt": 300, "items": []
+      }],
+      "planListSortOrder": "asc"
+    }
+  }`;
+  const legacy = JSON.parse(content);
+  const imported = parseDataBackup(content);
+  assert.deepEqual(imported, { ...legacy, version: 2 });
+  const current = data({
+    favoritePoints: [favorite('local')],
+    plans: [plan('p1', [item('local', true)], { title: '本地名称', updatedAt: 500 }), plan('local')],
+    planListSortOrder: 'desc',
+  });
+  assert.deepEqual(prepareBackupRestore(current, imported.data, 'overwrite'), legacy.data);
+  const merged = prepareBackupRestore(current, imported.data, 'merge');
+  assert.deepEqual(merged.favoritePoints, [...current.favoritePoints, ...legacy.data.favoritePoints]);
+  assert.deepEqual(merged.plans, [
+    { ...current.plans[0], items: [...current.plans[0].items, ...legacy.data.plans[0].items] },
+    current.plans[1],
+    legacy.data.plans[1],
+  ]);
+  assert.equal(merged.planListSortOrder, 'desc');
+  const reexported = parseDataBackup(createDataBackupContent(imported.data, '1.0.0'));
+  assert.equal(reexported.version, 2);
+  assert.deepEqual(reexported.data, legacy.data);
+  assert.equal(imported.appVersion, legacy.appVersion);
+  assert.equal(imported.exportedAt, legacy.exportedAt);
+  assert.deepEqual(JSON.parse(content), legacy);
+});
+
+test('keeps rejecting incomplete or malformed V1 data instead of treating it as a partial backup', () => {
+  for (const invalid of [
+    {},
+    { favoritePoints: [] },
+    { plans: [], planListSortOrder: 'asc' },
+    data({ favoritePoints: null }),
+    data({ plans: [plan('bad', [], { title: '' })] }),
+    data({ planListSortOrder: 'invalid' }),
+  ]) {
+    expectError(file({ version: 1, data: invalid }), 'invalid');
+  }
 });
 
 test('chains simulated schema changes in order, preserving all other fields and the original source', () => {

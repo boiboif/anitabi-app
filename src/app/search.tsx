@@ -2,8 +2,8 @@ import BangumiListCard from '@/components/bangumi/bangumi-list-card';
 import PointListCard from '@/components/point/point-list-card';
 import CardListItem from '@/components/ui/card-list-item';
 import SearchBox from '@/components/ui/search-box';
-import { getCardListBoundarySpacing } from '@/lib/card-list-layout';
 import { translateMessage, type TranslationMessage } from '@/i18n/messages';
+import { getCardListBoundarySpacing } from '@/lib/card-list-layout';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapBrowse } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
@@ -88,6 +88,10 @@ const Search = () => {
     const timer = setTimeout(() => setQuery(inputText), 300);
     return () => clearTimeout(timer);
   }, [inputText]);
+
+  useEffect(() => {
+    flashListRef.current?.scrollToOffset({ offset: 0, animated: false });
+  }, [query]);
 
   const { bangumiResults, pointResults } = useMemo(() => {
     if (!data || !searchMode) return { bangumiResults: [], pointResults: [] };
@@ -232,7 +236,13 @@ const Search = () => {
               <Pressable
                 key={tabItem.key}
                 onPress={() => {
+                  if (tab === tabItem.key) return;
+
                   setTab(tabItem.key);
+                  flashListRef.current?.scrollToOffset({
+                    offset: 0,
+                    animated: false,
+                  });
                 }}
               >
                 <View
@@ -267,8 +277,6 @@ const Search = () => {
             data={listItems}
             renderItem={renderItem}
             keyExtractor={keyExtractor}
-            key={searchMode ? `search-${query}` : 'tabs'}
-            extraData={query}
             contentContainerStyle={{
               paddingHorizontal: getTokens().space['3'].val,
               paddingTop: getCardListBoundarySpacing(getTokens().space['3'].val),

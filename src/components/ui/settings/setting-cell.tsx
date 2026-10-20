@@ -66,6 +66,7 @@ export function SettingCell({
     return content;
   }
 
+  // Preserve the row's intrinsic height in content-sized sheets.
   return (
     <Pressable
       accessibilityRole={accessibilityRole}
@@ -73,7 +74,7 @@ export function SettingCell({
       accessibilityState={accessibilityState}
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => ({ flex: 1, opacity: pressed && !disabled ? 0.62 : 1 })}
+      style={({ pressed }) => ({ opacity: pressed && !disabled ? 0.62 : 1 })}
     >
       {content}
     </Pressable>

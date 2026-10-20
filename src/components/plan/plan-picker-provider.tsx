@@ -178,7 +178,7 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
         submittedRef.current = false;
         setTarget({ kind: 'batch', entries, title });
         setSelectedPlanIds([]);
-        setAlsoFavorite(true);
+        setAlsoFavorite(false);
         void pickerSheetRef.current?.present();
       },
     }),
@@ -286,27 +286,32 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
               </View>
             ) : (
               <YStack overflow="hidden" rounded="$3" bg="$background">
-                {sortedPlans.map((plan, index) => (
-                  <View key={plan.id}>
-                    {index > 0 ? <View mx="$3" bg="$color4" height={StyleSheet.hairlineWidth} /> : null}
-                    <PlanRow
-                      title={plan.title}
-                      count={plan.items.length}
-                      detail={
-                        target?.kind === 'batch'
-                          ? t('batchPlanPointCounts', {
-                              defaultValue: '将新增 {{added}} 个，已包含 {{existing}} 个',
-                              added:
-                                target.entries.length - plan.items.filter((item) => batchKeys.has(item.key)).length,
-                              existing: plan.items.filter((item) => batchKeys.has(item.key)).length,
-                            })
-                          : undefined
-                      }
-                      selected={selectedPlanIds.includes(plan.id)}
-                      onPress={() => togglePlan(plan.id)}
-                    />
-                  </View>
-                ))}
+                {sortedPlans.map((plan, index) => {
+                  const existingCount =
+                    target?.kind === 'batch'
+                      ? plan.items.reduce((count, item) => count + (batchKeys.has(item.key) ? 1 : 0), 0)
+                      : 0;
+                  return (
+                    <View key={plan.id}>
+                      {index > 0 ? <View mx="$3" bg="$color4" height={StyleSheet.hairlineWidth} /> : null}
+                      <PlanRow
+                        title={plan.title}
+                        count={plan.items.length}
+                        detail={
+                          target?.kind === 'batch'
+                            ? t('batchPlanPointCounts', {
+                                defaultValue: '将新增 {{added}} 个，已包含 {{existing}} 个',
+                                added: target.entries.length - existingCount,
+                                existing: existingCount,
+                              })
+                            : undefined
+                        }
+                        selected={selectedPlanIds.includes(plan.id)}
+                        onPress={() => togglePlan(plan.id)}
+                      />
+                    </View>
+                  );
+                })}
               </YStack>
             )}
           </YStack>

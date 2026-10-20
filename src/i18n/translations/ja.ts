@@ -40,6 +40,11 @@ const ja = {
   backupAndRestore: 'バックアップと復元',
   backupAndRestoreDescription: 'お気に入りと巡礼プランを書き出し・復元',
   backupCurrentData: '現在のデータ',
+  backupExportScope: 'バックアップするデータ',
+  backupFavoriteData: 'お気に入り',
+  backupPlanData: 'プラン',
+  backupFavoriteCounts: 'お気に入り {{favoriteCount}} 件',
+  backupPlanCounts: 'プラン {{planCount}} 件',
   backupDataCounts: 'お気に入り {{favoriteCount}} 件 · プラン {{planCount}} 件',
   backupPlanPointCounts: 'プラン内のスポット {{pointCount}} 件、完了 {{completedCount}} 件',
   exportDataBackup: 'バックアップを書き出す',
@@ -47,20 +52,22 @@ const ja = {
   restoreDataFromFile: 'ファイルから復元',
   restoreDataFromFileDescription: 'バックアップを選び、内容と復元方法を確認します',
   backupScopeDescription:
-    'すべてのお気に入り、プランの名前と説明、スポットの順序、完了状態、日時、情報のスナップショット、プラン一覧の並び順を含みます。画像は参照先のみを保存し、画像ファイルと地図キャッシュは含みません。',
+    '選択したデータのみを保存します。プランには名前と説明、スポットの順序、完了状態、日時、情報のスナップショット、一覧の並び順を含みます。画像は参照先のみを保存し、画像ファイルと地図キャッシュは含みません。',
   backupProcessing: 'バックアップデータを処理中',
   backupFileSummary: 'バックアップの内容',
   backupExportedAt: 'バックアップ日時：{{date}}',
+  backupRestoreScopeDescription: 'バックアップに含まれるデータ種別のみを復元します。含まれないデータは変更されません。',
   backupRestoreMode: '復元方法',
   backupMerge: '統合',
   backupMergeDescription:
     '現在のデータを残し、不足しているお気に入り、プラン、スポットを追加します。既存スポットの完了状態と順序は保持し、新しいスポットは末尾に追加します。',
   backupOverwrite: '上書き',
-  backupOverwriteDescription: '現在のお気に入りとプランをすべて置き換え、バックアップの状態、順序、日時を復元します。',
+  backupOverwriteDescription:
+    'バックアップに含まれるデータ種別を置き換え、状態、順序、日時を復元します。含まれない種別は変更されません。',
   backupStartRestore: 'データを復元',
   backupConfirmOverwrite: '上書き復元を確定',
   backupOverwriteWarning:
-    '現在のお気に入り {{favoriteCount}} 件とプラン {{planCount}} 件が置き換えられます。バックアップにないデータは削除されます。この操作は取り消せません。',
+    '現在の{{dataCounts}}が置き換えられます。対象のデータ種別では、バックアップにないデータが削除されます。この操作は取り消せません。',
   backupRestoreSucceeded:
     '復元しました。お気に入り {{favoriteCount}} 件、プラン {{planCount}} 件、プラン内のスポット {{pointCount}} 件があります。',
   backupInvalidData: 'バックアップの形式またはデータが無効です。データは復元されていません。',

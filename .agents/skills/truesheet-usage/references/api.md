@@ -72,7 +72,6 @@ These fire in pairs — "will" before the animation and "did" after.
 | `onDidPresent` | `DetentInfoEventPayload` | Finished presenting |
 | `onWillDismiss` | — | About to start dismissing |
 | `onDidDismiss` | — | Finished dismissing |
-| `onDismissAttempt` | — | User tried to dismiss while `dismissible={false}` (drag, back/escape, a11y — not dim tap). Sheet stays open — confirm, then call `dismiss()`. Consumes Android back press |
 
 ### Detent and drag events
 

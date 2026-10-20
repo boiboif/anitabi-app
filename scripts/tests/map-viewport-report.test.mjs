@@ -23,6 +23,7 @@ function createHarness() {
     forwardRef: (render) => render,
     useCallback: (callback) => callback,
     useEffect: () => {},
+    useLayoutEffect: () => {},
     useMemo: (calculate) => calculate(),
     useRef: (current) => ({ current }),
     useState: (value) => [value, () => {}],

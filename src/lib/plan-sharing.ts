@@ -152,6 +152,10 @@ export function createPlanShareBundle(plan: ItineraryPlan): PlanShareBundle {
   };
 }
 
+export function canSharePlanAsQr(plan: ItineraryPlan): boolean {
+  return plan.items.length <= PLAN_SHARE_MAX_QR_ITEMS && createPlanShareBundle(plan).qrEligible;
+}
+
 export function createSharedPlanFileContent(plan: ItineraryPlan): string {
   const data = createSharedPlan(plan);
   if (data.i.length > PLAN_SHARE_MAX_FILE_ITEMS) {

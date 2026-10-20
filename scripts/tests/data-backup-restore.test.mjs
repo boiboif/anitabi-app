@@ -6,6 +6,7 @@ import { after, beforeEach, test } from 'node:test';
 const harness = {
   stores: new Map(),
   publications: [],
+  mutations: [],
   failKey: null,
   favorites: { favoritePoints: [], favoriteKeys: new Set() },
   plans: { plans: [], planListSortOrder: 'desc' },
@@ -16,13 +17,17 @@ const harness = {
       getString: (key) => values.get(key),
       contains: (key) => values.has(key),
       set: (key, value) => {
+        this.mutations.push({ id, key });
         values.set(key, value);
         if (this.failKey === key) {
           this.failKey = null;
           throw new Error('Simulated storage failure after mutation');
         }
       },
-      remove: (key) => values.delete(key),
+      remove: (key) => {
+        this.mutations.push({ id, key });
+        values.delete(key);
+      },
     };
   },
   publish(target, next) {
@@ -96,6 +101,7 @@ beforeEach(() => {
   harness.favorites = { favoritePoints: [], favoriteKeys: new Set() };
   harness.plans = { plans: [], planListSortOrder: 'desc' };
   harness.publications = [];
+  harness.mutations = [];
   harness.failKey = null;
 });
 
@@ -148,4 +154,122 @@ test('empty backup overwrite clears persisted and in-memory collections and prev
   assert.equal(harness.favorites.favoriteKeys.size, 0);
   assert.equal(initializeDemoPlan(plan), null);
   assert.deepEqual(getPlans(), []);
+});
+
+test('favorites-only overwrite writes and publishes favorites while keeping plans and their preference intact', () => {
+  restoreDataBackup({ favoritePoints: [favorite], plans: [plan], planListSortOrder: 'asc' }, 'overwrite');
+  const previousPlans = harness.plans;
+  const planStorage = harness.stores.get('anitabi-plans');
+  const previousRawPlans = new Map(planStorage);
+  harness.publications = [];
+  harness.mutations = [];
+  harness.failKey = 'itinerary-plans-v1';
+
+  const next = restoreDataBackup({ favoritePoints: [] }, 'overwrite');
+  assert.deepEqual(next, { favoritePoints: [], plans: [plan], planListSortOrder: 'asc' });
+  assert.deepEqual(getCurrentBackupData(), next);
+  assert.deepEqual(getFavoritePoints(), []);
+  assert.equal(harness.favorites.favoriteKeys.size, 0);
+  assert.strictEqual(harness.plans, previousPlans);
+  assert.deepEqual(planStorage, previousRawPlans);
+  assert.deepEqual(harness.mutations, [{ id: 'anitabi-favorites', key: 'favorite-points-v1' }]);
+  assert.deepEqual(
+    harness.publications.map(({ target }) => target),
+    ['favorites'],
+  );
+  assert.equal(harness.failKey, 'itinerary-plans-v1');
+});
+
+test('plans-only overwrite writes and publishes plans while preserving favorite data and membership', () => {
+  restoreDataBackup({ favoritePoints: [favorite], plans: [plan], planListSortOrder: 'asc' }, 'overwrite');
+  const previousFavorites = harness.favorites;
+  const previousKeys = harness.favorites.favoriteKeys;
+  const favoriteStorage = harness.stores.get('anitabi-favorites');
+  const previousRawFavorites = new Map(favoriteStorage);
+  harness.publications = [];
+  harness.mutations = [];
+  harness.failKey = 'favorite-points-v1';
+
+  const next = restoreDataBackup({ plans: [], planListSortOrder: 'desc' }, 'overwrite');
+  assert.deepEqual(next, { favoritePoints: [favorite], plans: [], planListSortOrder: 'desc' });
+  assert.deepEqual(getCurrentBackupData(), next);
+  assert.deepEqual(getPlans(), []);
+  assert.equal(getPlanListSortOrder(), 'desc');
+  assert.strictEqual(harness.favorites, previousFavorites);
+  assert.strictEqual(harness.favorites.favoriteKeys, previousKeys);
+  assert.deepEqual(favoriteStorage, previousRawFavorites);
+  assert.deepEqual(harness.mutations, [
+    { id: 'anitabi-plans', key: 'itinerary-plans-v1' },
+    { id: 'anitabi-plans', key: 'itinerary-plan-list-sort-order-v1' },
+  ]);
+  assert.deepEqual(
+    harness.publications.map(({ target }) => target),
+    ['plans'],
+  );
+  assert.equal(harness.failKey, 'favorite-points-v1');
+  assert.equal(initializeDemoPlan(plan), null);
+});
+
+test('partial imports leave omitted storage keys absent and favorites-only import retains first-install demo behavior', () => {
+  restoreDataBackup({ favoritePoints: [favorite] }, 'overwrite');
+  const planStorage = harness.stores.get('anitabi-plans');
+  assert.equal(planStorage.has('itinerary-plans-v1'), false);
+  assert.equal(planStorage.has('itinerary-plan-list-sort-order-v1'), false);
+  assert.deepEqual(initializeDemoPlan(plan), plan);
+  assert.deepEqual(getPlans(), [plan]);
+
+  const favoriteStorage = harness.stores.get('anitabi-favorites');
+  favoriteStorage.clear();
+  harness.mutations = [];
+  harness.publications = [];
+  restoreDataBackup({ plans: [plan], planListSortOrder: 'asc' }, 'overwrite');
+  assert.equal(favoriteStorage.has('favorite-points-v1'), false);
+  assert.ok(harness.mutations.every(({ id }) => id === 'anitabi-plans'));
+  assert.deepEqual(
+    harness.publications.map(({ target }) => target),
+    ['plans'],
+  );
+});
+
+test('plans-only merge persists local sort order and publishes only the plans store', () => {
+  restoreDataBackup({ favoritePoints: [favorite], plans: [], planListSortOrder: 'asc' }, 'overwrite');
+  harness.mutations = [];
+  harness.publications = [];
+  const next = restoreDataBackup({ plans: [plan], planListSortOrder: 'desc' }, 'merge');
+  assert.deepEqual(next, { favoritePoints: [favorite], plans: [plan], planListSortOrder: 'asc' });
+  assert.equal(getPlanListSortOrder(), 'asc');
+  assert.ok(harness.mutations.every(({ id }) => id === 'anitabi-plans'));
+  assert.deepEqual(
+    harness.publications.map(({ target }) => target),
+    ['plans'],
+  );
+});
+
+test('failed category-only restore rolls back selected raw values and never writes or publishes the omitted store', () => {
+  for (const target of ['favorites', 'plans']) {
+    const favoriteStorage = harness.stores.get('anitabi-favorites');
+    const planStorage = harness.stores.get('anitabi-plans');
+    favoriteStorage.clear();
+    planStorage.clear();
+    favoriteStorage.set('favorite-points-v1', '[]');
+    if (target === 'favorites') planStorage.set('itinerary-plans-v1', '[]');
+    const beforeFavorites = new Map(favoriteStorage);
+    const beforePlans = new Map(planStorage);
+    const beforeState = getCurrentBackupData();
+    harness.publications = [];
+    harness.mutations = [];
+    harness.failKey = target === 'favorites' ? 'favorite-points-v1' : 'itinerary-plan-list-sort-order-v1';
+    const incoming =
+      target === 'favorites' ? { favoritePoints: [favorite] } : { plans: [plan], planListSortOrder: 'asc' };
+    assert.throws(
+      () => restoreDataBackup(incoming, 'overwrite'),
+      (error) => error.code === 'writeFailed',
+    );
+    assert.deepEqual(favoriteStorage, beforeFavorites);
+    assert.deepEqual(planStorage, beforePlans);
+    assert.deepEqual(getCurrentBackupData(), beforeState);
+    assert.deepEqual(harness.publications, []);
+    assert.ok(harness.mutations.length > 0);
+    assert.ok(harness.mutations.every(({ id }) => id === `anitabi-${target}`));
+  }
 });

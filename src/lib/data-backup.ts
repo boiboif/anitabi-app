@@ -1,27 +1,25 @@
-import type { BackupFavoritePointV1, BackupPlanItemV1, BackupPlanV1, DataBackupV1 } from './data-backup-schema';
+import type { BackupFavoritePointV1, BackupPlanItemV1, BackupPlanV1, DataBackupV2 } from './data-backup-schema';
 import { strToU8 } from 'fflate';
 
 export const BACKUP_TYPE = 'anitabi-backup' as const;
-export const BACKUP_VERSION = 1 as const;
+export const BACKUP_VERSION = 2 as const;
 export const MAX_BACKUP_FILE_BYTES = 20 * 1024 * 1024;
 
-export type DataBackup = DataBackupV1;
-export type BackupData = DataBackup['data'];
+export type DataBackup = DataBackupV2;
+export type BackupContents = DataBackup['data'];
+export type BackupData = Required<BackupContents>;
+export type BackupSelection = { favoritePoints: boolean; plans: boolean };
 
 // Each entry upgrades data from its key version to the immediately next version.
-// Version 1 is the first format; register 1 -> 2 when introducing version 2.
 export type BackupMigrations = Readonly<Partial<Record<number, (data: unknown) => unknown>>>;
-const BACKUP_MIGRATIONS: BackupMigrations = {};
+const BACKUP_MIGRATIONS: BackupMigrations = {
+  // V1 is validated as a full backup before migration; both categories remain included.
+  1: (data) => data,
+};
 
 export type BackupRestoreMode = 'merge' | 'overwrite';
 export type BackupErrorCode =
-  | 'invalid'
-  | 'wrongType'
-  | 'unsupportedVersion'
-  | 'migrationFailed'
-  | 'tooLarge'
-  | 'writeFailed'
-  | 'rollbackFailed';
+  'invalid' | 'wrongType' | 'unsupportedVersion' | 'migrationFailed' | 'tooLarge' | 'writeFailed' | 'rollbackFailed';
 
 export class BackupError extends Error {
   readonly code: BackupErrorCode;
@@ -108,6 +106,27 @@ function isPlan(value: unknown): value is BackupPlanV1 {
   );
 }
 
+function isFullBackupData(value: unknown): value is BackupData {
+  return (
+    isRecord(value) &&
+    isUniqueArray(value.favoritePoints, isFavoritePoint, (item) => item.key) &&
+    isUniqueArray(value.plans, isPlan, (plan) => plan.id) &&
+    (value.planListSortOrder === 'asc' || value.planListSortOrder === 'desc')
+  );
+}
+
+function isBackupContents(value: unknown): value is BackupContents {
+  return (
+    isRecord(value) &&
+    (value.favoritePoints !== undefined || value.plans !== undefined) &&
+    (value.favoritePoints === undefined || isUniqueArray(value.favoritePoints, isFavoritePoint, (item) => item.key)) &&
+    (value.plans === undefined
+      ? value.planListSortOrder === undefined
+      : isUniqueArray(value.plans, isPlan, (plan) => plan.id) &&
+        (value.planListSortOrder === 'asc' || value.planListSortOrder === 'desc'))
+  );
+}
+
 export function migrateBackupData(
   data: unknown,
   sourceVersion: number,
@@ -156,21 +175,20 @@ function validateBackup(value: unknown, migrate = false): DataBackup {
     value.version < 1
   )
     throw new BackupError('invalid');
+  // Missing V1 fields are corruption, not an intentional partial backup.
+  if (value.version === 1 && !isFullBackupData(value.data)) throw new BackupError('invalid');
   const data = migrate ? migrateBackupData(value.data, value.version, BACKUP_VERSION, BACKUP_MIGRATIONS) : value.data;
   if (!migrate && value.version !== BACKUP_VERSION) throw new BackupError('unsupportedVersion');
-  if (
-    !isRecord(data) ||
-    !isUniqueArray(data.favoritePoints, isFavoritePoint, (item) => item.key) ||
-    !isUniqueArray(data.plans, isPlan, (plan) => plan.id) ||
-    (data.planListSortOrder !== 'asc' && data.planListSortOrder !== 'desc')
-  )
-    throw new BackupError('invalid');
+  if (!isBackupContents(data)) throw new BackupError('invalid');
   return {
     type: BACKUP_TYPE,
     version: BACKUP_VERSION,
     appVersion: value.appVersion,
     exportedAt: value.exportedAt,
-    data: { favoritePoints: data.favoritePoints, plans: data.plans, planListSortOrder: data.planListSortOrder },
+    data: {
+      ...(data.favoritePoints !== undefined ? { favoritePoints: data.favoritePoints } : {}),
+      ...(data.plans !== undefined ? { plans: data.plans, planListSortOrder: data.planListSortOrder } : {}),
+    },
   };
 }
 
@@ -187,7 +205,15 @@ export function parseDataBackup(content: string): DataBackup {
   return validateBackup(value, true);
 }
 
-export function createDataBackupContent(data: BackupData, appVersion: string, date = new Date()): string {
+export function selectBackupData(data: BackupData, selection: BackupSelection): BackupContents {
+  if (!selection.favoritePoints && !selection.plans) throw new BackupError('invalid');
+  return {
+    ...(selection.favoritePoints ? { favoritePoints: data.favoritePoints } : {}),
+    ...(selection.plans ? { plans: data.plans, planListSortOrder: data.planListSortOrder } : {}),
+  };
+}
+
+export function createDataBackupContent(data: BackupContents, appVersion: string, date = new Date()): string {
   const backup = validateBackup({
     type: BACKUP_TYPE,
     version: BACKUP_VERSION,
@@ -205,38 +231,54 @@ export function getBackupFileName(date = new Date()): string {
   return `anitabi-backup-${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}-${date.getMilliseconds()}.json`;
 }
 
-export function getBackupSummary(data: BackupData) {
+export function getBackupSummary(data: BackupContents) {
   let pointCount = 0;
   let completedCount = 0;
-  for (const plan of data.plans) {
+  for (const plan of data.plans ?? []) {
     pointCount += plan.items.length;
     for (const item of plan.items) if (item.completed) completedCount++;
   }
-  return { favoriteCount: data.favoritePoints.length, planCount: data.plans.length, pointCount, completedCount };
+  return {
+    favoriteCount: data.favoritePoints?.length ?? 0,
+    planCount: data.plans?.length ?? 0,
+    pointCount,
+    completedCount,
+  };
 }
 
-export function prepareBackupRestore(current: BackupData, incoming: BackupData, mode: BackupRestoreMode): BackupData {
-  if (mode === 'overwrite') return incoming;
+export function prepareBackupRestore(
+  current: BackupData,
+  incoming: BackupContents,
+  mode: BackupRestoreMode,
+): BackupData {
+  if (mode === 'overwrite') {
+    return {
+      favoritePoints: incoming.favoritePoints ?? current.favoritePoints,
+      plans: incoming.plans ?? current.plans,
+      planListSortOrder: incoming.planListSortOrder ?? current.planListSortOrder,
+    };
+  }
   const favoriteKeys = new Set(current.favoritePoints.map((item) => item.key));
-  const importedPlans = new Map(incoming.plans.map((plan) => [plan.id, plan]));
+  const importedPlans = new Map(incoming.plans?.map((plan) => [plan.id, plan]));
   const planIds = new Set(current.plans.map((plan) => plan.id));
   return {
-    favoritePoints: [
-      ...current.favoritePoints,
-      ...incoming.favoritePoints.filter((item) => !favoriteKeys.has(item.key)),
-    ],
-    plans: [
-      ...current.plans.map((plan) => {
-        const imported = importedPlans.get(plan.id);
-        if (!imported) return plan;
-        const itemKeys = new Set(plan.items.map((item) => item.key));
-        const added = imported.items.filter((item) => !itemKeys.has(item.key));
-        return added.length
-          ? { ...plan, items: [...plan.items, ...added], updatedAt: Math.max(plan.updatedAt, imported.updatedAt) }
-          : plan;
-      }),
-      ...incoming.plans.filter((plan) => !planIds.has(plan.id)),
-    ],
+    favoritePoints: incoming.favoritePoints
+      ? [...current.favoritePoints, ...incoming.favoritePoints.filter((item) => !favoriteKeys.has(item.key))]
+      : current.favoritePoints,
+    plans: incoming.plans
+      ? [
+          ...current.plans.map((plan) => {
+            const imported = importedPlans.get(plan.id);
+            if (!imported) return plan;
+            const itemKeys = new Set(plan.items.map((item) => item.key));
+            const added = imported.items.filter((item) => !itemKeys.has(item.key));
+            return added.length
+              ? { ...plan, items: [...plan.items, ...added], updatedAt: Math.max(plan.updatedAt, imported.updatedAt) }
+              : plan;
+          }),
+          ...incoming.plans.filter((plan) => !planIds.has(plan.id)),
+        ]
+      : current.plans,
     planListSortOrder: current.planListSortOrder,
   };
 }

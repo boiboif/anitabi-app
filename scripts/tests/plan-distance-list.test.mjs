@@ -21,6 +21,7 @@ function loadSource(path, modules) {
 }
 
 const distances = loadSource('../../src/utils/plan-point-distances.ts', {});
+const cardListLayout = loadSource('../../src/lib/card-list-layout.ts', {});
 const plain = (value) => JSON.parse(JSON.stringify(value));
 
 function findNode(tree, predicate) {
@@ -84,7 +85,17 @@ function createHarness() {
   const slots = [];
   const contexts = [];
   const planSubscribers = new Set();
-  const calls = { reorder: [], toggle: [], remove: [], navigate: [], writes: [], alerts: [], toasts: [], settings: 0, distanceSorts: 0 };
+  const calls = {
+    reorder: [],
+    toggle: [],
+    remove: [],
+    navigate: [],
+    writes: [],
+    alerts: [],
+    toasts: [],
+    settings: 0,
+    distanceSorts: 0,
+  };
   const geo = { far: [36, 139], near: [35.001, 139], completed: [35, 139], invalid: [0, 0] };
   const plan = {
     id: 'plan',
@@ -209,7 +220,12 @@ function createHarness() {
       update();
     },
   };
-  const theme = { primary: { val: '#123' }, color8: { val: '#456' }, background: { val: '#fff' } };
+  const theme = {
+    primary: { val: '#123' },
+    color8: { val: '#456' },
+    background: { val: '#fff' },
+    pageBackground: { val: '#fff' },
+  };
   const jsx = {
     jsx: (type, props) => ({ type, props }),
     jsxs: (type, props) => ({ type, props }),
@@ -233,11 +249,21 @@ function createHarness() {
     'react-native': { Alert: { alert: (...args) => calls.alerts.push(args) }, Linking: {}, Pressable: 'Pressable' },
     'react-native-safe-area-context': { useSafeAreaInsets: () => ({ bottom: 0 }) },
     tamagui,
-    'expo-router': { Stack: { Screen: 'Screen' }, useIsFocused: () => isFocused, useLocalSearchParams: () => params, useRouter: () => router },
+    'expo-router': {
+      Stack: { Screen: 'Screen' },
+      useIsFocused: () => isFocused,
+      useLocalSearchParams: () => params,
+      useRouter: () => router,
+    },
     '@boiboif/react-native-toast': { Toast: { show: (message) => calls.toasts.push(message) } },
     '@tamagui/lucide-icons-2': { Square: 'Square', SquareCheckBig: 'SquareCheckBig' },
     '@/components/ui/action-sheet': { ActionSheet: 'ActionSheet' },
-    '@/components/point/point-list-card': { __esModule: true, default: 'PointListCard' },
+    '@/components/point/point-list-card': {
+      __esModule: true,
+      default: 'PointListCard',
+      POINT_LIST_CARD_HEIGHT: 110,
+    },
+    '@/components/ui/card-list-item': { __esModule: true, default: 'CardListItem' },
     '@/components/plan/plan-list-settings-sheet': { __esModule: true, default: 'PlanListSettingsSheet' },
     '@/components/ui/stable-reorderable-list': { __esModule: true, default: 'StableReorderableList' },
     '@/components/ui/strict-button': { StrictButton: 'Button' },
@@ -254,6 +280,7 @@ function createHarness() {
       },
     },
     '@/lib/localized-data': { getPointTitle: (point) => point.id, getBangumiTitle: () => 'Work' },
+    '@/lib/card-list-layout': cardListLayout,
     '@/lib/plan-share-files': {},
     '@/lib/plan-sharing': {},
     '@/lib/ui-sizes': {},
@@ -361,7 +388,7 @@ function createHarness() {
       const list = findNode(render(), (node) => node.type === 'StableReorderableList');
       const item = list.props.data.find((row) => row.id === `1:${id}`);
       const row = list.props.renderItem({ item });
-      return row.type(row.props);
+      return findNode(row.type(row.props), (node) => node.type === 'PointListCard');
     },
   };
 }
@@ -406,11 +433,18 @@ test('distance mode retains the saved order and locating labels until the first 
 
   page.setLocationFix({ latitude: 35, longitude: 139 });
   assert.deepEqual(plain(page.list.props.data.map((item) => item.id)), [
-    '1:completed', '1:near', '1:snapshot', '1:far', '1:invalid',
+    '1:completed',
+    '1:near',
+    '1:snapshot',
+    '1:far',
+    '1:invalid',
   ]);
   assert.equal(page.card('near').props.meta, 'planDistanceMeters');
   assert.equal(page.card('invalid').props.meta, 'planDistanceUnknown');
-  assert.deepEqual(page.plan.items.map((item) => item.key), originalIds);
+  assert.deepEqual(
+    page.plan.items.map((item) => item.key),
+    originalIds,
+  );
   assert.equal(page.calls.writes.length, 0);
 });
 
@@ -440,9 +474,7 @@ test('add navigation keeps the last distance projection during blur, then refocu
   assert.equal(nearDistance, 'planDistanceMeters');
 
   page.headerButton('addLocations').props.onPress();
-  assert.deepEqual(plain(page.calls.navigate), [
-    { pathname: '/plans/[planId]/add', params: { planId: 'plan' } },
-  ]);
+  assert.deepEqual(plain(page.calls.navigate), [{ pathname: '/plans/[planId]/add', params: { planId: 'plan' } }]);
   page.setFocused(false);
   assert.equal(page.locationActive, false);
   assert.equal(page.toggle.props.checked, true);
@@ -454,14 +486,24 @@ test('add navigation keeps the last distance projection during blur, then refocu
   page.replaceItems([added, ...page.plan.items]);
   assert.equal(page.calls.distanceSorts, sortsBeforeBlur + 1, 'a blurred store update uses the last valid location');
   assert.deepEqual(plain(page.list.props.data.map((item) => item.id)), [
-    '1:completed', '1:near', '1:snapshot', '1:far-copy', '1:far', '1:invalid',
+    '1:completed',
+    '1:near',
+    '1:snapshot',
+    '1:far-copy',
+    '1:far',
+    '1:invalid',
   ]);
   assert.equal(page.card('near').props.meta, nearDistance, 'blurred store updates retain distance labels');
 
   page.setFocused(true);
   assert.equal(page.locationActive, true);
   assert.deepEqual(plain(page.list.props.data.map((item) => item.id)), [
-    '1:far-copy', '1:far', '1:near', '1:completed', '1:snapshot', '1:invalid',
+    '1:far-copy',
+    '1:far',
+    '1:near',
+    '1:completed',
+    '1:snapshot',
+    '1:invalid',
   ]);
   assert.equal(page.card('near').props.meta, 'planDistanceLocating');
   assert.equal(page.calls.distanceSorts, sortsBeforeBlur + 1);
@@ -698,7 +740,7 @@ test('select all and clear selection do not write; leaving sorting clears select
   assert.equal(page.list.props.enabled, true);
   const item = page.list.props.data[0];
   const row = page.list.props.renderItem({ item, dragHandle: 'handle' });
-  assert.equal(row.type(row.props).props.trailing, 'handle');
+  assert.equal(findNode(row.type(row.props), (node) => node.type === 'PointListCard').props.trailing, 'handle');
   page.headerButton('finishReordering').props.onPress();
   page.render();
   page.headerButton('reorderLocations').props.onPress();

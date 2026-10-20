@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
 import ts from 'typescript';
+import * as cardListLayout from '../../src/lib/card-list-layout.ts';
 
 const source = readFileSync(
   new URL('../../src/components/plan/plan-map-point-list-sheet.tsx', import.meta.url),
@@ -76,6 +77,7 @@ function createHarness(
   };
   const jsx = (type, props) => ({ type, props });
   const modules = {
+    '@/lib/card-list-layout': cardListLayout,
     react,
     'react/jsx-runtime': { jsx, jsxs: jsx },
     'react-i18next': { useTranslation: () => ({ t: (_, options) => options?.defaultValue }) },

@@ -4,7 +4,7 @@ import {
   getBackupFileName,
   MAX_BACKUP_FILE_BYTES,
   parseDataBackup,
-  type BackupData,
+  type BackupContents,
   type DataBackup,
 } from '@/lib/data-backup';
 import i18n from '@/i18n';
@@ -13,7 +13,7 @@ import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 
-export async function exportDataBackup(data: BackupData, appVersion: string): Promise<void> {
+export async function exportDataBackup(data: BackupContents, appVersion: string): Promise<void> {
   const date = new Date();
   const content = createDataBackupContent(data, appVersion, date);
   const name = getBackupFileName(date);

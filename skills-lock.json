@@ -130,10 +130,10 @@
     },
     "truesheet-usage": {
       "source": "lodev09/react-native-true-sheet",
-      "ref": "main",
+      "ref": "v3.11.18",
       "sourceType": "github",
       "skillPath": "skills/truesheet-usage/SKILL.md",
-      "computedHash": "709832e34119c734bbeb4b668b749d884045d52f693fe1f167049fd029612bcc"
+      "computedHash": "9f4759f7beacb9b86e43565f2187111dde9598351996100bdd865e942bbc0131"
     }
   }
 }

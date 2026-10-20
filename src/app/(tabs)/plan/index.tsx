@@ -6,7 +6,7 @@ import { StrictButton as Button } from '@/components/ui/strict-button';
 import { usePlanImportActions } from '@/hooks/use-plan-import-actions';
 import { getCardListBoundarySpacing } from '@/lib/card-list-layout';
 import { sharePlanFile } from '@/lib/plan-share-files';
-import { createPlanShareBundle } from '@/lib/plan-sharing';
+import { canSharePlanAsQr } from '@/lib/plan-sharing';
 import type { ItineraryPlan } from '@/lib/plan-storage';
 import { BLOCK_BUTTON_ICON_SIZE, ICON_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';
 import { usePlans } from '@/store/use-plans';
@@ -178,8 +178,7 @@ export default function PlansScreen() {
       return;
     }
 
-    const bundle = createPlanShareBundle(selectedPlan);
-    if (bundle.qrEligible) {
+    if (canSharePlanAsQr(selectedPlan)) {
       router.navigate({ pathname: '/plans/[planId]/share', params: { planId: selectedPlan.id } } as never);
       return;
     }
