@@ -17,12 +17,12 @@ export default function PlanSortButton({ sortOrder, onPress }: Props) {
       chromeless
       circular
       size="$3"
-      color="$color8"
+      color="$color12"
       icon={
         sortOrder === 'desc' ? (
-          <ArrowDownWideNarrow size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} color="$color11" />
+          <ArrowDownWideNarrow size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />
         ) : (
-          <ArrowUpNarrowWide size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} color="$color11" />
+          <ArrowUpNarrowWide size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />
         )
       }
       aria-label={

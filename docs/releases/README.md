@@ -151,7 +151,7 @@ yarn release:manifest --from-github --min-supported-build-number 1001
 npx eas-cli@21.8.0 update --channel production --environment production --platform all --message "更新说明" --non-interactive
 ```
 
-工作流只能从 `main` 分支运行，并会在发布前检查 `app.config.ts` 的基础版本是否与目标 channel 最新整包清单中的 `version` 相同；基础版本不一致时工作流会直接报错。SDK 58 的 `runtimeVersion` 使用 `${appVersion}-sdk58`（当前为 `0.7.0-sdk58`），不包含 `preview.N` 展示后缀。SDK 57 的旧包使用 `0.7.0`，不会接收 SDK 58 的热更新。工作流的版本检查只比较基础版本，不能证明已经发布相同 runtime 的原生包；升级 SDK 后必须先发布使用新 runtime 的整包，再发布热更新。
+工作流只能从 `main` 分支运行，并会在发布前检查 `app.config.ts` 的基础版本是否与目标 channel 最新整包清单中的 `version` 相同；基础版本不一致时工作流会直接报错。SDK 58 的 `runtimeVersion` 使用 `${appVersion}-sdk58`（当前为 `0.8.0-sdk58`），不包含 `preview.N` 展示后缀。SDK 57 的旧包使用 `0.7.0`，不会接收 SDK 58 的热更新。工作流的版本检查只比较基础版本，不能证明已经发布相同 runtime 的原生包；升级 SDK 后必须先发布使用新 runtime 的整包，再发布热更新。
 
 `preview` 和 `production` 分别使用独立的 EAS channel、EAS environment 和整包更新清单。工作流会自动创建首次使用的 EAS channel；Preview 热更新固定注入 `docs/releases/preview.json`，Production 热更新使用 `docs/releases/latest.json`，更新配置中的应用版本统一使用基础版本。清单的 `displayVersion` 继续用于待升级版本展示。热更新会同时发布 Android 和 iOS Update，各平台只会接收与自身 runtime version 匹配的更新。
 
