@@ -31,9 +31,7 @@ The app currently supports map browsing, anime location rendering and search, fa
 
 - **Explore the map**: Browse anime locations around the world and filter pilgrimage spots by anime title.
 - **Search and favorites**: Search for anime titles and locations, save places you want to visit or have already visited, view location details, and open them directly in a navigation app.
-- **Pilgrimage plans**: Organize multiple locations into dedicated itineraries, then share or import them using QR codes or plan files. View plan locations from nearest to farthest by straight-line distance, optionally filtering to incomplete locations, while keeping your saved route order.
-- **Batch additions**: Add all locations from a work or one of the existing groups in its details to a plan, skipping entries already in that plan. Search for works and return to choose another work.
-- **Plan organization**: Adjust incomplete-location filtering and distance sorting in a list-settings bottom sheet. In manual sorting mode, select multiple locations and confirm before removing them together.
+- **Pilgrimage plans**: Organize places you want to visit into an itinerary, view it on the map, and share it with friends via QR codes or files.
 - **Comparison photography**: Use an anime screenshot as an on-site composition guide, take a photo, and generate a side-by-side pilgrimage comparison image.
 - **Local-first**: No account is required. Favorites, plans, and generated images are stored on your device by default.
 - **Optimized caching**: Map data and image assets are cached to reduce repeated loading and keep browsing smooth when the network is unstable.
