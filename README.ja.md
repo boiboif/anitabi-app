@@ -101,3 +101,11 @@ Anitabi App は非公式のオープンソースクライアントであり、[a
 ## コントリビューション
 
 Issue、コード改善、ドキュメント更新、製品への提案を歓迎します。参加方法は[コントリビューションガイド](CONTRIBUTING.md)をご覧ください。
+
+## Buy me a coffee
+
+Anitabi App が聖地巡礼のお役に立てたら、コーヒー一杯分のご支援をいただけるとうれしいです。今後の開発とメンテナンスの励みになります。
+
+| WeChat Pay | Alipay |
+| :---: | :---: |
+| <img src="docs/public/donate/wechat.png" width="200" alt="WeChat Pay の支払い用 QR コード" /> | <img src="docs/public/donate/alipay.png" width="200" alt="Alipay の支払い用 QR コード" /> |

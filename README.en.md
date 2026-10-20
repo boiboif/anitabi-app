@@ -101,3 +101,11 @@ Original code in this project is licensed under the [GNU General Public License 
 ## Contributing
 
 Issues, code improvements, documentation updates, and product suggestions are welcome. See the [Contributing Guide](CONTRIBUTING.md) to get involved.
+
+## Buy me a coffee
+
+If Anitabi App helps with your pilgrimages, you can buy me a coffee to support its continued development and maintenance.
+
+| WeChat Pay | Alipay |
+| :---: | :---: |
+| <img src="docs/public/donate/wechat.png" width="200" alt="WeChat Pay payment QR code" /> | <img src="docs/public/donate/alipay.png" width="200" alt="Alipay payment QR code" /> |

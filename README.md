@@ -99,3 +99,11 @@ Anitabi App 是非官方开源客户端，与 [anitabi.cn](https://www.anitabi.c
 ## 贡献
 
 欢迎提交 Issue、改进代码、完善文档或提出产品建议。参与方式见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+## Buy me a coffee
+
+如果 Anitabi App 对你的巡礼有帮助，欢迎请我喝杯咖啡，支持后续开发与维护。
+
+| 微信支付 | 支付宝 |
+| :---: | :---: |
+| <img src="docs/public/donate/wechat.png" width="200" alt="微信支付收款二维码" /> | <img src="docs/public/donate/alipay.png" width="200" alt="支付宝收款二维码" /> |
