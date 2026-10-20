@@ -42,7 +42,7 @@ function inTimeZone(zone, run) {
   }
 }
 
-// Baseline from both pages before this extraction: local dates, rounding and localized labels.
+// Both pages share these baseline semantics: local dates, rounding and localized labels.
 function legacyGroups(items, getTimestamp, { now, language, todayLabel, yesterdayLabel }) {
   const groups = new Map();
   for (const item of items) {
@@ -194,6 +194,9 @@ function pageGroupingHarness(path, componentName, groupName, initialContext) {
   const component = parsed.statements.find(
     (node) => ts.isFunctionDeclaration(node) && node.name?.text === componentName,
   );
+  const dateGroupHelper = parsed.statements.find(
+    (node) => ts.isFunctionDeclaration(node) && node.name?.text === 'getDateGroup',
+  );
   const declarations = component.body.statements
     .filter(ts.isVariableStatement)
     .flatMap((node) => [...node.declarationList.declarations]);
@@ -204,7 +207,8 @@ function pageGroupingHarness(path, componentName, groupName, initialContext) {
     return `const ${name} = ${declaration.initializer.getText(parsed)};`;
   });
   const compiled = ts.transpileModule(
-    `exports.render = () => { ${extracted.join('\n')} return { groups: ${groupName}, listItems, stickyHeaderIndices }; };`,
+    `${dateGroupHelper?.getText(parsed) ?? ''}
+    exports.render = () => { ${extracted.join('\n')} return { groups: ${groupName}, listItems, stickyHeaderIndices }; };`,
     { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } },
   ).outputText;
   const slots = [];
@@ -241,16 +245,63 @@ function pageGroupingHarness(path, componentName, groupName, initialContext) {
   };
 }
 
+test('FavoritesScreen preserves date grouping in both views and localized history rows and sticky headers', () => {
+  const entries = [
+    { favorite: { key: 'a', addedAt: new Date(2020, 0, 17, 12).getTime() } },
+    { favorite: { key: 'b', addedAt: new Date(2020, 0, 17, 0).getTime() } },
+    { favorite: { key: 'c', addedAt: new Date(2020, 0, 16, 10).getTime() } },
+  ];
+  const bangumiGroups = [{ id: 1, items: entries }];
+  const harness = pageGroupingHarness('../../src/app/(tabs)/favorites.tsx', 'FavoritesScreen', 'historyGroups', {
+    view: 'bangumi',
+    resolvedFavorites: entries,
+    bangumiGroups,
+  });
+
+  const initial = harness.render();
+  assert.equal(initial.groups.length, 2, 'the work view still computes its history groups');
+  assert.deepEqual(initial.groups[0][1], entries.slice(0, 2));
+  assert.deepEqual(initial.listItems, [{ type: 'bangumi', id: 'bangumi-1', group: bangumiGroups[0] }]);
+  assert.deepEqual(initial.stickyHeaderIndices, []);
+  assert.equal(harness.groupCalls, 0, 'the page keeps using its own date helper');
+
+  harness.context.view = 'history';
+  const history = harness.render();
+  assert.deepEqual(history.groups, initial.groups);
+  assert.deepEqual(
+    history.listItems.filter(({ type }) => type === 'date').map(({ label }) => label),
+    history.groups.map(([label]) => label),
+  );
+  assert.deepEqual(
+    history.listItems.filter(({ type }) => type === 'favorite').map(({ item }) => item),
+    entries,
+  );
+  assert.deepEqual(history.stickyHeaderIndices, [0, 3]);
+  assert.deepEqual(harness.render(), history);
+
+  harness.context.view = 'bangumi';
+  assert.deepEqual(harness.render(), initial);
+  harness.context.i18n.resolvedLanguage = 'en';
+  const localizedWork = harness.render();
+  assert.notEqual(localizedWork.groups[0][0], initial.groups[0][0]);
+  assert.deepEqual(localizedWork.listItems, initial.listItems);
+  assert.deepEqual(localizedWork.stickyHeaderIndices, []);
+
+  harness.context.view = 'history';
+  const returned = harness.render();
+  assert.deepEqual(returned.groups, localizedWork.groups);
+  assert.deepEqual(
+    returned.groups.map(([, items]) => items),
+    history.groups.map(([, items]) => items),
+  );
+  assert.deepEqual(
+    returned.listItems.filter(({ type }) => type === 'date').map(({ label }) => label),
+    returned.groups.map(([label]) => label),
+  );
+  assert.deepEqual(returned.stickyHeaderIndices, [0, 3]);
+});
+
 for (const page of [
-  {
-    path: '../../src/app/(tabs)/favorites.tsx',
-    component: 'FavoritesScreen',
-    group: 'historyGroups',
-    selector: 'view',
-    active: 'history',
-    inactive: 'bangumi',
-    items: 'resolvedFavorites',
-  },
   {
     path: '../../src/app/plans/[planId]/add.tsx',
     component: 'AddPlanPointsScreen',
