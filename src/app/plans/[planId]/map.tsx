@@ -30,8 +30,9 @@ import { ArrowLeft, List } from '@tamagui/lucide-icons-2';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Text, useTheme, View, YStack } from 'tamagui';
+import { Text, View, YStack } from 'tamagui';
 
 type CameraState = MapViewportState;
 
@@ -95,7 +96,6 @@ function findCircularPoint(
 
 export default function PlanMapScreen() {
   const { t } = useTranslation();
-  const theme = useTheme();
   const { planId, bangumiId, pointId } = useLocalSearchParams<{
     planId: string;
     bangumiId?: string;
@@ -424,18 +424,25 @@ export default function PlanMapScreen() {
             z={20}
             gap="$3"
           >
-            <Button
-              circular
-              width={MAP_CONTROL_SIZE}
-              height={MAP_CONTROL_SIZE}
-              p="$0"
-              style={{ backgroundColor: theme.background.val }}
-              borderWidth={0}
-              boxShadow="0 0 4px rgba(0,0,0,0.2)"
-              icon={<List size={MAP_CONTROL_ICON_SIZE} strokeWidth={2.1} color="$color11" />}
+            <Pressable
+              style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
               onPress={() => pointListSheetRef.current?.present()}
-              aria-label={t('viewPlanLocations', { defaultValue: '查看计划点位' })}
-            />
+              accessibilityRole="button"
+              accessibilityLabel={t('viewPlanLocations', { defaultValue: '查看计划点位' })}
+            >
+              <YStack
+                width={MAP_CONTROL_SIZE}
+                height={MAP_CONTROL_SIZE}
+                rounded={MAP_CONTROL_SIZE / 2}
+                bg="$background"
+                boxShadow="0 0 4px rgba(0,0,0,0.2)"
+                items="center"
+                justify="center"
+                pointerEvents="none"
+              >
+                <List size={MAP_CONTROL_ICON_SIZE} strokeWidth={2.1} color="$color11" />
+              </YStack>
+            </Pressable>
             <LocateButton loading={isLocating} onPress={handleLocate} />
           </YStack>
 
