@@ -76,7 +76,9 @@ function createPlans(initialPlans) {
       getBangumiTitle: (bangumi) => bangumi.title,
       getPointTitle: (matchedPoint) => matchedPoint.name,
     },
-    '@/i18n': { default: { t } },
+    '@/i18n': { __esModule: true, default: { t } },
+    '@/services/pilgrimage-records': { recordPilgrimageVisit: async () => {} },
+    'react-native': { Alert: { alert() {} } },
     zustand: {
       create(initialize) {
         state = initialize(

@@ -12,8 +12,10 @@ import {
   type PlanListSortOrder,
 } from '@/lib/plan-storage';
 import i18n from '@/i18n';
+import { recordPilgrimageVisit } from '@/services/pilgrimage-records';
 import type { Bangumi, Point } from '@/services/types';
 import type { PlanPointEntry } from '@/utils/plan-point-batches';
+import { Alert } from 'react-native';
 import { create } from 'zustand';
 
 function pointKey(bangumiId: number, pointId: string): string {
@@ -193,6 +195,11 @@ export const usePlans = create<PlansStore>((set, get) => ({
     return removedCount;
   },
   togglePoint: (planId, itemKey) => {
+    const item = get()
+      .plans.find((plan) => plan.id === planId)
+      ?.items.find((candidate) => candidate.key === itemKey);
+    if (!item) return;
+    const recordedAt = Date.now();
     save(
       get().plans.map((plan) =>
         plan.id === planId
@@ -205,6 +212,20 @@ export const usePlans = create<PlansStore>((set, get) => ({
       ),
       set,
     );
+    // Only the user's transition to completed creates a record. Loading,
+    // importing, restoring and cancelling completion leave records untouched.
+    if (!item.completed) {
+      const { key, bangumiId, pointId, snapshot } = item;
+      void recordPilgrimageVisit({ key, bangumiId, pointId, snapshot }, recordedAt).catch((error) => {
+        console.error('[pilgrimage-records] Failed to record completed plan point', error);
+        Alert.alert(
+          i18n.t('pilgrimageRecordSaveFailed', { defaultValue: '巡礼记录保存失败' }),
+          i18n.t('planCompletedButRecordFailed', {
+            defaultValue: '已标记当前计划点位完成，但巡礼记录未能保存。',
+          }),
+        );
+      });
+    }
   },
   movePoint: (planId, itemKey, direction) => {
     save(
