@@ -123,7 +123,9 @@ function createHarness() {
       setPlans: (plans) => calls.writes.push(plans),
     },
     '@/lib/localized-data': { getBangumiTitle: (work) => work.title, getPointTitle: (point) => point.id },
-    '@/i18n': { default: { t: (_, options) => options.defaultValue } },
+    '@/i18n': { __esModule: true, default: { t: (_, options) => options.defaultValue } },
+    '@/services/pilgrimage-records': { recordPilgrimageVisit: async () => {} },
+    'react-native': { Alert: { alert() {} } },
     zustand: {
       create: (initialize) => {
         planState = initialize(
@@ -284,6 +286,7 @@ function createHarness() {
     '@/lib/plan-share-files': {},
     '@/lib/plan-sharing': {},
     '@/lib/ui-sizes': {},
+    '@/tamagui.config': { PageHorizontalInset: 12 },
     '@/services/handlers': { buildImageUrl: () => undefined },
     '@/store/use-map-data': { useMapData: (selector) => selector(mapState) },
     '@/store/use-plans': { usePlans },

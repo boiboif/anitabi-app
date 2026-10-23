@@ -15,6 +15,7 @@ import {
 import { formatDuration } from '@/lib/formatDuration';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { getComparisonExportSettings, setComparisonExportSettings } from '@/lib/storage';
+import { savePilgrimagePhoto } from '@/services/pilgrimage-records';
 import type { Bangumi, Point } from '@/services/types';
 import { Toast } from '@boiboif/react-native-toast';
 import { Download, Images, RotateCcw, Settings2, Undo2, X } from '@tamagui/lucide-icons-2';
@@ -346,6 +347,7 @@ export default function ComparisonResultModal({
     let outputUri: string | undefined;
     let footerUri: string | undefined;
     let footerImage: NitroImage | undefined;
+    let savedToPhotos = false;
 
     try {
       setSaving(true);
@@ -433,6 +435,8 @@ export default function ComparisonResultModal({
       const outputPath = await canvas.saveToTemporaryFileAsync('jpg', EXPORT_JPEG_QUALITY);
       outputUri = `file://${outputPath}`;
       const asset = await MediaLibrary.Asset.create(outputUri);
+      savedToPhotos = true;
+      const recordedAt = Date.now();
       if (canOrganizeAlbum) {
         try {
           if (Platform.OS === 'ios') {
@@ -449,15 +453,44 @@ export default function ComparisonResultModal({
           console.error('[comparison-camera] Failed to organize comparison image album', error);
         }
       }
+      await savePilgrimagePhoto(
+        {
+          key: `${bangumi.id}:${point.id}`,
+          bangumiId: bangumi.id,
+          pointId: point.id,
+          snapshot: {
+            bangumiName: getBangumiTitle(bangumi) || t('unknownWork', { defaultValue: '未知作品' }),
+            pointName: getPointTitle(point) || t('unnamedLocation', { defaultValue: '未命名点位' }),
+            bangumiCover: bangumi.cover,
+            bangumiColor: bangumi.color,
+            pointImage: point.image,
+            pointMark: point.mark,
+            geo: point.geo,
+          },
+        },
+        outputUri,
+        layout.width,
+        layout.height,
+        recordedAt,
+      );
       Toast.show(t('comparisonImageSavedToPhotos', { defaultValue: '对比图已保存到相册' }));
     } catch (error) {
       console.error('[comparison-camera] Failed to export comparison image', error);
-      Alert.alert(
-        t('saveFailed', { defaultValue: '保存失败' }),
-        t('thereWasAProblemCreatingOrSavingTheImagePleaseTryAgainLater', {
-          defaultValue: '生成或保存对比图时出现问题，请稍后重试。',
-        }),
-      );
+      if (savedToPhotos) {
+        Alert.alert(
+          t('pilgrimageRecordSaveFailed', { defaultValue: '巡礼记录保存失败' }),
+          t('comparisonSavedButRecordFailed', {
+            defaultValue: '图片已保存到系统相册，但本次巡礼记录未能保存。',
+          }),
+        );
+      } else {
+        Alert.alert(
+          t('saveFailed', { defaultValue: '保存失败' }),
+          t('thereWasAProblemCreatingOrSavingTheImagePleaseTryAgainLater', {
+            defaultValue: '生成或保存对比图时出现问题，请稍后重试。',
+          }),
+        );
+      }
     } finally {
       canvas?.dispose();
       footerImage?.dispose();

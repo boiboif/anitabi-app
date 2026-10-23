@@ -1,7 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { registerHooks } from 'node:module';
+registerHooks({
+  resolve(specifier, context, next) {
+    if (specifier === '@/lib/pilgrimage-records')
+      return { url: new URL('../../src/lib/pilgrimage-records.ts', import.meta.url).href, shortCircuit: true };
+    return next(specifier, context);
+  },
+});
 import { createBackupStorageWrite } from '../../src/lib/backup-storage-write.ts';
-import {
+const {
   BackupError,
   createDataBackupContent,
   getBackupFileName,
@@ -12,7 +20,7 @@ import {
   prepareBackupRestore,
   runBackupWrites,
   selectBackupData,
-} from '../../src/lib/data-backup.ts';
+} = await import('../../src/lib/data-backup.ts');
 
 function favorite(pointId, overrides = {}) {
   return {
@@ -38,6 +46,7 @@ function data(overrides = {}) {
     favoritePoints: [favorite('a')],
     plans: [plan('p1', [item('b', true), item('a')]), plan('empty')],
     planListSortOrder: 'asc',
+    pilgrimageRecords: [],
     ...overrides,
   };
 }
@@ -45,7 +54,7 @@ function data(overrides = {}) {
 function file(overrides = {}) {
   return {
     type: 'anitabi-backup',
-    version: 2,
+    version: 3,
     appVersion: '0.5.0',
     exportedAt: '2026-10-08T07:30:00.000Z',
     data: data(),
@@ -65,7 +74,15 @@ test('full JSON round trip preserves favorites, empty plans, snapshots, timestam
   const content = createDataBackupContent(original, '0.5.0', new Date(file().exportedAt));
   assert.deepEqual(parseDataBackup(content), file());
   assert.deepEqual(parseDataBackup(`\uFEFF${content}`).data, original);
-  assert.deepEqual(getBackupSummary(original), { favoriteCount: 1, planCount: 2, pointCount: 2, completedCount: 1 });
+  assert.deepEqual(getBackupSummary(original), {
+    favoriteCount: 1,
+    planCount: 2,
+    pointCount: 2,
+    completedCount: 1,
+    recordPointCount: 0,
+    recordDayCount: 0,
+    photoCount: 0,
+  });
   const date = new Date(2026, 9, 8, 15, 30, 5, 7);
   assert.equal(getBackupFileName(date), 'anitabi-backup-2026-10-08-153005-7.json');
 });
@@ -73,7 +90,7 @@ test('full JSON round trip preserves favorites, empty plans, snapshots, timestam
 test('selects only requested backup categories and rejects selecting neither category', () => {
   const current = data();
   const before = structuredClone(current);
-  assert.deepEqual(selectBackupData(current, { favoritePoints: true, plans: true }), current);
+  assert.deepEqual(selectBackupData(current, { favoritePoints: true, plans: true, pilgrimageRecords: true }), current);
   assert.deepEqual(selectBackupData(current, { favoritePoints: true, plans: false }), {
     favoritePoints: current.favoritePoints,
   });
@@ -97,15 +114,31 @@ test('single-category JSON backups omit unselected data and summarize only inclu
     const selected = selectBackupData(current, selection);
     const content = createDataBackupContent(selected, '0.5.0');
     const exported = JSON.parse(content);
-    assert.equal(exported.version, 2);
+    assert.equal(exported.version, 3);
     assert.deepEqual(exported.data, selected);
     assert.deepEqual(parseDataBackup(content).data, selected);
     assert.deepEqual(Object.keys(exported.data).sort(), Object.keys(selected).sort());
     assert.deepEqual(
       getBackupSummary(selected),
       selection.favoritePoints
-        ? { favoriteCount: 1, planCount: 0, pointCount: 0, completedCount: 0 }
-        : { favoriteCount: 0, planCount: 2, pointCount: 2, completedCount: 1 },
+        ? {
+            favoriteCount: 1,
+            planCount: 0,
+            pointCount: 0,
+            completedCount: 0,
+            recordPointCount: 0,
+            recordDayCount: 0,
+            photoCount: 0,
+          }
+        : {
+            favoriteCount: 0,
+            planCount: 2,
+            pointCount: 2,
+            completedCount: 1,
+            recordPointCount: 0,
+            recordDayCount: 0,
+            photoCount: 0,
+          },
     );
   }
 });
@@ -228,7 +261,7 @@ test('merge uses IDs, keeps local metadata and progress in both directions, appe
 
 test('rejects unrelated sharing files, unsupported versions, malformed JSON and incomplete envelopes', () => {
   expectError({ type: 'anitabi-plan', v: 1, t: '分享', i: [[1, 'a']] }, 'wrongType');
-  expectError(file({ version: 3 }), 'unsupportedVersion');
+  expectError(file({ version: 4 }), 'unsupportedVersion');
   for (const value of [
     '{broken',
     'null',
@@ -286,7 +319,7 @@ test('enforces the 20 MB limit in UTF-8 bytes for imports and exports', () => {
 test('uses an independent schema version and rejects missing, nonnumeric and invalid file versions', () => {
   for (const appVersion of ['0.5.0', '99.0.0']) {
     const backup = parseDataBackup(createDataBackupContent(data(), appVersion));
-    assert.equal(backup.version, 2);
+    assert.equal(backup.version, 3);
     assert.equal(backup.appVersion, appVersion);
   }
   for (const version of [undefined, null, '1', 0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
@@ -333,13 +366,16 @@ test('migrates a legacy V1 file without losing metadata or full-backup merge and
   }`;
   const legacy = JSON.parse(content);
   const imported = parseDataBackup(content);
-  assert.deepEqual(imported, { ...legacy, version: 2 });
+  assert.deepEqual(imported, { ...legacy, version: 3 });
   const current = data({
     favoritePoints: [favorite('local')],
     plans: [plan('p1', [item('local', true)], { title: '本地名称', updatedAt: 500 }), plan('local')],
     planListSortOrder: 'desc',
   });
-  assert.deepEqual(prepareBackupRestore(current, imported.data, 'overwrite'), legacy.data);
+  assert.deepEqual(prepareBackupRestore(current, imported.data, 'overwrite'), {
+    ...legacy.data,
+    pilgrimageRecords: [],
+  });
   const merged = prepareBackupRestore(current, imported.data, 'merge');
   assert.deepEqual(merged.favoritePoints, [...current.favoritePoints, ...legacy.data.favoritePoints]);
   assert.deepEqual(merged.plans, [
@@ -349,7 +385,7 @@ test('migrates a legacy V1 file without losing metadata or full-backup merge and
   ]);
   assert.equal(merged.planListSortOrder, 'desc');
   const reexported = parseDataBackup(createDataBackupContent(imported.data, '1.0.0'));
-  assert.equal(reexported.version, 2);
+  assert.equal(reexported.version, 3);
   assert.deepEqual(reexported.data, legacy.data);
   assert.equal(imported.appVersion, legacy.appVersion);
   assert.equal(imported.exportedAt, legacy.exportedAt);
@@ -367,6 +403,79 @@ test('keeps rejecting incomplete or malformed V1 data instead of treating it as 
   ]) {
     expectError(file({ version: 1, data: invalid }), 'invalid');
   }
+});
+
+function record(photoIds = ['photo-a'], dateKey = '2026-10-22', firstRecordedAt = 1792630800000) {
+  return {
+    key: '1:a',
+    bangumiId: 1,
+    pointId: 'a',
+    snapshot: { bangumiName: '作品', pointName: '地点' },
+    days: [
+      {
+        dateKey,
+        firstRecordedAt,
+        photos: photoIds.map((id) => ({ id, fileName: `${id}.jpg`, width: 200, height: 300 })),
+      },
+    ],
+  };
+}
+
+test('V3 selects records independently, validates safe references, and summarizes visits without photos', () => {
+  const pilgrimageRecords = [record([])];
+  const selected = selectBackupData(data({ pilgrimageRecords }), {
+    favoritePoints: false,
+    plans: false,
+    pilgrimageRecords: true,
+  });
+  assert.deepEqual(selected, { pilgrimageRecords });
+  assert.deepEqual(parseDataBackup(createDataBackupContent(selected, '0.8.0')).data, selected);
+  assert.deepEqual(getBackupSummary(selected), {
+    favoriteCount: 0,
+    planCount: 0,
+    pointCount: 0,
+    completedCount: 0,
+    recordPointCount: 1,
+    recordDayCount: 1,
+    photoCount: 0,
+  });
+  for (const fileName of ['../photo.jpg', '/photo.jpg', 'nested/photo.jpg', 'photo.txt', 'photo.jpg%00']) {
+    const bad = record();
+    bad.days[0].photos[0].fileName = fileName;
+    expectError(file({ data: { pilgrimageRecords: [bad] } }), 'invalid');
+  }
+});
+
+test('records merge by point/date and stable photo ID; overwrite affects only selected category', () => {
+  const current = data({ pilgrimageRecords: [record()] });
+  const incoming = { pilgrimageRecords: [record(['photo-a', 'photo-b'], '2026-10-22', 1792630000000)] };
+  const merged = prepareBackupRestore(current, incoming, 'merge');
+  assert.deepEqual(
+    merged.pilgrimageRecords[0].days[0].photos.map((photo) => photo.id),
+    ['photo-a', 'photo-b'],
+  );
+  assert.equal(merged.pilgrimageRecords[0].days[0].firstRecordedAt, 1792630000000);
+  assert.deepEqual(prepareBackupRestore(merged, incoming, 'merge'), merged);
+  assert.deepEqual(prepareBackupRestore(current, { pilgrimageRecords: [] }, 'overwrite'), {
+    ...current,
+    pilgrimageRecords: [],
+  });
+  assert.deepEqual(
+    prepareBackupRestore(current, { favoritePoints: [] }, 'overwrite').pilgrimageRecords,
+    current.pilgrimageRecords,
+  );
+});
+
+test('legacy V2 omitted records stay omitted and never clear local records', () => {
+  const legacy = file({ version: 2, data: { favoritePoints: [], plans: [], planListSortOrder: 'desc' } });
+  const parsed = parseDataBackup(JSON.stringify(legacy));
+  assert.equal(parsed.version, 3);
+  assert.equal(Object.hasOwn(parsed.data, 'pilgrimageRecords'), false);
+  const current = data({ pilgrimageRecords: [record()] });
+  for (const mode of ['overwrite', 'merge']) {
+    assert.deepEqual(prepareBackupRestore(current, parsed.data, mode).pilgrimageRecords, current.pilgrimageRecords);
+  }
+  expectError({ ...legacy, data: { pilgrimageRecords: [] } }, 'migrationFailed');
 });
 
 test('chains simulated schema changes in order, preserving all other fields and the original source', () => {

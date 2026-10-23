@@ -1,25 +1,38 @@
-import type { BackupFavoritePointV1, BackupPlanItemV1, BackupPlanV1, DataBackupV2 } from './data-backup-schema';
+import type { BackupFavoritePointV1, BackupPlanItemV1, BackupPlanV1, DataBackupV3 } from './data-backup-schema';
+import { mergePilgrimageRecords, validatePilgrimageRecords } from '@/lib/pilgrimage-records';
 import { strToU8 } from 'fflate';
 
 export const BACKUP_TYPE = 'anitabi-backup' as const;
-export const BACKUP_VERSION = 2 as const;
+export const BACKUP_VERSION = 3 as const;
 export const MAX_BACKUP_FILE_BYTES = 20 * 1024 * 1024;
 
-export type DataBackup = DataBackupV2;
+export type DataBackup = DataBackupV3;
 export type BackupContents = DataBackup['data'];
 export type BackupData = Required<BackupContents>;
-export type BackupSelection = { favoritePoints: boolean; plans: boolean };
+export type BackupSelection = { favoritePoints: boolean; plans: boolean; pilgrimageRecords: boolean };
 
 // Each entry upgrades data from its key version to the immediately next version.
 export type BackupMigrations = Readonly<Partial<Record<number, (data: unknown) => unknown>>>;
 const BACKUP_MIGRATIONS: BackupMigrations = {
   // V1 is validated as a full backup before migration; both categories remain included.
   1: (data) => data,
+  2: (data) => {
+    if (!isBackupContents(data, false)) throw new BackupError('invalid');
+    return data;
+  },
 };
 
 export type BackupRestoreMode = 'merge' | 'overwrite';
 export type BackupErrorCode =
-  'invalid' | 'wrongType' | 'unsupportedVersion' | 'migrationFailed' | 'tooLarge' | 'writeFailed' | 'rollbackFailed';
+  | 'invalid'
+  | 'wrongType'
+  | 'unsupportedVersion'
+  | 'migrationFailed'
+  | 'tooLarge'
+  | 'writeFailed'
+  | 'rollbackFailed'
+  | 'recordsUnavailable'
+  | 'nativeOnly';
 
 export class BackupError extends Error {
   readonly code: BackupErrorCode;
@@ -106,7 +119,7 @@ function isPlan(value: unknown): value is BackupPlanV1 {
   );
 }
 
-function isFullBackupData(value: unknown): value is BackupData {
+function isFullBackupData(value: unknown): boolean {
   return (
     isRecord(value) &&
     isUniqueArray(value.favoritePoints, isFavoritePoint, (item) => item.key) &&
@@ -115,10 +128,24 @@ function isFullBackupData(value: unknown): value is BackupData {
   );
 }
 
-function isBackupContents(value: unknown): value is BackupContents {
+function isRecords(value: unknown): boolean {
+  try {
+    validatePilgrimageRecords(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function isBackupContents(value: unknown, allowRecords = true): value is BackupContents {
   return (
     isRecord(value) &&
-    (value.favoritePoints !== undefined || value.plans !== undefined) &&
+    (value.favoritePoints !== undefined ||
+      value.plans !== undefined ||
+      (allowRecords && value.pilgrimageRecords !== undefined)) &&
+    (allowRecords
+      ? value.pilgrimageRecords === undefined || isRecords(value.pilgrimageRecords)
+      : value.pilgrimageRecords === undefined) &&
     (value.favoritePoints === undefined || isUniqueArray(value.favoritePoints, isFavoritePoint, (item) => item.key)) &&
     (value.plans === undefined
       ? value.planListSortOrder === undefined
@@ -188,6 +215,7 @@ function validateBackup(value: unknown, migrate = false): DataBackup {
     data: {
       ...(data.favoritePoints !== undefined ? { favoritePoints: data.favoritePoints } : {}),
       ...(data.plans !== undefined ? { plans: data.plans, planListSortOrder: data.planListSortOrder } : {}),
+      ...(data.pilgrimageRecords !== undefined ? { pilgrimageRecords: data.pilgrimageRecords } : {}),
     },
   };
 }
@@ -206,10 +234,11 @@ export function parseDataBackup(content: string): DataBackup {
 }
 
 export function selectBackupData(data: BackupData, selection: BackupSelection): BackupContents {
-  if (!selection.favoritePoints && !selection.plans) throw new BackupError('invalid');
+  if (!selection.favoritePoints && !selection.plans && !selection.pilgrimageRecords) throw new BackupError('invalid');
   return {
     ...(selection.favoritePoints ? { favoritePoints: data.favoritePoints } : {}),
     ...(selection.plans ? { plans: data.plans, planListSortOrder: data.planListSortOrder } : {}),
+    ...(selection.pilgrimageRecords ? { pilgrimageRecords: data.pilgrimageRecords } : {}),
   };
 }
 
@@ -226,9 +255,9 @@ export function createDataBackupContent(data: BackupContents, appVersion: string
   return content;
 }
 
-export function getBackupFileName(date = new Date()): string {
+export function getBackupFileName(date = new Date(), archive = false): string {
   const pad = (value: number) => String(value).padStart(2, '0');
-  return `anitabi-backup-${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}-${date.getMilliseconds()}.json`;
+  return `anitabi-backup-${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}-${date.getMilliseconds()}.${archive ? 'zip' : 'json'}`;
 }
 
 export function getBackupSummary(data: BackupContents) {
@@ -243,6 +272,13 @@ export function getBackupSummary(data: BackupContents) {
     planCount: data.plans?.length ?? 0,
     pointCount,
     completedCount,
+    recordPointCount: data.pilgrimageRecords?.length ?? 0,
+    recordDayCount: data.pilgrimageRecords?.reduce((count, point) => count + point.days.length, 0) ?? 0,
+    photoCount:
+      data.pilgrimageRecords?.reduce(
+        (count, point) => count + point.days.reduce((total, day) => total + day.photos.length, 0),
+        0,
+      ) ?? 0,
   };
 }
 
@@ -256,6 +292,7 @@ export function prepareBackupRestore(
       favoritePoints: incoming.favoritePoints ?? current.favoritePoints,
       plans: incoming.plans ?? current.plans,
       planListSortOrder: incoming.planListSortOrder ?? current.planListSortOrder,
+      pilgrimageRecords: incoming.pilgrimageRecords ?? current.pilgrimageRecords,
     };
   }
   const favoriteKeys = new Set(current.favoritePoints.map((item) => item.key));
@@ -280,6 +317,9 @@ export function prepareBackupRestore(
         ]
       : current.plans,
     planListSortOrder: current.planListSortOrder,
+    pilgrimageRecords: incoming.pilgrimageRecords
+      ? mergePilgrimageRecords(current.pilgrimageRecords, incoming.pilgrimageRecords)
+      : current.pilgrimageRecords,
   };
 }
 
