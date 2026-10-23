@@ -49,7 +49,7 @@ export default function DarkModeScreen() {
       contentContainerStyle={{ flexDirection: 'row', justifyContent: 'center' }}
     >
       <View bg="$pageBackground" width="100%" maxW={MaxContentWidth} flex={1}>
-        <YStack bg="$pageBackground" gap="$1" px="$3" pt="$3">
+        <YStack bg="$pageBackground" gap="$1" px="$pageHorizontalInset" pt="$3">
           <XStack px="$3" py="$2.5" rounded="$2" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
             <SettingTitle>{t('followSystem', { defaultValue: '跟随系统' })}</SettingTitle>
             <ThemeSwitch checked={followSystem} onCheckedChange={handleFollowSystemChange} />

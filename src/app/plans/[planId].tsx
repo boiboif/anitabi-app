@@ -14,6 +14,7 @@ import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapData } from '@/store/use-map-data';
 import { usePlans } from '@/store/use-plans';
+import { PageHorizontalInset } from '@/tamagui.config';
 import { sortPlanPointsByDistance, type PlanDistanceLocation } from '@/utils/plan-point-distances';
 import { Toast } from '@boiboif/react-native-toast';
 import {
@@ -589,7 +590,7 @@ export default function PlanDetailScreen() {
       />
       <YStack flex={1} bg="$pageBackground">
         <XStack>
-          <YStack flex={3} px="$4" pb="$1" gap="$1">
+          <YStack flex={3} px="$pageHorizontalInset" pb="$1" gap="$1">
             <YStack gap="$1">
               <Text fontSize="$heading" fontWeight="700" color="$color12">
                 {plan.title}
@@ -612,7 +613,7 @@ export default function PlanDetailScreen() {
           {/* <XStack flex={1}></XStack> */}
         </XStack>
         {sorting ? (
-          <XStack px="$3" pb="$2" items="center" gap="$2">
+          <XStack px="$pageHorizontalInset" pb="$2" items="center" gap="$2">
             <Button
               size="$2"
               chromeless
@@ -678,7 +679,7 @@ export default function PlanDetailScreen() {
               autoscrollThreshold={REORDER_AUTOSCROLL_THRESHOLD}
               autoscrollMaxSpeed={REORDER_AUTOSCROLL_MAX_SPEED}
               maxFrameDurationMs={REORDER_MAX_FRAME_DURATION_MS}
-              contentPaddingHorizontal={12}
+              contentPaddingHorizontal={PageHorizontalInset}
               contentPaddingBottom={insets.bottom + 30}
               style={{ flex: 1, backgroundColor: theme.pageBackground?.val }}
             />

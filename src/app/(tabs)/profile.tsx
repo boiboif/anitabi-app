@@ -78,7 +78,7 @@ export default function ProfileScreen() {
       contentInset={insets}
       contentContainerStyle={{ flexDirection: 'row', justifyContent: 'center', ...contentPlatformStyle }}
     >
-      <View bg="$pageBackground" width="100%" maxW={MaxContentWidth} flex={1} px="$4" gap="$5">
+      <View bg="$pageBackground" width="100%" maxW={MaxContentWidth} flex={1} px="$pageHorizontalInset" gap="$5">
         <Text fontSize="$heading" lineHeight={30} fontWeight="700" color="$color12" px="$1" mb="$1">
           {t('me', { defaultValue: '我的' })}
         </Text>

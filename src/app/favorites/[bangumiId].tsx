@@ -8,7 +8,7 @@ import type { Bangumi, Point } from '@/services/types';
 import { useFavoritePoints } from '@/store/use-favorite-points';
 import { useMapBrowse } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
-import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
+import { BottomTabInset, MaxContentWidth, PageHorizontalInset } from '@/tamagui.config';
 import { FlashList } from '@shopify/flash-list';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo } from 'react';
@@ -144,7 +144,7 @@ export default function FavoriteBangumiScreen() {
           style={{ flex: 1, backgroundColor: theme.pageBackground?.val }}
           contentInset={{ bottom: bottomInset }}
           contentContainerStyle={{
-            paddingHorizontal: getTokens().space['3'].val,
+            paddingHorizontal: PageHorizontalInset,
             paddingTop: getCardListBoundarySpacing(getTokens().space['3'].val),
           }}
           showsVerticalScrollIndicator={false}

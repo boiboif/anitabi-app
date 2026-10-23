@@ -9,7 +9,7 @@ import { buildImageUrl } from '@/services/handlers';
 import { useFavoritePoints } from '@/store/use-favorite-points';
 import { useMapBrowse } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
-import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
+import { BottomTabInset, MaxContentWidth, PageHorizontalInset } from '@/tamagui.config';
 import { resolveFavoritePoints, type ResolvedFavoritePoint } from '@/utils/resolve-favorite-points';
 import { FlashList } from '@shopify/flash-list';
 import { MapPin } from '@tamagui/lucide-icons-2';
@@ -254,7 +254,11 @@ export default function FavoritesScreen() {
           );
         case 'date':
           return (
-            <View bg="$pageBackground" px="$4" pb={getCardListBoundarySpacing(getTokens().space['2'].val)}>
+            <View
+              bg="$pageBackground"
+              px="$pageHorizontalInset"
+              pb={getCardListBoundarySpacing(getTokens().space['2'].val)}
+            >
               <Text fontSize="$body" lineHeight={20} fontWeight="700" color="$color11">
                 {item.label}
               </Text>
@@ -262,7 +266,7 @@ export default function FavoritesScreen() {
           );
         case 'favorite':
           return (
-            <CardListItem horizontalInset="$3">
+            <CardListItem horizontalInset={PageHorizontalInset}>
               <FavoriteCard item={item.item} onPress={() => openPoint(item.item)} />
             </CardListItem>
           );
@@ -277,7 +281,7 @@ export default function FavoritesScreen() {
     <View style={{ flex: 1, backgroundColor: theme.pageBackground?.val, ...contentPlatformStyle, paddingBottom: 0 }}>
       <View bg="$pageBackground" width="100%" maxW={MaxContentWidth} flex={1}>
         <XStack
-          mx="$3"
+          mx="$pageHorizontalInset"
           mb={view === 'bangumi' ? getCardListBoundarySpacing(getTokens().space['3'].val) : '$3'}
           gap="$1"
         >
@@ -337,7 +341,7 @@ export default function FavoritesScreen() {
             stickyHeaderIndices={stickyHeaderIndices}
             numColumns={view === 'bangumi' ? 3 : 1}
             contentContainerStyle={{
-              paddingHorizontal: view === 'bangumi' ? getCardListBoundarySpacing(getTokens().space['3'].val) : 0,
+              paddingHorizontal: view === 'bangumi' ? getCardListBoundarySpacing(PageHorizontalInset) : 0,
               paddingBottom: insets.bottom,
             }}
             ListFooterComponent={

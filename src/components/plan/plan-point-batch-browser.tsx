@@ -7,6 +7,7 @@ import { getBangumiTitle } from '@/lib/localized-data';
 import type { Bangumi } from '@/services/types';
 import { useMapData } from '@/store/use-map-data';
 import { usePlans } from '@/store/use-plans';
+import { PageHorizontalInset } from '@/tamagui.config';
 import { groupPointsForDetails } from '@/utils/plan-point-batches';
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { ChevronLeft } from '@tamagui/lucide-icons-2';
@@ -69,7 +70,7 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
 
   if (!data) {
     return (
-      <YStack flex={1} minH={220} items="center" justify="center" gap="$3" px="$4">
+      <YStack flex={1} minH={220} items="center" justify="center" gap="$3" px="$pageHorizontalInset">
         {status === 'error' ? (
           <>
             <Text fontSize="$body" color="$color11" text="center">
@@ -111,7 +112,12 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         ListHeaderComponent={
-          <YStack px="$4" pt="$2" pb={getCardListBoundarySpacing(getTokens().space['3'].val)} gap="$2">
+          <YStack
+            px="$pageHorizontalInset"
+            pt="$2"
+            pb={getCardListBoundarySpacing(getTokens().space['3'].val)}
+            gap="$2"
+          >
             <Pressable accessibilityRole="button" onPress={() => setBangumiId(undefined)} hitSlop={8}>
               <XStack minH={40} items="center" gap="$1">
                 <ChevronLeft size={18} color={theme.primary.val} />
@@ -129,7 +135,7 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
           </YStack>
         }
         renderItem={({ item }) => (
-          <CardListItem horizontalInset="$3">
+          <CardListItem horizontalInset={PageHorizontalInset}>
             <XStack p="$3" gap="$2" items="center" rounded="$3" bg="$background">
               <YStack flex={1} gap="$1">
                 <Text fontSize="$body" color="$color12" fontWeight={item.key === 'all' ? '600' : '400'}>
@@ -163,7 +169,12 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
         accessibilityElementsHidden={isBrowsingGroups}
         importantForAccessibility={isBrowsingGroups ? 'no-hide-descendants' : 'auto'}
       >
-        <YStack px="$4" pt="$2.5" pb={getCardListBoundarySpacing(getTokens().space['3'].val)} gap="$2">
+        <YStack
+          px="$pageHorizontalInset"
+          pt="$2.5"
+          pb={getCardListBoundarySpacing(getTokens().space['3'].val)}
+          gap="$2"
+        >
           <SearchBox
             value={query}
             onChangeText={handleQueryChange}
@@ -188,7 +199,7 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
           maintainVisibleContentPosition={{ disabled: true }}
           contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
           renderItem={({ item }) => (
-            <CardListItem horizontalInset="$3">
+            <CardListItem horizontalInset={PageHorizontalInset}>
               <BangumiListCard
                 bangumi={item}
                 onPress={() => {
@@ -199,7 +210,7 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
             </CardListItem>
           )}
           ListEmptyComponent={
-            <YStack minH={180} px="$4" gap="$3" items="center" justify="center">
+            <YStack minH={180} px="$pageHorizontalInset" gap="$3" items="center" justify="center">
               <Text fontSize="$body" color="$color11">
                 {t('noWorksAvailableForPlan', { defaultValue: '没有可添加的作品' })}
               </Text>

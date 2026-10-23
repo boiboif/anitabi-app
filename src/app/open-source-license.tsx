@@ -49,7 +49,7 @@ export default function OpenSourceLicenseScreen() {
           ...contentPlatformStyle,
         }}
       >
-        <YStack width="100%" maxW={MaxContentWidth} px="$4" gap="$4">
+        <YStack width="100%" maxW={MaxContentWidth} px="$pageHorizontalInset" gap="$4">
           {isLoading ? (
             <YStack items="center" py="$8" gap="$3">
               <Spinner size="large" color="$primary" />

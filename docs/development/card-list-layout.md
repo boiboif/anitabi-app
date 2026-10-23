@@ -13,6 +13,8 @@
 
 ## 页面与分组边界
 
+普通全屏页面的主体横向内边距统一使用 Tamagui `$pageHorizontalInset` 间距 token（数值由 `src/tamagui.config.ts` 中的 `PageHorizontalInset` 提供，为 12 px）。页面安全区单独处理；卡片内部、按钮、筛选器及弹层的内边距继续由各自布局负责。网格列表用 `getCardListBoundarySpacing(PageHorizontalInset)` 计算容器留白，再计入列表项自身的 4 px 外壳。
+
 列表项的留白也算在卡片到标题、工具栏和容器边缘的距离内。已有留白的地方使用 `getCardListBoundarySpacing(期望总间距)`，不能把完整页面间距再叠到外壳上。例如，期望总间距为 13，容器只提供 9，剩下 4 来自列表项。小于 4 的总间距会保留最小列表项留白 4。
 
 - 普通列表：在 `contentContainerStyle.paddingTop` 或列表上方的容器中安排边界留白，只选一处。

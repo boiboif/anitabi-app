@@ -6,6 +6,7 @@ import { createFont, createTamagui } from 'tamagui';
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const TopLevelPageTopPadding = Platform.select({ ios: 36, default: 8 }) ?? 8;
 export const MaxContentWidth = 800;
+export const PageHorizontalInset = 12;
 // Shared with native navigation so headers and scene backgrounds match the page canvas.
 export const PageBackground = {
   light: '#F7F7F7',
@@ -98,6 +99,10 @@ const config = createTamagui({
   },
   tokens: {
     ...defaultConfig.tokens,
+    space: {
+      ...defaultConfig.tokens.space,
+      pageHorizontalInset: PageHorizontalInset,
+    },
     color: {
       primary: '#FB7299',
     },

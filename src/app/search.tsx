@@ -7,6 +7,7 @@ import { getCardListBoundarySpacing } from '@/lib/card-list-layout';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapBrowse } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
+import { PageHorizontalInset } from '@/tamagui.config';
 import { FlashList, FlashListRef } from '@shopify/flash-list';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -219,7 +220,7 @@ const Search = () => {
   return (
     <Pressable disabled={!Keyboard.isVisible()} style={{ flex: 1 }} onPress={Keyboard.dismiss}>
       <View flex={1} pt={insets.top === 0 ? '$2' : insets.top} mt="$2" bg="$pageBackground">
-        <View px="$3">
+        <View px="$pageHorizontalInset">
           <SearchBox
             focusOnRoute
             value={inputText}
@@ -231,7 +232,7 @@ const Search = () => {
 
         {/* Tab 切换栏 — 搜索时隐藏 */}
         {!searchMode && (
-          <View flexDirection="row" mx="$3" mt="$3" gap="$1">
+          <View flexDirection="row" mx="$pageHorizontalInset" mt="$3" gap="$1">
             {TABS.map((tabItem) => (
               <Pressable
                 key={tabItem.key}
@@ -278,7 +279,7 @@ const Search = () => {
             renderItem={renderItem}
             keyExtractor={keyExtractor}
             contentContainerStyle={{
-              paddingHorizontal: getTokens().space['3'].val,
+              paddingHorizontal: PageHorizontalInset,
               paddingTop: getCardListBoundarySpacing(getTokens().space['3'].val),
               paddingBottom: insets.bottom + 16,
             }}

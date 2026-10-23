@@ -143,7 +143,7 @@ export default function DataBackupScreen() {
         style={{ flex: 1, backgroundColor: theme.pageBackground?.val }}
         contentContainerStyle={{ alignItems: 'center', paddingBottom: insets.bottom + 24 }}
       >
-        <YStack width="100%" maxW={MaxContentWidth} px="$4" pt="$4" gap="$5">
+        <YStack width="100%" maxW={MaxContentWidth} px="$pageHorizontalInset" pt="$4" gap="$5">
           <SettingsSection title={t('backupCurrentData')}>
             <YStack py="$3" gap="$2">
               <Text fontSize="$body" lineHeight={21} fontWeight="600" color="$color12">

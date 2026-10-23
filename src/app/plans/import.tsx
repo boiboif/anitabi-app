@@ -6,6 +6,7 @@ import { useFavoritePoints } from '@/store/use-favorite-points';
 import { useMapData } from '@/store/use-map-data';
 import { usePlanImport } from '@/store/use-plan-import';
 import { usePlans } from '@/store/use-plans';
+import { PageHorizontalInset } from '@/tamagui.config';
 import { AlertCircle, Check, FileDown, MapPinned, Square, SquareCheckBig } from '@tamagui/lucide-icons-2';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
@@ -80,7 +81,12 @@ export default function ImportPlanScreen() {
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         style={{ flex: 1, backgroundColor: theme.pageBackground?.val }}
-        contentContainerStyle={{ padding: 20, paddingBottom: 36, gap: 18 }}
+        contentContainerStyle={{
+          paddingHorizontal: PageHorizontalInset,
+          paddingTop: 20,
+          paddingBottom: 36,
+          gap: 18,
+        }}
       >
         {error ? (
           <YStack minH={300} items="center" justify="center" gap="$3" p="$4">

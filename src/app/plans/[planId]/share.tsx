@@ -5,6 +5,7 @@ import { createPlanShareBundle } from '@/lib/plan-sharing';
 import { BLOCK_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';
 import { useMapData } from '@/store/use-map-data';
 import { usePlans } from '@/store/use-plans';
+import { PageHorizontalInset } from '@/tamagui.config';
 import { createBangumiPointLookup } from '@/utils/bangumi-point-lookup';
 import { Toast } from '@boiboif/react-native-toast';
 import { FileJson, Share2 } from '@tamagui/lucide-icons-2';
@@ -96,7 +97,13 @@ export default function PlanShareScreen() {
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         style={{ flex: 1, backgroundColor: theme.pageBackground?.val }}
-        contentContainerStyle={{ alignItems: 'center', padding: 12, paddingBottom: 32, gap: 16 }}
+        contentContainerStyle={{
+          alignItems: 'center',
+          paddingHorizontal: PageHorizontalInset,
+          paddingTop: 12,
+          paddingBottom: 32,
+          gap: 16,
+        }}
       >
         <View width={360 * scale} height={480 * scale} rounded={24 * scale}>
           <NativeView style={{ width: 360, height: 480, transform: [{ scale }], transformOrigin: 'top left' }}>

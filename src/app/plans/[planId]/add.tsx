@@ -10,6 +10,7 @@ import type { Bangumi, Point } from '@/services/types';
 import { useFavoritePoints } from '@/store/use-favorite-points';
 import { useMapData } from '@/store/use-map-data';
 import { usePlans } from '@/store/use-plans';
+import { PageHorizontalInset } from '@/tamagui.config';
 import { groupFavoriteItemsByDate } from '@/utils/favorite-date-groups';
 import { resolveFavoritePoints } from '@/utils/resolve-favorite-points';
 import { FlashList } from '@shopify/flash-list';
@@ -89,7 +90,12 @@ export default function AddPlanPointsScreen() {
     ({ item }: { item: AddPointListItem }) => {
       if (item.type === 'date') {
         return (
-          <View bg="$pageBackground" px="$4" pt="$2" pb={getCardListBoundarySpacing(getTokens().space['2'].val)}>
+          <View
+            bg="$pageBackground"
+            px="$pageHorizontalInset"
+            pt="$2"
+            pb={getCardListBoundarySpacing(getTokens().space['2'].val)}
+          >
             <Text fontSize="$body" lineHeight={20} fontWeight="700" color="$color11">
               {item.label}
             </Text>
@@ -107,7 +113,7 @@ export default function AddPlanPointsScreen() {
       };
 
       return (
-        <CardListItem horizontalInset="$3">
+        <CardListItem horizontalInset={PageHorizontalInset}>
           <PointListCard
             point={item.item.point}
             bangumi={item.item.bangumi}
@@ -162,7 +168,7 @@ export default function AddPlanPointsScreen() {
   return (
     <>
       <Stack.Screen options={{ title: t('addLocations', { defaultValue: '添加巡礼点' }) }} />
-      <XStack bg="$pageBackground" px="$3" pt="$3" gap="$2">
+      <XStack bg="$pageBackground" px="$pageHorizontalInset" pt="$3" gap="$2">
         {(
           [
             { key: 'favorites', label: t('fromFavoriteLocations', { defaultValue: '从收藏添加' }) },
@@ -201,7 +207,7 @@ export default function AddPlanPointsScreen() {
           justify="center"
           gap="$3"
           bg="$pageBackground"
-          px="$4"
+          px="$pageHorizontalInset"
           pb={insets.bottom + 24}
         >
           <Text fontSize="$body" color="$color11">

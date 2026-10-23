@@ -31,7 +31,7 @@ function LicenseListItem({ item }: { item: Library }) {
           accessibilityLabel={`${item.name}，${t('licenseCount', { defaultValue: '{{count}} 份许可证', count: licenseCount })}`}
           style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}
         >
-          <YStack minH={76} justify="center" items="flex-start" px="$4" py="$3" gap="$0.5">
+          <YStack minH={76} justify="center" items="flex-start" px="$pageHorizontalInset" py="$3" gap="$0.5">
             <Text selectable width="100%" fontSize="$subtitle" lineHeight={22} fontWeight="500" color="$color12">
               {item.name}
             </Text>
@@ -77,7 +77,7 @@ export default function OpenSourceLicensesScreen() {
         }}
         ListHeaderComponent={
           isAdditionalList ? (
-            <YStack width="100%" maxW={MaxContentWidth} self="center" px="$4" pt="$5" pb="$3">
+            <YStack width="100%" maxW={MaxContentWidth} self="center" px="$pageHorizontalInset" pt="$5" pb="$3">
               <Text selectable fontSize="$body" lineHeight={22} color="$color11">
                 {t(
                   'theFollowingComponentsAreIndirectDependenciesAndRemainInTheFullListToMeetOpenSourceLicenseNoticeRequirements',
@@ -134,7 +134,7 @@ export default function OpenSourceLicensesScreen() {
                   minH={76}
                   self="center"
                   items="center"
-                  px="$4"
+                  px="$pageHorizontalInset"
                   py="$3"
                   gap="$3"
                 >
@@ -156,7 +156,15 @@ export default function OpenSourceLicensesScreen() {
           ) : undefined
         }
         ListEmptyComponent={
-          <YStack width="100%" maxW={MaxContentWidth} self="center" items="center" px="$4" py="$8" gap="$3">
+          <YStack
+            width="100%"
+            maxW={MaxContentWidth}
+            self="center"
+            items="center"
+            px="$pageHorizontalInset"
+            py="$8"
+            gap="$3"
+          >
             {isLoading ? <Spinner size="large" color="$primary" /> : null}
             <Text text="center" fontSize="$body" lineHeight={22} color="$color11">
               {isLoading

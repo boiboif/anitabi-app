@@ -34,7 +34,7 @@ export default function LanguageScreen() {
       contentInset={insets}
       contentContainerStyle={{ flexDirection: 'row', justifyContent: 'center' }}
     >
-      <View bg="$pageBackground" width="100%" maxW={MaxContentWidth} flex={1} px="$3" pt="$3">
+      <View bg="$pageBackground" width="100%" maxW={MaxContentWidth} flex={1} px="$pageHorizontalInset" pt="$3">
         <SettingsSection title={t('language', { defaultValue: '语言' })} hideTitleWhenSingle>
           {LANGUAGE_OPTIONS.map((option, index) => (
             <SettingCell

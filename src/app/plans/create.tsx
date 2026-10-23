@@ -1,6 +1,7 @@
 import { StrictButton as Button } from '@/components/ui/strict-button';
 import { ThemeInput } from '@/components/ui/theme-input';
 import { usePlans } from '@/store/use-plans';
+import { PageHorizontalInset } from '@/tamagui.config';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -29,7 +30,10 @@ export default function CreatePlanScreen() {
         style={{ flex: 1, backgroundColor: theme.pageBackground?.val }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ padding: 20, gap: 18 }}>
+        <ScrollView
+          contentInsetAdjustmentBehavior="automatic"
+          contentContainerStyle={{ paddingHorizontal: PageHorizontalInset, paddingVertical: 20, gap: 18 }}
+        >
           <YStack gap="$2">
             <Text fontSize="$body" fontWeight="600" color="$color12">
               {t('planName', { defaultValue: '计划名称' })}

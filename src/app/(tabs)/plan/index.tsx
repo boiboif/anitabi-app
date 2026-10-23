@@ -10,7 +10,7 @@ import { canSharePlanAsQr } from '@/lib/plan-sharing';
 import type { ItineraryPlan } from '@/lib/plan-storage';
 import { BLOCK_BUTTON_ICON_SIZE, ICON_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';
 import { usePlans } from '@/store/use-plans';
-import { BottomTabInset, TopLevelPageTopPadding } from '@/tamagui.config';
+import { BottomTabInset, PageHorizontalInset, TopLevelPageTopPadding } from '@/tamagui.config';
 import { FlashList, type ListRenderItem } from '@shopify/flash-list';
 import {
   FileDown,
@@ -154,7 +154,7 @@ export default function PlansScreen() {
   );
   const contentContainerStyle = useMemo(
     () => ({
-      paddingHorizontal: 16,
+      paddingHorizontal: PageHorizontalInset,
       paddingBottom: insets.bottom + BottomTabInset + 24,
     }),
     [insets.bottom],
@@ -234,7 +234,7 @@ export default function PlansScreen() {
   return (
     <>
       <YStack flex={1} bg="$pageBackground" pt={pagePaddingTop}>
-        <View mx="$4">
+        <View mx="$pageHorizontalInset">
           <PlanListHeader onImport={openImportSheet} onCreate={openCreatePlan} />
         </View>
         <FlashList
