@@ -131,7 +131,7 @@ function PreviewGalleryPage({
         settling.set(true);
         offsetX.set(
           withTiming((pageIndex - next) * stride, { duration: 240 }, (finished) => {
-            if (!finished) return;
+            if (!finished || isClosing.get()) return;
             // The next page is already mounted; move the origin on the same UI frame.
             activeIndex.set(next);
             offsetX.set(0);

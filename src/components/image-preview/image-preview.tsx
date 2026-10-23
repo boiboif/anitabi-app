@@ -153,6 +153,7 @@ function PreviewSession({
   const useSourceTransition = useSharedValue(false);
   const closingTransform = useSharedValue({ x: 0, y: 0, scale: 1 });
   const closingToSource = useSharedValue(false);
+  const closingFade = useSharedValue({ opacity: 1, clipAmount: 0 });
   const isClosing = useSharedValue(false);
   const galleryTransform = useSharedValue<ImageTransform>({ x: 0, y: 0, scale: 1 });
   const activeImage = images[index];
@@ -206,24 +207,35 @@ function PreviewSession({
     const openingAmount = useSourceTransition.get() ? 1 - openingProgress : 0;
     const openingSource = sourceTransform.get();
     const openingScale = 1 + (openingSource.scale - 1) * openingAmount;
+    const fadeFrom = { opacity: useSourceTransition.get() ? 1 : openingProgress, clipAmount: openingAmount };
     const from = {
       x: openingSource.x * openingAmount + (state?.translateX ?? 0) * openingScale,
       y: openingSource.y * openingAmount + (releasedPull ?? state?.translateY ?? 0) * openingScale,
       scale: (state?.scale ?? 1) * openingScale,
     };
-    updateSourceTransform(index, viewport);
-    const toSource = useSourceTransition.get();
+    // Gallery pages may no longer match the opening thumbnail, so always fade them out.
+    if (images.length === 1) updateSourceTransform(index, viewport);
+    const toSource = images.length === 1 && useSourceTransition.get();
     const target = sourceTransform.get();
     // Hand the same image from gallery gestures to dismissal on one UI frame.
     scheduleOnUI(() => {
       'worklet';
       closingToSource.set(toSource);
       closingTransform.set(from);
+      // Preserve opacity and the current opening crop when closing before expansion finishes.
+      closingFade.set(fadeFrom);
       isClosing.set(true);
       if (toSource) closingTransform.set(withTiming(target, { duration: TRANSITION_DURATION }));
+      else
+        closingFade.set(
+          withTiming({ ...fadeFrom, opacity: 0 }, { duration: TRANSITION_DURATION }, (finished) => {
+            if (finished) scheduleOnRN(finishClose);
+          }),
+        );
       progress.set(
         withTiming(0, { duration: TRANSITION_DURATION }, (finished) => {
-          if (finished) scheduleOnRN(finishClose);
+          // A zero-progress background may finish before the separate image fade.
+          if (finished && toSource) scheduleOnRN(finishClose);
         }),
       );
     });
@@ -264,7 +276,7 @@ function PreviewSession({
         : closing
           ? closingToSource.get()
             ? 1
-            : progress.get()
+            : closingFade.get().opacity
           : useSourceTransition.get()
             ? 1
             : progress.get(),
@@ -277,7 +289,12 @@ function PreviewSession({
   });
   const clipStyle = useAnimatedStyle(() => {
     const clip = sourceClip.get();
-    const amount = useSourceTransition.get() && clip ? 1 - progress.get() : 0;
+    const amount =
+      useSourceTransition.get() && clip
+        ? isClosing.get() && !closingToSource.get()
+          ? closingFade.get().clipAmount
+          : 1 - progress.get()
+        : 0;
     return {
       position: 'absolute',
       overflow: 'hidden',
@@ -290,7 +307,12 @@ function PreviewSession({
   });
   const clipContentStyle = useAnimatedStyle(() => {
     const clip = sourceClip.get();
-    const amount = useSourceTransition.get() && clip ? 1 - progress.get() : 0;
+    const amount =
+      useSourceTransition.get() && clip
+        ? isClosing.get() && !closingToSource.get()
+          ? closingFade.get().clipAmount
+          : 1 - progress.get()
+        : 0;
     // Keep the gallery's coordinates and gesture viewport full-screen as the crop opens.
     return {
       position: 'absolute',
