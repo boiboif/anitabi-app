@@ -172,16 +172,13 @@ const Search = () => {
       ];
     }
     if (!data) return [];
-    const sorted = [...data.data.bangumis];
+    const sorted = data.data.bangumis.filter((item) => item.cat !== '小说');
     if (tab === 'recent') {
       sorted.sort((a, b) => b.modified - a.modified);
     } else {
       sorted.sort((a, b) => b.points.length - a.points.length);
     }
-    return sorted
-      .filter((item) => item.cat !== '小说')
-      .slice(0, 50)
-      .map((b) => ({ type: 'bangumi' as const, data: b }));
+    return sorted.map((b) => ({ type: 'bangumi' as const, data: b }));
   }, [data, tab, searchMode, bangumiResults, pointResults]);
 
   const renderItem = useCallback(
