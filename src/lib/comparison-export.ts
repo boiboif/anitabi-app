@@ -99,7 +99,7 @@ export function buildComparisonMetadata(
   return {
     name: settings.showName && settings.name.trim() ? settings.name.trim() : undefined,
     rows: fields
-      .filter(([, enabled]) => enabled)
+      .filter(([field, enabled]) => enabled && Boolean(values[field]?.trim()))
       .map(([field]) => ({
         field,
         value: values[field],

@@ -240,7 +240,6 @@ export default function ComparisonResultModal({
   }
   const settings = exportSettings;
   const pixelRatio = PixelRatio.get();
-  const unrecorded = t('comparisonExportNotRecorded', { defaultValue: '未记录' });
   const date = capturedAt ? new Date(capturedAt) : undefined;
   const episode = typeof point.ep === 'number' ? (point.ep > 0 ? `EP${point.ep}` : '') : point.ep;
   const sceneTime =
@@ -249,14 +248,14 @@ export default function ComparisonResultModal({
     capturedAt:
       date && Number.isFinite(date.getTime())
         ? date.toLocaleString(i18n.resolvedLanguage ?? i18n.language)
-        : unrecorded,
-    location: getPointTitle(point, i18n.language) || unrecorded,
-    work: getBangumiTitle(bangumi, i18n.language) || unrecorded,
-    scene: [episode, sceneTime].filter(Boolean).join(' · ') || unrecorded,
+        : '',
+    location: getPointTitle(point, i18n.language) || '',
+    work: getBangumiTitle(bangumi, i18n.language) || '',
+    scene: [episode, sceneTime].filter(Boolean).join(' · '),
     coordinates:
       point.geo?.length === 2 && point.geo.every(Number.isFinite)
         ? `${point.geo[0].toFixed(5)}, ${point.geo[1].toFixed(5)}`
-        : unrecorded,
+        : '',
   };
   const metadata = buildComparisonMetadata(settings, metadataValues);
   const hasMetadata = Boolean(metadata.name || metadata.rows.length);

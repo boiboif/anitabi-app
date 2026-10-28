@@ -83,7 +83,8 @@ function createHarness(initialSettings) {
     tree = module.exports.default({
       visible: true,
       bangumi: {},
-      point: {},
+      point: { ep: 1, geo: [35, 139] },
+      capturedAt: '2026-10-08T12:30:00+08:00',
       referenceUri: 'reference',
       photoUri: 'photo',
       referenceDimensions: { uri: 'reference', size: { width: 1600, height: 900 } },

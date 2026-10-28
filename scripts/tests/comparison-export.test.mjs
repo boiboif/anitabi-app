@@ -17,7 +17,13 @@ test('new or damaged settings enable a white border and all five metadata fields
     assert.ok(settings.borderWidth > 0);
     assert.equal(settings.showName, false);
     assert.deepEqual(
-      buildComparisonMetadata(settings, {}).rows.map((row) => row.field),
+      buildComparisonMetadata(settings, {
+        work: '作品',
+        location: '地点',
+        scene: 'EP1 · 01:30',
+        capturedAt: '2026/10/8 12:30',
+        coordinates: '35.00000, 139.00000',
+      }).rows.map((row) => row.field),
       ['work', 'location', 'scene', 'capturedAt', 'coordinates'],
     );
   }
