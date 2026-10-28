@@ -35,6 +35,7 @@ export default function ImportPlanScreen() {
   const source = usePlanImport((state) => state.source);
   const clearImport = usePlanImport((state) => state.clear);
   const mapData = useMapData((state) => state.data);
+  const isPartial = useMapData((state) => state.isPartial);
   const progress = useMapData((state) => state.progress);
   const importPlan = usePlans((state) => state.importPlan);
   const addFavorites = useFavoritePoints((state) => state.addFavorites);
@@ -42,8 +43,8 @@ export default function ImportPlanScreen() {
   const linkResult = useMemo(() => parseLinkData(packed), [packed]);
   const sharedPlan = linkResult.plan ?? pending;
   const resolved = useMemo(
-    () => (sharedPlan && mapData ? resolveSharedPlan(sharedPlan, mapData) : null),
-    [mapData, sharedPlan],
+    () => (sharedPlan && mapData && !isPartial ? resolveSharedPlan(sharedPlan, mapData) : null),
+    [isPartial, mapData, sharedPlan],
   );
 
   const close = () => {
@@ -52,7 +53,7 @@ export default function ImportPlanScreen() {
   };
 
   const confirmImport = () => {
-    if (!sharedPlan || !resolved || resolved.points.length === 0) return;
+    if (useMapData.getState().isPartial || !sharedPlan || !resolved || resolved.points.length === 0) return;
     const id = importPlan(sharedPlan.t, resolved.points);
     if (alsoFavorite) addFavorites(resolved.points);
     clearImport();

@@ -75,6 +75,7 @@ function getImagePath(item: ResolvedFavorite): string | undefined {
 function FavoriteCard({ item, onPress }: { item: ResolvedFavorite; onPress: () => void }) {
   const { t, i18n } = useTranslation();
   const removeFavorite = useFavoritePoints((state) => state.removeFavorite);
+  const awaitingData = useMapData((state) => state.data === null || state.isPartial);
   const available = Boolean(item.point && item.bangumi);
 
   return (
@@ -90,7 +91,9 @@ function FavoriteCard({ item, onPress }: { item: ResolvedFavorite; onPress: () =
               defaultValue: '收藏于 {{date}}',
               date: formatFavoriteTime(item.favorite.addedAt, i18n.resolvedLanguage ?? i18n.language),
             })
-          : t('locationUnavailable', { defaultValue: '点位已不可用' })
+          : awaitingData
+            ? t('locationDetailsNotLoaded')
+            : t('locationUnavailable', { defaultValue: '点位已不可用' })
       }
       image={getImagePath(item)}
       cover={item.bangumi?.cover || item.favorite.snapshot.bangumiCover}
@@ -280,11 +283,7 @@ export default function FavoritesScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.pageBackground?.val, ...contentPlatformStyle, paddingBottom: 0 }}>
       <View bg="$pageBackground" width="100%" maxW={MaxContentWidth} flex={1}>
-        <XStack
-          mx="$pageHorizontalInset"
-          mb={view === 'bangumi' ? getCardListBoundarySpacing(getTokens().space['3'].val) : '$3'}
-          gap="$1"
-        >
+        <XStack mx="$pageHorizontalInset" mb="$2.5" gap="$1">
           {(
             [
               ['bangumi', 'byWork', '按番剧'],

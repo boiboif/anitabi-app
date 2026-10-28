@@ -1,7 +1,7 @@
 import { Toast } from '@boiboif/react-native-toast';
 import i18n from '@/i18n';
 import { translateMessage, type TranslationMessage } from '@/i18n/messages';
-import type { AxiosError } from 'axios';
+import type { AxiosError, AxiosRequestConfig } from 'axios';
 import axios from 'axios';
 
 const codeMessage: Record<string, TranslationMessage> = {
@@ -53,6 +53,9 @@ service.interceptors.response.use(
     return response.data;
   },
   (error: AxiosError) => {
+    if ((error.config as (AxiosRequestConfig & { suppressErrorToast?: boolean }) | undefined)?.suppressErrorToast) {
+      return Promise.reject(error);
+    }
     if (error.code === 'ERR_NETWORK') {
       Toast.error(i18n.t('networkError', { defaultValue: '网络异常' }));
       return Promise.reject(error);

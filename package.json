@@ -93,6 +93,7 @@
     "android": "node scripts/run-android-dev.cjs",
     "ios": "expo run:ios",
     "lint": "expo lint",
+    "test:map-data": "node --test scripts/tests/map-data.test.mjs scripts/tests/map-data-schema.test.mjs scripts/tests/map-storage.test.mjs scripts/tests/map-data-request.test.mjs scripts/tests/map-data-consumers.test.mjs scripts/tests/map-loading-badge.test.mjs scripts/tests/plan-point-batch-browser.test.mjs",
     "icons:generate": "node scripts/generate-app-icons.mjs",
     "icons:check": "node scripts/generate-app-icons.mjs --check",
     "icons:test": "node --test scripts/tests/app-icon-assets.test.mjs",

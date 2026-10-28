@@ -1,6 +1,17 @@
-import { getCachedData, getGModified, setCachedData, setGModified } from '@/lib/map-storage';
+import {
+  commitCachedMapData,
+  getCachedData,
+  getGModified,
+  getMapCacheGeneration,
+  getStagedMapDetail,
+  isMapCacheGenerationCurrent,
+  prepareMapDownload,
+  setStagedMapDetail,
+  subscribeMapCacheInvalidation,
+} from '@/lib/map-storage';
 import i18n from '@/i18n';
 import { getGDetailJSON, getGJSON } from '@/services/api';
+import { MapDataValidationError, parseMapDataIndex, parseMapDetailShard, type MapDataIndex } from './map-data-schema';
 import type { AssembledData, Bangumi, FetchProgress, Point, RawGBangumi, RawGDetail, Theme } from '@/services/types';
 
 // ---------------------------------------------------------------------------
@@ -141,11 +152,101 @@ function assembleBangumis(gList: RawGBangumi[], detailMap: Map<number, RawGDetai
 // 主入口：获取或刷新数据，通过回调报告进度
 // ---------------------------------------------------------------------------
 
-const G_JSON_BATCH_SIZE = 250;
+const REQUEST_ATTEMPTS = 3;
+const REQUEST_TIMEOUT_MS = 30_000;
+const DOWNLOAD_CONCURRENCY = 3;
+
+export { getMapCacheGeneration as getMapDataGeneration } from '@/lib/map-storage';
+
+export class MapDataCancelledError extends Error {
+  constructor() {
+    super('Map data refresh was invalidated');
+    this.name = 'AbortError';
+  }
+}
+
+export class MapDataDownloadError extends Error {
+  readonly failedShards: number[];
+
+  constructor(failedShards: number[]) {
+    super(i18n.t('mapDataIncomplete'));
+    this.name = 'MapDataDownloadError';
+    this.failedShards = failedShards;
+  }
+}
+
+export type MapDataRefreshResult = {
+  data: AssembledData;
+  cachePersisted: boolean;
+};
+
+function assertCurrent(generation: number): void {
+  if (!isMapCacheGenerationCurrent(generation)) throw new MapDataCancelledError();
+}
+
+function canRetry(error: unknown): boolean {
+  if (error instanceof MapDataValidationError || error instanceof SyntaxError) return true;
+  const requestError = error as { code?: string; name?: string; response?: { status?: number } } | null;
+  if (requestError?.name === 'AbortError' || requestError?.code === 'ERR_CANCELED') return false;
+  const status = requestError?.response?.status;
+  return status === undefined || status === 408 || status === 429 || status >= 500;
+}
+
+async function withRetry<T>(
+  request: (attempt: number) => Promise<T>,
+  generation: number,
+  onRetry?: () => void,
+): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    assertCurrent(generation);
+    try {
+      const result = await request(attempt);
+      assertCurrent(generation);
+      return result;
+    } catch (error) {
+      assertCurrent(generation);
+      if (attempt + 1 >= REQUEST_ATTEMPTS || !canRetry(error)) throw error;
+      onRetry?.();
+      // Bounded exponential backoff with jitter avoids synchronized retries on a weak connection.
+      await new Promise<void>((resolve) => setTimeout(resolve, 500 * 2 ** attempt * (0.5 + Math.random())));
+    }
+  }
+}
+
+async function fetchIndex(generation: number, signal: AbortSignal, onRetry?: () => void): Promise<MapDataIndex> {
+  return withRetry(
+    async () =>
+      parseMapDataIndex(
+        await getGJSON({ signal, timeout: REQUEST_TIMEOUT_MS, suppressErrorToast: true, bypassCache: true }),
+      ),
+    generation,
+    onRetry,
+  );
+}
+
+function isCachedDataComplete(cached: AssembledData, index: MapDataIndex): boolean {
+  const byId = new Map(cached.data.bangumis.map((bangumi) => [bangumi.id, bangumi]));
+  if (byId.size !== index.bangumis.length) return false;
+  return index.bangumis.every((raw) => {
+    const bangumi = byId.get(raw[0]);
+    if (!bangumi || !Array.isArray(bangumi.points)) return false;
+    if (!Array.isArray(raw[12])) return true;
+    const pointIds = new Set(bangumi.points.map((point) => point?.id));
+    for (let offset = 0; offset < raw[12].length; offset += 4) {
+      if (!pointIds.has(raw[12][offset] as string)) return false;
+    }
+    return true;
+  });
+}
 
 /** 读取持久化缓存，不发起网络请求。 */
 export function getCachedMapData(): AssembledData | null {
   return getCachedData();
+}
+
+/** Old split-key caches have no reliable completeness marker. */
+export function isCachedMapDataVerified(): boolean {
+  return getGModified() !== null;
 }
 
 /**
@@ -157,63 +258,131 @@ export function getCachedMapData(): AssembledData | null {
 export async function refreshMapData(
   cachedData: AssembledData | null,
   onProgress?: (p: FetchProgress) => void,
-): Promise<AssembledData> {
-  onProgress?.({ phase: 'checking', message: i18n.t('checkingForDataUpdates', { defaultValue: '检查数据更新…' }) });
-
-  const gRaw = (await getGJSON()) as [RawGBangumi[], number, number];
-  const remoteModified = gRaw[2];
-
-  if (cachedData && remoteModified === getGModified()) return cachedData;
-
-  return fetchDetails(gRaw[0], remoteModified, onProgress);
+): Promise<MapDataRefreshResult> {
+  const generation = getMapCacheGeneration();
+  const controller = new AbortController();
+  const unsubscribe = subscribeMapCacheInvalidation(() => controller.abort());
+  try {
+    onProgress?.({ phase: 'checking', message: i18n.t('checkingForDataUpdates', { defaultValue: '检查数据更新…' }) });
+    const index = await fetchIndex(generation, controller.signal, () => {
+      onProgress?.({ phase: 'checking', message: i18n.t('mapDataReconnecting') });
+    });
+    if (
+      cachedData &&
+      cachedData === getCachedData() &&
+      index.modified === getGModified() &&
+      isCachedDataComplete(cachedData, index)
+    ) {
+      return { data: cachedData, cachePersisted: true };
+    }
+    // An empty response during an upstream outage must not erase an existing map.
+    if (cachedData?.data.bangumis.length && index.bangumis.length === 0) {
+      throw new MapDataValidationError('The map index unexpectedly contains no works');
+    }
+    return await fetchDetails(index, generation, controller.signal, onProgress);
+  } finally {
+    unsubscribe();
+  }
 }
 
 async function fetchDetails(
-  gList: RawGBangumi[],
-  modified: number,
+  index: MapDataIndex,
+  generation: number,
+  signal: AbortSignal,
   onProgress?: (p: FetchProgress) => void,
-): Promise<AssembledData> {
-  onProgress?.({
-    phase: 'downloading',
-    batch: 0,
-    message: i18n.t('loadingWorkList', { defaultValue: '加载番剧列表…' }),
-  });
-
-  const batchCount = Math.ceil(gList.length / G_JSON_BATCH_SIZE);
-
-  const detailResults = await Promise.allSettled(
-    Array.from({ length: batchCount }, (_, i) =>
-      getGDetailJSON(i).then((data) => {
-        onProgress?.({
-          phase: 'downloading',
-          batch: i + 1,
-          message: i18n.t('loadingDataCurrentTotal', {
-            defaultValue: '加载数据 {{current}}/{{total}}…',
-            current: i + 1,
-            total: batchCount,
-          }),
-        });
-        return data as RawGDetail[];
-      }),
-    ),
-  );
-
+): Promise<MapDataRefreshResult> {
+  const total = Math.ceil(index.bangumis.length / index.batchSize);
   const detailMap = new Map<number, RawGDetail>();
-  for (const result of detailResults) {
-    if (result.status === 'fulfilled') {
-      for (const entry of result.value) {
-        detailMap.set(entry[0], entry);
-      }
+  const pending: number[] = [];
+  const failed: number[] = [];
+  let completed = 0;
+
+  assertCurrent(generation);
+  prepareMapDownload(index.revision, generation);
+
+  const reportProgress = (retrying = false) => {
+    assertCurrent(generation);
+    onProgress?.({
+      phase: 'downloading',
+      batch: completed,
+      total,
+      message: i18n.t(retrying ? 'retryingMapData' : 'loadingDataCurrentTotal', {
+        current: completed,
+        total,
+      }),
+    });
+  };
+  const acceptShard = (raw: RawGDetail[]) => {
+    for (const detail of raw) detailMap.set(detail[0], detail);
+    completed++;
+  };
+  const getExpected = (shard: number) => index.bangumis.slice(shard * index.batchSize, (shard + 1) * index.batchSize);
+
+  // Only validated shards from this exact index may be reused after a retry or restart.
+  for (let shard = 0; shard < total; shard++) {
+    const staged = getStagedMapDetail(index.revision, shard);
+    try {
+      if (!staged) throw new MapDataValidationError('No staged shard');
+      acceptShard(parseMapDetailShard(staged, getExpected(shard)));
+    } catch {
+      pending.push(shard);
     }
   }
+  reportProgress();
 
-  onProgress?.({ phase: 'assembling', message: i18n.t('preparingData', { defaultValue: '数据组装中…' }) });
+  let nextShard = 0;
+  const worker = async () => {
+    while (nextShard < pending.length) {
+      assertCurrent(generation);
+      const shard = pending[nextShard++];
+      const expected = getExpected(shard);
+      try {
+        const raw = await withRetry(
+          async (attempt) =>
+            parseMapDetailShard(
+              await getGDetailJSON(shard, {
+                signal,
+                timeout: REQUEST_TIMEOUT_MS,
+                suppressErrorToast: true,
+                revision: index.modified,
+                bypassCache: attempt > 0,
+              }),
+              expected,
+            ),
+          generation,
+          () => reportProgress(true),
+        );
+        assertCurrent(generation);
+        setStagedMapDetail(index.revision, shard, raw, generation);
+        acceptShard(raw);
+        reportProgress();
+      } catch {
+        assertCurrent(generation);
+        failed.push(shard);
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(DOWNLOAD_CONCURRENCY, pending.length) }, worker));
+  assertCurrent(generation);
+  if (failed.length) throw new MapDataDownloadError(failed.sort((a, b) => a - b));
 
-  const assembled = assembleBangumis(gList, detailMap);
-  setGModified(modified);
-  setCachedData(assembled);
+  onProgress?.({ phase: 'assembling', batch: completed, total, message: i18n.t('preparingData') });
+  // The upstream shards are not immutable URLs. Re-read the index before committing
+  // so a refresh interrupted by an upstream publication cannot be labelled current.
+  const latestIndex = await fetchIndex(generation, signal, () => {
+    onProgress?.({ phase: 'assembling', batch: completed, total, message: i18n.t('mapDataReconnecting') });
+  });
+  if (
+    latestIndex.revision !== index.revision ||
+    JSON.stringify(latestIndex.bangumis) !== JSON.stringify(index.bangumis)
+  ) {
+    throw new Error(i18n.t('mapDataChangedDuringDownload'));
+  }
 
-  onProgress?.({ phase: 'done', message: i18n.t('loaded', { defaultValue: '加载完成' }) });
-
-  return assembled;
+  // Publish one complete dataset so Mapbox serializes the new GeoJSON only once.
+  const data = assembleBangumis(index.bangumis, detailMap);
+  const cachePersisted = commitCachedMapData(data, index.modified, generation);
+  assertCurrent(generation);
+  if (cachePersisted) onProgress?.({ phase: 'done', batch: total, total, message: i18n.t('loaded') });
+  return { data, cachePersisted };
 }

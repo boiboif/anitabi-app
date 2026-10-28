@@ -47,6 +47,7 @@ function formatFavoriteTime(timestamp: number, language: string): string {
 function FavoriteCard({ item, onPress }: { item: ResolvedFavorite; onPress: () => void }) {
   const { t, i18n } = useTranslation();
   const removeFavorite = useFavoritePoints((state) => state.removeFavorite);
+  const awaitingData = useMapData((state) => state.data === null || state.isPartial);
   const available = Boolean(item.point && item.bangumi);
 
   return (
@@ -62,7 +63,9 @@ function FavoriteCard({ item, onPress }: { item: ResolvedFavorite; onPress: () =
               defaultValue: '收藏于 {{date}}',
               date: formatFavoriteTime(item.favorite.addedAt, i18n.resolvedLanguage ?? i18n.language),
             })
-          : t('locationUnavailable', { defaultValue: '点位已不可用' })
+          : awaitingData
+            ? t('locationDetailsNotLoaded')
+            : t('locationUnavailable', { defaultValue: '点位已不可用' })
       }
       image={getImagePath(item)}
       cover={item.bangumi?.cover || item.favorite.snapshot.bangumiCover}

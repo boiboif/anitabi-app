@@ -1,20 +1,19 @@
 import { anitabiHandler } from './handlers';
+import type { RawGBangumi, RawGDetail } from './types';
 
 /**
- * d = 每日轮换的查询参数，用于绕过 anitabi.cn 的 CDN 缓存。
+ * d = 跟随 anitabi 网页端轮换的 CDN 查询参数。
  *
  * anitabi.cn 的地图数据 JSON 文件（/d/g0.json、/d/g1.json……）如果 URL 固定，
- * CDN 会长期缓存旧数据。所以他们在 URL 末尾加了一个按「天」变化的参数 d，
- * 这样每天都是一个新的 URL，CDN 就会回源拿新数据。
+ * CDN 会长期缓存旧数据。下面的上游公式每 24 分钟轮换一次，
+ * 保留该公式以兼容上游；地图刷新另外使用版本参数区分不同数据版本。
  *
  * 公式拆解：
  *   Date.now()               → 当前时间戳（毫秒）
- *   / 1e3 / 60 / 24          → 转成「天数」（1e3 = 1000 毫秒 → 秒，/60 → 分钟，/24 → 小时 → 天）
- *   Math.floor(...)          → 向下取整，得到从 1970.1.1 到今天的天数
- *   + 6                      → 偏移量（anitabi 自己加的一个常数，让起始天偏移 6 天）
+ *   / 1e3 / 60 / 24          → 转成 24 分钟的时间段数
+ *   Math.floor(...)          → 向下取整
+ *   + 6                      → 保留 anitabi 使用的固定偏移量
  *   .toString(36)            → 转成 36 进制字符串（字符集 0-9a-z），比十进制更短，URL 更干净
- *
- * 以今天为例：天数 ≈ 20607 → +6 = 20613 → toString(36) = "fwl3"
  *
  * 逆向来源（给想自己跟一遍的同学）：
  *   1. 打开 anitabi.cn 的页面，在 DevTools 的 Sources 里搜索 /d/g.json?d=
@@ -27,9 +26,34 @@ const d = () => {
   return (Math.floor(Date.now() / 1e3 / 60 / 24) + 6).toString(36);
 };
 
-export const getGDetailJSON = (index: number) => anitabiHandler.get<any[][]>(`/d/g${index}.json?d=${d()}`)();
+export type MapDataRequestOptions = {
+  signal?: AbortSignal;
+  timeout?: number;
+  suppressErrorToast?: boolean;
+  revision?: number;
+  bypassCache?: boolean;
+};
 
-export const getGJSON = anitabiHandler.get<[any[][], number, number]>('/d/g.json' + '?d=' + d());
+let requestSequence = 0;
+
+function getMapJSON<T>(path: string, options: MapDataRequestOptions = {}): Promise<T> {
+  const query = `d=${d()}${options.revision === undefined ? '' : `&v=${options.revision}`}${
+    options.bypassCache ? `&check=${Date.now()}-${++requestSequence}` : ''
+  }`;
+  // The service owns retry feedback; intermediate failures must not produce repeated toasts.
+  const config = {
+    signal: options.signal,
+    timeout: options.timeout,
+    suppressErrorToast: options.suppressErrorToast,
+  };
+  return anitabiHandler.get<T>(`${path}?${query}`)(undefined, config);
+}
+
+export const getGDetailJSON = (index: number, options?: MapDataRequestOptions) =>
+  getMapJSON<RawGDetail[]>(`/d/g${index}.json`, options);
+
+export const getGJSON = (options?: MapDataRequestOptions) =>
+  getMapJSON<[RawGBangumi[], number, number]>('/d/g.json', options);
 
 export const getBangumiIcons = anitabiHandler.get<{ ids: string[]; src: string }>(
   '/d/bangumi-icons.json' + '?d=' + d(),

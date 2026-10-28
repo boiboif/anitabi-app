@@ -1,6 +1,8 @@
 import type { TranslationKey } from './zh';
 
 const ja = {
+  mapDataLoadPaused: 'スポットの読み込みを一時停止しました。再試行して続けてください。',
+  mapDataReconnecting: '接続が一時的に切れました。再試行中…',
   planListSettings: 'リスト設定',
   planSelectedLocations: '{{count}}件のスポットを選択中',
   planSelectLocation: 'スポットを選択',
@@ -476,6 +478,15 @@ const ja = {
   qrCodeContentIsEmpty: 'QRコードの内容が空です',
   networkError: 'ネットワークエラー',
   mapDataFailedToLoad: '地図データを読み込めません',
+  mapDataIncomplete: '一部のスポットを読み込めていません。再試行して残りを読み込めます。',
+  retryingMapData: '再試行中、{{current}}/{{total}}を読み込み済み…',
+  mapDataChangedDuringDownload: 'スポットのデータが更新されました。再試行して最新の内容を取得してください。',
+  mapDataRefreshFailed: 'スポットを更新できませんでした。保存済みのデータは引き続き閲覧できます。',
+  mapDataPartialFailed: '一部のスポットを読み込めていません。読み込み済みのスポットは引き続き閲覧できます。',
+  mapDataCacheSaveFailed: 'スポットを読み込みましたが、次回用に保存できませんでした。',
+  mapDataLoadFailed: 'スポットを読み込めませんでした。通信状況を確認して再試行してください。',
+  locationDetailsNotLoaded: 'スポットの詳細はまだ読み込まれていません',
+  noMatchingLoadedLocations: '読み込み済みのスポットに一致する結果はありません。',
   checkingForDataUpdates: 'データの更新を確認中…',
   dataFailedToLoad: 'データを読み込めません',
   loadingWorkList: '作品一覧を読み込み中…',

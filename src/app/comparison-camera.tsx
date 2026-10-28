@@ -11,6 +11,7 @@ export default function ComparisonCameraRoute() {
   const router = useRouter();
   const { bangumiId, pointId } = useLocalSearchParams<{ bangumiId?: string; pointId?: string }>();
   const data = useMapData((state) => state.data);
+  const isPartial = useMapData((state) => state.isPartial);
   const bangumi = data?.data.bangumis.find((item) => item.id === Number(bangumiId));
   const point = bangumi?.points.find((item) => item.id === pointId);
 
@@ -22,9 +23,11 @@ export default function ComparisonCameraRoute() {
           {t('couldNotLoadLocation', { defaultValue: '无法加载巡礼点' })}
         </Text>
         <Text color="$gray10" fontSize="$footnote" text="center">
-          {t('theLocationMayStillBeLoadingOrMayNoLongerBeAvailable', {
-            defaultValue: '点位数据可能仍在加载，或该点位已经不可用。',
-          })}
+          {!data || isPartial
+            ? t('locationDetailsNotLoaded')
+            : t('theLocationMayStillBeLoadingOrMayNoLongerBeAvailable', {
+                defaultValue: '点位数据可能仍在加载，或该点位已经不可用。',
+              })}
         </Text>
         <Pressable
           accessibilityRole="button"

@@ -1,6 +1,8 @@
 import type { TranslationKey } from './zh';
 
 const en = {
+  mapDataLoadPaused: 'Location loading paused. Retry to continue.',
+  mapDataReconnecting: 'Connection interrupted. Retrying…',
   planListSettings: 'List settings',
   planSelectedLocations: '{{count}} locations selected',
   planSelectLocation: 'Select location',
@@ -474,6 +476,15 @@ const en = {
   qrCodeContentIsEmpty: 'QR code content is empty',
   networkError: 'Network error',
   mapDataFailedToLoad: 'Map data failed to load',
+  mapDataIncomplete: 'Some locations have not loaded yet. Retry to load the rest.',
+  retryingMapData: 'Retrying, loaded {{current}}/{{total}}…',
+  mapDataChangedDuringDownload: 'Location data was just updated. Retry to get the latest content.',
+  mapDataRefreshFailed: 'Locations could not be updated. Saved data is still available.',
+  mapDataPartialFailed: 'Some locations have not loaded yet. Loaded locations are still available.',
+  mapDataCacheSaveFailed: 'Locations loaded, but could not be saved for next time.',
+  mapDataLoadFailed: 'Locations could not be loaded. Check your connection and retry.',
+  locationDetailsNotLoaded: 'Location details have not loaded yet',
+  noMatchingLoadedLocations: 'No matches among the locations loaded so far.',
   checkingForDataUpdates: 'Checking for data updates…',
   dataFailedToLoad: 'Data failed to load',
   loadingWorkList: 'Loading work list…',

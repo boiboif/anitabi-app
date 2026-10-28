@@ -24,6 +24,7 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const data = useMapData((state) => state.data);
+  const isPartial = useMapData((state) => state.isPartial);
   const status = useMapData((state) => state.status);
   const error = useMapData((state) => state.error);
   const initialize = useMapData((state) => state.initialize);
@@ -212,7 +213,9 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
           ListEmptyComponent={
             <YStack minH={180} px="$pageHorizontalInset" gap="$3" items="center" justify="center">
               <Text fontSize="$body" color="$color11">
-                {t('noWorksAvailableForPlan', { defaultValue: '没有可添加的作品' })}
+                {isPartial
+                  ? t('noMatchingLoadedLocations')
+                  : t('noWorksAvailableForPlan', { defaultValue: '没有可添加的作品' })}
               </Text>
               {query ? (
                 <Button color="$primary" onPress={() => handleQueryChange('')}>

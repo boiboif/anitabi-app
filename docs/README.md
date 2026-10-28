@@ -21,6 +21,7 @@
 - [Expo SDK 58 迁移](development/expo-sdk-58-migration.md)：依赖、API 适配、开发期警告与上游待修问题、OTA runtime 与设备验证边界。
 - [图片预览：接入与回归验证](development/image-preview-validation.md)：组件用法、手势、保存分享和设备回归清单。
 - [地图选中标记](development/map-marker-rendering.md)：图层顺序、性能边界和地图回归清单。
+- [地图数据刷新与分片恢复](development/map-data-refresh.md)：完整结果一次发布、失败分片重试与暂存恢复、旧缓存重验、首页状态提示与恢复和设备验收。
 - [Tamagui 参考资料](tamagui-llms.txt)：UI 开发参考；保留此路径供项目指引引用。
 
 ## 发布与维护

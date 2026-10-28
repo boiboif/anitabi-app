@@ -64,7 +64,9 @@ export default function HomeScreen() {
   const [isCameraReady, setIsCameraReady] = useState(false);
   const insets = useSafeAreaInsets();
   const data = useMapData((state) => state.data);
+  const isPartial = useMapData((state) => state.isPartial);
   const progress = useMapData((state) => state.progress);
+  const initializeMapData = useMapData((state) => state.initialize);
   const router = useRouter();
   const isRouteFocused = useIsFocused();
   const navigation = useNavigation();
@@ -121,6 +123,8 @@ export default function HomeScreen() {
     const request = mapCameraRequest;
     const bangumi = bangumis.find((item) => item.id === request.bangumiId);
     if (!bangumi) {
+      // A not-yet-downloaded work may become available when the missing shard arrives.
+      if (isPartial) return;
       completeMapCameraRequest(request.id);
       return;
     }
@@ -152,7 +156,16 @@ export default function HomeScreen() {
       }
     }
     completeMapCameraRequest(request.id);
-  }, [bangumis, completeMapCameraRequest, data, isCameraReady, isRouteFocused, mapCameraRequest, navigation]);
+  }, [
+    bangumis,
+    completeMapCameraRequest,
+    data,
+    isCameraReady,
+    isPartial,
+    isRouteFocused,
+    mapCameraRequest,
+    navigation,
+  ]);
 
   const handleRandomPoint = useCallback(() => {
     let cached = randomPointCandidatesRef.current;
@@ -225,7 +238,7 @@ export default function HomeScreen() {
         />
       </View>
 
-      {progress && <LoadingBadge progress={progress} insets={insets} />}
+      {progress && <LoadingBadge progress={progress} insets={insets} onRetry={() => void initializeMapData()} />}
 
       {!selectedBangumi && (
         <>

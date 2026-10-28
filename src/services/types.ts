@@ -28,7 +28,7 @@ export type RawGBangumi = [
 /** g{n}.json 单条番剧原始数据: [bangumiId, theme, points[], modified] */
 export type RawGDetail = [
   bangumiId: number,
-  theme: [src: string, ids: string[], modified: number, w: number, h: number],
+  theme: [src: string, ids: string[], modified: number, w: number, h: number] | 0,
   points: RawPoint[],
   modified: number,
 ];
@@ -37,7 +37,7 @@ export type RawGDetail = [
 export type RawPoint = [
   id: string,
   name: string,
-  cn: number,
+  cn: number | string,
   isFolder: number,
   mid: number,
   uid: number,
@@ -122,7 +122,9 @@ export type FetchPhase = 'checking' | 'downloading' | 'assembling' | 'done' | 'e
 
 export type FetchProgress = {
   phase: FetchPhase;
-  /** downloading 时，已下载批次数 */
+  /** downloading 时，已完成批次数（包含已验证的暂存分片）。 */
   batch?: number;
+  /** downloading 时，需要完成的总批次数。 */
+  total?: number;
   message?: string;
 };

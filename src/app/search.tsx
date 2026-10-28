@@ -58,6 +58,7 @@ const Search = () => {
   const flashListRef = useRef<FlashListRef<SearchListItem>>(null);
   const router = useRouter();
   const data = useMapData((state) => state.data);
+  const isPartial = useMapData((state) => state.isPartial);
   const openBangumiDetails = useMapBrowse((state) => state.openBangumiDetails);
   const focusPointFromList = useMapBrowse((state) => state.focusPointFromList);
 
@@ -266,7 +267,9 @@ const Search = () => {
         {searchMode && listItems.length === 0 ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
             <Text fontSize="$body" color="$color11">
-              {t('noMatchingLocationsFound', { defaultValue: '未找到相关地标' })}
+              {isPartial || !data
+                ? t('noMatchingLoadedLocations')
+                : t('noMatchingLocationsFound', { defaultValue: '未找到相关地标' })}
             </Text>
           </View>
         ) : (

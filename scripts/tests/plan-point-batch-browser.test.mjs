@@ -39,6 +39,7 @@ const tokens = { radius: { 4: { val: 12 } }, space: { 3: { val: 12 } } };
 const t = (key, options) => options?.defaultValue ?? key;
 const translation = { t, i18n: { resolvedLanguage: 'en', language: 'en' } };
 const commonModules = {
+  '@/tamagui.config': { PageHorizontalInset: 12 },
   '@/components/ui/card-list-item': { default: 'CardListItem' },
   '@/lib/card-list-layout': cardListLayout,
   'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'Fragment' },
@@ -102,6 +103,7 @@ function createHarness(screen = 'browser') {
   let tree;
   let planId = 'trip';
   let plans = [];
+  let mapState = { data: { data: { bangumis: works } }, status: 'ready', isPartial: false };
   let dismisses = 0;
   let searchBacks = 0;
   let repeatedRemovals = 0;
@@ -144,7 +146,7 @@ function createHarness(screen = 'browser') {
     '../ui/search-box': { default: 'SearchBox' },
     '@/i18n/messages': cardModules['@/i18n/messages'],
     '@/store/use-map-data': {
-      useMapData: (select) => select({ data: { data: { bangumis: works } }, status: 'ready' }),
+      useMapData: (select) => select(mapState),
     },
     '@/store/use-plans': { usePlans: (select) => select({ plans }) },
     '@/store/use-map-browse': {
@@ -194,6 +196,10 @@ function createHarness(screen = 'browser') {
   const find = (type) => nodes(tree).find((node) => node.type === type);
   const lists = () => nodes(tree).filter((node) => node.type === 'FlashList');
   return {
+    setMapState(patch) {
+      mapState = { ...mapState, ...patch };
+      render();
+    },
     find,
     lists,
     render,
@@ -279,6 +285,30 @@ test('search and the plan browser render the same work card while retaining thei
   browser.render();
   assert.equal(browser.lists().length, 2);
   assert.equal(browser.dismisses, 1, 'choosing a work dismisses the search keyboard');
+});
+
+test('legacy completeness does not add banners or change the existing work search and group actions', () => {
+  const browser = createHarness();
+  browser.setMapState({ isPartial: true });
+  assert.equal(browser.find('MapDataStatusNotice'), undefined);
+  browser.search('not-yet-loaded');
+  const empty = browser.lists()[0].props.ListEmptyComponent;
+  assert.ok(nodes(empty).some((node) => node.type === 'Text'));
+  assert.ok(nodes(empty).some((node) => node.type === 'Button' && node.props.children === '清除搜索'));
+  browser.setMapState({ isPartial: false });
+  assert.ok(
+    nodes(browser.lists()[0].props.ListEmptyComponent).some(
+      (node) => node.type === 'Text' && node.props.children === '没有可添加的作品',
+    ),
+  );
+  browser.setMapState({ isPartial: true });
+  browser.search('Work A');
+  browser.selectWork(works[0]);
+  assert.equal(browser.groupButtons().length, 3);
+  assert.equal(
+    nodes(browser.lists()[1].props.ListHeaderComponent).some((node) => node.type === 'MapDataStatusNotice'),
+    false,
+  );
 });
 
 test('shared work card preserves separate cover preview and work-selection targets', () => {
