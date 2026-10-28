@@ -4,7 +4,7 @@ import { useAppUpdates } from '@/hooks/use-app-updates';
 import i18n, { resolveLanguagePreference } from '@/i18n';
 import { Sentry } from '@/services/sentry';
 import { useLanguagePreference } from '@/store/use-language-preference';
-import { useMapData } from '@/store/use-map-data';
+import { startMapDataRefreshLifecycle, useMapData } from '@/store/use-map-data';
 import { usePlans } from '@/store/use-plans';
 import { useThemePreference } from '@/store/use-theme-preference';
 import tamaguiConfig, { PageBackground } from '@/tamagui.config';
@@ -25,7 +25,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { lazy, Suspense, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useColorScheme } from 'react-native';
+import { AppState, useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { TamaguiProvider } from 'tamagui';
@@ -89,15 +89,28 @@ function RootLayout() {
   const initializeFirstInstallDemo = usePlans((state) => state.initializeFirstInstallDemo);
   const appUpdates = useAppUpdates();
   const didFinishInitialLayout = useRef(false);
+  const startupMounted = useRef(true);
+
+  useEffect(() => startMapDataRefreshLifecycle(AppState), []);
+
+  useEffect(() => {
+    startupMounted.current = true;
+    return () => {
+      startupMounted.current = false;
+    };
+  }, []);
 
   function handleRootLayout() {
-    if (didFinishInitialLayout.current) return;
+    if (!startupMounted.current || didFinishInitialLayout.current) return;
     didFinishInitialLayout.current = true;
 
     // Show the mounted app before parsing the large cached map payload on JS.
     const startMapData = () => {
+      if (!startupMounted.current) return;
       requestAnimationFrame(() => {
+        if (!startupMounted.current) return;
         setTimeout(() => {
+          if (!startupMounted.current) return;
           void initializeMapData();
           void initializeFirstInstallDemo();
         }, 0);

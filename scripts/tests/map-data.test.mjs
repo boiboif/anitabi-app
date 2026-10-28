@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { getEventListeners } from 'node:events';
 import { registerHooks } from 'node:module';
 import { after, beforeEach, test } from 'node:test';
 
@@ -528,7 +529,7 @@ for (const completedFirst of [false, true]) {
   });
 }
 
-test('a store refresh failure keeps the previous complete map available and exposes the error', async (t) => {
+test('a store refresh failure keeps the previous complete map available without surfacing an error', async (t) => {
   const { storage, service, store } = await runtime(t);
   const previous = (await service.refreshMapData(null)).data;
   useSource(source({ modified: 103 }));
@@ -543,7 +544,8 @@ test('a store refresh failure keeps the previous complete map available and expo
   assert.equal(state.status, 'ready');
   assert.equal(state.isPartial, false);
   assert.equal(state.isRefreshing, false);
-  assert.ok(state.error instanceof Error);
+  assert.equal(state.error, null);
+  assert.equal(state.progress, null);
 });
 
 test('a first load with no successful shard reports an error instead of a completed empty map', async (t) => {
@@ -598,7 +600,7 @@ test('an old initialize finishing after cache clear cannot publish over a newer 
   assert.equal(storage.getGModified(), 105);
 });
 
-test('a failed complete-cache commit keeps the full network map usable and retries the save from staged shards', async (t) => {
+test('a failed complete-cache commit quietly keeps the full network map usable and retries the save from staged shards', async (t) => {
   const { storage, service, store } = await runtime(t);
   const previous = (await service.refreshMapData(null)).data;
   useSource(source({ modified: 106 }));
@@ -611,9 +613,8 @@ test('a failed complete-cache commit keeps the full network map usable and retri
   assert.equal(loaded.status, 'ready');
   assert.equal(loaded.isPartial, false);
   assert.equal(loaded.isRefreshing, false);
-  assert.ok(loaded.error instanceof Error);
-  assert.equal(loaded.error.message, 'mapDataCacheSaveFailed');
-  assert.deepEqual(loaded.progress, { phase: 'error', message: loaded.error.message });
+  assert.equal(loaded.error, null);
+  assert.equal(loaded.progress, null);
   assert.strictEqual(storage.getCachedData(), previous);
   assert.equal(storage.getGModified(), 100);
   assert.equal(JSON.parse(harness.stores.get('anitabi-map-cache').get('assembled-data-v2')).remoteModified, 100);
@@ -629,6 +630,23 @@ test('a failed complete-cache commit keeps the full network map usable and retri
   assert.deepEqual(harness.details, [], 'retry reuses every validated shard instead of downloading them again');
   assert.strictEqual(storage.getCachedData(), saved.data);
   assert.equal(storage.getGModified(), 106);
+});
+
+test('a first complete download without a usable cache still reports failure to save the map for next time', async (t) => {
+  const { storage, store } = await runtime(t);
+  harness.failWriteKey = 'assembled-data-v2';
+  t.mock.method(console, 'warn', () => {});
+  await store.getState().initialize();
+  const state = store.getState();
+  assertComplete(state.data);
+  assert.equal(state.status, 'ready');
+  assert.equal(state.isPartial, false);
+  assert.equal(state.isRefreshing, false);
+  assert.ok(state.error instanceof Error);
+  assert.equal(state.error.message, 'mapDataCacheSaveFailed');
+  assert.deepEqual(state.progress, { phase: 'error', message: state.error.message });
+  assert.equal(storage.getCachedData(), null);
+  assert.equal(storage.getGModified(), null);
 });
 
 test('legacy data remains browsable but unverified after refresh failure until a complete retry succeeds', async (t) => {
@@ -716,4 +734,156 @@ test('a visible legacy map survives cache clear and rejects a later empty index 
   assert.equal(storage.getGModified(), null);
   assert.equal(service.isCachedMapDataVerified(), false);
   assert.deepEqual(harness.details, []);
+});
+
+test('an already aborted caller signal does not start requests, advance generation or clear staged shards', async (t) => {
+  const { storage, service } = await runtime(t);
+  const generation = storage.getMapCacheGeneration();
+  const revision = JSON.stringify([100, 2, [1, 2, 3, 4]]);
+  storage.prepareMapDownload(revision, generation);
+  storage.setStagedMapDetail(revision, 0, harness.source.detail(0), generation);
+  const staged = harness.stores.get('anitabi-map-cache').get('map-detail-v1:0');
+  const controller = new AbortController();
+  controller.abort();
+
+  await assert.rejects(service.refreshMapData(null, undefined, { signal: controller.signal }), { name: 'AbortError' });
+  assert.deepEqual(harness.indexes, []);
+  assert.deepEqual(harness.details, []);
+  assert.equal(storage.getMapCacheGeneration(), generation);
+  assert.equal(harness.stores.get('anitabi-map-cache').get('map-detail-v1:0'), staged);
+  assert.equal(getEventListeners(controller.signal, 'abort').length, 0);
+});
+
+test('caller abort stops waiting for an ignored index signal and rejects the late result', async (t) => {
+  const { storage, service } = await runtime(t);
+  const generation = storage.getMapCacheGeneration();
+  const gate = deferred();
+  const index = harness.source.raw;
+  harness.indexResults = [() => gate.promise];
+  const controller = new AbortController();
+  const progress = [];
+  const operation = service.refreshMapData(null, (next) => progress.push(next), { signal: controller.signal });
+  const rejected = assert.rejects(operation, { name: 'AbortError' });
+  await until(() => harness.indexes.length === 1);
+  const requestSignal = harness.indexes[0].signal;
+  controller.abort();
+  await rejected;
+  assert.equal(requestSignal.aborted, true);
+  assert.equal(storage.getMapCacheGeneration(), generation);
+  assert.equal(getEventListeners(controller.signal, 'abort').length, 0);
+  const progressCount = progress.length;
+
+  gate.resolve(index);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(harness.details, []);
+  assert.equal(progress.length, progressCount);
+  assert.equal(storage.getCachedData(), null);
+  assert.equal(storage.getGModified(), null);
+});
+
+test('caller abort preserves the complete baseline and successful shards for a resumed refresh', async (t) => {
+  const { storage, service } = await runtime(t);
+  const previous = (await service.refreshMapData(null)).data;
+  const generation = storage.getMapCacheGeneration();
+  useSource(source({ modified: 101 }));
+  const currentSource = harness.source;
+  const gate = deferred();
+  harness.detailResult = async (index) => {
+    if (index === 1) await gate.promise;
+    return currentSource.detail(index);
+  };
+  const controller = new AbortController();
+  const progress = [];
+  const operation = service.refreshMapData(previous, (next) => progress.push(next), { signal: controller.signal });
+  const rejected = assert.rejects(operation, { name: 'AbortError' });
+  const values = harness.stores.get('anitabi-map-cache');
+  await until(() => values.has('map-detail-v1:0') && harness.active > 0);
+  const staged = values.get('map-detail-v1:0');
+  const requestSignals = harness.details.map(({ config }) => config.signal);
+  controller.abort();
+  await rejected;
+  assert.ok(requestSignals.every((signal) => signal.aborted));
+  assert.equal(storage.getMapCacheGeneration(), generation);
+  assert.strictEqual(storage.getCachedData(), previous);
+  assert.equal(storage.getGModified(), 100);
+  assert.equal(values.get('map-detail-v1:0'), staged);
+  const progressCount = progress.length;
+
+  gate.resolve();
+  await until(() => harness.active === 0);
+  assert.equal(progress.length, progressCount, 'an ignored cancellation cannot publish late progress');
+  assert.equal(values.has('map-detail-v1:1'), false, 'a late shard must not be staged after caller cancellation');
+  assert.strictEqual(storage.getCachedData(), previous);
+
+  useSource(currentSource);
+  const resumed = await service.refreshMapData(previous);
+  assertComplete(resumed.data);
+  assert.equal(storage.getGModified(), 101);
+  assert.deepEqual(
+    harness.details.map(({ index }) => index),
+    [1],
+    'resume downloads only the unstaged shard',
+  );
+});
+
+test('caller abort during final index verification cannot commit staged data after a late response', async (t) => {
+  const { storage, service } = await runtime(t);
+  const previous = (await service.refreshMapData(null)).data;
+  useSource(source({ modified: 102 }));
+  const currentSource = harness.source;
+  const gate = deferred();
+  harness.indexResults = [currentSource.raw, () => gate.promise];
+  const controller = new AbortController();
+  const operation = service.refreshMapData(previous, undefined, { signal: controller.signal });
+  const rejected = assert.rejects(operation, { name: 'AbortError' });
+  await until(() => harness.indexes.length === 2);
+  const generation = storage.getMapCacheGeneration();
+  controller.abort();
+  await rejected;
+  gate.resolve(currentSource.raw);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(storage.getMapCacheGeneration(), generation);
+  assert.strictEqual(storage.getCachedData(), previous);
+  assert.equal(storage.getGModified(), 100);
+  const values = harness.stores.get('anitabi-map-cache');
+  assert.ok(values.has('map-detail-v1:0') && values.has('map-detail-v1:1'));
+
+  useSource(currentSource);
+  const resumed = await service.refreshMapData(previous);
+  assertComplete(resumed.data);
+  assert.equal(storage.getGModified(), 102);
+  assert.deepEqual(harness.details, [], 'all validated shards survive cancellation during final verification');
+});
+
+test('caller abort interrupts retry backoff immediately and removes its timer and abort listeners', async (t) => {
+  const { storage, service } = await runtime(t);
+  const timers = new Map();
+  const cleared = [];
+  let nextTimer = 10;
+  t.mock.method(globalThis, 'setTimeout', (callback, delay) => {
+    const timer = nextTimer++;
+    timers.set(timer, { callback, delay });
+    return timer;
+  });
+  t.mock.method(globalThis, 'clearTimeout', (timer) => {
+    cleared.push(timer);
+    timers.delete(timer);
+  });
+  harness.indexResults = [new Error('temporary index outage')];
+  const generation = storage.getMapCacheGeneration();
+  const controller = new AbortController();
+  const operation = service.refreshMapData(null, undefined, { signal: controller.signal });
+  const rejected = assert.rejects(operation, { name: 'AbortError' });
+  await until(() => timers.size === 1);
+  const timer = [...timers.keys()][0];
+  const internalSignal = harness.indexes[0].signal;
+  assert.equal(getEventListeners(internalSignal, 'abort').length, 1);
+  controller.abort();
+  await rejected;
+  assert.equal(timers.size, 0);
+  assert.deepEqual(cleared, [timer]);
+  assert.equal(getEventListeners(internalSignal, 'abort').length, 0);
+  assert.equal(getEventListeners(controller.signal, 'abort').length, 0);
+  assert.equal(harness.indexes.length, 1, 'no additional request starts after cancelling the retry delay');
+  assert.equal(storage.getMapCacheGeneration(), generation);
 });

@@ -157,6 +157,7 @@ const REQUEST_TIMEOUT_MS = 30_000;
 const DOWNLOAD_CONCURRENCY = 3;
 
 export { getMapCacheGeneration as getMapDataGeneration } from '@/lib/map-storage';
+export { subscribeMapCacheInvalidation as subscribeMapDataInvalidation } from '@/lib/map-storage';
 
 export class MapDataCancelledError extends Error {
   constructor() {
@@ -180,8 +181,57 @@ export type MapDataRefreshResult = {
   cachePersisted: boolean;
 };
 
-function assertCurrent(generation: number): void {
-  if (!isMapCacheGenerationCurrent(generation)) throw new MapDataCancelledError();
+export type MapDataRefreshOptions = {
+  signal?: AbortSignal;
+};
+
+function assertCurrent(generation: number, signal: AbortSignal): void {
+  if (signal.aborted || !isMapCacheGenerationCurrent(generation)) throw new MapDataCancelledError();
+}
+
+/** Stop waiting even if a transport ignores its signal and returns a late result. */
+function awaitRequest<T>(request: Promise<T>, signal: AbortSignal): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => {
+      signal.removeEventListener('abort', onAbort);
+      reject(new MapDataCancelledError());
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
+    request.then(
+      (result) => {
+        signal.removeEventListener('abort', onAbort);
+        resolve(result);
+      },
+      (error: unknown) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(error);
+      },
+    );
+    if (signal.aborted) onAbort();
+  });
+}
+
+function waitForRetry(delay: number, signal: AbortSignal): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const cleanup = () => {
+      if (timer !== undefined) clearTimeout(timer);
+      signal.removeEventListener('abort', onAbort);
+    };
+    const onAbort = () => {
+      cleanup();
+      reject(new MapDataCancelledError());
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
+    if (signal.aborted) {
+      onAbort();
+      return;
+    }
+    timer = setTimeout(() => {
+      cleanup();
+      resolve();
+    }, delay);
+  });
 }
 
 function canRetry(error: unknown): boolean {
@@ -195,20 +245,21 @@ function canRetry(error: unknown): boolean {
 async function withRetry<T>(
   request: (attempt: number) => Promise<T>,
   generation: number,
+  signal: AbortSignal,
   onRetry?: () => void,
 ): Promise<T> {
   for (let attempt = 0; ; attempt++) {
-    assertCurrent(generation);
+    assertCurrent(generation, signal);
     try {
-      const result = await request(attempt);
-      assertCurrent(generation);
+      const result = await awaitRequest(request(attempt), signal);
+      assertCurrent(generation, signal);
       return result;
     } catch (error) {
-      assertCurrent(generation);
+      assertCurrent(generation, signal);
       if (attempt + 1 >= REQUEST_ATTEMPTS || !canRetry(error)) throw error;
       onRetry?.();
       // Bounded exponential backoff with jitter avoids synchronized retries on a weak connection.
-      await new Promise<void>((resolve) => setTimeout(resolve, 500 * 2 ** attempt * (0.5 + Math.random())));
+      await waitForRetry(500 * 2 ** attempt * (0.5 + Math.random()), signal);
     }
   }
 }
@@ -220,6 +271,7 @@ async function fetchIndex(generation: number, signal: AbortSignal, onRetry?: () 
         await getGJSON({ signal, timeout: REQUEST_TIMEOUT_MS, suppressErrorToast: true, bypassCache: true }),
       ),
     generation,
+    signal,
     onRetry,
   );
 }
@@ -258,15 +310,21 @@ export function isCachedMapDataVerified(): boolean {
 export async function refreshMapData(
   cachedData: AssembledData | null,
   onProgress?: (p: FetchProgress) => void,
+  options: MapDataRefreshOptions = {},
 ): Promise<MapDataRefreshResult> {
   const generation = getMapCacheGeneration();
   const controller = new AbortController();
   const unsubscribe = subscribeMapCacheInvalidation(() => controller.abort());
+  const onAbort = () => controller.abort();
+  options.signal?.addEventListener('abort', onAbort, { once: true });
+  if (options.signal?.aborted) controller.abort();
   try {
+    assertCurrent(generation, controller.signal);
     onProgress?.({ phase: 'checking', message: i18n.t('checkingForDataUpdates', { defaultValue: '检查数据更新…' }) });
     const index = await fetchIndex(generation, controller.signal, () => {
       onProgress?.({ phase: 'checking', message: i18n.t('mapDataReconnecting') });
     });
+    assertCurrent(generation, controller.signal);
     if (
       cachedData &&
       cachedData === getCachedData() &&
@@ -281,6 +339,7 @@ export async function refreshMapData(
     }
     return await fetchDetails(index, generation, controller.signal, onProgress);
   } finally {
+    options.signal?.removeEventListener('abort', onAbort);
     unsubscribe();
   }
 }
@@ -297,11 +356,11 @@ async function fetchDetails(
   const failed: number[] = [];
   let completed = 0;
 
-  assertCurrent(generation);
+  assertCurrent(generation, signal);
   prepareMapDownload(index.revision, generation);
 
   const reportProgress = (retrying = false) => {
-    assertCurrent(generation);
+    assertCurrent(generation, signal);
     onProgress?.({
       phase: 'downloading',
       batch: completed,
@@ -320,6 +379,7 @@ async function fetchDetails(
 
   // Only validated shards from this exact index may be reused after a retry or restart.
   for (let shard = 0; shard < total; shard++) {
+    assertCurrent(generation, signal);
     const staged = getStagedMapDetail(index.revision, shard);
     try {
       if (!staged) throw new MapDataValidationError('No staged shard');
@@ -333,7 +393,7 @@ async function fetchDetails(
   let nextShard = 0;
   const worker = async () => {
     while (nextShard < pending.length) {
-      assertCurrent(generation);
+      assertCurrent(generation, signal);
       const shard = pending[nextShard++];
       const expected = getExpected(shard);
       try {
@@ -350,20 +410,21 @@ async function fetchDetails(
               expected,
             ),
           generation,
+          signal,
           () => reportProgress(true),
         );
-        assertCurrent(generation);
+        assertCurrent(generation, signal);
         setStagedMapDetail(index.revision, shard, raw, generation);
         acceptShard(raw);
         reportProgress();
       } catch {
-        assertCurrent(generation);
+        assertCurrent(generation, signal);
         failed.push(shard);
       }
     }
   };
   await Promise.all(Array.from({ length: Math.min(DOWNLOAD_CONCURRENCY, pending.length) }, worker));
-  assertCurrent(generation);
+  assertCurrent(generation, signal);
   if (failed.length) throw new MapDataDownloadError(failed.sort((a, b) => a - b));
 
   onProgress?.({ phase: 'assembling', batch: completed, total, message: i18n.t('preparingData') });
@@ -372,6 +433,7 @@ async function fetchDetails(
   const latestIndex = await fetchIndex(generation, signal, () => {
     onProgress?.({ phase: 'assembling', batch: completed, total, message: i18n.t('mapDataReconnecting') });
   });
+  assertCurrent(generation, signal);
   if (
     latestIndex.revision !== index.revision ||
     JSON.stringify(latestIndex.bangumis) !== JSON.stringify(index.bangumis)
@@ -381,8 +443,9 @@ async function fetchDetails(
 
   // Publish one complete dataset so Mapbox serializes the new GeoJSON only once.
   const data = assembleBangumis(index.bangumis, detailMap);
+  assertCurrent(generation, signal);
   const cachePersisted = commitCachedMapData(data, index.modified, generation);
-  assertCurrent(generation);
+  assertCurrent(generation, signal);
   if (cachePersisted) onProgress?.({ phase: 'done', batch: total, total, message: i18n.t('loaded') });
   return { data, cachePersisted };
 }
