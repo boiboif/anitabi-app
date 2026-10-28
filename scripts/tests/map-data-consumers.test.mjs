@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
 import ts from 'typescript';
 import * as cardListLayout from '../../src/lib/card-list-layout.ts';
 import { resolveFavoritePoints } from '../../src/utils/resolve-favorite-points.ts';
+import { usePlanImport as planImportStore } from '../../src/store/use-plan-import.ts';
 
 const jsx = (type, props) => ({ type, props });
 const t = (key, options) => options?.defaultValue ?? key;
@@ -36,6 +37,7 @@ function loadSource(path, modules) {
   }).outputText;
   const context = vm.createContext({
     exports: {},
+    queueMicrotask,
     require(name) {
       if (name in modules) return modules[name];
       if (name.startsWith('@/components/')) return { default: name.split('/').at(-1) };
@@ -46,7 +48,7 @@ function loadSource(path, modules) {
   return context.exports.default;
 }
 
-function createHarness(initial = {}, path = '../../src/app/plans/import.tsx') {
+function createHarness(initial = {}, path = '../../src/app/plans/import.tsx', options = {}) {
   let state = { data, isPartial: false, isRefreshing: false, progress: null, status: 'ready', ...initial };
   const sharedPlan = {
     v: 1,
@@ -56,13 +58,43 @@ function createHarness(initial = {}, path = '../../src/app/plans/import.tsx') {
       [2, 'b'],
     ],
   };
-  let pending = sharedPlan;
+  const pending = options.pending === undefined ? sharedPlan : options.pending;
+  planImportStore.setState({ pending, source: options.source ?? (pending ? 'file' : null) });
   const imports = [];
   const favorites = [];
   const routes = [];
+  const navigationCalls = [];
+  const listeners = new Map();
+  const effects = [];
+  let pendingEffects = [];
+  let effectCursor = 0;
   let clears = 0;
   let resolutions = 0;
   const useMapData = Object.assign((select) => select(state), { getState: () => state });
+  const clearImport = () => {
+    clears++;
+    planImportStore.getState().clear();
+  };
+  const getImportState = () => ({ ...planImportStore.getState(), clear: clearImport });
+  const usePlanImport = Object.assign((select) => select(getImportState()), { getState: getImportState });
+  const navigate = (method, route) => {
+    const { pending: currentPending, source } = planImportStore.getState();
+    navigationCalls.push({ method, route, pending: currentPending, source });
+    routes.push(route);
+  };
+  const router = {
+    replace: (route) => navigate('replace', route),
+    dismissTo: (route) => navigate('dismissTo', route),
+    navigate: (route) => navigate('navigate', route),
+    back: () => navigate('back'),
+  };
+  const navigation = {
+    addListener(event, listener) {
+      if (!listeners.has(event)) listeners.set(event, new Set());
+      listeners.get(event).add(listener);
+      return () => listeners.get(event).delete(listener);
+    },
+  };
   const savedFavorites = [
     { key: '1:a', bangumiId: 1, pointId: 'a', addedAt: 1, snapshot: { pointName: 'A', bangumiName: 'Work' } },
     { key: '2:b', bangumiId: 2, pointId: 'b', addedAt: 2, snapshot: { pointName: 'B', bangumiName: 'Other work' } },
@@ -71,17 +103,7 @@ function createHarness(initial = {}, path = '../../src/app/plans/import.tsx') {
     '@/components/ui/strict-button': { StrictButton: 'Button' },
     '@/components/point/point-list-card': { default: 'PointListCard' },
     '@/store/use-map-data': { useMapData },
-    '@/store/use-plan-import': {
-      usePlanImport: (select) =>
-        select({
-          pending,
-          source: 'file',
-          clear: () => {
-            pending = null;
-            clears++;
-          },
-        }),
-    },
+    '@/store/use-plan-import': { usePlanImport },
     '@/store/use-plans': {
       usePlans: (select) =>
         select({
@@ -101,7 +123,10 @@ function createHarness(initial = {}, path = '../../src/app/plans/import.tsx') {
     },
     '@/store/use-map-browse': { useMapBrowse: (select) => select({ focusPointFromList() {} }) },
     '@/lib/plan-sharing': {
-      decodeSharedPlan: () => sharedPlan,
+      decodeSharedPlan: () => {
+        if (options.decodeError) throw new Error(options.decodeError);
+        return sharedPlan;
+      },
       resolveSharedPlan: (_, current) => {
         resolutions++;
         const points = current.data.bangumis.flatMap((bangumi) => bangumi.points.map((point) => ({ bangumi, point })));
@@ -123,7 +148,22 @@ function createHarness(initial = {}, path = '../../src/app/plans/import.tsx') {
     react: {
       useMemo: (factory) => factory(),
       useCallback: (callback) => callback,
-      useEffect() {},
+      useEffect(create, dependencies) {
+        const index = effectCursor++;
+        const previous = effects[index];
+        if (
+          previous &&
+          dependencies &&
+          previous.dependencies &&
+          dependencies.length === previous.dependencies.length &&
+          dependencies.every((value, offset) => Object.is(value, previous.dependencies[offset]))
+        )
+          return;
+        pendingEffects.push(() => {
+          previous?.cleanup?.();
+          effects[index] = { create, dependencies, cleanup: create() };
+        });
+      },
       useRef: (current) => ({ current }),
       useState: (initialValue) => [initialValue === 'bangumi' ? 'history' : initialValue, () => {}],
     },
@@ -131,8 +171,9 @@ function createHarness(initial = {}, path = '../../src/app/plans/import.tsx') {
     'react-i18next': { useTranslation: () => ({ t, i18n: { language: 'en' } }) },
     'expo-router': {
       Stack: { Screen: 'Screen' },
-      useLocalSearchParams: () => ({ bangumiId: '2' }),
-      useRouter: () => ({ replace: (route) => routes.push(route), navigate() {}, dismissTo() {} }),
+      useLocalSearchParams: () => options.params ?? { bangumiId: '2' },
+      useRouter: () => router,
+      useNavigation: () => navigation,
     },
     'expo-image': { Image: 'Image' },
     '@shopify/flash-list': { FlashList: 'FlashList' },
@@ -164,15 +205,41 @@ function createHarness(initial = {}, path = '../../src/app/plans/import.tsx') {
   };
   const Component = loadSource(path, modules);
   return {
-    render: () => Component(),
+    render() {
+      effectCursor = 0;
+      pendingEffects = [];
+      const tree = Component();
+      for (const commit of pendingEffects) commit();
+      return tree;
+    },
+    replayEffects() {
+      for (const effect of effects) effect.cleanup?.();
+      for (const effect of effects) effect.cleanup = effect.create();
+    },
+    unmount() {
+      for (const effect of effects) effect.cleanup?.();
+    },
+    emitNavigation(event) {
+      for (const listener of [...(listeners.get(event) ?? [])]) listener({ type: event });
+    },
+    listenerCount(event) {
+      return listeners.get(event)?.size ?? 0;
+    },
+    setPending(next, source) {
+      planImportStore.getState().setPending(next, source);
+    },
     setState: (patch) => {
       state = { ...state, ...patch };
     },
     imports,
     favorites,
     routes,
+    navigationCalls,
     get pending() {
-      return pending;
+      return planImportStore.getState().pending;
+    },
+    get source() {
+      return planImportStore.getState().source;
     },
     get clears() {
       return clears;
@@ -218,7 +285,121 @@ test('a complete retry enables import, and a stale confirmation cannot save with
   assert.equal(harness.imports[0][1].length, 2);
   assert.equal(harness.favorites[0].length, 2);
   assert.equal(harness.pending, null);
+  assert.equal(harness.source, null);
   assert.equal(harness.clears, 1);
+  assert.deepEqual(JSON.parse(JSON.stringify(harness.navigationCalls)), [
+    {
+      method: 'replace',
+      route: { pathname: '/plans/[planId]', params: { planId: 'new-plan' } },
+      pending: null,
+      source: null,
+    },
+  ]);
+});
+
+test('cancel clears pending data and its source before dismissing to the plan list', async () => {
+  const harness = createHarness();
+  const tree = harness.render();
+  const cancel = nodes(tree).find((node) => node.type === 'Button' && node.props.children === '取消');
+  assert.ok(cancel);
+  cancel.props.onPress();
+  assert.deepEqual(harness.navigationCalls, [{ method: 'dismissTo', route: '/plan', pending: null, source: null }]);
+  assert.equal(harness.pending, null);
+  assert.equal(harness.source, null);
+  assert.deepEqual(harness.imports, []);
+  harness.unmount();
+  await Promise.resolve();
+});
+
+test('the invalid-link return action clears stale import data and dismisses to the plan list', async () => {
+  const harness = createHarness({}, undefined, { params: { data: 'invalid' }, decodeError: 'Invalid plan link' });
+  const tree = harness.render();
+  const back = nodes(tree).find((node) => node.type === 'Button' && node.props.children === '返回巡礼计划');
+  assert.ok(back);
+  back.props.onPress();
+  assert.deepEqual(harness.navigationCalls, [{ method: 'dismissTo', route: '/plan', pending: null, source: null }]);
+  assert.equal(harness.pending, null);
+  assert.equal(harness.source, null);
+  assert.deepEqual(harness.imports, []);
+  harness.unmount();
+  await Promise.resolve();
+});
+
+test('a cold-start link delegates close to dismissTo with an existing plan-list route', () => {
+  const harness = createHarness({}, undefined, { pending: null, params: { data: 'packed-plan' } });
+  const tree = harness.render();
+  assert.equal(
+    harness.listenerCount('removed'),
+    0,
+    'a link without pending store data needs no pending cleanup listener',
+  );
+  nodes(tree)
+    .find((node) => node.type === 'Button' && node.props.children === '取消')
+    .props.onPress();
+  assert.deepEqual(harness.navigationCalls, [{ method: 'dismissTo', route: '/plan', pending: null, source: null }]);
+  assert.ok(existsSync(new URL('../../src/app/(tabs)/plan/index.tsx', import.meta.url)));
+  // Dismiss-to's history lookup and replace fallback belong to Expo Router; this
+  // test checks the screen delegates to that API with its real list destination.
+});
+
+test('committed native removal clears the import without extra navigation while prevented removal leaves it intact', async () => {
+  const harness = createHarness({}, undefined, { source: 'qr' });
+  harness.render();
+  const pending = harness.pending;
+  assert.equal(harness.listenerCount('removed'), 1);
+  harness.emitNavigation('removePrevented');
+  assert.strictEqual(harness.pending, pending);
+  assert.equal(harness.source, 'qr');
+  harness.emitNavigation('removed');
+  assert.equal(harness.pending, null);
+  assert.equal(harness.source, null);
+  assert.deepEqual(harness.navigationCalls, [], 'system back and completed gestures own their navigation');
+  harness.unmount();
+  await Promise.resolve();
+});
+
+test('StrictMode effect cleanup and re-setup only detach listeners and never clear an active import', async () => {
+  const harness = createHarness();
+  harness.render();
+  const pending = harness.pending;
+  harness.replayEffects();
+  await Promise.resolve();
+  assert.strictEqual(harness.pending, pending);
+  assert.equal(harness.source, 'file');
+  assert.equal(harness.clears, 0);
+  assert.equal(harness.listenerCount('removed'), 1);
+  harness.unmount();
+  await Promise.resolve();
+  assert.equal(harness.listenerCount('removed'), 0);
+  assert.strictEqual(harness.pending, pending);
+  assert.equal(harness.clears, 0);
+});
+
+test('a removal committed after unmount can clear pending before the deferred unsubscribe runs', async () => {
+  const harness = createHarness();
+  harness.render();
+  harness.unmount();
+  assert.equal(harness.listenerCount('removed'), 1);
+  harness.emitNavigation('removed');
+  assert.equal(harness.pending, null);
+  assert.equal(harness.source, null);
+  assert.deepEqual(harness.navigationCalls, []);
+  await Promise.resolve();
+  assert.equal(harness.listenerCount('removed'), 0);
+});
+
+test('an old screen removal cannot clear a newer pending import', async () => {
+  const harness = createHarness();
+  harness.render();
+  const newer = { v: 1, t: 'Newer import', i: [[2, 'b']] };
+  harness.setPending(newer, 'link');
+  harness.emitNavigation('removed');
+  assert.strictEqual(harness.pending, newer);
+  assert.equal(harness.source, 'link');
+  assert.equal(harness.clears, 0);
+  assert.deepEqual(harness.navigationCalls, []);
+  harness.unmount();
+  await Promise.resolve();
 });
 
 for (const path of ['../../src/app/search.tsx', '../../src/app/comparison-camera.tsx']) {

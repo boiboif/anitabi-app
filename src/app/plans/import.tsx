@@ -8,8 +8,8 @@ import { usePlanImport } from '@/store/use-plan-import';
 import { usePlans } from '@/store/use-plans';
 import { PageHorizontalInset } from '@/tamagui.config';
 import { AlertCircle, Check, FileDown, MapPinned, Square, SquareCheckBig } from '@tamagui/lucide-icons-2';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { Stack, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView } from 'react-native';
 import { Spinner, Text, XStack, YStack, useTheme } from 'tamagui';
@@ -30,6 +30,7 @@ export default function ImportPlanScreen() {
   const { t } = useTranslation();
   const { data: packed } = useLocalSearchParams<{ data?: string }>();
   const router = useRouter();
+  const navigation = useNavigation();
   const theme = useTheme();
   const pending = usePlanImport((state) => state.pending);
   const source = usePlanImport((state) => state.source);
@@ -47,9 +48,19 @@ export default function ImportPlanScreen() {
     [isPartial, mapData, sharedPlan],
   );
 
+  useEffect(() => {
+    if (!pending) return;
+    const unsubscribe = navigation.addListener('removed', () => {
+      // A later import may already own the shared store when this page is removed.
+      if (usePlanImport.getState().pending === pending) clearImport();
+    });
+    // SDK 58 delivers removal after unmount cleanup, before the next microtask.
+    return () => queueMicrotask(unsubscribe);
+  }, [clearImport, navigation, pending]);
+
   const close = () => {
     clearImport();
-    router.replace('/plans' as never);
+    router.dismissTo('/plan');
   };
 
   const confirmImport = () => {
