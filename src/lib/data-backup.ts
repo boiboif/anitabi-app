@@ -1,5 +1,14 @@
-import type { BackupFavoritePointV1, BackupPlanItemV1, BackupPlanV1, DataBackupV3 } from './data-backup-schema';
-import { mergePilgrimageRecords, validatePilgrimageRecords } from '@/lib/pilgrimage-records';
+import type { DataBackupV3 } from './data-backup-schema';
+import {
+  copyBackupContentsV3,
+  decodeBackupContentsV3,
+  encodeBackupContentsV3,
+  isBackupContentsV2,
+  isBackupContentsV3,
+  isFullBackupDataV1,
+  type BackupAppData,
+} from '@/lib/data-backup-codec';
+import { mergePilgrimageRecords } from '@/lib/pilgrimage-records';
 import { strToU8 } from 'fflate';
 
 export const BACKUP_TYPE = 'anitabi-backup' as const;
@@ -8,7 +17,7 @@ export const MAX_BACKUP_FILE_BYTES = 20 * 1024 * 1024;
 
 export type DataBackup = DataBackupV3;
 export type BackupContents = DataBackup['data'];
-export type BackupData = Required<BackupContents>;
+export type BackupData = BackupAppData;
 export type BackupSelection = { favoritePoints: boolean; plans: boolean; pilgrimageRecords: boolean };
 
 // Each entry upgrades data from its key version to the immediately next version.
@@ -17,7 +26,7 @@ const BACKUP_MIGRATIONS: BackupMigrations = {
   // V1 is validated as a full backup before migration; both categories remain included.
   1: (data) => data,
   2: (data) => {
-    if (!isBackupContents(data, false)) throw new BackupError('invalid');
+    if (!isBackupContentsV2(data)) throw new BackupError('invalid');
     return data;
   },
 };
@@ -46,112 +55,6 @@ export class BackupError extends Error {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function isTimestamp(value: unknown): value is number {
-  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 && value <= 8640000000000000;
-}
-
-function isSnapshot(value: unknown): boolean {
-  if (!isRecord(value) || typeof value.bangumiName !== 'string' || typeof value.pointName !== 'string') return false;
-  for (const key of ['bangumiCover', 'bangumiColor', 'pointImage', 'pointMark']) {
-    if (value[key] !== undefined && typeof value[key] !== 'string') return false;
-  }
-  if (value.geo !== undefined) {
-    if (!Array.isArray(value.geo) || value.geo.length !== 2) return false;
-    const [latitude, longitude] = value.geo;
-    if (
-      typeof latitude !== 'number' ||
-      !Number.isFinite(latitude) ||
-      Math.abs(latitude) > 90 ||
-      typeof longitude !== 'number' ||
-      !Number.isFinite(longitude) ||
-      Math.abs(longitude) > 180
-    )
-      return false;
-  }
-  return true;
-}
-
-function isFavoritePoint(value: unknown): value is BackupFavoritePointV1 {
-  return (
-    isRecord(value) &&
-    typeof value.bangumiId === 'number' &&
-    Number.isSafeInteger(value.bangumiId) &&
-    value.bangumiId > 0 &&
-    typeof value.pointId === 'string' &&
-    value.pointId.length > 0 &&
-    value.key === `${value.bangumiId}:${value.pointId}` &&
-    isTimestamp(value.addedAt) &&
-    isSnapshot(value.snapshot)
-  );
-}
-
-function isPlanItem(value: unknown): value is BackupPlanItemV1 {
-  return isRecord(value) && typeof value.completed === 'boolean' && isFavoritePoint(value);
-}
-
-function isUniqueArray<T>(
-  value: unknown,
-  isItem: (item: unknown) => item is T,
-  getKey: (item: T) => string,
-): value is T[] {
-  if (!Array.isArray(value)) return false;
-  const seen = new Set<string>();
-  for (const item of value) {
-    if (!isItem(item) || seen.has(getKey(item))) return false;
-    seen.add(getKey(item));
-  }
-  return true;
-}
-
-function isPlan(value: unknown): value is BackupPlanV1 {
-  return (
-    isRecord(value) &&
-    typeof value.id === 'string' &&
-    value.id.length > 0 &&
-    typeof value.title === 'string' &&
-    value.title.trim().length > 0 &&
-    (value.description === undefined || typeof value.description === 'string') &&
-    isTimestamp(value.createdAt) &&
-    isTimestamp(value.updatedAt) &&
-    isUniqueArray(value.items, isPlanItem, (item) => item.key)
-  );
-}
-
-function isFullBackupData(value: unknown): boolean {
-  return (
-    isRecord(value) &&
-    isUniqueArray(value.favoritePoints, isFavoritePoint, (item) => item.key) &&
-    isUniqueArray(value.plans, isPlan, (plan) => plan.id) &&
-    (value.planListSortOrder === 'asc' || value.planListSortOrder === 'desc')
-  );
-}
-
-function isRecords(value: unknown): boolean {
-  try {
-    validatePilgrimageRecords(value);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function isBackupContents(value: unknown, allowRecords = true): value is BackupContents {
-  return (
-    isRecord(value) &&
-    (value.favoritePoints !== undefined ||
-      value.plans !== undefined ||
-      (allowRecords && value.pilgrimageRecords !== undefined)) &&
-    (allowRecords
-      ? value.pilgrimageRecords === undefined || isRecords(value.pilgrimageRecords)
-      : value.pilgrimageRecords === undefined) &&
-    (value.favoritePoints === undefined || isUniqueArray(value.favoritePoints, isFavoritePoint, (item) => item.key)) &&
-    (value.plans === undefined
-      ? value.planListSortOrder === undefined
-      : isUniqueArray(value.plans, isPlan, (plan) => plan.id) &&
-        (value.planListSortOrder === 'asc' || value.planListSortOrder === 'desc'))
-  );
 }
 
 export function migrateBackupData(
@@ -203,20 +106,16 @@ function validateBackup(value: unknown, migrate = false): DataBackup {
   )
     throw new BackupError('invalid');
   // Missing V1 fields are corruption, not an intentional partial backup.
-  if (value.version === 1 && !isFullBackupData(value.data)) throw new BackupError('invalid');
+  if (value.version === 1 && !isFullBackupDataV1(value.data)) throw new BackupError('invalid');
   const data = migrate ? migrateBackupData(value.data, value.version, BACKUP_VERSION, BACKUP_MIGRATIONS) : value.data;
   if (!migrate && value.version !== BACKUP_VERSION) throw new BackupError('unsupportedVersion');
-  if (!isBackupContents(data)) throw new BackupError('invalid');
+  if (!isBackupContentsV3(data)) throw new BackupError('invalid');
   return {
     type: BACKUP_TYPE,
     version: BACKUP_VERSION,
     appVersion: value.appVersion,
     exportedAt: value.exportedAt,
-    data: {
-      ...(data.favoritePoints !== undefined ? { favoritePoints: data.favoritePoints } : {}),
-      ...(data.plans !== undefined ? { plans: data.plans, planListSortOrder: data.planListSortOrder } : {}),
-      ...(data.pilgrimageRecords !== undefined ? { pilgrimageRecords: data.pilgrimageRecords } : {}),
-    },
+    data: copyBackupContentsV3(data),
   };
 }
 
@@ -235,11 +134,11 @@ export function parseDataBackup(content: string): DataBackup {
 
 export function selectBackupData(data: BackupData, selection: BackupSelection): BackupContents {
   if (!selection.favoritePoints && !selection.plans && !selection.pilgrimageRecords) throw new BackupError('invalid');
-  return {
+  return encodeBackupContentsV3({
     ...(selection.favoritePoints ? { favoritePoints: data.favoritePoints } : {}),
     ...(selection.plans ? { plans: data.plans, planListSortOrder: data.planListSortOrder } : {}),
     ...(selection.pilgrimageRecords ? { pilgrimageRecords: data.pilgrimageRecords } : {}),
-  };
+  });
 }
 
 export function createDataBackupContent(data: BackupContents, appVersion: string, date = new Date()): string {
@@ -260,7 +159,13 @@ export function getBackupFileName(date = new Date(), archive = false): string {
   return `anitabi-backup-${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}-${date.getMilliseconds()}.${archive ? 'zip' : 'json'}`;
 }
 
-export function getBackupSummary(data: BackupContents) {
+type BackupSummaryContents = {
+  favoritePoints?: readonly unknown[];
+  plans?: readonly { items: readonly { completed: boolean }[] }[];
+  pilgrimageRecords?: readonly { days: readonly { photos: readonly unknown[] }[] }[];
+};
+
+export function getBackupSummary<Data extends BackupSummaryContents>(data: Data) {
   let pointCount = 0;
   let completedCount = 0;
   for (const plan of data.plans ?? []) {
@@ -282,11 +187,8 @@ export function getBackupSummary(data: BackupContents) {
   };
 }
 
-export function prepareBackupRestore(
-  current: BackupData,
-  incoming: BackupContents,
-  mode: BackupRestoreMode,
-): BackupData {
+export function prepareBackupRestore(current: BackupData, wire: BackupContents, mode: BackupRestoreMode): BackupData {
+  const incoming = decodeBackupContentsV3(wire);
   if (mode === 'overwrite') {
     return {
       favoritePoints: incoming.favoritePoints ?? current.favoritePoints,

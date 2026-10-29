@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { registerHooks } from 'node:module';
+import { createBackupStorageWrite } from '../../src/lib/backup-storage-write.ts';
 registerHooks({
   resolve(specifier, context, next) {
-    if (specifier === '@/lib/pilgrimage-records')
-      return { url: new URL('../../src/lib/pilgrimage-records.ts', import.meta.url).href, shortCircuit: true };
+    if (specifier.startsWith('@/'))
+      return { url: new URL(`../../src/${specifier.slice(2)}.ts`, import.meta.url).href, shortCircuit: true };
     return next(specifier, context);
   },
 });
-import { createBackupStorageWrite } from '../../src/lib/backup-storage-write.ts';
 const {
   BackupError,
   createDataBackupContent,
@@ -444,6 +444,21 @@ test('V3 selects records independently, validates safe references, and summarize
     bad.days[0].photos[0].fileName = fileName;
     expectError(file({ data: { pilgrimageRecords: [bad] } }), 'invalid');
   }
+});
+
+test('public export and import normalize V3 fields without leaking app-only properties', () => {
+  const original = data({ pilgrimageRecords: [record()] });
+  const expected = structuredClone(original);
+  original.internalRevision = 1;
+  original.favoritePoints[0].internalId = 'favorite';
+  original.plans[0].items[0].snapshot.cachedSource = '/private/cache';
+  original.pilgrimageRecords[0].days[0].photos[0].localUri = '/private/photo.jpg';
+  const selected = selectBackupData(original, { favoritePoints: true, plans: true, pilgrimageRecords: true });
+  assert.deepEqual(selected, expected);
+  const serialized = createDataBackupContent(original, '0.8.0');
+  assert.deepEqual(JSON.parse(serialized).data, expected);
+  assert.deepEqual(parseDataBackup(JSON.stringify(file({ data: original }))).data, expected);
+  assert.equal(JSON.parse(serialized).version, 3);
 });
 
 test('records merge by point/date and stable photo ID; overwrite affects only selected category', () => {

@@ -1,5 +1,6 @@
 // Frozen wire format: never change V1 when the application's models evolve.
 // Add a new version and an explicit migration instead.
+// Keep versioned runtime validation in data-backup-codec.ts frozen as well.
 export type BackupPointSnapshotV1 = {
   bangumiName: string;
   bangumiCover?: string;

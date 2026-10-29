@@ -38,8 +38,8 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
-      - name: Test map data refresh
-        run: yarn test:map-data
+      - name: Run regression tests
+        run: yarn test
 
       - name: Export JS bundle smoke test
         run: npx expo export --platform android

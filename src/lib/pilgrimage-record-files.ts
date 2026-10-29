@@ -26,7 +26,7 @@ export function getPilgrimagePhotoUri(photo: PilgrimagePhoto): string {
 }
 
 /** File names are validated before resolving paths or deleting any app-owned file. */
-export function deletePilgrimagePhotoFiles(photos: readonly PilgrimagePhoto[]): void {
+export function deletePilgrimagePhotoFiles(photos: readonly Pick<PilgrimagePhoto, 'fileName'>[]): void {
   const files = photos.map((photo) => getPilgrimagePhotoFile(photo.fileName));
   const errors: unknown[] = [];
   for (const file of files) {

@@ -40,13 +40,14 @@ export function RecordPointCard({ point, onPress }: Props) {
                 {point.snapshot.pointName}
               </Text>
             </YStack>
-            <Text fontSize="$caption" color="$color11">
-              {latestDay.dateKey}
-              {' · '}
-              <Text fontSize="$caption" color="$color10">
-                {t('pilgrimageRecordsPhotoCount', { count: photos.length })}
+            <YStack gap="$1">
+              <Text fontSize="$caption" color="$color11">
+                {latestDay.dateKey}
               </Text>
-            </Text>
+              <Text fontSize="$caption" color="$color10">
+                {t('pilgrimageRecordsCounts', { days: point.days.length, photos: photos.length })}
+              </Text>
+            </YStack>
           </YStack>
           <View self="center" shrink={0} pr="$2">
             <ChevronRight size={16} color="$color10" />

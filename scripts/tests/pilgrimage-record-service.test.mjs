@@ -19,6 +19,7 @@ const harness = {
     return {
       getAllKeys: () => [...this.values.keys()],
       getString: (key) => this.values.get(key),
+      contains: (key) => this.values.has(key),
       set: (key, value) => {
         this.values.set(key, value);
         this.mutations.push(key);
@@ -37,6 +38,10 @@ const harness = {
     };
   },
 };
+function storedPointCount() {
+  return [...harness.values.keys()].filter((key) => key.startsWith('point-v1:')).length;
+}
+
 globalThis.__pilgrimageHarness = harness;
 
 const hooks = registerHooks({
@@ -173,7 +178,7 @@ test('stores only app-owned photo copies and a same-day check shares that record
     assert.ok(harness.files.has(getPilgrimagePhotoFile(photo.fileName).uri));
   }
   assert.deepEqual(getPilgrimageRecords(), harness.state.points);
-  assert.equal(harness.values.size, 1, 'metadata uses a point-specific MMKV key');
+  assert.equal(storedPointCount(), 1, 'metadata uses a point-specific MMKV key');
 });
 
 test('failed metadata persistence rolls back raw bytes, publishes nothing and cleans new image', async () => {
@@ -193,7 +198,7 @@ test('partial copy failure does not create metadata and cleans the partial desti
   harness.failCopy = true;
   await assert.rejects(savePilgrimagePhoto(input, source, 800, 600, at), /Partial copy/);
   assert.deepEqual(harness.state.points, []);
-  assert.equal(harness.values.size, 0);
+  assert.equal(storedPointCount(), 0);
   assert.deepEqual([...harness.files.keys()], [source]);
 });
 
@@ -216,7 +221,7 @@ test('delete waits for in-flight append and removes committed metadata before it
   release();
   await Promise.all([append, remove]);
   assert.deepEqual(harness.state.points, []);
-  assert.equal(harness.values.size, 0);
+  assert.equal(storedPointCount(), 0);
   assert.deepEqual([...harness.files.keys()], [source]);
 });
 
@@ -248,7 +253,7 @@ test('ordinary writes do not validate or serialize unchanged point histories', a
   };
   const added = { ...unchanged, ...input, key: '1:b', pointId: 'b', toJSON: undefined };
   setPilgrimageRecords([unchanged, added], [unchanged]);
-  assert.equal(harness.values.size, 2);
+  assert.equal(storedPointCount(), 2);
 });
 
 test('corrupt records fail closed and only an explicit successful restore clears the load error', async () => {
@@ -265,7 +270,7 @@ test('corrupt records fail closed and only an explicit successful restore clears
   assert.equal(getPilgrimageRecordsLoadError(), null);
   replace.rollback();
   assert.ok(getPilgrimageRecordsLoadError());
-  assert.deepEqual([...harness.values], raw);
+  assert.deepEqual(harness.values, new Map(raw));
 });
 
 test('photo cleanup errors report a completed metadata deletion while retaining unrelated source files', async () => {
@@ -273,7 +278,7 @@ test('photo cleanup errors report a completed metadata deletion while retaining 
   harness.failDelete = true;
   await assert.rejects(deletePilgrimagePoint(input.key), PilgrimagePhotoCleanupError);
   assert.deepEqual(harness.state.points, []);
-  assert.equal(harness.values.size, 0);
+  assert.equal(storedPointCount(), 0);
   assert.equal(harness.files.size, 2, 'failed cleanup leaves only an unreferenced app copy plus original source');
 });
 
@@ -325,7 +330,7 @@ test('deleting the last photo keeps the day, original visit time and point recor
 
   assert.equal(harness.state.points.length, 1);
   assert.deepEqual(harness.state.points[0].days, [{ dateKey: '2026-10-22', firstRecordedAt: at, photos: [] }]);
-  assert.equal(harness.values.size, 1);
+  assert.equal(storedPointCount(), 1);
   assert.deepEqual([...harness.files.keys()], [source]);
   assert.deepEqual(getPilgrimageRecords(), harness.state.points);
   await recordPilgrimageVisit(input, at + 60000);
@@ -374,7 +379,7 @@ test('single-photo cleanup failure reports committed removal while retaining the
   assert.deepEqual(getPilgrimageRecords(), harness.state.points);
   assert.equal(harness.files.has(getPilgrimagePhotoFile(photo.fileName).uri), true);
   assert.equal(harness.files.has(source), true);
-  assert.equal(harness.values.size, 1);
+  assert.equal(storedPointCount(), 1);
 });
 
 test('unknown points and photo IDs do not write records or remove files', async () => {
@@ -553,7 +558,7 @@ test('explicitly deleting every day removes the point with one commit and preser
   assert.deepEqual(harness.state.points, [otherPoint]);
   assert.equal(harness.state.points[0], otherPoint);
   assert.equal(harness.publications.length, 1);
-  assert.equal(harness.values.size, 1);
+  assert.equal(storedPointCount(), 1);
   assert.equal(harness.deleteAttempts.length, 4);
   assert.equal(harness.files.size, 2);
   assert.deepEqual(getPilgrimageRecords(), harness.state.points);

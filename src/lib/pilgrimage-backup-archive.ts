@@ -6,7 +6,7 @@ import {
   type DataBackup,
 } from '@/lib/data-backup';
 import { getPilgrimagePhotoFile } from '@/lib/pilgrimage-record-files';
-import { isPilgrimagePhotoFileName } from '@/lib/pilgrimage-records';
+import { isBackupPhotoFileNameV3 } from '@/lib/data-backup-codec';
 import { Directory, File, FileMode, Paths, type FileHandle } from 'expo-file-system';
 import { strFromU8, strToU8, Unzip, Zip, ZipPassThrough } from 'fflate';
 
@@ -40,7 +40,7 @@ export function updateBackupCrc(crc: number, bytes: Uint8Array): number {
 }
 
 function validEntryName(name: string) {
-  return name === 'data.json' || (name.startsWith('images/') && isPilgrimagePhotoFileName(name.slice(7)));
+  return name === 'data.json' || (name.startsWith('images/') && isBackupPhotoFileNameV3(name.slice(7)));
 }
 
 // Validate the central directory before allocating extraction files. ZIP64,
@@ -126,11 +126,16 @@ async function readZipDirectory(file: File): Promise<ZipEntry[]> {
   }
 }
 
-export function getBackupPhotos(data: BackupContents) {
+type PhotoReferences<Photo> = {
+  pilgrimageRecords?: readonly { days: readonly { photos: readonly Photo[] }[] }[];
+};
+
+// These readers accept only the fields they consume, on either side of the codec.
+export function getBackupPhotos<Photo>(data: PhotoReferences<Photo>): Photo[] {
   return (data.pilgrimageRecords ?? []).flatMap((point) => point.days.flatMap((day) => day.photos));
 }
 
-export function getBackupPhotoBytes(data: BackupContents): number {
+export function getBackupPhotoBytes(data: PhotoReferences<{ fileName: string }>): number {
   return getBackupPhotos(data).reduce((size, photo) => size + (getPilgrimagePhotoFile(photo.fileName).size ?? 0), 0);
 }
 

@@ -23,7 +23,7 @@ import {
   type BackupProgressHandler,
   type PreparedBackupArchive,
 } from '@/lib/pilgrimage-backup-archive';
-import type { PilgrimagePhoto } from '@/lib/pilgrimage-records';
+import type { BackupPilgrimagePhotoV3 } from '@/lib/data-backup-schema';
 
 export function getCurrentBackupData(): BackupData {
   const { plans, planListSortOrder } = usePlans.getState();
@@ -47,7 +47,7 @@ export async function restoreDataBackup(
     const current = getCurrentBackupData();
     const previousPhotos = getBackupPhotos(current);
     const localPhotos = new Map(previousPhotos.map((photo) => [photo.id, photo]));
-    const staged: PilgrimagePhoto[] = [];
+    const staged: BackupPilgrimagePhotoV3[] = [];
     let committed = false;
     let prepared = incoming;
     try {

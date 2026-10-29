@@ -154,6 +154,35 @@ test('restores persisted data before publishing both stores and rebuilding favor
   }
 });
 
+test('wire restore converts to independent app values and excludes unknown nested fields from storage', async () => {
+  const record = {
+    key: '1:a',
+    bangumiId: 1,
+    pointId: 'a',
+    snapshot: { bangumiName: '作品', pointName: '点位', geo: [35.7, 139.7] },
+    days: [{ dateKey: '2026-10-22', firstRecordedAt: 1792630800000, photos: [] }],
+  };
+  const expected = {
+    favoritePoints: [structuredClone(favorite)],
+    plans: [structuredClone(plan)],
+    planListSortOrder: 'asc',
+    pilgrimageRecords: [record],
+  };
+  const incoming = structuredClone(expected);
+  incoming.favoritePoints[0].sourceCache = '/private/favorite';
+  incoming.plans[0].items[0].snapshot.sourceCache = '/private/plan';
+  incoming.pilgrimageRecords[0].days[0].internalState = 'pending';
+  assert.deepEqual(await restoreDataBackup(incoming, 'overwrite'), expected);
+  assert.deepEqual(getCurrentBackupData(), expected);
+  assert.deepEqual(getFavoritePoints(), expected.favoritePoints);
+  assert.deepEqual(getPlans(), expected.plans);
+  incoming.favoritePoints[0].snapshot.pointName = 'mutated source';
+  incoming.plans[0].items.length = 0;
+  incoming.pilgrimageRecords[0].snapshot.geo[0] = 0;
+  incoming.pilgrimageRecords[0].days.length = 0;
+  assert.deepEqual(getCurrentBackupData(), expected);
+});
+
 test('a partial disk failure rolls back existing raw data and publishes no success state', async () => {
   const favoriteStorage = harness.stores.get('anitabi-favorites');
   const planStorage = harness.stores.get('anitabi-plans');
