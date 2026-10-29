@@ -3,7 +3,7 @@ import { SettingsSection } from '@/components/ui/settings/settings-section';
 import { clearAppCache } from '@/lib/app-cache';
 import { getCurrentAppDisplayVersion } from '@/services/app-update';
 import { BottomTabInset, MaxContentWidth, TopLevelPageTopPadding } from '@/tamagui.config';
-import { CalendarDays, DatabaseBackup, HardDrive, Info, Languages, Moon } from '@tamagui/lucide-icons-2';
+import { BookImage, DatabaseBackup, HardDrive, Info, Languages, Moon } from '@tamagui/lucide-icons-2';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -84,11 +84,18 @@ export default function ProfileScreen() {
         </Text>
 
         <SettingsSection title={t('pilgrimage', { defaultValue: '巡礼' })}>
-          <SettingCell
+          {/* <SettingCell
             icon={CalendarDays}
             title={t('pilgrimagePlans', { defaultValue: '巡礼计划' })}
             description={t('arrangeLocationsAndTrackYourProgress', { defaultValue: '安排点位顺序，记录巡礼进度' })}
             onPress={() => router.navigate('/plan' as never)}
+            showDivider
+          /> */}
+          <SettingCell
+            icon={BookImage}
+            title={t('pilgrimageRecords')}
+            description={t('pilgrimageRecordsEntryDescription')}
+            onPress={() => router.navigate('/pilgrimage-records' as never)}
           />
         </SettingsSection>
 

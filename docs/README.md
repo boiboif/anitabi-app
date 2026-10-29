@@ -18,6 +18,7 @@
 
 ## 开发与回归
 
+- [巡礼记录 MVP：需求与技术方案](development/pilgrimage-records-mvp.md)：按点位与日期归档、计划勾选事件、成品图片保存及备份恢复；首版已接入，设备验收待进行。
 - [Expo SDK 58 迁移](development/expo-sdk-58-migration.md)：依赖、API 适配、开发期警告与上游待修问题、OTA runtime 与设备验证边界。
 - [图片预览：接入与回归验证](development/image-preview-validation.md)：组件用法、手势、保存分享和设备回归清单。
 - [地图选中标记](development/map-marker-rendering.md)：图层顺序、性能边界和地图回归清单。

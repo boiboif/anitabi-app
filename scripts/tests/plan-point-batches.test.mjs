@@ -27,7 +27,9 @@ function createStore(initialPlans) {
       setPlans: (plans) => writes.push(plans),
     },
     '@/lib/localized-data': { getBangumiTitle: (bangumi) => bangumi.title, getPointTitle: (point) => point.name },
-    '@/i18n': { default: { t: (_, options) => options.defaultValue } },
+    '@/i18n': { __esModule: true, default: { t: (_, options) => options.defaultValue } },
+    '@/services/pilgrimage-records': { recordPilgrimageVisit: async () => {} },
+    'react-native': { Alert: { alert() {} } },
     zustand: {
       create: (initialize) => {
         let state;

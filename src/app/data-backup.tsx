@@ -12,13 +12,16 @@ import {
 } from '@/lib/data-backup';
 import { exportDataBackup, pickDataBackup } from '@/lib/data-backup-files';
 import { getCurrentBackupData, restoreDataBackup } from '@/lib/restore-data-backup';
+import { getBackupPhotoBytes, type BackupProgress } from '@/lib/pilgrimage-backup-archive';
 import { getCurrentAppDisplayVersion } from '@/services/app-update';
 import { useFavoritePoints } from '@/store/use-favorite-points';
 import { usePlans } from '@/store/use-plans';
+import { usePilgrimageRecords } from '@/store/use-pilgrimage-records';
 import { MaxContentWidth } from '@/tamagui.config';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { Check, FileDown, FileUp, Square, SquareCheckBig } from '@tamagui/lucide-icons-2';
-import { useRef, useState } from 'react';
+import { usePreventRemove } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -31,23 +34,43 @@ export default function DataBackupScreen() {
   const favoritePoints = useFavoritePoints((state) => state.favoritePoints);
   const plans = usePlans((state) => state.plans);
   const planListSortOrder = usePlans((state) => state.planListSortOrder);
-  const [exportSelection, setExportSelection] = useState<BackupSelection>({ favoritePoints: true, plans: true });
+  const pilgrimageRecords = usePilgrimageRecords((state) => state.points);
+  const [exportSelection, setExportSelection] = useState<BackupSelection>({
+    favoritePoints: true,
+    plans: true,
+    pilgrimageRecords: true,
+  });
   const [selected, setSelected] = useState<Awaited<ReturnType<typeof pickDataBackup>>>(null);
   const [mode, setMode] = useState<BackupRestoreMode>('merge');
   const [confirmingOverwrite, setConfirmingOverwrite] = useState(false);
   const [operation, setOperation] = useState<'export' | 'pick' | 'restore' | null>(null);
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
+  const [progress, setProgress] = useState<BackupProgress | null>(null);
+  const [photoBytes, setPhotoBytes] = useState(0);
   const exportSheetRef = useRef<TrueSheet>(null);
   const busyRef = useRef(false);
   const busy = operation !== null;
-  const hasExportSelection = exportSelection.favoritePoints || exportSelection.plans;
-  const currentSummary = getBackupSummary({ favoritePoints, plans, planListSortOrder });
+  // Keep the selected archive's staged images alive until processing finishes.
+  usePreventRemove(busy);
+  const hasExportSelection =
+    exportSelection.favoritePoints || exportSelection.plans || exportSelection.pilgrimageRecords;
+  const currentSummary = getBackupSummary({ favoritePoints, plans, planListSortOrder, pilgrimageRecords });
   const incomingSummary = selected ? getBackupSummary(selected.backup.data) : null;
   const formatDataCounts = (data: BackupContents, summary = getBackupSummary(data)) => {
-    if (data.favoritePoints === undefined) return t('backupPlanCounts', summary);
-    if (data.plans === undefined) return t('backupFavoriteCounts', summary);
-    return t('backupDataCounts', summary);
+    return [
+      ...(data.favoritePoints !== undefined ? [t('backupFavoriteCounts', summary)] : []),
+      ...(data.plans !== undefined ? [t('backupPlanCounts', summary)] : []),
+      ...(data.pilgrimageRecords !== undefined
+        ? [
+            t('backupPilgrimageCounts', {
+              defaultValue: '{{recordPointCount}} 个点位 · {{recordDayCount}} 条记录 · {{photoCount}} 张照片',
+              ...summary,
+            }),
+          ]
+        : []),
+    ].join(' · ');
   };
+  useEffect(() => () => selected?.archive?.cleanup(), [selected]);
   const errorKeys: Record<BackupError['code'], TranslationKey> = {
     invalid: 'backupInvalidData',
     wrongType: 'backupWrongFileType',
@@ -56,6 +79,8 @@ export default function DataBackupScreen() {
     tooLarge: 'backupFileTooLarge',
     writeFailed: 'backupWriteFailed',
     rollbackFailed: 'backupRollbackFailed',
+    recordsUnavailable: 'backupPilgrimageUnavailable',
+    nativeOnly: 'backupRecordsNativeOnly',
   };
 
   const showError = (error: unknown, fallback: TranslationKey) => {
@@ -67,6 +92,7 @@ export default function DataBackupScreen() {
     busyRef.current = true;
     setNotice(null);
     try {
+      setPhotoBytes(getBackupPhotoBytes({ pilgrimageRecords }));
       await exportSheetRef.current?.present();
     } catch (error) {
       showError(error, 'backupExportFailed');
@@ -80,15 +106,21 @@ export default function DataBackupScreen() {
     busyRef.current = true;
     setOperation('export');
     setNotice(null);
+    setProgress(null);
     try {
       // Finish closing the native sheet before presenting the system share dialog.
       await exportSheetRef.current?.dismiss();
-      await exportDataBackup(selectBackupData(getCurrentBackupData(), exportSelection), getCurrentAppDisplayVersion());
+      await exportDataBackup(
+        selectBackupData(getCurrentBackupData(), exportSelection),
+        getCurrentAppDisplayVersion(),
+        setProgress,
+      );
     } catch (error) {
       showError(error, 'backupExportFailed');
     } finally {
       busyRef.current = false;
       setOperation(null);
+      setProgress(null);
     }
   };
 
@@ -98,8 +130,9 @@ export default function DataBackupScreen() {
     setOperation('pick');
     setNotice(null);
     setConfirmingOverwrite(false);
+    setProgress(null);
     try {
-      const result = await pickDataBackup();
+      const result = await pickDataBackup(setProgress);
       if (result) {
         setSelected(result);
         setMode('merge');
@@ -111,10 +144,11 @@ export default function DataBackupScreen() {
     } finally {
       busyRef.current = false;
       setOperation(null);
+      setProgress(null);
     }
   };
 
-  const restore = () => {
+  const restore = async () => {
     if (!selected || busyRef.current) return;
     if (mode === 'overwrite' && !confirmingOverwrite) {
       setConfirmingOverwrite(true);
@@ -123,16 +157,25 @@ export default function DataBackupScreen() {
     busyRef.current = true;
     setOperation('restore');
     setNotice(null);
+    setProgress(null);
     try {
-      const next = restoreDataBackup(selected.backup.data, mode);
+      const next = await restoreDataBackup(selected.backup.data, mode, selected.archive, setProgress);
       setSelected(null);
       setConfirmingOverwrite(false);
-      setNotice({ error: false, text: t('backupRestoreSucceeded', getBackupSummary(next)) });
+      setNotice({
+        error: false,
+        text: t('backupRestoreSucceededWithRecords', {
+          defaultValue:
+            '恢复完成：{{favoriteCount}} 个收藏、{{planCount}} 个计划、{{recordDayCount}} 条巡礼记录、{{photoCount}} 张照片。',
+          ...getBackupSummary(next),
+        }),
+      });
     } catch (error) {
       showError(error, 'backupRestoreFailed');
     } finally {
       busyRef.current = false;
       setOperation(null);
+      setProgress(null);
     }
   };
 
@@ -151,6 +194,12 @@ export default function DataBackupScreen() {
               </Text>
               <Text fontSize="$caption" lineHeight={18} color="$color11">
                 {t('backupPlanPointCounts', currentSummary)}
+              </Text>
+              <Text fontSize="$caption" lineHeight={18} color="$color11">
+                {t('backupPilgrimageCounts', {
+                  defaultValue: '{{recordPointCount}} 个点位 · {{recordDayCount}} 条记录 · {{photoCount}} 张照片',
+                  ...currentSummary,
+                })}
               </Text>
             </YStack>
           </SettingsSection>
@@ -176,6 +225,24 @@ export default function DataBackupScreen() {
           </SettingsSection>
 
           {busy ? <Spinner color="$primary" accessibilityLabel={t('backupProcessing')} /> : null}
+          {busy && progress ? (
+            <Text fontSize="$caption" lineHeight={18} color="$color11" accessibilityLiveRegion="polite">
+              {progress.phase === 'export'
+                ? t('backupPhotoExportProgress', {
+                    defaultValue: '正在打包照片，{{completed}} / {{total}}',
+                    ...progress,
+                  })
+                : progress.phase === 'read'
+                  ? t('backupPhotoReadProgress', {
+                      defaultValue: '正在检查备份，{{completed}} / {{total}}',
+                      ...progress,
+                    })
+                  : t('backupPhotoRestoreProgress', {
+                      defaultValue: '正在恢复照片，{{completed}} / {{total}}',
+                      ...progress,
+                    })}
+            </Text>
+          ) : null}
           {notice ? (
             <Text
               accessibilityRole="alert"
@@ -211,6 +278,13 @@ export default function DataBackupScreen() {
                   <Text fontSize="$caption" lineHeight={18} color="$color11">
                     {t('backupRestoreScopeDescription')}
                   </Text>
+                  {selected.backup.data.pilgrimageRecords !== undefined ? (
+                    <Text fontSize="$caption" lineHeight={18} color="$color11">
+                      {t('backupPilgrimageRestoreDescription', {
+                        defaultValue: '照片只恢复到应用内，不写入系统相册，也不改变计划完成状态。',
+                      })}
+                    </Text>
+                  ) : null}
                 </YStack>
               </SettingsSection>
 
@@ -312,6 +386,24 @@ export default function DataBackupScreen() {
               accessibilityState={{ checked: exportSelection.plans, disabled: busy }}
               disabled={busy}
               onPress={() => setExportSelection((current) => ({ ...current, plans: !current.plans }))}
+              showDivider
+            />
+            <SettingCell
+              title={t('backupPilgrimageData', { defaultValue: '巡礼记录（含照片）' })}
+              description={`${t('backupPilgrimageCounts', { defaultValue: '{{recordPointCount}} 个点位 · {{recordDayCount}} 条记录 · {{photoCount}} 张照片', ...currentSummary })}\n${t('backupEstimatedPhotoSize', { defaultValue: '照片约 {{size}}', size: `${(photoBytes / 1024 / 1024).toFixed(1)} MB` })}`}
+              rightAccessory={
+                exportSelection.pilgrimageRecords ? (
+                  <SquareCheckBig size={23} color="$primary" />
+                ) : (
+                  <Square size={23} color="$color8" />
+                )
+              }
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: exportSelection.pilgrimageRecords, disabled: busy }}
+              disabled={busy}
+              onPress={() =>
+                setExportSelection((current) => ({ ...current, pilgrimageRecords: !current.pilgrimageRecords }))
+              }
             />
           </SettingsSection>
           <Text fontSize="$caption" lineHeight={18} color="$color11" px="$1">

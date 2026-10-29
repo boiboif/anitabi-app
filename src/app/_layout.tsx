@@ -149,6 +149,14 @@ function RootLayout() {
                   >
                     <Stack.Screen name="(tabs)" />
                     <Stack.Screen
+                      name="pilgrimage-records/index"
+                      options={{ headerShown: true, headerTitleAlign: 'center', title: t('pilgrimageRecords') }}
+                    />
+                    <Stack.Screen
+                      name="pilgrimage-records/[pointKey]"
+                      options={{ headerShown: true, headerTitleAlign: 'center', title: t('pilgrimageRecords') }}
+                    />
+                    <Stack.Screen
                       name="dark-mode"
                       options={{
                         headerShown: true,

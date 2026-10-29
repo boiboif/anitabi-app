@@ -73,6 +73,7 @@ The app currently supports map browsing, anime location rendering and search, fa
 - [x] Pilgrimage plans
 - [x] Share and import pilgrimage plans
 - [x] Capture and generate comparison images
+- [x] Pilgrimage records
 - [x] Internationalization
 - [ ] AI-powered route planning
 

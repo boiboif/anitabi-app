@@ -1,5 +1,6 @@
 // Frozen wire format: never change V1 when the application's models evolve.
 // Add a new version and an explicit migration instead.
+// Keep versioned runtime validation in data-backup-codec.ts frozen as well.
 export type BackupPointSnapshotV1 = {
   bangumiName: string;
   bangumiCover?: string;
@@ -58,5 +59,38 @@ export type DataBackupV2 = {
     favoritePoints?: BackupFavoritePointV1[];
     plans?: BackupPlanV1[];
     planListSortOrder?: 'asc' | 'desc';
+  };
+};
+
+// V3 stores photo bytes beside data.json in a ZIP. Keep these wire types frozen.
+export type BackupPilgrimagePhotoV3 = {
+  id: string;
+  fileName: string;
+  width: number;
+  height: number;
+};
+
+export type BackupPilgrimagePointV3 = {
+  key: string;
+  bangumiId: number;
+  pointId: string;
+  snapshot: BackupPointSnapshotV1 & { geo?: [number, number] };
+  days: {
+    dateKey: string;
+    firstRecordedAt: number;
+    photos: BackupPilgrimagePhotoV3[];
+  }[];
+};
+
+export type DataBackupV3 = {
+  type: 'anitabi-backup';
+  version: 3;
+  appVersion: string;
+  exportedAt: string;
+  data: {
+    favoritePoints?: BackupFavoritePointV1[];
+    plans?: BackupPlanV1[];
+    planListSortOrder?: 'asc' | 'desc';
+    pilgrimageRecords?: BackupPilgrimagePointV3[];
   };
 };

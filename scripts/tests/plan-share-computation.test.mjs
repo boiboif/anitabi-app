@@ -130,6 +130,7 @@ function shareScreenHarness(sharing) {
     '@/lib/ui-sizes': { BLOCK_BUTTON_ICON_SIZE: 18 },
     '@/store/use-map-data': { useMapData: (select) => select({ data: null }) },
     '@/store/use-plans': { usePlans: (select) => select({ plans: currentPlan ? [currentPlan] : [] }) },
+    '@/tamagui.config': { PageHorizontalInset: 12 },
     '@/utils/bangumi-point-lookup': {},
     '@boiboif/react-native-toast': {},
     '@tamagui/lucide-icons-2': { FileJson: 'FileJson', Share2: 'Share2' },

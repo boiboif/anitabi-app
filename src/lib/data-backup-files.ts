@@ -9,15 +9,32 @@ import {
 } from '@/lib/data-backup';
 import i18n from '@/i18n';
 import * as DocumentPicker from 'expo-document-picker';
-import { File, Paths } from 'expo-file-system';
+import { File, FileMode, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
+import {
+  createPilgrimageBackupArchive,
+  getBackupPhotos,
+  MAX_BACKUP_ARCHIVE_BYTES,
+  readPilgrimageBackupArchive,
+  type BackupProgressHandler,
+  type PreparedBackupArchive,
+} from '@/lib/pilgrimage-backup-archive';
+import { withPilgrimageRecordsLock } from '@/services/pilgrimage-records';
+import { usePilgrimageRecords } from '@/store/use-pilgrimage-records';
 
-export async function exportDataBackup(data: BackupContents, appVersion: string): Promise<void> {
+export async function exportDataBackup(
+  data: BackupContents,
+  appVersion: string,
+  onProgress?: BackupProgressHandler,
+): Promise<void> {
   const date = new Date();
   const content = createDataBackupContent(data, appVersion, date);
-  const name = getBackupFileName(date);
+  const archive = data.pilgrimageRecords !== undefined;
+  if (archive && usePilgrimageRecords.getState().loadError) throw new BackupError('recordsUnavailable');
+  const name = getBackupFileName(date, archive);
   if (Platform.OS === 'web') {
+    if (archive) throw new BackupError('nativeOnly');
     const uri = URL.createObjectURL(new Blob([content], { type: 'application/json' }));
     const anchor = document.createElement('a');
     anchor.href = uri;
@@ -37,12 +54,16 @@ export async function exportDataBackup(data: BackupContents, appVersion: string)
   }
   const file = new File(Paths.cache, name);
   try {
-    file.create({ overwrite: true });
-    file.writeSync(content);
+    if (archive) {
+      await withPilgrimageRecordsLock(() => createPilgrimageBackupArchive(data, content, file, onProgress));
+    } else {
+      file.create({ overwrite: true });
+      file.writeSync(content);
+    }
     await Sharing.shareAsync(file.uri, {
       dialogTitle: i18n.t('exportDataBackup'),
-      mimeType: 'application/json',
-      UTI: 'public.json',
+      mimeType: archive ? 'application/zip' : 'application/json',
+      UTI: archive ? 'public.zip-archive' : 'public.json',
     });
   } catch (error) {
     try {
@@ -56,7 +77,9 @@ export async function exportDataBackup(data: BackupContents, appVersion: string)
   // The OS can reclaim cache files without affecting a saved backup.
 }
 
-export async function pickDataBackup(): Promise<{ name: string; backup: DataBackup } | null> {
+export type PickedDataBackup = { name: string; backup: DataBackup; archive?: PreparedBackupArchive };
+
+export async function pickDataBackup(onProgress?: BackupProgressHandler): Promise<PickedDataBackup | null> {
   const result = await DocumentPicker.getDocumentAsync({
     type: '*/*',
     copyToCacheDirectory: true,
@@ -66,10 +89,25 @@ export async function pickDataBackup(): Promise<{ name: string; backup: DataBack
   const asset = result.assets[0];
   const file = Platform.OS === 'web' ? null : new File(asset.uri);
   try {
-    const size = asset.size ?? file?.size;
+    const size = file?.size ?? asset.size;
+    if (typeof size === 'number' && size > MAX_BACKUP_ARCHIVE_BYTES) throw new BackupError('tooLarge');
+    if (file) {
+      const handle = file.open(FileMode.ReadOnly);
+      let zip = false;
+      try {
+        const prefix = await handle.readBytes(4);
+        zip = prefix[0] === 0x50 && prefix[1] === 0x4b;
+      } finally {
+        handle.close();
+      }
+      if (zip) return { name: asset.name, ...(await readPilgrimageBackupArchive(file, onProgress)) };
+    }
     if (typeof size === 'number' && size > MAX_BACKUP_FILE_BYTES) throw new BackupError('tooLarge');
     const content = asset.file ? await asset.file.text() : await file!.text();
-    return { name: asset.name, backup: parseDataBackup(content) };
+    const backup = parseDataBackup(content);
+    // JSON cannot carry photo bytes. Never silently import broken references.
+    if (getBackupPhotos(backup.data).length) throw new BackupError('invalid');
+    return { name: asset.name, backup };
   } finally {
     // Only delete the app-owned picker copy, never the user's original file.
     if (file && file.uri.startsWith(Paths.cache.uri)) {

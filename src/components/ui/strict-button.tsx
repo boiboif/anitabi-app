@@ -74,6 +74,11 @@ export function StrictButton({
 
   const buttonProps = {
     ...props,
+    // Keep false explicit so native buttons clear a previous disabled state.
+    accessibilityState: {
+      ...props.accessibilityState,
+      disabled: props.disabled ?? props.accessibilityState?.disabled ?? false,
+    },
     size,
     onLayout: handleLayout,
     onPressIn: handlePressIn,
