@@ -416,7 +416,7 @@ export default function PilgrimagePointRecordsScreen() {
                     {t('pilgrimageRecordsLoadFailedHint')}
                   </Text>
                 ) : null}
-                <Button bg="$color3" color="$color12" onPress={() => router.replace('/pilgrimage-records' as never)}>
+                <Button bg="$color3" color="$color12" onPress={() => router.back()}>
                   {t('pilgrimageRecordsBackToList')}
                 </Button>
               </YStack>

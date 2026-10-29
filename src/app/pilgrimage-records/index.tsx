@@ -68,10 +68,13 @@ export default function PilgrimageRecordsScreen() {
                 !loadError && (points.length || hasFilters) ? (
                   <YStack gap="$2" pb="$3">
                     {filterBar}
-                    <Text fontSize="$caption" color="$color11">
+                    <Text pl="$2" fontSize="$caption" color="$color11">
                       {t('pilgrimageRecordsPointCount', { count: filteredPoints.length })}
-                      {(range.startDate || range.endDate) && timeFilter.preset !== 'custom'
-                        ? ` · ${range.startDate || '…'} - ${range.endDate || '…'}`
+                      {range.startDate || range.endDate
+                        ? ` · ${t('pilgrimageRecordsFilterDateRange', {
+                            start: range.startDate || '…',
+                            end: range.endDate || '…',
+                          })}`
                         : ''}
                     </Text>
                   </YStack>
@@ -82,7 +85,7 @@ export default function PilgrimageRecordsScreen() {
                   <RecordPointCard
                     point={item}
                     onPress={() =>
-                      router.push({
+                      router.navigate({
                         pathname: '/pilgrimage-records/[pointKey]',
                         params: { pointKey: item.key, startDate: range.startDate, endDate: range.endDate },
                       } as never)
@@ -122,7 +125,7 @@ export default function PilgrimageRecordsScreen() {
                     </Button>
                   ) : hasFilters ? (
                     <Button bg="$color3" onPress={clearFilters}>
-                      <Text color="$color12" fontSize="$body">
+                      <Text color="$primary" fontSize="$body">
                         {t('pilgrimageRecordsClearFilters')}
                       </Text>
                     </Button>

@@ -325,10 +325,7 @@ export function RecordFilters(props: Props) {
     bangumiIds.length > 1
       ? t('pilgrimageRecordsSelectedBangumi', { count: bangumiIds.length })
       : props.bangumi.find((option) => option.id === bangumiIds[0])?.name || t('pilgrimageRecordsAllBangumi');
-  const dateLabel =
-    timeFilter.preset === 'custom'
-      ? t('pilgrimageRecordsFilterDateRange', { start: timeFilter.range.startDate, end: timeFilter.range.endDate })
-      : t(PRESETS.find((preset) => preset.value === timeFilter.preset)!.label);
+  const dateLabel = t(PRESETS.find((preset) => preset.value === timeFilter.preset)!.label);
 
   useEffect(
     () =>
@@ -416,7 +413,7 @@ export function RecordFilters(props: Props) {
           ))}
           {hasFilters ? (
             <Button size="$3" shrink={0} ml="auto" chromeless px="$2" onPress={props.onClear}>
-              <Text fontSize="$footnote" color="$color11">
+              <Text fontSize="$footnote" color="$primary">
                 {t('pilgrimageRecordsClearFilters')}
               </Text>
             </Button>
