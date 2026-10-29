@@ -564,7 +564,6 @@ const zh = {
   pilgrimageRecordsNoMatches: '没有符合条件的巡礼记录',
   pilgrimageRecordsNoMatchesHint: '试试其他番剧或时间段，也可以清除筛选。',
   pilgrimageRecordsShowingDateRange: '当前时间段：{{start}} — {{end}}',
-  pilgrimageRecordsShowAllDates: '清除时间筛选，查看全部历史',
   pilgrimageRecordsNoPhotos: '这一天已留下巡礼记录，暂无照片。',
   pilgrimageRecordsEdit: '编辑',
   pilgrimageRecordsSelectDay: '选择 {{date}} 的整天记录',

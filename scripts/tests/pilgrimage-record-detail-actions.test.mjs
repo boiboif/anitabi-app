@@ -453,11 +453,11 @@ test('cancelling confirmation preserves selection; cancelling mode clears it bef
   assert.equal(harness.button('pilgrimageRecordsDeleteSelected').props.disabled, true);
 });
 
-test('showing all dates leaves delete mode and clears the filtered selection', () => {
+test('clearing the date filter leaves delete mode and clears the filtered selection', () => {
   const harness = createHarness({ startDate: '2026-10-22', endDate: '2026-10-22' });
   harness.enterMode();
   harness.selectPhoto('photo-c');
-  harness.button('pilgrimageRecordsShowAllDates').props.onPress();
+  harness.button('pilgrimageRecordsClearFilters').props.onPress();
   harness.render();
   assert.equal(harness.thumbnail('photo-c').props.accessibilityRole, 'button');
   assert.equal(harness.thumbnail('photo-a').props.accessibilityRole, 'button');

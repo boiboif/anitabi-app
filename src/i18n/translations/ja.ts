@@ -590,7 +590,6 @@ const ja = {
   pilgrimageRecordsNoMatches: '条件に合う巡礼記録がありません',
   pilgrimageRecordsNoMatchesHint: '作品や期間を変更するか、絞り込みを解除してください。',
   pilgrimageRecordsShowingDateRange: '表示期間：{{start}} — {{end}}',
-  pilgrimageRecordsShowAllDates: '期間指定を解除してすべての履歴を表示',
   pilgrimageRecordsNoPhotos: 'この日の巡礼記録があります。写真はまだありません。',
   pilgrimageRecordsEdit: '編集',
   pilgrimageRecordsSelectDay: '{{date}} の記録と写真を選択',

@@ -70,6 +70,7 @@ export default function PilgrimagePointRecordsScreen() {
     }
     return dayRows;
   });
+  const stickyHeaderIndices = rows.flatMap((row, index) => (row.type === 'day' ? [index] : []));
 
   // Back leaves this local editing step before leaving the record detail page.
   usePreventRemove(isFocused && (selecting || deleting), () => {
@@ -194,30 +195,29 @@ export default function PilgrimagePointRecordsScreen() {
     } else open();
   };
 
-  const header = (
-    <YStack gap="$3" pb="$3">
-      {hasDateFilter ? (
-        <YStack gap="$2" bg="$background" p="$3" rounded="$3">
-          <Text color="$color11" fontSize="$footnote">
-            {t('pilgrimageRecordsShowingDateRange', { start: range.startDate || '…', end: range.endDate || '…' })}
-          </Text>
-          <Button
-            size="$3"
-            bg="$color3"
-            color="$color12"
-            disabled={deleting}
-            onPress={() => {
-              if (deleting) return;
-              setSelection(null);
-              setShowAllDates(true);
-            }}
-          >
-            {t('pilgrimageRecordsShowAllDates')}
-          </Button>
-        </YStack>
-      ) : null}
-    </YStack>
-  );
+  const filterNotice = hasDateFilter ? (
+    <XStack mx="$pageHorizontalInset" mt="$2" gap="$2" items="center" bg="$background" px="$2" py="$1" rounded="$3">
+      <Text flex={1} minW={0} color="$color11" fontSize="$footnote">
+        {t('pilgrimageRecordsShowingDateRange', { start: range.startDate || '…', end: range.endDate || '…' })}
+      </Text>
+      <Button
+        chromeless
+        size="$2"
+        fontSize="$footnote"
+        px="$2"
+        shrink={0}
+        color="$primary"
+        disabled={deleting}
+        onPress={() => {
+          if (deleting) return;
+          setSelection(null);
+          setShowAllDates(true);
+        }}
+      >
+        {t('pilgrimageRecordsClearFilters')}
+      </Button>
+    </XStack>
+  ) : null;
 
   return (
     <>
@@ -263,11 +263,14 @@ export default function PilgrimagePointRecordsScreen() {
               </Text>
             </YStack>
           ) : null}
+          {filterNotice}
           <FlashList
             data={rows}
             extraData={{ selection, deleting }}
             keyExtractor={(row) => row.key}
             getItemType={(row) => row.type}
+            stickyHeaderIndices={stickyHeaderIndices}
+            stickyHeaderConfig={{ hideRelatedCell: true }}
             contentInsetAdjustmentBehavior="automatic"
             style={{ flex: 1, backgroundColor: theme.pageBackground.val }}
             contentContainerStyle={{
@@ -275,8 +278,7 @@ export default function PilgrimagePointRecordsScreen() {
               paddingTop: 12,
               paddingBottom: selecting ? 24 : insets.bottom + 24,
             }}
-            ListHeaderComponent={hasDateFilter ? header : null}
-            renderItem={({ item }) => {
+            renderItem={({ item, target }) => {
               if (item.type === 'day') {
                 const selected = selectedDateKeys.has(item.day.dateKey);
                 const partial = !selected && item.day.photos.some((photo) => selectedPhotoIds.has(photo.id));
@@ -294,7 +296,14 @@ export default function PilgrimagePointRecordsScreen() {
                     }
                     onPress={() => toggleDay(item.day)}
                   >
-                    <XStack items="center" gap="$2" pt="$3" pb="$2">
+                    <XStack
+                      items="center"
+                      gap="$2"
+                      bg="$pageBackground"
+                      px={target === 'StickyHeader' ? '$pageHorizontalInset' : 0}
+                      pt="$3"
+                      pb="$2"
+                    >
                       {selecting ? (
                         selected ? (
                           <SquareCheckBig size={23} color="$primary" strokeWidth={2.5} />

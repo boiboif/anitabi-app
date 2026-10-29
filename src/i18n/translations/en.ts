@@ -589,7 +589,6 @@ const en = {
   pilgrimageRecordsNoMatches: 'No matching pilgrimage records',
   pilgrimageRecordsNoMatchesHint: 'Try another anime or date range, or clear the filters.',
   pilgrimageRecordsShowingDateRange: 'Date range: {{start}} — {{end}}',
-  pilgrimageRecordsShowAllDates: 'Clear dates and view all history',
   pilgrimageRecordsNoPhotos: 'A visit was recorded on this day. No photos yet.',
   pilgrimageRecordsEdit: 'Edit',
   pilgrimageRecordsSelectDay: 'Select the record and photos for {{date}}',
