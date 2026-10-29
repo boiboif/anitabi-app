@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import test from 'node:test';
-import { decodeBackupContentsV3, encodeBackupContentsV3, isBackupContentsV3 } from '../../src/lib/data-backup-codec.ts';
+import {
+  decodeBackupContentsV3,
+  encodeBackupContentsV3,
+  isBackupContentsV3,
+  decodeBackupContentsV4,
+  encodeBackupContentsV4,
+  isBackupContentsV4,
+} from '../../src/lib/data-backup-codec.ts';
 
 function wireData() {
   const snapshot = {
@@ -153,10 +160,38 @@ test('historical V3 parsing and export do not run current app-model validation',
     });
     const {parseDataBackup,createDataBackupContent,selectBackupData} = await import(${JSON.stringify(moduleUrl)});
     const original = ${JSON.stringify(wireData())};
+    const historical = parseDataBackup(JSON.stringify({type:'anitabi-backup',version:3,appVersion:'0.8.0',exportedAt:'2026-10-22T12:00:00Z',data:original}));
+    assert.equal(historical.version,4);
+    assert.deepEqual(historical.data,original);
     const selected = selectBackupData(original,{favoritePoints:true,plans:true,pilgrimageRecords:true});
     const parsed = parseDataBackup(createDataBackupContent(selected,'future-app'));
-    assert.equal(parsed.version,3);
+    assert.equal(parsed.version,4);
     assert.deepEqual(parsed.data,original);
   `;
   execFileSync(process.execPath, ['--input-type=module', '-e', script], { stdio: 'pipe' });
+});
+
+test('V4 preserves last-record times while frozen V3 keeps treating them as unknown fields', () => {
+  const app = wireData();
+  const day = app.pilgrimageRecords[0].days[0];
+  day.lastRecordedAt = day.firstRecordedAt + 3600000;
+  const original = structuredClone(app);
+  assert.equal(isBackupContentsV4(app), true);
+  const encoded = encodeBackupContentsV4(addInternalFields(app));
+  assert.deepEqual(encoded, original);
+  const decoded = decodeBackupContentsV4(encoded);
+  assert.deepEqual(decoded, original);
+  decoded.pilgrimageRecords[0].days[0].lastRecordedAt++;
+  decoded.pilgrimageRecords[0].days[0].photos[0].width++;
+  assert.deepEqual(encoded, original);
+  assert.deepEqual(encodeBackupContentsV3(original), wireData());
+
+  for (const invalid of [null, -1, 0.5, NaN, 'later', 8640000000000001, day.firstRecordedAt - 1]) {
+    const data = wireData();
+    data.pilgrimageRecords[0].days[0].lastRecordedAt = invalid;
+    assert.equal(isBackupContentsV4(data), false);
+    assert.equal(isBackupContentsV3(data), true, 'historical V3 ignores later-version fields');
+  }
+  assert.equal(isBackupContentsV4(wireData()), true, 'a legacy day has no invented latest time');
+  assert.deepEqual(encodeBackupContentsV4({ favoritePoints: [] }), { favoritePoints: [] });
 });

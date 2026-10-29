@@ -1,4 +1,4 @@
-import type { PilgrimageDay, PilgrimagePoint } from '@/lib/pilgrimage-records';
+import { getPilgrimageLatestTime, type PilgrimageDay, type PilgrimagePoint } from '@/lib/pilgrimage-records';
 
 export type PilgrimageDateRange = { startDate: string; endDate: string };
 
@@ -36,9 +36,5 @@ export function queryPilgrimagePoints(
     .filter((point) => selectedBangumiIds.size === 0 || selectedBangumiIds.has(String(point.bangumiId)))
     .map((point) => ({ ...point, days: filterPilgrimageDays(point.days, range) }))
     .filter((point) => point.days.length > 0)
-    .sort((a, b) => {
-      const aTime = a.days.reduce((latest, day) => Math.max(latest, day.firstRecordedAt), 0);
-      const bTime = b.days.reduce((latest, day) => Math.max(latest, day.firstRecordedAt), 0);
-      return bTime - aTime || a.key.localeCompare(b.key);
-    });
+    .sort((a, b) => getPilgrimageLatestTime(b) - getPilgrimageLatestTime(a) || a.key.localeCompare(b.key));
 }

@@ -8,6 +8,8 @@ export type PilgrimagePhoto = {
 export type PilgrimageDay = {
   dateKey: string;
   firstRecordedAt: number;
+  /** Latest new visit/photo event; absent when historical photo times are unknown. */
+  lastRecordedAt?: number;
   photos: PilgrimagePhoto[];
 };
 
@@ -76,6 +78,8 @@ export function isPilgrimageDay(value: unknown): value is PilgrimageDay {
     isObject(value) &&
     isPilgrimageDateKey(value.dateKey) &&
     isTimestamp(value.firstRecordedAt) &&
+    (value.lastRecordedAt === undefined ||
+      (isTimestamp(value.lastRecordedAt) && value.lastRecordedAt >= value.firstRecordedAt)) &&
     Array.isArray(value.photos) &&
     value.photos.every(isPilgrimagePhoto)
   );
@@ -154,14 +158,23 @@ export function validatePilgrimageRecords(value: unknown): PilgrimagePoint[] {
         fileNames.add(photo.fileName);
         return { id: photo.id, fileName: photo.fileName, width: photo.width, height: photo.height };
       });
-      return { dateKey: day.dateKey, firstRecordedAt: day.firstRecordedAt, photos };
+      return {
+        dateKey: day.dateKey,
+        firstRecordedAt: day.firstRecordedAt,
+        ...(day.lastRecordedAt !== undefined ? { lastRecordedAt: day.lastRecordedAt } : {}),
+        photos,
+      };
     });
     return { ...copyInput(point), days };
   });
 }
 
+export function getPilgrimageDayLatestTime(day: PilgrimageDay): number {
+  return day.lastRecordedAt ?? day.firstRecordedAt;
+}
+
 export function getPilgrimageLatestTime(point: PilgrimagePoint): number {
-  return point.days.reduce((latest, day) => Math.max(latest, day.firstRecordedAt), 0);
+  return point.days.reduce((latest, day) => Math.max(latest, getPilgrimageDayLatestTime(day)), 0);
 }
 
 export function upsertPilgrimageDay(
@@ -179,8 +192,12 @@ export function upsertPilgrimageDay(
   // A second check on the same day creates no additional visit and preserves its first time.
   if (day && !photo) return points;
   const nextDay: PilgrimageDay = day
-    ? { ...day, photos: photo ? [...day.photos, photo] : day.photos }
-    : { dateKey, firstRecordedAt: at, photos: photo ? [photo] : [] };
+    ? {
+        ...day,
+        lastRecordedAt: Math.max(getPilgrimageDayLatestTime(day), at),
+        photos: photo ? [...day.photos, photo] : day.photos,
+      }
+    : { dateKey, firstRecordedAt: at, lastRecordedAt: at, photos: photo ? [photo] : [] };
   const nextPoint: PilgrimagePoint = {
     ...copyInput(input),
     days: [...(current?.days.filter((entry) => entry.dateKey !== dateKey) ?? []), nextDay].sort((left, right) =>
@@ -210,6 +227,9 @@ export function mergePilgrimageRecords(local: PilgrimagePoint[], incoming: Pilgr
         days.set(day.dateKey, {
           dateKey: day.dateKey,
           firstRecordedAt: Math.min(previous.firstRecordedAt, day.firstRecordedAt),
+          ...(previous.lastRecordedAt !== undefined || day.lastRecordedAt !== undefined
+            ? { lastRecordedAt: Math.max(getPilgrimageDayLatestTime(previous), getPilgrimageDayLatestTime(day)) }
+            : {}),
           photos: [...previous.photos, ...day.photos.filter((photo) => !ids.has(photo.id))],
         });
       }

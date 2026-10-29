@@ -275,7 +275,6 @@ export default function PilgrimagePointRecordsScreen() {
             style={{ flex: 1, backgroundColor: theme.pageBackground.val }}
             contentContainerStyle={{
               paddingHorizontal: PageHorizontalInset,
-              paddingTop: 12,
               paddingBottom: selecting ? 24 : insets.bottom + 24,
             }}
             renderItem={({ item, target }) => {

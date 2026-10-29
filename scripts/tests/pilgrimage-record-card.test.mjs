@@ -1,10 +1,22 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { registerHooks } from 'node:module';
 import test from 'node:test';
 import vm from 'node:vm';
+import dayjs from 'dayjs';
 import { createInstance } from 'i18next';
 import ts from 'typescript';
-import { queryPilgrimagePoints } from '../../src/lib/pilgrimage-record-query.ts';
+import * as recordHelpers from '../../src/lib/pilgrimage-records.ts';
+
+const hooks = registerHooks({
+  resolve(specifier, context, nextResolve) {
+    if (specifier === '@/lib/pilgrimage-records')
+      return { url: new URL('../../src/lib/pilgrimage-records.ts', import.meta.url).href, shortCircuit: true };
+    return nextResolve(specifier, context);
+  },
+});
+const { queryPilgrimagePoints } = await import('../../src/lib/pilgrimage-record-query.ts');
+hooks.deregister();
 
 function loadSource(path, modules = {}) {
   const compiled = ts.transpileModule(readFileSync(new URL(path, import.meta.url), 'utf8'), {
@@ -36,7 +48,10 @@ function cardFor(point, language) {
     tamagui: { Text: 'Text', View: 'View', XStack: 'XStack', YStack: 'YStack' },
     '@tamagui/lucide-icons-2': { CalendarDays: 'CalendarDays', ChevronRight: 'ChevronRight' },
     'expo-image': { Image: 'Image' },
+    dayjs: { default: dayjs },
     '@/lib/pilgrimage-record-files': { getPilgrimagePhotoUri: (photo) => `file:///records/${photo.fileName}` },
+    '@/lib/pilgrimage-records': recordHelpers,
+    '@/services/handlers': { buildImageUrl: (path) => path },
   });
   return RecordPointCard({ point, onPress() {} });
 }

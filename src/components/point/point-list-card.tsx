@@ -236,7 +236,7 @@ export default function PointListCard({
                 ) : null}
               </YStack>
 
-              <XStack minH={meta ? actionSize : undefined} items="center" gap="$1">
+              <XStack minH={meta ? actionSize : undefined} items="baseline" gap="$1">
                 <Text flex={1} fontSize="$caption" color="$color10" numberOfLines={1}>
                   {meta || ' '}
                 </Text>

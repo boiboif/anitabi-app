@@ -4,6 +4,7 @@ import {
   migratePilgrimageRecordData,
   pilgrimageRecordStorageSchema,
   validateStoredPilgrimageRecordsV1,
+  validateStoredPilgrimageRecordsV2,
 } from '../../src/lib/pilgrimage-record-schema.ts';
 import {
   createPilgrimageRecordStorage,
@@ -89,6 +90,14 @@ const snapshot = (storage) => new Map(storage.values);
 const namespaceSnapshot = (storage, version) =>
   new Map([...storage.values].filter(([key]) => key.startsWith(`point-v${version}:`)));
 
+// Keep original-version storage guarantees independent of the production schema.
+const historicalSchemaV1 = {
+  version: 1,
+  migrate: (data, sourceVersion) => migratePilgrimageRecordData(data, sourceVersion, 1, {}),
+  decode: validateStoredPilgrimageRecordsV1,
+  encode: validateStoredPilgrimageRecordsV1,
+};
+
 function validateV2(data) {
   return validateStoredPilgrimageRecordsV1(data).map((point, index) => {
     if (typeof data[index].annotation !== 'string') throw new Error('Missing V2 annotation');
@@ -113,7 +122,7 @@ const expectedV2 = () => migrationsToV2[1](historicalRecords());
 test('historical unmarked V1 retains snapshots, photo identity, empty days and point order without writing', () => {
   const storage = legacyStorage();
   const original = snapshot(storage);
-  const records = createPilgrimageRecordStorage(storage, pilgrimageRecordStorageSchema);
+  const records = createPilgrimageRecordStorage(storage, historicalSchemaV1);
   const points = records.getRecords();
   assert.deepEqual(points, historicalRecords());
   assert.deepEqual(records.getRecords(), historicalRecords());
@@ -132,9 +141,9 @@ test('V1 codec copies owned fields without changing the original historical obje
   input[0].days[0].extra = true;
   input[0].days[0].photos[0].extra = true;
   const original = structuredClone(input);
-  const decoded = pilgrimageRecordStorageSchema.decode(input);
+  const decoded = historicalSchemaV1.decode(input);
   assert.deepEqual(decoded, historicalRecords());
-  assert.deepEqual(pilgrimageRecordStorageSchema.encode(input), historicalRecords());
+  assert.deepEqual(historicalSchemaV1.encode(input), historicalRecords());
   decoded[0].snapshot.geo[0] = 0;
   decoded[0].days[0].photos[0].fileName = 'changed.jpg';
   assert.deepEqual(input, original);
@@ -143,7 +152,7 @@ test('V1 codec copies owned fields without changing the original historical obje
 test('first real legacy write adds the version marker and only rewrites the changed point', () => {
   const storage = legacyStorage();
   const untouched = storage.values.get(storageKey(1, historicalRecords()[1].key));
-  const records = createPilgrimageRecordStorage(storage, pilgrimageRecordStorageSchema);
+  const records = createPilgrimageRecordStorage(storage, historicalSchemaV1);
   const points = records.getRecords();
   const updated = [{ ...points[0], snapshot: { ...points[0].snapshot, pointName: '更新后的地点' } }, points[1]];
   records.setRecords(updated, points);
@@ -167,7 +176,7 @@ test('first real legacy write adds the version marker and only rewrites the chan
 
 test('deleting the last legacy points keeps an explicit current version for the empty collection', () => {
   const storage = legacyStorage();
-  const records = createPilgrimageRecordStorage(storage, pilgrimageRecordStorageSchema);
+  const records = createPilgrimageRecordStorage(storage, historicalSchemaV1);
   records.setRecords([], records.getRecords());
   assert.deepEqual([...storage.values], [[PILGRIMAGE_RECORD_VERSION_KEY, '1']]);
   assert.deepEqual(records.getRecords(), []);
@@ -178,7 +187,7 @@ for (const marker of ['', '0', '-1', '01', '1.0', '1x', ' 1', 'NaN', '9007199254
   test(`invalid or future stored marker ${JSON.stringify(marker)} blocks ordinary and overwrite writes`, () => {
     const storage = legacyStorage(marker);
     const original = snapshot(storage);
-    const records = createPilgrimageRecordStorage(storage, pilgrimageRecordStorageSchema);
+    const records = createPilgrimageRecordStorage(storage, historicalSchemaV1);
     assert.deepEqual(records.getRecords(), []);
     assert.ok(records.getLoadError());
     assert.throws(() => records.setRecords(historicalRecords(), []));
@@ -190,7 +199,7 @@ for (const marker of ['', '0', '-1', '01', '1.0', '1x', ' 1', 'NaN', '9007199254
 
 test('an empty collection still protects a future version marker', () => {
   const storage = memoryStorage([[PILGRIMAGE_RECORD_VERSION_KEY, '2']]);
-  const records = createPilgrimageRecordStorage(storage, pilgrimageRecordStorageSchema);
+  const records = createPilgrimageRecordStorage(storage, historicalSchemaV1);
   assert.deepEqual(records.getRecords(), []);
   assert.ok(records.getLoadError());
   assert.throws(() => records.createRestoreWrite([]));
@@ -203,7 +212,7 @@ for (const key of ['point-v2:staged', 'point-v01:staged', 'point-v0:staged', 'po
       const storage = legacyStorage(marker);
       storage.values.set(key, 'unrecognized raw bytes');
       const original = snapshot(storage);
-      const records = createPilgrimageRecordStorage(storage, pilgrimageRecordStorageSchema);
+      const records = createPilgrimageRecordStorage(storage, historicalSchemaV1);
       assert.deepEqual(records.getRecords(), []);
       assert.ok(records.getLoadError());
       assert.throws(() => records.setRecords([], historicalRecords()));
@@ -221,7 +230,7 @@ for (const marker of [undefined, '1']) {
     storage.values.set('point-v1:mismatched-key', storage.values.get(originalKey));
     storage.values.delete(originalKey);
     const original = snapshot(storage);
-    const records = createPilgrimageRecordStorage(storage, pilgrimageRecordStorageSchema);
+    const records = createPilgrimageRecordStorage(storage, historicalSchemaV1);
     assert.deepEqual(records.getRecords(), []);
     const originalError = records.getLoadError();
     assert.ok(originalError);
@@ -244,7 +253,7 @@ test('explicit overwrite and rollback preserve malformed current JSON byte for b
     ['point-v1:corrupt', '  { invalid JSON\n'],
   ]);
   const original = snapshot(storage);
-  const records = createPilgrimageRecordStorage(storage, pilgrimageRecordStorageSchema);
+  const records = createPilgrimageRecordStorage(storage, historicalSchemaV1);
   assert.deepEqual(records.getRecords(), []);
   const restore = records.createRestoreWrite([]);
   restore.write();
@@ -258,7 +267,7 @@ test('explicit overwrite and rollback preserve malformed current JSON byte for b
 for (const future of ['marker', 'namespace']) {
   test(`restore rechecks a future ${future} introduced after preparation without rolling it back`, () => {
     const storage = legacyStorage();
-    const records = createPilgrimageRecordStorage(storage, pilgrimageRecordStorageSchema);
+    const records = createPilgrimageRecordStorage(storage, historicalSchemaV1);
     records.getRecords();
     const restore = records.createRestoreWrite([]);
     if (future === 'marker') storage.values.set(PILGRIMAGE_RECORD_VERSION_KEY, '2');
@@ -276,7 +285,7 @@ for (const phase of ['before', 'after']) {
   test(`ordinary write rolls back point bytes and absent marker when marker throws ${phase} mutation`, () => {
     const storage = legacyStorage();
     const original = snapshot(storage);
-    const records = createPilgrimageRecordStorage(storage, pilgrimageRecordStorageSchema);
+    const records = createPilgrimageRecordStorage(storage, historicalSchemaV1);
     const points = records.getRecords();
     let failed = false;
     storage.fault = (event) => {
@@ -294,7 +303,7 @@ for (const phase of ['before', 'after']) {
 
 test('ordinary rollback failure closes subsequent writes even after the disk recovers', () => {
   const storage = legacyStorage();
-  const records = createPilgrimageRecordStorage(storage, pilgrimageRecordStorageSchema);
+  const records = createPilgrimageRecordStorage(storage, historicalSchemaV1);
   const points = records.getRecords();
   const updated = [{ ...points[0], snapshot: { ...points[0].snapshot, pointName: 'Changed' } }, points[1]];
   storage.fault = ({ phase, method }) => {
@@ -313,7 +322,7 @@ test('ordinary rollback failure closes subsequent writes even after the disk rec
 
 test('restore rollback failure closes ordinary writes', () => {
   const storage = legacyStorage();
-  const records = createPilgrimageRecordStorage(storage, pilgrimageRecordStorageSchema);
+  const records = createPilgrimageRecordStorage(storage, historicalSchemaV1);
   const points = records.getRecords();
   const restore = records.createRestoreWrite([]);
   restore.write();
@@ -464,7 +473,7 @@ for (const marker of [undefined, '1']) {
 
       storage.fault = null;
       const beforeOldVersion = snapshot(storage);
-      const oldVersion = createPilgrimageRecordStorage(storage, pilgrimageRecordStorageSchema);
+      const oldVersion = createPilgrimageRecordStorage(storage, historicalSchemaV1);
       assert.deepEqual(oldVersion.getRecords(), []);
       assert.ok(oldVersion.getLoadError());
       assert.throws(() => oldVersion.setRecords([], historicalRecords()));
@@ -504,12 +513,139 @@ test('current V2 writes, overwrite and rollback leave original V1 namespace byte
 });
 
 test('storage unavailable and invalid configured schema cannot expose writable records', () => {
-  const records = createPilgrimageRecordStorage(null, pilgrimageRecordStorageSchema);
+  const records = createPilgrimageRecordStorage(null, historicalSchemaV1);
   assert.deepEqual(records.getRecords(), []);
   assert.ok(records.getLoadError());
   assert.throws(() => records.setRecords([], []));
   assert.throws(() => records.createRestoreWrite([]));
   for (const version of [0, -1, 1.5, NaN, Number.MAX_SAFE_INTEGER + 1]) {
     assert.throws(() => createPilgrimageRecordStorage(memoryStorage(), { ...schemaV2, version }));
+  }
+});
+
+for (const marker of [undefined, '1']) {
+  test(`production V2 migrates V1 marker ${marker ?? '(absent)'} without inventing activity times`, () => {
+    assert.equal(pilgrimageRecordStorageSchema.version, 2);
+    const storage = legacyStorage(marker);
+    const source = namespaceSnapshot(storage, 1);
+    const records = createPilgrimageRecordStorage(storage, pilgrimageRecordStorageSchema);
+    const points = records.getRecords();
+    assert.deepEqual(points, historicalRecords());
+    assert.equal(records.getLoadError(), null);
+    assert.equal(storage.values.get(PILGRIMAGE_RECORD_VERSION_KEY), '2');
+    assert.deepEqual(namespaceSnapshot(storage, 1), source);
+    assert.deepEqual(
+      [...namespaceSnapshot(storage, 2).values()].map((raw) => JSON.parse(raw)),
+      historicalRecords(),
+    );
+    assert.equal(
+      points.some((point) => point.days.some((day) => Object.hasOwn(day, 'lastRecordedAt'))),
+      false,
+    );
+    storage.mutations.length = 0;
+    assert.deepEqual(records.getRecords(), historicalRecords());
+    records.setRecords(points, points);
+    assert.deepEqual(storage.mutations, []);
+  });
+}
+
+test('production V2 preserves known activity times through writes and a fresh storage instance', () => {
+  const storage = legacyStorage();
+  const source = namespaceSnapshot(storage, 1);
+  const records = createPilgrimageRecordStorage(storage, pilgrimageRecordStorageSchema);
+  const points = records.getRecords();
+  const expected = structuredClone(points);
+  expected[0].days[0].lastRecordedAt = expected[0].days[0].firstRecordedAt + 60000;
+  expected[1].days[0].lastRecordedAt = expected[1].days[0].firstRecordedAt;
+  records.setRecords(expected, points);
+  assert.equal(
+    JSON.parse(storage.values.get(storageKey(2, expected[0].key))).days[0].lastRecordedAt,
+    expected[0].days[0].lastRecordedAt,
+  );
+  assert.deepEqual(createPilgrimageRecordStorage(storage, pilgrimageRecordStorageSchema).getRecords(), expected);
+  assert.deepEqual(namespaceSnapshot(storage, 1), source);
+});
+
+test('V2 codecs copy optional activity times and discard unknown fields without mutating the source', () => {
+  const expected = historicalRecords();
+  expected[0].days[0].lastRecordedAt = expected[0].days[0].firstRecordedAt + 60000;
+  const input = structuredClone(expected);
+  input[0].internalId = 'point';
+  input[0].snapshot.sourceCache = 'snapshot';
+  input[0].days[0].internalId = 'day';
+  input[0].days[0].photos[0].recordedAt = expected[0].days[0].lastRecordedAt;
+  input[0].days[0].photos[0].localUri = '/private/photo.jpg';
+  const original = structuredClone(input);
+  for (const convert of [
+    validateStoredPilgrimageRecordsV2,
+    pilgrimageRecordStorageSchema.decode,
+    pilgrimageRecordStorageSchema.encode,
+  ]) {
+    const result = convert(input);
+    assert.deepEqual(result, expected);
+    result[0].days[0].lastRecordedAt += 1;
+    result[0].days[0].photos[0].width = 1;
+    result[0].snapshot.geo[0] = 0;
+    assert.deepEqual(input, original);
+  }
+  assert.deepEqual(validateStoredPilgrimageRecordsV1(input), historicalRecords(), 'V1 still ignores future fields');
+  assert.deepEqual(pilgrimageRecordStorageSchema.migrate(input, 1), historicalRecords());
+});
+
+test('V2 rejects invalid activity times and activity preceding the first record', () => {
+  const first = historicalRecords()[0].days[0].firstRecordedAt;
+  for (const lastRecordedAt of [first - 1, -1, first + 0.5, NaN, Infinity, 8.64e15 + 1, null, String(first)]) {
+    const input = historicalRecords();
+    input[0].days[0].lastRecordedAt = lastRecordedAt;
+    assert.throws(() => pilgrimageRecordStorageSchema.decode(input), /latest time/);
+    assert.throws(() => pilgrimageRecordStorageSchema.encode(input), /latest time/);
+  }
+});
+
+for (const interruption of migrationInterruptions) {
+  test(`production V2 migration safely retries after ${interruption.name}`, () => {
+    const storage = legacyStorage();
+    storage.values.set('point-v2:stale', 'stale staged bytes');
+    const source = namespaceSnapshot(storage, 1);
+    let interrupted = false;
+    storage.fault = (event) => {
+      if (
+        !interrupted &&
+        event.phase === interruption.phase &&
+        event.method === interruption.method &&
+        event.key === interruption.key
+      ) {
+        interrupted = true;
+        throw new Error('simulated production migration interruption');
+      }
+    };
+    const records = createPilgrimageRecordStorage(storage, pilgrimageRecordStorageSchema);
+    assert.deepEqual(records.getRecords(), []);
+    assert.equal(interrupted, true);
+    assert.ok(records.getLoadError());
+    assert.deepEqual(namespaceSnapshot(storage, 1), source);
+    storage.fault = null;
+    const restarted = createPilgrimageRecordStorage(storage, pilgrimageRecordStorageSchema);
+    assert.deepEqual(restarted.getRecords(), historicalRecords());
+    assert.equal(restarted.getLoadError(), null);
+    assert.equal(storage.values.get(PILGRIMAGE_RECORD_VERSION_KEY), '2');
+    assert.equal(storage.values.has('point-v2:stale'), false);
+    assert.deepEqual(namespaceSnapshot(storage, 1), source);
+  });
+}
+
+test('production V2 protects future version markers and namespaces', () => {
+  for (const storage of [
+    memoryStorage([[PILGRIMAGE_RECORD_VERSION_KEY, '3']]),
+    memoryStorage([['point-v3:future', 'future raw bytes']]),
+  ]) {
+    const original = snapshot(storage);
+    const records = createPilgrimageRecordStorage(storage, pilgrimageRecordStorageSchema);
+    assert.deepEqual(records.getRecords(), []);
+    assert.ok(records.getLoadError());
+    assert.throws(() => records.setRecords([], []));
+    assert.throws(() => records.createRestoreWrite([]));
+    assert.deepEqual(snapshot(storage), original);
+    assert.deepEqual(storage.mutations, []);
   }
 });

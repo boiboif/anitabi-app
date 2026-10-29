@@ -54,7 +54,7 @@ function data(overrides = {}) {
 function file(overrides = {}) {
   return {
     type: 'anitabi-backup',
-    version: 3,
+    version: 4,
     appVersion: '0.5.0',
     exportedAt: '2026-10-08T07:30:00.000Z',
     data: data(),
@@ -114,7 +114,7 @@ test('single-category JSON backups omit unselected data and summarize only inclu
     const selected = selectBackupData(current, selection);
     const content = createDataBackupContent(selected, '0.5.0');
     const exported = JSON.parse(content);
-    assert.equal(exported.version, 3);
+    assert.equal(exported.version, 4);
     assert.deepEqual(exported.data, selected);
     assert.deepEqual(parseDataBackup(content).data, selected);
     assert.deepEqual(Object.keys(exported.data).sort(), Object.keys(selected).sort());
@@ -261,7 +261,7 @@ test('merge uses IDs, keeps local metadata and progress in both directions, appe
 
 test('rejects unrelated sharing files, unsupported versions, malformed JSON and incomplete envelopes', () => {
   expectError({ type: 'anitabi-plan', v: 1, t: '分享', i: [[1, 'a']] }, 'wrongType');
-  expectError(file({ version: 4 }), 'unsupportedVersion');
+  expectError(file({ version: 5 }), 'unsupportedVersion');
   for (const value of [
     '{broken',
     'null',
@@ -319,7 +319,7 @@ test('enforces the 20 MB limit in UTF-8 bytes for imports and exports', () => {
 test('uses an independent schema version and rejects missing, nonnumeric and invalid file versions', () => {
   for (const appVersion of ['0.5.0', '99.0.0']) {
     const backup = parseDataBackup(createDataBackupContent(data(), appVersion));
-    assert.equal(backup.version, 3);
+    assert.equal(backup.version, 4);
     assert.equal(backup.appVersion, appVersion);
   }
   for (const version of [undefined, null, '1', 0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
@@ -366,7 +366,7 @@ test('migrates a legacy V1 file without losing metadata or full-backup merge and
   }`;
   const legacy = JSON.parse(content);
   const imported = parseDataBackup(content);
-  assert.deepEqual(imported, { ...legacy, version: 3 });
+  assert.deepEqual(imported, { ...legacy, version: 4 });
   const current = data({
     favoritePoints: [favorite('local')],
     plans: [plan('p1', [item('local', true)], { title: '本地名称', updatedAt: 500 }), plan('local')],
@@ -385,7 +385,7 @@ test('migrates a legacy V1 file without losing metadata or full-backup merge and
   ]);
   assert.equal(merged.planListSortOrder, 'desc');
   const reexported = parseDataBackup(createDataBackupContent(imported.data, '1.0.0'));
-  assert.equal(reexported.version, 3);
+  assert.equal(reexported.version, 4);
   assert.deepEqual(reexported.data, legacy.data);
   assert.equal(imported.appVersion, legacy.appVersion);
   assert.equal(imported.exportedAt, legacy.exportedAt);
@@ -421,7 +421,7 @@ function record(photoIds = ['photo-a'], dateKey = '2026-10-22', firstRecordedAt 
   };
 }
 
-test('V3 selects records independently, validates safe references, and summarizes visits without photos', () => {
+test('V4 selects records independently, validates safe references, and summarizes visits without photos', () => {
   const pilgrimageRecords = [record([])];
   const selected = selectBackupData(data({ pilgrimageRecords }), {
     favoritePoints: false,
@@ -446,7 +446,7 @@ test('V3 selects records independently, validates safe references, and summarize
   }
 });
 
-test('public export and import normalize V3 fields without leaking app-only properties', () => {
+test('public export and import normalize V4 fields without leaking app-only properties', () => {
   const original = data({ pilgrimageRecords: [record()] });
   const expected = structuredClone(original);
   original.internalRevision = 1;
@@ -458,7 +458,7 @@ test('public export and import normalize V3 fields without leaking app-only prop
   const serialized = createDataBackupContent(original, '0.8.0');
   assert.deepEqual(JSON.parse(serialized).data, expected);
   assert.deepEqual(parseDataBackup(JSON.stringify(file({ data: original }))).data, expected);
-  assert.equal(JSON.parse(serialized).version, 3);
+  assert.equal(JSON.parse(serialized).version, 4);
 });
 
 test('records merge by point/date and stable photo ID; overwrite affects only selected category', () => {
@@ -484,13 +484,61 @@ test('records merge by point/date and stable photo ID; overwrite affects only se
 test('legacy V2 omitted records stay omitted and never clear local records', () => {
   const legacy = file({ version: 2, data: { favoritePoints: [], plans: [], planListSortOrder: 'desc' } });
   const parsed = parseDataBackup(JSON.stringify(legacy));
-  assert.equal(parsed.version, 3);
+  assert.equal(parsed.version, 4);
   assert.equal(Object.hasOwn(parsed.data, 'pilgrimageRecords'), false);
   const current = data({ pilgrimageRecords: [record()] });
   for (const mode of ['overwrite', 'merge']) {
     assert.deepEqual(prepareBackupRestore(current, parsed.data, mode).pilgrimageRecords, current.pilgrimageRecords);
   }
   expectError({ ...legacy, data: { pilgrimageRecords: [] } }, 'migrationFailed');
+});
+
+test('V4 round trips latest photo-event times through selection, merge and overwrite', () => {
+  const localRecord = record(['photo-a']);
+  const incomingRecord = record(['photo-b']);
+  const first = localRecord.days[0].firstRecordedAt;
+  localRecord.days[0].lastRecordedAt = first + 3600000;
+  incomingRecord.days[0].lastRecordedAt = first + 7200000;
+  const current = data({ pilgrimageRecords: [localRecord] });
+  const selected = selectBackupData(data({ pilgrimageRecords: [incomingRecord] }), {
+    favoritePoints: false,
+    plans: false,
+    pilgrimageRecords: true,
+  });
+  const parsed = parseDataBackup(createDataBackupContent(selected, '0.8.0'));
+  assert.equal(parsed.version, 4);
+  assert.deepEqual(parsed.data, selected);
+  const merged = prepareBackupRestore(current, parsed.data, 'merge');
+  const day = merged.pilgrimageRecords[0].days[0];
+  assert.equal(day.firstRecordedAt, first);
+  assert.equal(day.lastRecordedAt, first + 7200000);
+  assert.deepEqual(
+    day.photos.map((photo) => photo.id),
+    ['photo-a', 'photo-b'],
+  );
+  assert.deepEqual(prepareBackupRestore(merged, parsed.data, 'merge'), merged);
+  assert.deepEqual(prepareBackupRestore(current, parsed.data, 'overwrite').pilgrimageRecords, [incomingRecord]);
+  assert.equal(current.pilgrimageRecords[0].days[0].lastRecordedAt, first + 3600000);
+});
+
+test('V3 migration preserves original records without guessing their last photo time', () => {
+  const original = record();
+  const source = file({ version: 3, data: { pilgrimageRecords: [original] } });
+  source.data.pilgrimageRecords[0].days[0].lastRecordedAt = 'unknown V3 field';
+  const parsed = parseDataBackup(JSON.stringify(source));
+  assert.equal(parsed.version, 4);
+  assert.equal(parsed.appVersion, source.appVersion);
+  assert.equal(parsed.exportedAt, source.exportedAt);
+  assert.equal(Object.hasOwn(parsed.data.pilgrimageRecords[0].days[0], 'lastRecordedAt'), false);
+  const expected = record();
+  assert.deepEqual(parsed.data, { pilgrimageRecords: [expected] });
+  assert.equal(source.data.pilgrimageRecords[0].days[0].lastRecordedAt, 'unknown V3 field');
+  const currentRecord = record();
+  currentRecord.days[0].lastRecordedAt = currentRecord.days[0].firstRecordedAt + 3600000;
+  const current = data({ pilgrimageRecords: [currentRecord] });
+  assert.deepEqual(prepareBackupRestore(current, parsed.data, 'merge').pilgrimageRecords, [currentRecord]);
+  assert.deepEqual(prepareBackupRestore(current, parsed.data, 'overwrite').pilgrimageRecords, [expected]);
+  assert.deepEqual(parseDataBackup(createDataBackupContent(parsed.data, '0.8.0')).data, parsed.data);
 });
 
 test('chains simulated schema changes in order, preserving all other fields and the original source', () => {

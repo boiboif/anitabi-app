@@ -21,7 +21,17 @@ export type StoredPilgrimagePointV1 = {
   }[];
 };
 
-export const PILGRIMAGE_RECORD_STORAGE_VERSION = 1;
+// Frozen V2 adds an optional latest activity time; V1 history has no such value.
+export type StoredPilgrimagePointV2 = Omit<StoredPilgrimagePointV1, 'days'> & {
+  days: {
+    dateKey: string;
+    firstRecordedAt: number;
+    lastRecordedAt?: number;
+    photos: StoredPilgrimagePointV1['days'][number]['photos'];
+  }[];
+};
+
+export const PILGRIMAGE_RECORD_STORAGE_VERSION = 2;
 export type PilgrimageRecordMigrations = Readonly<Partial<Record<number, (data: unknown) => unknown>>>;
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -125,6 +135,21 @@ export function validateStoredPilgrimageRecordsV1(value: unknown): StoredPilgrim
   });
 }
 
+/** Frozen V2 validation and copying retain only its explicitly owned fields. */
+export function validateStoredPilgrimageRecordsV2(value: unknown): StoredPilgrimagePointV2[] {
+  const points = validateStoredPilgrimageRecordsV1(value);
+  const source = value as StoredPilgrimagePointV2[];
+  return points.map((point, pointIndex) => ({
+    ...point,
+    days: point.days.map((day, dayIndex) => {
+      const lastRecordedAt = source[pointIndex].days[dayIndex].lastRecordedAt;
+      if (lastRecordedAt !== undefined && (!isTimestamp(lastRecordedAt) || lastRecordedAt < day.firstRecordedAt))
+        throw new Error('Invalid stored pilgrimage latest time');
+      return { ...day, ...(lastRecordedAt !== undefined ? { lastRecordedAt } : {}) };
+    }),
+  }));
+}
+
 /** Migrations receive a private copy. Each step validates its historical input. */
 export function migratePilgrimageRecordData(
   value: unknown,
@@ -152,13 +177,16 @@ export function migratePilgrimageRecordData(
   return data;
 }
 
-const MIGRATIONS: PilgrimageRecordMigrations = {};
+const MIGRATIONS: PilgrimageRecordMigrations = {
+  // V1 contains no last activity time. Preserve that absence instead of guessing.
+  1: validateStoredPilgrimageRecordsV1,
+};
 
 export const pilgrimageRecordStorageSchema = {
   version: PILGRIMAGE_RECORD_STORAGE_VERSION,
   migrate: (data: unknown, sourceVersion: number) =>
     migratePilgrimageRecordData(data, sourceVersion, PILGRIMAGE_RECORD_STORAGE_VERSION, MIGRATIONS),
   // Update these explicit adapters when the application's model evolves.
-  decode: (data: unknown): PilgrimagePoint[] => validateStoredPilgrimageRecordsV1(data),
-  encode: (points: PilgrimagePoint[]): StoredPilgrimagePointV1[] => validateStoredPilgrimageRecordsV1(points),
+  decode: (data: unknown): PilgrimagePoint[] => validateStoredPilgrimageRecordsV2(data),
+  encode: (points: PilgrimagePoint[]): StoredPilgrimagePointV2[] => validateStoredPilgrimageRecordsV2(points),
 };

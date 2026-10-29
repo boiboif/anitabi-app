@@ -1,11 +1,17 @@
 import assert from 'node:assert/strict';
+import { registerHooks } from 'node:module';
 import test from 'node:test';
-import {
-  filterPilgrimageDays,
-  isPilgrimageDateInputValid,
-  isPilgrimageDateRangeValid,
-  queryPilgrimagePoints,
-} from '../../src/lib/pilgrimage-record-query.ts';
+
+const hooks = registerHooks({
+  resolve(specifier, context, nextResolve) {
+    if (specifier === '@/lib/pilgrimage-records')
+      return { url: new URL('../../src/lib/pilgrimage-records.ts', import.meta.url).href, shortCircuit: true };
+    return nextResolve(specifier, context);
+  },
+});
+const { filterPilgrimageDays, isPilgrimageDateInputValid, isPilgrimageDateRangeValid, queryPilgrimagePoints } =
+  await import('../../src/lib/pilgrimage-record-query.ts');
+hooks.deregister();
 
 const range = (startDate = '', endDate = '') => ({ startDate, endDate });
 const day = (dateKey, firstRecordedAt, photos = []) => ({ dateKey, firstRecordedAt, photos });
@@ -112,4 +118,25 @@ test('stored local date decides matches even when its timestamp belongs to a dif
   const visit = day('2026-10-22', Date.parse('2026-10-21T16:01:00Z'));
   assert.deepEqual(filterPilgrimageDays([visit], range('2026-10-22', '2026-10-22')), [visit]);
   assert.deepEqual(filterPilgrimageDays([visit], range('2026-10-21', '2026-10-21')), []);
+});
+
+test('latest photo activity sorts points descending using only days inside the filter', () => {
+  const points = [
+    point('1:a', 1, [
+      { ...day('2026-10-22', 10), lastRecordedAt: 30 },
+      { ...day('2026-10-23', 40), lastRecordedAt: 100 },
+    ]),
+    point('1:b', 1, [{ ...day('2026-10-22', 20), lastRecordedAt: 25 }]),
+    point('1:c', 1, [day('2026-10-22', 35)]),
+  ];
+  const original = structuredClone(points);
+  assert.deepEqual(
+    queryPilgrimagePoints(points, range()).map((entry) => entry.key),
+    ['1:a', '1:c', '1:b'],
+  );
+  assert.deepEqual(
+    queryPilgrimagePoints(points, range('2026-10-22', '2026-10-22')).map((entry) => entry.key),
+    ['1:c', '1:a', '1:b'],
+  );
+  assert.deepEqual(points, original);
 });

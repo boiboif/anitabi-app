@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
+import { registerHooks } from 'node:module';
 import test from 'node:test';
 import {
   getPilgrimageCalendarDays,
@@ -10,7 +11,16 @@ import {
   movePilgrimageCalendarMonth,
   selectPilgrimageDateRange,
 } from '../../src/lib/pilgrimage-record-filter.ts';
-import { filterPilgrimageDays } from '../../src/lib/pilgrimage-record-query.ts';
+
+const hooks = registerHooks({
+  resolve(specifier, context, nextResolve) {
+    if (specifier === '@/lib/pilgrimage-records')
+      return { url: new URL('../../src/lib/pilgrimage-records.ts', import.meta.url).href, shortCircuit: true };
+    return nextResolve(specifier, context);
+  },
+});
+const { filterPilgrimageDays } = await import('../../src/lib/pilgrimage-record-query.ts');
+hooks.deregister();
 
 const range = (startDate = '', endDate = '') => ({ startDate, endDate });
 const localDate = (year, month, day, hour = 12) => {

@@ -544,6 +544,7 @@ const ja = {
   pilgrimageRecords: '巡礼記録',
   pilgrimageRecordsEntryDescription: '各スポットの巡礼日と完成写真を振り返る',
   pilgrimageRecordsCounts: '{{days}} 日分の記録 · 写真 {{photos}} 枚',
+  pilgrimageRecordsLastVisit: '最終巡礼：{{date}}',
   pilgrimageRecordsPhotoCount: '写真 {{count}} 枚',
   pilgrimageRecordsPointCount: '{{count}} スポット',
   pilgrimageRecordsBangumiFilter: '作品',

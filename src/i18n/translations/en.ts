@@ -543,6 +543,7 @@ const en = {
   pilgrimageRecords: 'Pilgrimage records',
   pilgrimageRecordsEntryDescription: 'Revisit each location’s visit dates and finished photos',
   pilgrimageRecordsCounts: '{{days}} recorded days · {{photos}} photos',
+  pilgrimageRecordsLastVisit: 'Last visit: {{date}}',
   pilgrimageRecordsPhotoCount: '{{count}} photos',
   pilgrimageRecordsPointCount: '{{count}} locations',
   pilgrimageRecordsBangumiFilter: 'Anime',

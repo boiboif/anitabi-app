@@ -6,6 +6,7 @@ import type {
   BackupPointSnapshotV1,
   DataBackupV2,
   DataBackupV3,
+  DataBackupV4,
 } from './data-backup-schema';
 import type { FavoritePoint } from './favorite-storage';
 import type { ItineraryPlan, PlanListSortOrder } from './plan-storage';
@@ -19,6 +20,7 @@ export type BackupAppContents = {
 };
 export type BackupAppData = Required<BackupAppContents>;
 type WireContentsV3 = DataBackupV3['data'];
+type WireContentsV4 = DataBackupV4['data'];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -292,4 +294,41 @@ export function decodeBackupContentsV3(data: WireContentsV3): BackupAppContents 
     ...(wire.plans !== undefined ? { plans: wire.plans, planListSortOrder: wire.planListSortOrder } : {}),
     ...(wire.pilgrimageRecords !== undefined ? { pilgrimageRecords: wire.pilgrimageRecords } : {}),
   };
+}
+
+/** V4 retains the frozen V3 constraints and validates its additional event time. */
+export function isBackupContentsV4(value: unknown): value is WireContentsV4 {
+  if (!isBackupContentsV3(value)) return false;
+  return (value.pilgrimageRecords ?? []).every((point) =>
+    point.days.every((day) => {
+      const latest = (day as { lastRecordedAt?: unknown }).lastRecordedAt;
+      return latest === undefined || (isTimestamp(latest) && latest >= day.firstRecordedAt);
+    }),
+  );
+}
+
+export function copyBackupContentsV4(data: WireContentsV4): WireContentsV4 {
+  const wire = copyBackupContentsV3(data);
+  return {
+    ...wire,
+    ...(wire.pilgrimageRecords !== undefined
+      ? {
+          pilgrimageRecords: wire.pilgrimageRecords.map((point, index) => ({
+            ...point,
+            days: point.days.map((day, dayIndex) => {
+              const latest = data.pilgrimageRecords![index].days[dayIndex].lastRecordedAt;
+              return { ...day, ...(latest !== undefined ? { lastRecordedAt: latest } : {}) };
+            }),
+          })),
+        }
+      : {}),
+  };
+}
+
+export function encodeBackupContentsV4(data: BackupAppContents): WireContentsV4 {
+  return copyBackupContentsV4(data);
+}
+
+export function decodeBackupContentsV4(data: WireContentsV4): BackupAppContents {
+  return copyBackupContentsV4(data);
 }

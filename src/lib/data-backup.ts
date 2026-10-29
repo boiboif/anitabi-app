@@ -1,10 +1,12 @@
-import type { DataBackupV3 } from './data-backup-schema';
+import type { DataBackupV4 } from './data-backup-schema';
 import {
   copyBackupContentsV3,
-  decodeBackupContentsV3,
-  encodeBackupContentsV3,
+  copyBackupContentsV4,
+  decodeBackupContentsV4,
+  encodeBackupContentsV4,
   isBackupContentsV2,
   isBackupContentsV3,
+  isBackupContentsV4,
   isFullBackupDataV1,
   type BackupAppData,
 } from '@/lib/data-backup-codec';
@@ -12,10 +14,10 @@ import { mergePilgrimageRecords } from '@/lib/pilgrimage-records';
 import { strToU8 } from 'fflate';
 
 export const BACKUP_TYPE = 'anitabi-backup' as const;
-export const BACKUP_VERSION = 3 as const;
+export const BACKUP_VERSION = 4 as const;
 export const MAX_BACKUP_FILE_BYTES = 20 * 1024 * 1024;
 
-export type DataBackup = DataBackupV3;
+export type DataBackup = DataBackupV4;
 export type BackupContents = DataBackup['data'];
 export type BackupData = BackupAppData;
 export type BackupSelection = { favoritePoints: boolean; plans: boolean; pilgrimageRecords: boolean };
@@ -28,6 +30,11 @@ const BACKUP_MIGRATIONS: BackupMigrations = {
   2: (data) => {
     if (!isBackupContentsV2(data)) throw new BackupError('invalid');
     return data;
+  },
+  3: (data) => {
+    if (!isBackupContentsV3(data)) throw new BackupError('invalid');
+    // Older files did not record later photo times. Retain that absence.
+    return copyBackupContentsV3(data);
   },
 };
 
@@ -109,13 +116,13 @@ function validateBackup(value: unknown, migrate = false): DataBackup {
   if (value.version === 1 && !isFullBackupDataV1(value.data)) throw new BackupError('invalid');
   const data = migrate ? migrateBackupData(value.data, value.version, BACKUP_VERSION, BACKUP_MIGRATIONS) : value.data;
   if (!migrate && value.version !== BACKUP_VERSION) throw new BackupError('unsupportedVersion');
-  if (!isBackupContentsV3(data)) throw new BackupError('invalid');
+  if (!isBackupContentsV4(data)) throw new BackupError('invalid');
   return {
     type: BACKUP_TYPE,
     version: BACKUP_VERSION,
     appVersion: value.appVersion,
     exportedAt: value.exportedAt,
-    data: copyBackupContentsV3(data),
+    data: copyBackupContentsV4(data),
   };
 }
 
@@ -134,7 +141,7 @@ export function parseDataBackup(content: string): DataBackup {
 
 export function selectBackupData(data: BackupData, selection: BackupSelection): BackupContents {
   if (!selection.favoritePoints && !selection.plans && !selection.pilgrimageRecords) throw new BackupError('invalid');
-  return encodeBackupContentsV3({
+  return encodeBackupContentsV4({
     ...(selection.favoritePoints ? { favoritePoints: data.favoritePoints } : {}),
     ...(selection.plans ? { plans: data.plans, planListSortOrder: data.planListSortOrder } : {}),
     ...(selection.pilgrimageRecords ? { pilgrimageRecords: data.pilgrimageRecords } : {}),
@@ -188,7 +195,7 @@ export function getBackupSummary<Data extends BackupSummaryContents>(data: Data)
 }
 
 export function prepareBackupRestore(current: BackupData, wire: BackupContents, mode: BackupRestoreMode): BackupData {
-  const incoming = decodeBackupContentsV3(wire);
+  const incoming = decodeBackupContentsV4(wire);
   if (mode === 'overwrite') {
     return {
       favoritePoints: incoming.favoritePoints ?? current.favoritePoints,

@@ -163,7 +163,7 @@ function records(photos = [photo]) {
       bangumiId: 1,
       pointId: 'a',
       snapshot: { bangumiName: '作品', pointName: '点位' },
-      days: [{ dateKey: '2026-10-22', firstRecordedAt: 1792630800000, photos }],
+      days: [{ dateKey: '2026-10-22', firstRecordedAt: 1792630800000, lastRecordedAt: 1792634400000, photos }],
     },
   ];
 }
@@ -212,6 +212,22 @@ test('streaming ZIP round trip contains real bytes, preserves dates, and reads l
   assert.equal(file.exists, true);
 });
 
+test('historical V3 ZIP keeps photo identity and dates without inventing last-record times', async () => {
+  const data = { pilgrimageRecords: records() };
+  delete data.pilgrimageRecords[0].days[0].lastRecordedAt;
+  const envelope = { ...JSON.parse(json(data)), version: 3 };
+  const result = await readPilgrimageBackupArchive(
+    archiveFile({ 'data.json': strToU8(JSON.stringify(envelope)), 'images/photo-a.jpg': imageBytes }),
+  );
+  assert.equal(result.backup.version, 4);
+  assert.deepEqual(result.backup.data, data);
+  await restoreDataBackup(result.backup.data, 'overwrite', result.archive);
+  const restored = harness.records.points[0].days[0];
+  assert.equal(restored.firstRecordedAt, data.pilgrimageRecords[0].days[0].firstRecordedAt);
+  assert.equal(Object.hasOwn(restored, 'lastRecordedAt'), false);
+  assert.equal(restored.photos[0].id, photo.id);
+});
+
 test('rejects missing, undeclared, duplicate, traversal and unexpected archive entries before restoration', async () => {
   const examples = [
     { 'data.json': metadata() },
@@ -247,6 +263,7 @@ test('restore stages unique files, preserves timestamps and IDs, and repeated me
   await restoreDataBackup(result.backup.data, 'merge', result.archive);
   const restored = harness.records.points[0].days[0];
   assert.equal(restored.firstRecordedAt, records()[0].days[0].firstRecordedAt);
+  assert.equal(restored.lastRecordedAt, records()[0].days[0].lastRecordedAt);
   assert.equal(restored.photos[0].id, photo.id);
   assert.notEqual(restored.photos[0].fileName, photo.fileName);
   const file = getPilgrimagePhotoFile(restored.photos[0].fileName);
@@ -265,12 +282,13 @@ test('failure after a metadata mutation rolls back all categories and removes on
   const oldRecords = records([{ ...photo, id: 'original', fileName: 'original.jpg' }]);
   harness.records.points = oldRecords;
   const storage = harness.storages.get('anitabi-pilgrimage-records');
-  storage.set('point-v1:1%3Aa', JSON.stringify(oldRecords[0]));
+  storage.set('point-v2:1%3Aa', JSON.stringify(oldRecords[0]));
+  storage.set('schema-version', '2');
   const result = await readPilgrimageBackupArchive(
     archiveFile({ 'data.json': metadata(), 'images/photo-a.jpg': imageBytes }),
   );
   const beforeFiles = [...harness.files.keys()];
-  harness.failKey = 'point-v1:1%3Aa';
+  harness.failKey = 'point-v2:1%3Aa';
   await assert.rejects(
     () => restoreDataBackup(result.backup.data, 'overwrite', result.archive),
     (error) => error.code === 'writeFailed',

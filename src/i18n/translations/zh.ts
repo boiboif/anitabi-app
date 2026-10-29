@@ -519,6 +519,7 @@ const zh = {
   pilgrimageRecords: '巡礼记录',
   pilgrimageRecordsEntryDescription: '回顾各点位的巡礼日期和成品照片',
   pilgrimageRecordsCounts: '{{days}} 天记录 · {{photos}} 张照片',
+  pilgrimageRecordsLastVisit: '最近巡礼：{{date}}',
   pilgrimageRecordsPhotoCount: '{{count}} 张照片',
   pilgrimageRecordsPointCount: '{{count}} 个点位',
   pilgrimageRecordsBangumiFilter: '番剧',

@@ -94,3 +94,15 @@ export type DataBackupV3 = {
     pilgrimageRecords?: BackupPilgrimagePointV3[];
   };
 };
+
+// V4 preserves the last record-added event without changing historical first times.
+export type BackupPilgrimagePointV4 = Omit<BackupPilgrimagePointV3, 'days'> & {
+  days: (BackupPilgrimagePointV3['days'][number] & { lastRecordedAt?: number })[];
+};
+
+export type DataBackupV4 = Omit<DataBackupV3, 'version' | 'data'> & {
+  version: 4;
+  data: Omit<DataBackupV3['data'], 'pilgrimageRecords'> & {
+    pilgrimageRecords?: BackupPilgrimagePointV4[];
+  };
+};

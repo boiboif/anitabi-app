@@ -39,7 +39,7 @@ const harness = {
   },
 };
 function storedPointCount() {
-  return [...harness.values.keys()].filter((key) => key.startsWith('point-v1:')).length;
+  return [...harness.values.keys()].filter((key) => key.startsWith('point-v2:')).length;
 }
 
 globalThis.__pilgrimageHarness = harness;
@@ -122,6 +122,7 @@ const {
 } = await import('../../src/lib/pilgrimage-record-storage.ts');
 const { getPilgrimagePhotoFile, PilgrimagePhotoCleanupError } =
   await import('../../src/lib/pilgrimage-record-files.ts');
+const { queryPilgrimagePoints } = await import('../../src/lib/pilgrimage-record-query.ts');
 const input = { key: '1:a', bangumiId: 1, pointId: 'a', snapshot: { bangumiName: '作品', pointName: '地点' } };
 const at = new Date(2026, 9, 22, 9).getTime();
 const source = 'file:///cache/export.jpg';
@@ -258,7 +259,7 @@ test('ordinary writes do not validate or serialize unchanged point histories', a
 
 test('corrupt records fail closed and only an explicit successful restore clears the load error', async () => {
   await recordPilgrimageVisit(input, at);
-  harness.values.set('point-v1:2%3Ab', '{bad json');
+  harness.values.set('point-v2:2%3Ab', '{bad json');
   const raw = [...harness.values];
   assert.deepEqual(getPilgrimageRecords(), []);
   assert.ok(getPilgrimageRecordsLoadError());
@@ -318,8 +319,44 @@ test('deleting one photo preserves other photos, histories and source files', as
   assert.equal(harness.files.has(retainedFile), true);
   assert.equal(harness.files.has(source), true);
   assert.equal(harness.files.size, 3, 'only the targeted app-owned copy is removed');
-  assert.deepEqual(harness.mutations, ['point-v1:1%3Aa'], 'unchanged point histories are not persisted again');
+  assert.deepEqual(harness.mutations, ['point-v2:1%3Aa'], 'unchanged point histories are not persisted again');
   assert.deepEqual(getPilgrimageRecords(), harness.state.points);
+});
+
+test('a newly saved photo moves its point first after storage reload and deleting the photo keeps that event time', async () => {
+  const other = { ...input, key: '1:b', pointId: 'b' };
+  await recordPilgrimageVisit(input, at);
+  await recordPilgrimageVisit(other, at + 60000);
+  assert.deepEqual(
+    harness.state.points.map((point) => point.key),
+    ['1:b', '1:a'],
+  );
+
+  await savePilgrimagePhoto(input, source, 800, 600, at + 120000);
+  const saved = getPilgrimageRecords();
+  assert.deepEqual(
+    saved.map((point) => point.key),
+    ['1:a', '1:b'],
+  );
+  assert.equal(saved[0].days[0].firstRecordedAt, at);
+  assert.equal(saved[0].days[0].lastRecordedAt, at + 120000);
+  const range = { startDate: '', endDate: '' };
+  assert.deepEqual(
+    queryPilgrimagePoints(saved, range).map((point) => point.key),
+    ['1:a', '1:b'],
+  );
+
+  await deletePilgrimagePhoto(input.key, saved[0].days[0].photos[0].id);
+  assert.equal(harness.state.points[0].days[0].lastRecordedAt, at + 120000);
+  assert.deepEqual(
+    queryPilgrimagePoints(getPilgrimageRecords(), range).map((point) => point.key),
+    ['1:a', '1:b'],
+  );
+  await deletePilgrimageDay(input.key, '2026-10-22');
+  assert.deepEqual(
+    queryPilgrimagePoints(getPilgrimageRecords(), range).map((point) => point.key),
+    ['1:b'],
+  );
 });
 
 test('deleting the last photo keeps the day, original visit time and point record', async () => {
@@ -329,7 +366,9 @@ test('deleting the last photo keeps the day, original visit time and point recor
   await deletePilgrimagePhoto(input.key, id);
 
   assert.equal(harness.state.points.length, 1);
-  assert.deepEqual(harness.state.points[0].days, [{ dateKey: '2026-10-22', firstRecordedAt: at, photos: [] }]);
+  assert.deepEqual(harness.state.points[0].days, [
+    { dateKey: '2026-10-22', firstRecordedAt: at, lastRecordedAt: at, photos: [] },
+  ]);
   assert.equal(storedPointCount(), 1);
   assert.deepEqual([...harness.files.keys()], [source]);
   assert.deepEqual(getPilgrimageRecords(), harness.state.points);
@@ -375,7 +414,9 @@ test('single-photo cleanup failure reports committed removal while retaining the
 
   await assert.rejects(deletePilgrimagePhoto(input.key, photo.id), PilgrimagePhotoCleanupError);
 
-  assert.deepEqual(harness.state.points[0].days, [{ dateKey: '2026-10-22', firstRecordedAt: at, photos: [] }]);
+  assert.deepEqual(harness.state.points[0].days, [
+    { dateKey: '2026-10-22', firstRecordedAt: at, lastRecordedAt: at, photos: [] },
+  ]);
   assert.deepEqual(getPilgrimageRecords(), harness.state.points);
   assert.equal(harness.files.has(getPilgrimagePhotoFile(photo.fileName).uri), true);
   assert.equal(harness.files.has(source), true);
@@ -455,7 +496,7 @@ test('mixed cross-day batch deletion commits once, deduplicates selection and pr
     otherPoint,
   );
   assert.deepEqual(before, previous, 'the transaction never mutates previous point/day/photo snapshots');
-  assert.deepEqual(harness.mutations, ['point-v1:1%3Aa']);
+  assert.deepEqual(harness.mutations, ['point-v2:1%3Aa']);
   assert.equal(harness.publications.length, 1);
   assert.equal(harness.deleteAttempts.length, 3, 'overlapping day/photo selections delete each app copy once');
   assert.equal(new Set(harness.deleteAttempts.map((attempt) => attempt.uri)).size, 3);
@@ -583,7 +624,7 @@ test('batch cleanup failure preserves the committed change and still attempts ev
   );
   assert.deepEqual(point.days.find((day) => day.dateKey === editedDay.dateKey).photos, [editedDay.photos[1]]);
   assert.equal(harness.publications.length, 1);
-  assert.deepEqual(harness.mutations, ['point-v1:1%3Aa']);
+  assert.deepEqual(harness.mutations, ['point-v2:1%3Aa']);
   assert.equal(harness.deleteAttempts.length, 3);
   assert.ok(harness.deleteAttempts.every((attempt) => attempt.points === harness.state.points));
   assert.equal(harness.files.has(failedUri), true);
@@ -619,7 +660,7 @@ test('batch deletion waits for append and deletes newly appended photos when the
   assert.deepEqual(point.days.find((day) => day.dateKey === editedDay.dateKey).photos, [editedDay.photos[1]]);
   assert.equal(harness.deleteAttempts.length, 4, 'day selection includes the photo committed immediately before it');
   assert.equal(harness.publications.length, 2, 'append and the entire batch each publish once');
-  assert.deepEqual(harness.mutations, ['point-v1:1%3Aa', 'point-v1:1%3Aa']);
+  assert.deepEqual(harness.mutations, ['point-v2:1%3Aa', 'point-v2:1%3Aa']);
   assert.equal(harness.files.size, 3);
   assert.equal(harness.files.has(source), true);
   assert.deepEqual(getPilgrimageRecords(), harness.state.points);
