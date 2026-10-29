@@ -555,7 +555,7 @@ const ja = {
   pilgrimageRecordsFilterDateMonth: '今月',
   pilgrimageRecordsFilterDateYear: '今年',
   pilgrimageRecordsFilterDateCustom: '期間を指定',
-  pilgrimageRecordsFilterDateRange: '{{start}} — {{end}}',
+  pilgrimageRecordsFilterDateRange: '{{start}} - {{end}}',
   pilgrimageRecordsFilterSearchBangumi: '作品名で検索',
   pilgrimageRecordsFilterNoBangumiMatches: '一致する作品はありません',
   pilgrimageRecordsFilterRangeStart: '開始日',

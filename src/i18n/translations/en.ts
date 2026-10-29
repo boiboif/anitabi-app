@@ -554,7 +554,7 @@ const en = {
   pilgrimageRecordsFilterDateMonth: 'This month',
   pilgrimageRecordsFilterDateYear: 'This year',
   pilgrimageRecordsFilterDateCustom: 'Custom range',
-  pilgrimageRecordsFilterDateRange: '{{start}} — {{end}}',
+  pilgrimageRecordsFilterDateRange: '{{start}} - {{end}}',
   pilgrimageRecordsFilterSearchBangumi: 'Search anime titles',
   pilgrimageRecordsFilterNoBangumiMatches: 'No matching anime',
   pilgrimageRecordsFilterRangeStart: 'Start date',

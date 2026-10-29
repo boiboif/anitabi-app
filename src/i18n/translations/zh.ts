@@ -530,7 +530,7 @@ const zh = {
   pilgrimageRecordsFilterDateMonth: '本月',
   pilgrimageRecordsFilterDateYear: '今年',
   pilgrimageRecordsFilterDateCustom: '自定义时间',
-  pilgrimageRecordsFilterDateRange: '{{start}} — {{end}}',
+  pilgrimageRecordsFilterDateRange: '{{start}} - {{end}}',
   pilgrimageRecordsFilterSearchBangumi: '搜索番剧名称',
   pilgrimageRecordsFilterNoBangumiMatches: '没有找到匹配的番剧',
   pilgrimageRecordsFilterRangeStart: '开始日期',
