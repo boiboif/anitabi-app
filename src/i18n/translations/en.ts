@@ -588,7 +588,7 @@ const en = {
     'Check off a plan location or save a finished comparison photo to Photos to record your visit automatically.',
   pilgrimageRecordsNoMatches: 'No matching pilgrimage records',
   pilgrimageRecordsNoMatchesHint: 'Try another anime or date range, or clear the filters.',
-  pilgrimageRecordsShowingDateRange: 'Date range: {{start}} — {{end}}',
+  pilgrimageRecordsShowingDateRange: 'Date range: {{start}} - {{end}}',
   pilgrimageRecordsNoPhotos: 'A visit was recorded on this day. No photos yet.',
   pilgrimageRecordsEdit: 'Edit',
   pilgrimageRecordsSelectDay: 'Select the record and photos for {{date}}',

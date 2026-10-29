@@ -589,7 +589,7 @@ const ja = {
     'プランのスポットを完了にするか、比較写真をシステムの写真ライブラリに保存すると、当日の記録が自動で残ります。',
   pilgrimageRecordsNoMatches: '条件に合う巡礼記録がありません',
   pilgrimageRecordsNoMatchesHint: '作品や期間を変更するか、絞り込みを解除してください。',
-  pilgrimageRecordsShowingDateRange: '表示期間：{{start}} — {{end}}',
+  pilgrimageRecordsShowingDateRange: '表示期間：{{start}} - {{end}}',
   pilgrimageRecordsNoPhotos: 'この日の巡礼記録があります。写真はまだありません。',
   pilgrimageRecordsEdit: '編集',
   pilgrimageRecordsSelectDay: '{{date}} の記録と写真を選択',

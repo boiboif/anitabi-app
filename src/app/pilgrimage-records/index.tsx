@@ -71,7 +71,7 @@ export default function PilgrimageRecordsScreen() {
                     <Text fontSize="$caption" color="$color11">
                       {t('pilgrimageRecordsPointCount', { count: filteredPoints.length })}
                       {(range.startDate || range.endDate) && timeFilter.preset !== 'custom'
-                        ? ` · ${range.startDate || '…'} — ${range.endDate || '…'}`
+                        ? ` · ${range.startDate || '…'} - ${range.endDate || '…'}`
                         : ''}
                     </Text>
                   </YStack>

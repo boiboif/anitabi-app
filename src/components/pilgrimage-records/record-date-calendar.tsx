@@ -259,7 +259,7 @@ export function RecordDateCalendar({ range, onChange }: Props) {
         <YStack gap="$2">
           {mode === 'years' ? (
             <Text text="center" fontSize="$caption" color="$color11" accessibilityLiveRegion="polite">
-              {yearPageStart} — {Math.min(yearPageStart + 11, 9999)}
+              {yearPageStart} - {Math.min(yearPageStart + 11, 9999)}
             </Text>
           ) : null}
           {Array.from({ length: 4 }, (_, row) => (

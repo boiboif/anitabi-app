@@ -563,7 +563,7 @@ const zh = {
   pilgrimageRecordsEmptyHint: '勾选计划点位完成，或将对比成品保存到相册后，会自动留下当天记录。',
   pilgrimageRecordsNoMatches: '没有符合条件的巡礼记录',
   pilgrimageRecordsNoMatchesHint: '试试其他番剧或时间段，也可以清除筛选。',
-  pilgrimageRecordsShowingDateRange: '当前时间段：{{start}} — {{end}}',
+  pilgrimageRecordsShowingDateRange: '当前时间段：{{start}} - {{end}}',
   pilgrimageRecordsNoPhotos: '这一天已留下巡礼记录，暂无照片。',
   pilgrimageRecordsEdit: '编辑',
   pilgrimageRecordsSelectDay: '选择 {{date}} 的整天记录',
