@@ -179,7 +179,7 @@ const Search = () => {
     } else {
       sorted.sort((a, b) => b.points.length - a.points.length);
     }
-    return sorted.map((b) => ({ type: 'bangumi' as const, data: b }));
+    return sorted.slice(0, 100).map((b) => ({ type: 'bangumi' as const, data: b }));
   }, [data, tab, searchMode, bangumiResults, pointResults]);
 
   const renderItem = useCallback(
