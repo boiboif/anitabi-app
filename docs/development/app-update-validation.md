@@ -1,5 +1,13 @@
 # OTA 配套整包与后台下载验证报告
 
+## 后续调整：普通整包不显示内容后缀
+
+普通正式整包只显示基础版本，例如 `v0.9.0`；应用 OTA 后，或直接安装该 OTA 的配套整包，显示 `v0.9.0-<SHA 前 8 位>`，同一份内容保持相同版本。此前 `app.config.ts` 自动将 GitHub Actions 的 `GITHUB_SHA` 写入 `extra.contentRevision`，导致没有发布 OTA 的常规整包也附加 SHA。现改为仅接受显式 `APP_CONTENT_REVISION`，由 OTA 发布及其 Android/iOS 配套构建传入同一来源 SHA，常规 native 发布不传入。
+
+本次轻量验证：`app-version`、`update-config`、`release-state`、`assert-current-ota`、`ota-test-server`、`update-test-reporter` 共 115/115 项测试通过，全项目 TypeScript、相关 ESLint 及修改文件的 Prettier 检查通过。新增回归覆盖 production/preview 普通整包无后缀、OTA 与配套整包版本一致、紧急回退时恢复内置内容版本，以及发布任务的 SHA 传递条件。
+
+下文 A 基础测试包的 `0.8.0-a1111111`、截图及真机矩阵保留为历史实测结果。该受控夹具主动注入了 `APP_CONTENT_REVISION=a1111111`，与普通正式整包的参数不同；这些旧证据不能证明本次普通整包无后缀规则已经过真机验证。本次调整未重新构建、发布或进行真机验证。
+
 ## 后续调整：整包与 OTA 检测响应时序
 
 此前两路检测先统一等待，再显示整包和启动 OTA 下载。可控响应审计复现了三个问题：慢 OTA 检测拖住已返回的整包结果；慢整包检测拖住已确认可用的 OTA 下载；上一轮 OTA 提示还在时，整包结果虽已返回，但等待另一边期间旧按钮仍能重启。该等待结构自 2026-08-13 已存在，不是本次静默策略新引入。

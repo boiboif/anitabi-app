@@ -104,6 +104,8 @@ production 发版流程如下：
 
 清单中的 `version` 是基础版本，用于运行时兼容和版本比较；`displayVersion` 是待升级目标的完整发布版本。测试、production 和 preview 整包的原生版本统一使用基础版本，不附加 `test.N` 或 `preview.N`，避免原生生成插件无法识别带后缀的版本号。`buildNumber` 对应 Android `versionCode`，客户端在基础版本相同时比较它，因此同一个基础版本可以发布多个构建。
 
+应用内“我的”和“关于”的当前版本只在运行 OTA 内容或安装其配套整包时附加内容 SHA：普通 0.9.0 整包显示 `v0.9.0`；应用 OTA 后显示 `v0.9.0-<SHA 前 8 位>`，直接安装该 OTA 的配套整包也显示相同版本。发布 OTA 和构建配套整包时显式设置 `APP_CONTENT_REVISION` 为同一个来源提交 SHA，普通整包不设置它；`GITHUB_SHA` 不会自动成为内容版本后缀。原生版本、构建号、runtime 和整包升级判断不受此展示规则影响。
+
 手动生成清单的命令仍然可用。GitHub Release 创建完成后运行：
 
 ```bash
@@ -159,6 +161,8 @@ npx eas-cli@21.8.0 update --channel production --environment production --platfo
 ```
 
 OTA 成功后复用 `Mobile Release`，各任务显式检出该 OTA 的同一个 commit SHA，将当前 JavaScript 和资源内置到新的 APK/IPA。production 标签为 `v<version>-ota.<buildNumber>`，preview 为 `v<version>-preview-ota.<buildNumber>`；后缀仅用于 Release 和下载页展示，原生版本仍为基础版本，runtime 与更新频道不变。
+
+OTA 发布任务和 Android/iOS 配套构建任务均显式传入该来源 SHA 的 `APP_CONTENT_REVISION`，写入 `extra.contentRevision`，使通过 OTA 更新的旧安装和直接安装配套整包的新安装显示相同内容版本。常规 native 发版不携带此内容标识。
 
 补充包只推进 `download.json` 或 `download-preview.json`，不改 `latest.json` / `preview.json`，也不会启用强制更新。production 补充包会标记为 GitHub 最新 Release 并刷新官网下载；preview 仍为 prerelease。新用户安装后已经包含本次代码，新旧安装都继续接收相同 runtime、channel 的后续 OTA。
 

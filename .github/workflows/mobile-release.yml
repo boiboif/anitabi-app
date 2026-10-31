@@ -200,6 +200,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       APP_NATIVE_VERSION: ${{ needs.prepare.outputs.native_version }}
+      APP_CONTENT_REVISION: ${{ inputs.ota_bundle && inputs.source_sha || '' }}
       ANDROID_VERSION_CODE: ${{ needs.prepare.outputs.build_number }}
       EXPO_UPDATE_CHANNEL: ${{ needs.prepare.outputs.update_channel }}
       EXPO_PROJECT_ID: ${{ vars.EXPO_PROJECT_ID }}
@@ -330,6 +331,7 @@ jobs:
     runs-on: macos-latest
     env:
       APP_NATIVE_VERSION: ${{ needs.prepare.outputs.native_version }}
+      APP_CONTENT_REVISION: ${{ inputs.ota_bundle && inputs.source_sha || '' }}
       IOS_BUILD_NUMBER: ${{ needs.prepare.outputs.build_number }}
       EXPO_UPDATE_CHANNEL: ${{ needs.prepare.outputs.update_channel }}
       EXPO_PROJECT_ID: ${{ vars.EXPO_PROJECT_ID }}

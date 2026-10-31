@@ -35,6 +35,7 @@ jobs:
       EXPO_PROJECT_ID: ${{ vars.EXPO_PROJECT_ID }}
       EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN: ${{ vars.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN }}
       EXPO_UPDATE_CHANNEL: ${{ inputs.channel }}
+      APP_CONTENT_REVISION: ${{ github.sha }}
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 

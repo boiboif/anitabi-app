@@ -21,7 +21,9 @@ const appIdentifier = isDevelopmentBuild
 const appScheme = isDevelopmentBuild ? 'anitabiapp-dev' : isTestBuild ? 'anitabiapp-test' : 'anitabiapp';
 const appUpdatesEnabled = updateChannel === 'preview' || updateChannel === 'production';
 const binaryUpdateManifestName = updateChannel === 'preview' ? 'preview.json' : 'latest.json';
-const contentRevision = process.env.APP_CONTENT_REVISION || process.env.GITHUB_SHA;
+// Only OTA publishing and its bundled installers opt in to a content suffix.
+// Ordinary releases also run in GitHub Actions, so GITHUB_SHA alone is insufficient.
+const contentRevision = process.env.APP_CONTENT_REVISION || undefined;
 if (contentRevision && !/^[a-f0-9]{7,40}$/i.test(contentRevision)) {
   throw new Error('APP_CONTENT_REVISION must be a Git commit identifier');
 }

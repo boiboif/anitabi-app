@@ -119,6 +119,22 @@ test('OTA gates the reusable dual-platform release and pins every checkout to it
   assert.equal(mobile.concurrency['cancel-in-progress'], false);
 });
 
+test('only OTA publication and its matching installers receive a content revision', () => {
+  const update = workflow('eas-update.yml');
+  assert.equal(update.jobs.publish.env.APP_CONTENT_REVISION, '${{ github.sha }}');
+  assert.equal(update.jobs['bundled-release'].with.source_sha, update.jobs.publish.env.APP_CONTENT_REVISION);
+
+  const mobile = workflow('mobile-release.yml');
+  for (const name of ['android', 'ios']) {
+    const job = mobile.jobs[name];
+    assert.equal(job.env.APP_CONTENT_REVISION, "${{ inputs.ota_bundle && inputs.source_sha || '' }}");
+    for (const step of job.steps) {
+      assert.equal(step.env?.APP_CONTENT_REVISION, undefined, 'Every build step must retain the job content identity');
+    }
+  }
+  assert.equal(workflow('android-release.yml').jobs['build-release'].env.APP_CONTENT_REVISION, '');
+});
+
 test('production release workflows explicitly refresh the website download page', () => {
   for (const name of ['mobile-release.yml', 'android-release.yml']) {
     const release = workflow(name);

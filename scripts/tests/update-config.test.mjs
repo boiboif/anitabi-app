@@ -23,6 +23,14 @@ function configFor(env = {}) {
   return JSON.parse(JSON.stringify(exports.default));
 }
 
+const versionExports = {};
+vm.runInNewContext(
+  ts.transpileModule(readFileSync(new URL('../../src/services/app-version.ts', import.meta.url), 'utf8'), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  }).outputText,
+  { exports: versionExports },
+);
+
 for (const [variant, packageName, appName] of [
   ['production', 'bbf.anitabiapp', 'Anitabi'],
   ['development', 'bbf.anitabiapp.dev', 'Anitabi Dev'],
@@ -112,18 +120,56 @@ test('development default disables OTA and binary checks even with a test server
   }
 });
 
-test('content identity uses explicit revision before the build commit and normalizes case', () => {
-  assert.equal(configFor({ GITHUB_SHA: 'B'.repeat(40) }).extra.contentRevision, 'b'.repeat(40));
+test('ordinary builds do not acquire an OTA content identity from the CI commit', () => {
+  assert.equal(configFor({ GITHUB_SHA: 'B'.repeat(40) }).extra.contentRevision, undefined);
+  assert.equal(configFor({ GITHUB_SHA: 'not-a-content-revision' }).extra.contentRevision, undefined);
+  assert.equal(configFor({ APP_CONTENT_REVISION: '', GITHUB_SHA: 'C'.repeat(40) }).extra.contentRevision, undefined);
+  assert.equal(configFor().extra.contentRevision, undefined);
+});
+
+test('OTA content identity is explicitly supplied and normalizes case', () => {
   assert.equal(
     configFor({ APP_CONTENT_REVISION: 'ABC1234', GITHUB_SHA: 'b'.repeat(40) }).extra.contentRevision,
     'abc1234',
   );
-  assert.equal(
-    configFor({ APP_CONTENT_REVISION: '', GITHUB_SHA: 'C'.repeat(40) }).extra.contentRevision,
-    'c'.repeat(40),
-  );
-  assert.equal(configFor().extra.contentRevision, undefined);
+  assert.equal(configFor({ APP_CONTENT_REVISION: 'C'.repeat(40) }).extra.contentRevision, 'c'.repeat(40));
 });
+
+for (const channel of ['production', 'preview']) {
+  test(`${channel} keeps ordinary installers plain and shares the OTA suffix with its bundled installer`, () => {
+    const env = { APP_NATIVE_VERSION: '0.9.0', EXPO_UPDATE_CHANNEL: channel, GITHUB_SHA: 'a'.repeat(40) };
+    const ordinary = configFor(env);
+    const revision = 'b2222222' + 'b'.repeat(32);
+    const ota = configFor({ ...env, GITHUB_SHA: revision, APP_CONTENT_REVISION: revision });
+    const bundled = configFor({ ...env, GITHUB_SHA: revision, APP_CONTENT_REVISION: revision });
+    const display = (config, overrides = {}) =>
+      versionExports.createAppVersionInfo({
+        configuredVersion: config.version,
+        nativeVersion: ordinary.version,
+        nativeBuild: '100',
+        contentRevision: config.extra.contentRevision,
+        updatesEnabled: config.updates.enabled,
+        isEmbeddedLaunch: true,
+        isEmergencyLaunch: false,
+        isDevelopment: false,
+        channel: config.extra.updateChannel,
+        updateId: 'embedded-update-uuid',
+        ...overrides,
+      });
+
+    // A CI-built installer (including before a downloaded OTA is applied) stays plain.
+    assert.equal(display(ordinary).displayVersion, '0.9.0');
+    const applied = display(ota, { isEmbeddedLaunch: false, updateId: 'remote-ota-uuid' });
+    const installed = display(bundled, { nativeBuild: '101' });
+    assert.equal(applied.displayVersion, '0.9.0-b2222222');
+    assert.equal(installed.displayVersion, applied.displayVersion);
+    assert.equal(applied.source, 'hot-update');
+    assert.equal(installed.source, 'embedded');
+    assert.equal(installed.updateId, null);
+    assert.equal(display(ordinary, { isEmergencyLaunch: true }).displayVersion, '0.9.0');
+    assert.equal(display(bundled, { isEmergencyLaunch: true }).displayVersion, '0.9.0-b2222222');
+  });
+}
 
 for (const revision of ['abcdef', 'a'.repeat(41), 'not-a-commit', ' b2222222', 'b2222222\n']) {
   test(`invalid content identity is rejected (${JSON.stringify(revision)})`, () => {
@@ -131,7 +177,6 @@ for (const revision of ['abcdef', 'a'.repeat(41), 'not-a-commit', ' b2222222', '
       () => configFor({ APP_CONTENT_REVISION: revision, GITHUB_SHA: 'c'.repeat(40) }),
       /Git commit identifier/,
     );
-    assert.throws(() => configFor({ GITHUB_SHA: revision }), /Git commit identifier/);
   });
 }
 

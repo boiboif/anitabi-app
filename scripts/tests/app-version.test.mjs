@@ -41,7 +41,7 @@ const nativeInput = {
 };
 const info = (overrides = {}) => createAppVersionInfo({ ...nativeInput, ...overrides });
 
-test('a legacy bundled app without content metadata keeps its base version', () => {
+test('an ordinary bundled app without OTA content metadata keeps its base version', () => {
   const version = info();
   assert.equal(version.displayVersion, '0.8.0');
   assert.equal(version.source, 'embedded');
