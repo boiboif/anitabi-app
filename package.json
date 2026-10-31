@@ -8,8 +8,8 @@
     "@boiboif/react-native-toast": "^0.1.1",
     "@expo/dom-webview": "~58.0.2",
     "@expo/log-box": "~58.0.12",
-    "@expo/metro-runtime": "~58.0.15",
-    "@expo/ui": "~58.0.25",
+    "@expo/metro-runtime": "~58.0.16",
+    "@expo/ui": "~58.0.26",
     "@kesha-antonov/react-native-background-downloader": "4.6.4",
     "@legendapp/list": "3.7.0",
     "@lodev09/react-native-true-sheet": "3.11.18",
@@ -22,13 +22,13 @@
     "ahooks": "^3.11.0",
     "axios": "^1.20.0",
     "dayjs": "^1.11.23",
-    "expo": "~58.0.21",
+    "expo": "~58.0.22",
     "expo-application": "~58.1.2",
     "expo-blur": "~58.0.5",
-    "expo-build-properties": "~58.0.11",
+    "expo-build-properties": "~58.0.12",
     "expo-camera": "~58.0.14",
     "expo-constants": "~58.0.14",
-    "expo-dev-client": "~58.0.17",
+    "expo-dev-client": "~58.0.18",
     "expo-device": "~58.0.5",
     "expo-document-picker": "~58.0.4",
     "expo-file-system": "~58.0.13",
@@ -42,7 +42,7 @@
     "expo-localization": "~58.0.5",
     "expo-location": "~58.0.20",
     "expo-media-library": "~58.0.13",
-    "expo-router": "~58.0.28",
+    "expo-router": "~58.0.29",
     "expo-screen-orientation": "~58.0.3",
     "expo-sensors": "~58.0.4",
     "expo-sharing": "~58.0.21",
@@ -50,7 +50,7 @@
     "expo-status-bar": "~58.0.4",
     "expo-symbols": "~58.0.4",
     "expo-system-ui": "~58.0.7",
-    "expo-updates": "~58.0.19",
+    "expo-updates": "~58.0.20",
     "expo-web-browser": "~58.0.7",
     "fflate": "^0.8.3",
     "i18next": "^26.4.7",
@@ -67,7 +67,7 @@
     "react-native-qrcode-svg": "^6.3.49",
     "react-native-reanimated": "4.7.1",
     "react-native-safe-area-context": "~5.10.1",
-    "react-native-screens": "~4.30.0",
+    "react-native-screens": "~4.30.1",
     "react-native-svg": "15.16.0",
     "react-native-view-shot": "6.2.1",
     "react-native-vision-camera": "5.2.4",
@@ -111,7 +111,9 @@
   "expo": {
     "install": {
       "exclude": [
-        "@shopify/flash-list"
+        "@shopify/flash-list",
+        "react-native-view-shot",
+        "@sentry/react-native"
       ]
     }
   },
