@@ -13,7 +13,7 @@
     "@kesha-antonov/react-native-background-downloader": "4.6.4",
     "@legendapp/list": "3.7.0",
     "@lodev09/react-native-true-sheet": "3.11.18",
-    "@rnmapbox/maps": "^10.3.8",
+    "@rnmapbox/maps": "^10.3.16",
     "@sentry/react-native": "~8.33.0",
     "@shopify/flash-list": "2.3.3",
     "@tamagui/babel-plugin": "^2.7.7",
