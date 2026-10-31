@@ -28,6 +28,8 @@ type Props = {
   description?: string;
   /** 卡片底部左侧的分组、收藏时间等辅助信息。 */
   meta?: string;
+  /** 简介行数，默认为 2。 */
+  descriptionNumberOfLines?: number;
   /** 自定义截图路径，未传入时使用巡礼点截图。 */
   image?: string;
   /** 无截图时展示的封面，可用于收藏或计划快照。 */
@@ -91,6 +93,7 @@ export default function PointListCard({
   subtitle,
   showSubtitle = true,
   description,
+  descriptionNumberOfLines = 2,
   meta,
   image,
   cover,
@@ -229,7 +232,7 @@ export default function PointListCard({
                   {statusAction}
                   {showFavorite && point && bangumi ? (
                     <View position="absolute" t="$1.5" r="$0">
-                      <FavoritePointButton point={point} bangumi={bangumi} buttonSize={30} />
+                      <FavoritePointButton point={point} bangumi={bangumi} buttonSize={28} size={16} />
                     </View>
                   ) : null}
                 </XStack>
@@ -239,7 +242,13 @@ export default function PointListCard({
                   </Text>
                 ) : null}
                 {description ? (
-                  <Text fontSize="$caption" lineHeight={12} color="$color11" mt="$0.5" numberOfLines={2}>
+                  <Text
+                    fontSize="$caption"
+                    lineHeight={12}
+                    color="$color11"
+                    mt="$0.5"
+                    numberOfLines={descriptionNumberOfLines}
+                  >
                     {description}
                   </Text>
                 ) : null}
