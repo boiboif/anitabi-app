@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { useData, withBase } from 'vitepress';
 
-import release from '../../../releases/latest.json';
+import release from '../../../releases/download.json';
 
 const { lang } = useData();
 

@@ -1,4 +1,4 @@
-import type { BinaryDownloadProgress, BinaryUpdate } from '@/services/app-update';
+import type { BinaryDownloadOptions, BinaryDownloadProgress, BinaryUpdate } from '@/services/app-update';
 import Constants from 'expo-constants';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -57,7 +57,7 @@ export function useAppUpdates(): AppUpdateManager {
   const downloadRunningRef = useRef(false);
 
   const runBinaryDownload = useCallback(
-    async (update: BinaryUpdate) => {
+    async (update: BinaryUpdate, options?: BinaryDownloadOptions) => {
       if (downloadRunningRef.current) return;
 
       downloadRunningRef.current = true;
@@ -81,7 +81,7 @@ export function useAppUpdates(): AppUpdateManager {
           );
         }
 
-        const result = await appUpdate.downloadAndInstallBinaryUpdate(update, setBinaryProgress);
+        const result = await appUpdate.downloadAndInstallBinaryUpdate(update, setBinaryProgress, options);
         if (result === 'cancelled') {
           setBinaryProgress(null);
           setBinaryDownloadError(null);
@@ -122,6 +122,11 @@ export function useAppUpdates(): AppUpdateManager {
         setBinaryProgress(downloaded ? null : appUpdate.getResumableBinaryDownloadProgress(binaryResult.value));
         setBinaryDownloadError(null);
         setIsBinaryUpdateVisible(true);
+        // A system-managed transfer can outlive this JS runtime. Reattach to
+        // its progress instead of asking the user to start another download.
+        if (!downloaded && appUpdate.hasBackgroundBinaryUpdateDownload(binaryResult.value)) {
+          void runBinaryDownload(binaryResult.value, { installWhenReady: false });
+        }
       }
 
       if (hotResult.status === 'fulfilled' && hotResult.value.isAvailable) {
@@ -134,7 +139,7 @@ export function useAppUpdates(): AppUpdateManager {
       isCheckingRef.current = false;
       setIsChecking(false);
     }
-  }, []);
+  }, [runBinaryDownload]);
 
   const installBinaryUpdate = useCallback(async () => {
     const update = binaryUpdateRef.current;

@@ -10,6 +10,7 @@
     "@expo/log-box": "~58.0.12",
     "@expo/metro-runtime": "~58.0.14",
     "@expo/ui": "~58.0.21",
+    "@kesha-antonov/react-native-background-downloader": "4.6.4",
     "@legendapp/list": "3.6.0",
     "@lodev09/react-native-true-sheet": "3.11.18",
     "@rnmapbox/maps": "^10.3.8",

@@ -1903,6 +1903,11 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
+"@kesha-antonov/react-native-background-downloader@4.6.4":
+  version "4.6.4"
+  resolved "https://registry.yarnpkg.com/@kesha-antonov/react-native-background-downloader/-/react-native-background-downloader-4.6.4.tgz#eee069c72bcb134141c438cc1071b001c05cef9c"
+  integrity sha512-ioWPDmtFwAKRZGiZXuBReeioIKKj9dbg/XjITAPR8h86dHHIKH57hvNlxgQAzSqYuvCKhUJAXtyPR/scmkUPQw==
+
 "@legendapp/list@3.6.0":
   version "3.6.0"
   resolved "https://registry.npmmirror.com/@legendapp/list/-/list-3.6.0.tgz#4f4fe797b6d4e1ebd5813e8e0c95c508656d3741"
