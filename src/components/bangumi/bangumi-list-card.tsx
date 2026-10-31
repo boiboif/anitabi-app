@@ -16,11 +16,12 @@ export default function BangumiListCard({ bangumi, onPress }: { bangumi: Bangumi
     getBangumiTitle(bangumi, i18n.resolvedLanguage) || t('unknownWork', { defaultValue: '未知作品' });
   const originalTitle = bangumi.title && bangumi.title !== localizedTitle ? bangumi.title : null;
   const coverUri = buildImageUrl(bangumi.cover ?? '');
+  const thumbnailUri = buildImageUrl(bangumi.cover ?? '', 'plan=h160');
   return (
     <View bg="$background" p="$2" display="flex" flexDirection="row" rounded="$4" gap="$2.5">
       <PreviewableImage
         recyclingKey={String(bangumi.id)}
-        source={{ uri: coverUri }}
+        source={{ uri: thumbnailUri }}
         previewUri={coverUri || undefined}
         previewBorderRadius={getTokens().radius['4'].val}
         accessibilityLabel={t('previewWorkCover', { title: localizedTitle })}
