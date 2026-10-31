@@ -1,4 +1,5 @@
 import {
+  MAP_MARKER_HITBOX,
   MAP_POINT_PRIORITY_ALL_VISIBLE_ZOOM,
   MAP_POINT_PRIORITY_ZOOM_STOPS,
   MAP_POINT_LAYER_ID,
@@ -142,7 +143,7 @@ export default function MapMarkers({
 
   return (
     <>
-      <ShapeSource id="anitabi-points" shape={geoJSON} onPress={handlePress} hitbox={{ width: 0, height: 0 }}>
+      <ShapeSource id="anitabi-points" shape={geoJSON} onPress={handlePress} hitbox={MAP_MARKER_HITBOX}>
         <PointMarkerLayer
           selectedBangumiIds={selectedBangumiIds}
           filteredBangumiId={filteredBangumiId}

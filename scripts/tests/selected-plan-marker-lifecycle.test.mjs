@@ -54,7 +54,10 @@ function createHarness() {
     'react-native': { Image: 'NativeImage' },
     tamagui: { View: 'View', YStack: 'YStack', Text: 'Text', useTheme: () => ({ primary: { val: '#FB7299' } }) },
     'react-i18next': { useTranslation: () => ({ t: (_key, { defaultValue }) => defaultValue }) },
-    '@/lib/constants': { SELECTED_MAP_POINT_LAYER_ID: 'selected-map-point' },
+    '@/lib/constants': {
+      MAP_MARKER_HITBOX: { width: 12, height: 12 },
+      SELECTED_MAP_POINT_LAYER_ID: 'selected-map-point',
+    },
     '@/lib/ui-sizes': { SELECTED_MAP_POINT_DOT_DIAMETER: 24 },
     '@/utils/selected-map-point-source': { getSelectedMapPointSource },
     '@/utils/map-point-style': { getMapPointCircleStyle: () => ({}) },

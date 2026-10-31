@@ -12,6 +12,9 @@ export const MAP_POINT_LAYER_ID = 'points';
 /** Ordinary marker layers stay below the selected point, including after asynchronous mounting. */
 export const SELECTED_MAP_POINT_LAYER_ID = 'selected-map-point';
 
+/** Source query box in logical pixels, allowing 6 pixels of tolerance on each side of the tap. */
+export const MAP_MARKER_HITBOX = { width: 12, height: 12 } as const;
+
 /** Anitabi 官网作品 icon 的 zoom -> 最低 priority（严格大于）映射。 */
 export const MAP_BANGUMI_ICON_PRIORITY_ZOOM_STOPS = [
   [0, 760_000],
