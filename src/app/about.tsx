@@ -58,7 +58,7 @@ const externalLinks: {
   },
   {
     title: { key: 'gbcclub', defaultValue: 'GBC同好站' },
-    value: '',
+    value: 'gbcclub.com',
     url: 'https://www.gbcclub.com/',
     icon: Guitar,
   },
