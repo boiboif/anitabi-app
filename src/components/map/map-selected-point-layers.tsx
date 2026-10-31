@@ -31,6 +31,7 @@ export function SelectedMapPointLayer({ selected, maxVisualDiameter, onPress }: 
     <ShapeSource
       id="selected-map-point-source"
       shape={shape}
+      hitbox={{ width: 0, height: 0 }}
       onPress={() => {
         if (selected) onPress(selected.point, selected.bangumi);
       }}

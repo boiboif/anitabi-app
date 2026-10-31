@@ -386,7 +386,7 @@ function BangumiIcons({ bangumis, onIconPress }: Props) {
   return (
     <>
       <Images images={imagesMap} />
-      <ShapeSource id="bangumi-icons" shape={geojson} onPress={handlePress as any}>
+      <ShapeSource id="bangumi-icons" shape={geojson} onPress={handlePress as any} hitbox={{ width: 0, height: 0 }}>
         {/* Keep this child element independent of selection so the source payload stays cached. */}
         <BangumiIconLayer />
       </ShapeSource>

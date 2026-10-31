@@ -142,7 +142,7 @@ export default function MapMarkers({
 
   return (
     <>
-      <ShapeSource id="anitabi-points" shape={geoJSON} onPress={handlePress}>
+      <ShapeSource id="anitabi-points" shape={geoJSON} onPress={handlePress} hitbox={{ width: 0, height: 0 }}>
         <PointMarkerLayer
           selectedBangumiIds={selectedBangumiIds}
           filteredBangumiId={filteredBangumiId}
