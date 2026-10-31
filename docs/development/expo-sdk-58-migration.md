@@ -77,7 +77,7 @@ SDK 迁移的 AGP 从 8.12.0 升至 9.2.1。[AGP 9.0 变更说明](https://devel
 | 渲染期间调用 `navigation.isFocused()`    | 地图作品详情弹层                  | 项目代码已修复，保留事件回调的即时焦点检查；待设备回归                   |
 | Reanimated 原生端忽略依赖数组            | 拖拽列表、卡片轮播                | 已删除项目内三处无效参数；待拖拽和滑动回归                               |
 | 同一条 Reanimated 警告来自图片缩放       | `react-native-zoom-toolkit@5.1.1` | 官方最新版仍有旧写法，保留警告，等待上游修复                             |
-| `router-store.js` 不存在，Metro 回退解析 | `@sentry/react-native@8.28.0`     | 已停用默认 `ExpoRouter` 运行时集成，静态解析警告仍可能出现，等待上游修复 |
+| `router-store.js` 不存在，Metro 回退解析 | `@sentry/react-native@8.28.0`     | 8.33.0 已适配 SDK 58，已恢复导航集成；待设备回归 |
 
 项目决定：不为这些依赖添加补丁，不全局屏蔽警告，不通过降级 Expo 配套依赖或关闭 package exports 校验隐藏问题。未来升级前重新核对官方发布版本及具体修复。
 
@@ -112,6 +112,8 @@ Reanimated 4.7.1 原生实现通过 Worklet 闭包跟踪依赖，显式数组会
 按用户确认保持不打补丁，不修改 `node_modules` 或替换已使用的缩放实现。待官方修复版发布后再升级，确认原生端不再传入无效数组，并复测图片捏合、拖动、双击缩放、复位与关闭预览。
 
 ## Sentry 导航计时限制与 Metro 解析警告
+
+2026-10-31 更新：项目已升级到 `@sentry/react-native@8.33.0`。[上游发布说明](https://github.com/getsentry/sentry-react-native/releases/tag/8.33.0)确认该版本适配 Expo Router 58，移除了旧 `router-store` 引用并恢复导航 span。项目已取消运行时过滤，显式配置 `expoRouterIntegration({ enableTimeToInitialDisplay: true })`，恢复原先开启 TTID 的意图；Sentry 按名称去重，因此该配置替换默认的同名集成。仍需在设备和 Sentry 中验证导航事件不重复、TTID 及异常上报，并确认 Metro 警告消失。以下保留迁移时的历史记录。
 
 警告中的关键内容：
 
@@ -173,7 +175,7 @@ TrueSheet 保持稳定版 3.11.18。上游 [PR #896](https://github.com/lodev09/
 - 相机权限、拍摄、结果弹层动画、重拍保留缩放、图片预览/导出/相册/分享；结果页展示期间继续停止相机。
 - iOS 27 可调整窗口下的旋转与方向行为；按页面设置的竖屏不能替代窗口尺寸适配验收。
 - 备份导入导出、计划文件分享、下载更新；新旧 runtime 隔离和新包接收新 OTA。
-- Sentry JS 错误和原生崩溃上报；自动导航计时按上述限制处理。
+- Sentry JS 错误、原生崩溃上报及导航计时；确认导航事件不重复、TTID 可用且旧 Metro 警告消失。
 
 ## 回退边界
 

@@ -46,11 +46,11 @@ export function RecordPointCard({ point, onPress }: Props) {
           </View>
           <YStack flex={1} minW={0} gap="$1" py="$1.5" justify="space-between">
             <YStack gap="$0.5" minW={0}>
-              <Text fontSize="$caption" color="$color11" numberOfLines={1}>
-                {point.snapshot.bangumiName}
-              </Text>
               <Text fontSize="$body" color="$color12" fontWeight="600" numberOfLines={2}>
                 {point.snapshot.pointName}
+              </Text>
+              <Text fontSize="$caption" color="$color11" numberOfLines={1}>
+                {point.snapshot.bangumiName}
               </Text>
             </YStack>
             <YStack gap="$1">
