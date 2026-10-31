@@ -2358,10 +2358,10 @@
     invariant "^2.2.4"
     nullthrows "^1.1.1"
 
-"@rnmapbox/maps@^10.3.8":
-  version "10.3.8"
-  resolved "https://registry.yarnpkg.com/@rnmapbox/maps/-/maps-10.3.8.tgz#8fba425f58aab40e47e221b36f391bf25f127f98"
-  integrity sha512-NtDF0/89syZJ7cXf0DNpB6a6/HqQpwgCUCjpkuLhqLTcgV9ID4zITxJaKzp8N0oxaRXXTf5vTVLlc+ScAZOUSg==
+"@rnmapbox/maps@^10.3.16":
+  version "10.3.16"
+  resolved "https://registry.yarnpkg.com/@rnmapbox/maps/-/maps-10.3.16.tgz#115c9b91270d86385d12b4e7543d8a5fede62938"
+  integrity sha512-Kmy1Yuz4dUr0qbYGk43mKSBnowE25Hvn78Y+y1/K8twPjlLxiBHbYcnEYCf4qJRiNUkvdcwKR7BDZRmgrSRjiQ==
   dependencies:
     "@turf/along" "6.5.0"
     "@turf/distance" "6.5.0"
