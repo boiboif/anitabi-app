@@ -216,12 +216,21 @@ export default function PointListCard({
             <YStack flex={1} px="$2" py="$1" pl="$0" pr={topRightAction ? 44 : '$2'} justify="space-between">
               <YStack>
                 <XStack height={30} items="center" gap="$1">
-                  <Text flex={1} fontSize="$body" fontWeight="600" color="$color12" numberOfLines={1}>
+                  <Text
+                    flex={1}
+                    fontSize="$body"
+                    fontWeight="600"
+                    color="$color12"
+                    numberOfLines={1}
+                    pr={showFavorite ? '$5' : undefined}
+                  >
                     {resolvedTitle}
                   </Text>
                   {statusAction}
                   {showFavorite && point && bangumi ? (
-                    <FavoritePointButton point={point} bangumi={bangumi} buttonSize={30} />
+                    <View position="absolute" t="$1.5" r="$0">
+                      <FavoritePointButton point={point} bangumi={bangumi} buttonSize={30} />
+                    </View>
                   ) : null}
                 </XStack>
                 {showSubtitle && resolvedSubtitle ? (
@@ -236,8 +245,8 @@ export default function PointListCard({
                 ) : null}
               </YStack>
 
-              <XStack minH={meta ? actionSize : undefined} items="baseline" gap="$1">
-                <Text flex={1} fontSize="$caption" color="$color10" numberOfLines={1}>
+              <XStack height={meta ? actionSize : undefined} items="center" gap="$1">
+                <Text flex={1} fontSize="$caption" color="$color10" numberOfLines={1} pt="$1.5">
                   {meta || ' '}
                 </Text>
                 {point && bangumi && (showAddToPlan || showCamera || showNavigation) ? (

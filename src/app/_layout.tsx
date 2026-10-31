@@ -1,6 +1,7 @@
 import PlanPickerProvider from '@/components/plan/plan-picker-provider';
 import { AppUpdateManagerContext } from '@/hooks/use-app-update-manager';
 import { useAppUpdates } from '@/hooks/use-app-updates';
+import { useUpdateTestReporter } from '@/hooks/use-update-test-reporter';
 import i18n, { resolveLanguagePreference } from '@/i18n';
 import { Sentry } from '@/services/sentry';
 import { useLanguagePreference } from '@/store/use-language-preference';
@@ -88,6 +89,7 @@ function RootLayout() {
   const initializeMapData = useMapData((state) => state.initialize);
   const initializeFirstInstallDemo = usePlans((state) => state.initializeFirstInstallDemo);
   const appUpdates = useAppUpdates();
+  useUpdateTestReporter(appUpdates);
   const didFinishInitialLayout = useRef(false);
   const startupMounted = useRef(true);
 

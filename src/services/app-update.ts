@@ -16,6 +16,17 @@ import * as Updates from 'expo-updates';
 import { AppState, Platform } from 'react-native';
 import { createMMKV } from 'react-native-mmkv';
 import type { ReleaseNoteEntry } from '@/services/release-notes';
+import { createAppVersionInfo } from '@/services/app-version';
+import {
+  cancelBackgroundUpdateDownload,
+  cleanupBackgroundUpdateDownloads,
+  detachBackgroundUpdateDownload,
+  discardBackgroundUpdateDownload,
+  downloadUpdateInBackground,
+  getBackgroundUpdateDownloadProgress,
+  pauseBackgroundUpdateDownload,
+  supportsBackgroundUpdateDownloads,
+} from '@/services/background-update-download';
 
 export type BinaryUpdate = {
   version: string;
@@ -40,6 +51,11 @@ export type BinaryDownloadProgress = {
 
 export type BinaryDownloadResult = 'completed' | 'paused' | 'cancelled';
 
+export type BinaryDownloadOptions = {
+  /** Automatic recovery prepares the APK without opening an installer. */
+  installWhenReady?: boolean;
+};
+
 type PersistedBinaryDownload = {
   schemaVersion: 1;
   updateKey: string;
@@ -54,6 +70,13 @@ type ActiveBinaryDownload = {
   cancelled: boolean;
 };
 
+type ActiveBackgroundBinaryDownload = {
+  update: BinaryUpdate;
+  cancelled: boolean;
+  detached: boolean;
+  autoInstallAllowed: boolean;
+};
+
 const DEFAULT_MANIFEST_URL = 'https://raw.githubusercontent.com/boiboif/anitabi-app/main/docs/releases/latest.json';
 const BINARY_DOWNLOAD_STATE_KEY = 'binary-download-v1';
 const BINARY_READY_FILE_SUFFIX = '.ready.apk';
@@ -61,6 +84,7 @@ const BINARY_TEMPORARY_FILE_SUFFIX = `${BINARY_READY_FILE_SUFFIX}.download`;
 
 let downloadStorage: ReturnType<typeof createMMKV> | null = null;
 let activeBinaryDownload: ActiveBinaryDownload | null = null;
+let activeBackgroundBinaryDownload: ActiveBackgroundBinaryDownload | null = null;
 
 try {
   downloadStorage = createMMKV({ id: 'anitabi-app-update' });
@@ -98,19 +122,24 @@ export function areAppUpdatesEnabled(): boolean {
   return Constants.expoConfig?.extra?.appUpdatesEnabled === true;
 }
 
-export function getCurrentAppDisplayVersion(): string {
-  const configuredVersion = Constants.expoConfig?.version;
-  const displayVersion = configuredVersion?.includes('-')
-    ? configuredVersion
-    : !__DEV__ && Application.nativeApplicationVersion
-      ? Application.nativeApplicationVersion
-      : (configuredVersion ?? Application.nativeApplicationVersion ?? i18n.t('unknown', { defaultValue: '未知' }));
-  const hotUpdateId =
-    Updates.isEnabled && !Updates.isEmbeddedLaunch && !Updates.isEmergencyLaunch
-      ? Updates.updateId
-      : null;
+export function getCurrentAppVersionInfo() {
+  return createAppVersionInfo({
+    configuredVersion: Constants.expoConfig?.version,
+    nativeVersion: Application.nativeApplicationVersion,
+    nativeBuild: Application.nativeBuildVersion,
+    contentRevision: Constants.expoConfig?.extra?.contentRevision,
+    updateId: Updates.updateId,
+    updatesEnabled: Updates.isEnabled,
+    isEmbeddedLaunch: Updates.isEmbeddedLaunch,
+    isEmergencyLaunch: Updates.isEmergencyLaunch,
+    isDevelopment: __DEV__,
+    channel: Updates.channel ?? Constants.expoConfig?.extra?.updateChannel,
+    unknownVersion: i18n.t('unknown', { defaultValue: '未知' }),
+  });
+}
 
-  return hotUpdateId ? `${displayVersion}-${hotUpdateId.slice(0, 8)}` : displayVersion;
+export function getCurrentAppDisplayVersion(): string {
+  return getCurrentAppVersionInfo().displayVersion;
 }
 
 export function getBinaryUpdateDisplayVersion(update: BinaryUpdate): string {
@@ -288,8 +317,8 @@ function cleanupBinaryUpdateDirectory(directory: Directory, suffix: string, prot
  * task is protected as well, so a manual update check cannot delete a file that
  * is still being written.
  */
-function cleanupObsoleteBinaryUpdateFiles(currentUpdate: BinaryUpdate | null): void {
-  const protectedUpdates = [currentUpdate, activeBinaryDownload?.update].filter(
+async function cleanupObsoleteBinaryUpdateFiles(currentUpdate: BinaryUpdate | null): Promise<void> {
+  const protectedUpdates = [currentUpdate, activeBinaryDownload?.update, activeBackgroundBinaryDownload?.update].filter(
     (update): update is BinaryUpdate => update !== null && update !== undefined,
   );
   const protectedUris = new Set<string>();
@@ -301,6 +330,9 @@ function cleanupObsoleteBinaryUpdateFiles(currentUpdate: BinaryUpdate | null): v
     protectedUpdateKeys.add(getBinaryUpdateKey(update));
   }
 
+  // Discover native tasks before inspecting files; an app restart must not turn
+  // a live download into an obsolete artifact.
+  await cleanupBackgroundUpdateDownloads(protectedUpdateKeys);
   cleanupBinaryUpdateDirectory(Paths.document, BINARY_TEMPORARY_FILE_SUFFIX, protectedUris);
   // Older app versions stored partial APKs in the cache directory.
   cleanupBinaryUpdateDirectory(Paths.cache, BINARY_TEMPORARY_FILE_SUFFIX, protectedUris);
@@ -320,7 +352,15 @@ function cleanupObsoleteBinaryUpdateFiles(currentUpdate: BinaryUpdate | null): v
 }
 
 export function getResumableBinaryDownloadProgress(update: BinaryUpdate): BinaryDownloadProgress | null {
-  return readPersistedBinaryDownload(update)?.progress ?? null;
+  return (
+    getBackgroundUpdateDownloadProgress(getBinaryUpdateKey(update)) ??
+    readPersistedBinaryDownload(update)?.progress ??
+    null
+  );
+}
+
+export function hasBackgroundBinaryUpdateDownload(update: BinaryUpdate): boolean {
+  return getBackgroundUpdateDownloadProgress(getBinaryUpdateKey(update)) !== null;
 }
 
 export function isBinaryUpdateDownloaded(update: BinaryUpdate): boolean {
@@ -329,8 +369,21 @@ export function isBinaryUpdateDownloaded(update: BinaryUpdate): boolean {
   return file.exists && (file.size ?? 0) > 0;
 }
 
-async function openBinaryUpdateFile(file: File): Promise<void> {
+function canAutomaticallyInstall(download: ActiveBackgroundBinaryDownload): boolean {
+  if (AppState.currentState !== 'active') download.autoInstallAllowed = false;
+  return download.autoInstallAllowed && !download.cancelled && !download.detached;
+}
+
+async function openBinaryUpdateFile(file: File, download?: ActiveBackgroundBinaryDownload): Promise<void> {
+  if (download && !canAutomaticallyInstall(download)) return;
   const contentUri = await FileSystemLegacy.getContentUriAsync(file.uri);
+  // Resolving a content URI is asynchronous; the app may have left the
+  // foreground or the user may have cancelled while the URI was being made.
+  if (download) {
+    if (!canAutomaticallyInstall(download)) return;
+  } else {
+    await waitForAppForeground();
+  }
   await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
     data: contentUri,
     type: 'application/vnd.android.package-archive',
@@ -367,21 +420,88 @@ export async function checkBinaryUpdate(): Promise<BinaryUpdate | null> {
   if (!isBinaryUpdate(manifest)) return null;
 
   const update = isNewerBinaryUpdate(manifest) ? manifest : null;
-  cleanupObsoleteBinaryUpdateFiles(update);
+  await cleanupObsoleteBinaryUpdateFiles(update);
   if (!update) return null;
   return update;
+}
+
+async function downloadAndInstallBackgroundBinaryUpdate(
+  update: BinaryUpdate,
+  onProgress?: (progress: BinaryDownloadProgress) => void,
+  options: BinaryDownloadOptions = {},
+): Promise<BinaryDownloadResult> {
+  const download: ActiveBackgroundBinaryDownload = {
+    update,
+    cancelled: false,
+    detached: false,
+    autoInstallAllowed: options.installWhenReady !== false && AppState.currentState === 'active',
+  };
+  activeBackgroundBinaryDownload = download;
+  // A completion notification can open Android's installer directly. Once this
+  // request leaves the app, returning must not open a second installer. Keep
+  // this history across native discovery, the cache copy and URI resolution.
+  const subscription = AppState.addEventListener('change', (state) => {
+    if (state !== 'active') download.autoInstallAllowed = false;
+  });
+  try {
+    // Register cancellation before native discovery, which can outlive the
+    // first tap on Cancel or the browser handoff.
+    await cleanupObsoleteBinaryUpdateFiles(update);
+    if (download.cancelled) return 'cancelled';
+    if (download.detached) {
+      await pauseBackgroundUpdateDownload(getBinaryUpdateKey(update));
+      return 'paused';
+    }
+    const destination = getBinaryUpdateFile(update);
+    if (isBinaryUpdateDownloaded(update)) {
+      const totalBytes = destination.size ?? 0;
+      onProgress?.({ bytesWritten: totalBytes, totalBytes, percent: 100 });
+    } else {
+      const result = await downloadUpdateInBackground(
+        getBinaryUpdateKey(update),
+        update.apkUrl,
+        destination.name,
+        `Anitabi ${getBinaryUpdateDisplayVersion(update)}`,
+        destination.uri,
+        onProgress,
+      );
+      if (result !== 'completed') return result;
+    }
+    clearPersistedBinaryDownload();
+    const temporaryFile = getBinaryUpdateTemporaryFile(update);
+    if (temporaryFile.exists) temporaryFile.delete();
+    if (canAutomaticallyInstall(download)) {
+      await openBinaryUpdateFile(destination, download);
+    }
+    return download.cancelled ? 'cancelled' : download.detached ? 'paused' : 'completed';
+  } catch (error) {
+    if (download.cancelled) return 'cancelled';
+    if (download.detached) return 'paused';
+    throw error;
+  } finally {
+    subscription.remove();
+    try {
+      if (download.cancelled) await discardBackgroundUpdateDownload(getBinaryUpdateKey(update));
+    } finally {
+      if (activeBackgroundBinaryDownload === download) activeBackgroundBinaryDownload = null;
+    }
+  }
 }
 
 export async function downloadAndInstallBinaryUpdate(
   update: BinaryUpdate,
   onProgress?: (progress: BinaryDownloadProgress) => void,
+  downloadOptions: BinaryDownloadOptions = {},
 ): Promise<BinaryDownloadResult> {
   if (Platform.OS !== 'android') {
     await Linking.openURL(update.releaseUrl ?? update.apkUrl);
     return 'completed';
   }
+  if (supportsBackgroundUpdateDownloads()) {
+    return downloadAndInstallBackgroundBinaryUpdate(update, onProgress, downloadOptions);
+  }
 
-  cleanupObsoleteBinaryUpdateFiles(update);
+  await cleanupObsoleteBinaryUpdateFiles(update);
   const destination = getBinaryUpdateFile(update);
   if (isBinaryUpdateDownloaded(update)) {
     const totalBytes = destination.size ?? 0;
@@ -465,6 +585,11 @@ export async function downloadAndInstallBinaryUpdate(
 }
 
 export function cancelBinaryUpdateDownload(): boolean {
+  if (activeBackgroundBinaryDownload) {
+    activeBackgroundBinaryDownload.cancelled = true;
+    cancelBackgroundUpdateDownload();
+    return true;
+  }
   const activeDownload = activeBinaryDownload;
   if (!activeDownload || activeDownload.task.state !== 'active') return false;
 
@@ -475,6 +600,11 @@ export function cancelBinaryUpdateDownload(): boolean {
 }
 
 export async function pauseBinaryUpdateDownload(): Promise<boolean> {
+  if (activeBackgroundBinaryDownload) {
+    activeBackgroundBinaryDownload.detached = true;
+    detachBackgroundUpdateDownload();
+    return true;
+  }
   const activeDownload = activeBinaryDownload;
   if (!activeDownload || activeDownload.task.state !== 'active') return false;
 

@@ -340,9 +340,19 @@ const zh = {
   viewLicensesForAnitabiAndThirdPartyDependencies: '查看 Anitabi 与第三方依赖的许可证',
   externalLinks: '外部链接',
   appUpdates: '应用更新',
+  appUpdateDownloadTitle: 'Anitabi 更新',
+  installerDownloadFinished: '下载完成，返回应用安装',
   checkForUpdates: '检查更新',
   newVersionVVersionAvailable: '发现新版本 v{{version}}',
   checkForTheLatestVersion: '检查并获取最新版本',
+  versionSourceEmbedded: '整包内置',
+  versionSourceHotUpdate: '热更新',
+  versionSourceEmergency: '紧急回退至整包',
+  versionSourceDevelopment: '本地开发',
+  currentVersionSource: '运行来源：{{source}}',
+  installedPackageVersionAndBuild: '安装包：{{version}}（构建 {{build}}）',
+  installedPackageVersion: '安装包：{{version}}',
+  currentOtaUpdateId: 'OTA ID：{{id}}',
   checking: '检查中...',
   updateAvailable: '可更新',
   otherThirdPartyDependencies: '其他第三方依赖',
@@ -597,6 +607,7 @@ const zh = {
   pilgrimageRecordsOpenBackup: '打开备份与恢复',
   pilgrimageRecordsCleanupFailed: '记录已删除，部分图片未清理',
   pilgrimageRecordsCleanupFailedHint: '记录已删除，但部分应用内图片未能清理。系统相册照片不会受影响。',
+  gbcclub: 'GBC同好站',
 } as const;
 
 export type TranslationKey = keyof typeof zh;

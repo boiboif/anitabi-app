@@ -1,4 +1,9 @@
-import { MAP_BANGUMI_ICON_PRIORITY_ZOOM_STOPS, MAP_ICON_ZOOM_THRESHOLD, MAP_POINT_LAYER_ID } from '@/lib/constants';
+import {
+  MAP_BANGUMI_ICON_PRIORITY_ZOOM_STOPS,
+  MAP_ICON_ZOOM_THRESHOLD,
+  MAP_MARKER_HITBOX,
+  MAP_POINT_LAYER_ID,
+} from '@/lib/constants';
 import { getBangumiMapLabel } from '@/lib/localized-data';
 import { getBangumiIcons } from '@/services/api';
 import { baseUrl } from '@/services/handlers';
@@ -386,7 +391,7 @@ function BangumiIcons({ bangumis, onIconPress }: Props) {
   return (
     <>
       <Images images={imagesMap} />
-      <ShapeSource id="bangumi-icons" shape={geojson} onPress={handlePress as any}>
+      <ShapeSource id="bangumi-icons" shape={geojson} onPress={handlePress as any} hitbox={MAP_MARKER_HITBOX}>
         {/* Keep this child element independent of selection so the source payload stays cached. */}
         <BangumiIconLayer />
       </ShapeSource>

@@ -33,13 +33,20 @@
 
 随后从本地凭据文件中分别设置 `ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_ALIAS` 和 `ANDROID_KEY_PASSWORD`。三个字段分别对应 keystore 密码、alias 和 key 密码，不要默认假设它们相同。执行 `gh secret set` 前需先通过 `gh auth login` 登录有仓库写权限的 GitHub 账号。
 
-`ANDROID_VERSION_CODE_OFFSET` 的选择很重要。工作流读取 production 和 preview 更新清单中的最大 `buildNumber`，并使用以下规则生成真正写入 APK 的 Android `versionCode`：
+`ANDROID_VERSION_CODE_OFFSET` 的选择很重要。整包工作流共享 `binary-release` 串行队列，取得锁后读取最新 `main` 与当前提交中的升级、下载清单，以及 GitHub Release 中的构建号记录，计算真正写入 APK 的 Android `versionCode`：
 
 ```text
-versionCode = max(ANDROID_VERSION_CODE_OFFSET, latest.buildNumber, preview.buildNumber) + 1
+versionCode = max(offset, 升级清单构建号, 下载清单构建号, 已发布 Release 构建号) + 1
 ```
 
-因此 production 和 preview 共用一个严格递增的 Android 构建号序列，同一个基础版本也可以发布多个构建。客户端先比较基础版本，版本相同时再比较 `buildNumber`。首次迁移时，应将 offset 设为不小于旧 EAS APK 的最大 versionCode；之后每次成功发布都会自动 `+1`。
+因此 production、preview、Android-only 和 OTA 补充整包共用一个严格递增的构建号序列。Release 正文中的隐藏 `anitabi-build-number` 标记保留已用编号，即使清单提交失败也不会复用它。客户端先比较基础版本，版本相同时再比较 `buildNumber`。首次迁移时，应将 offset 设为不小于旧 EAS APK 的最大 versionCode。
+
+### 升级入口与下载入口
+
+- `latest.json` / `preview.json` 是客户端整包升级清单，原有 URL 保持不变。只有需要向已安装用户提供整包升级时才推进它们。
+- `download.json` / `download-preview.json` 是最新可下载安装包清单。官网读取 production 的 `download.json`，可以提供比客户端升级清单更新的安装包。
+- 常规原生发版同时更新对应的升级清单和下载清单；OTA 后的补充整包只更新下载清单。已安装用户因此继续接收热更新，不会因为补充整包的构建号更大而收到该包的升级提示。
+- production 清单提交后显式触发官网部署。不能依赖 Actions 的 `GITHUB_TOKEN` 提交自动触发另一条 `push` 工作流。
 
 ## 整包发版
 
@@ -89,13 +96,15 @@ production 发版流程如下：
 2. 选择 `production`，填写 GitHub Release 使用的 `release_notes`。Actions 输入框是单行控件，需要换行时输入字面量 `\n`，例如 `修复地图加载问题\n优化图片缓存\n调整更新提示`。应用内文案请提前写入并审核 `release-notes/v<version>-app.txt`。版本号不在 Actions 页面填写，以 `app.config.ts` 的 `appVersion` 为准。
 3. 需要强制更新时勾选 `mandatory`；也可以填写 `min_supported_version` 或 `min_supported_build_number`。
 4. Actions 使用旧 EAS keystore 构建签名 APK，创建 `v<version>` GitHub Release。
-5. Actions 自动生成并提交 `docs/releases/latest.json`。客户端随后可发现该 APK。
+5. Actions 自动生成并提交 `docs/releases/latest.json` 和 `docs/releases/download.json`，并触发官网部署。客户端随后可发现该 APK，官网也使用该包。
 
 `preview` 使用独立的 EAS `preview` channel、GitHub prerelease tag 和 `docs/releases/preview.json`，不会影响 production 用户。工作流会查询当前版本已有的 `v<version>-preview.N` Release，取最大 `N` 后自动 `+1`。当前已有 `preview.1` 到 `preview.8` 时，下一次会生成 `preview.9`。该完整标签保留于 Release、产物名称和清单的 `displayVersion`，用于显示待升级版本；APK 的 Android `versionName` 统一使用基础版本，Android `versionCode` 仍独立递增。
 
-production 始终使用精确 tag `v<version>`，例如 `v0.0.1`。如果同名 GitHub Release 或 Git tag 已存在，工作流会在 Android 构建前直接报错；正式发版前必须先修改 `app.config.ts` 的 `appVersion`。
+常规 production 原生发版使用精确 tag `v<version>`，例如 `v0.0.1`。如果同名 GitHub Release 或 Git tag 已存在，工作流会在 Android 构建前直接报错；常规原生发版前必须先修改 `app.config.ts` 的 `appVersion`。OTA 补充整包使用下面介绍的独立标签，不需要修改基础版本。
 
 清单中的 `version` 是基础版本，用于运行时兼容和版本比较；`displayVersion` 是待升级目标的完整发布版本。测试、production 和 preview 整包的原生版本统一使用基础版本，不附加 `test.N` 或 `preview.N`，避免原生生成插件无法识别带后缀的版本号。`buildNumber` 对应 Android `versionCode`，客户端在基础版本相同时比较它，因此同一个基础版本可以发布多个构建。
+
+应用内“我的”和“关于”的当前版本只在运行 OTA 内容或安装其配套整包时附加内容 SHA：普通 0.9.0 整包显示 `v0.9.0`；应用 OTA 后显示 `v0.9.0-<SHA 前 8 位>`，直接安装该 OTA 的配套整包也显示相同版本。发布 OTA 和构建配套整包时显式设置 `APP_CONTENT_REVISION` 为同一个来源提交 SHA，普通整包不设置它；`GITHUB_SHA` 不会自动成为内容版本后缀。原生版本、构建号、runtime 和整包升级判断不受此展示规则影响。
 
 手动生成清单的命令仍然可用。GitHub Release 创建完成后运行：
 
@@ -145,16 +154,32 @@ yarn release:manifest --from-github --min-supported-build-number 1001
 
 ## 热更新
 
-热更新只适用于 JavaScript、资源和配置中不涉及原生代码的改动。进入 `Actions` → `EAS Hot Update` → `Run workflow`，选择目标 channel 并填写更新说明。原生版本以当前 `app.config.ts` 的 `version` 和已安装应用为准。工作流会执行：
+热更新只适用于 JavaScript、资源和配置中不涉及原生代码的改动。进入 `Actions` → `EAS Hot Update` → `Run workflow`，选择目标 channel 并填写更新说明。原生版本以当前 `app.config.ts` 的 `version` 和已安装应用为准。此入口会先发布 OTA，成功后自动构建并发布 Android APK 与 iOS 未签名 IPA；运行它即会启动这两个平台的构建。OTA 发布步骤执行：
 
 ```bash
 npx eas-cli@21.8.0 update --channel production --environment production --platform all --message "更新说明" --non-interactive
 ```
 
+OTA 成功后复用 `Mobile Release`，各任务显式检出该 OTA 的同一个 commit SHA，将当前 JavaScript 和资源内置到新的 APK/IPA。production 标签为 `v<version>-ota.<buildNumber>`，preview 为 `v<version>-preview-ota.<buildNumber>`；后缀仅用于 Release 和下载页展示，原生版本仍为基础版本，runtime 与更新频道不变。
+
+OTA 发布任务和 Android/iOS 配套构建任务均显式传入该来源 SHA 的 `APP_CONTENT_REVISION`，写入 `extra.contentRevision`，使通过 OTA 更新的旧安装和直接安装配套整包的新安装显示相同内容版本。常规 native 发版不携带此内容标识。
+
+补充包只推进 `download.json` 或 `download-preview.json`，不改 `latest.json` / `preview.json`，也不会启用强制更新。production 补充包会标记为 GitHub 最新 Release 并刷新官网下载；preview 仍为 prerelease。新用户安装后已经包含本次代码，新旧安装都继续接收相同 runtime、channel 的后续 OTA。
+
+如果排队期间当前原生升级基线已换成其他基础版本，补充构建会在编译前停止，避免用旧 runtime 的包覆盖官网下载。若双端构建任一失败，则不发布此次整包或推进下载清单；已经成功发布的 OTA 不会撤回，可从该次 Actions 运行重试失败任务。发布整包与发布 OTA 是两个状态，不能以 OTA 成功推断 APK/IPA 已经生成。
+
+补充包还会在编译前和创建 Release 前重新读取实际更新 URL，对 Android、iOS 分别携带该次发布的 channel/runtime 请求当前 OTA。只有两端 manifest 的 `extra.expoClient.extra.contentRevision` 都等于来源完整 Git SHA、runtime 都相同，才继续。URL/runtime 取自成功 OTA 任务解析的源配置，不假定 channel 对应同名 EAS branch。缺少 revision、无可用更新、rollback directive、网络错误或不一致响应都停止发包；为容忍刚发布时的短暂传播延迟，最多检查 5 次、间隔 2 秒，每个请求最多 10 秒。这里只进行公开端点读取，不需要在整包任务中增加 Expo token。
+
+这项检查防止旧失败任务重试覆盖新内容：例如 A 的 OTA 成功但补包失败，随后 B 的 OTA 已发布，即使 B 的整包还没成功，A 的旧任务也不能靠分配更大构建号发布一个更晚内嵌旧 JS 的包。否则该包的内嵌时间晚于 B OTA，可能不再接收已经存在的 B 更新。此时应重试当前 B 来源的补包任务；不能增大构建号或关闭检查绕过来源保护。相同来源仍为当前 OTA 时可正常重试。常规 native 发版不执行这一 OTA 守卫。
+
+同一 channel 的本工作流发布保持串行；外部命令或其他发布入口需要与该流程协调，避免在检查与发布之间并发改变 channel。实时读取防护不等同于跨 EAS/GitHub 的原子发布事务。
+
 工作流只能从 `main` 分支运行，并会在发布前检查 `app.config.ts` 的基础版本是否与目标 channel 最新整包清单中的 `version` 相同；基础版本不一致时工作流会直接报错。SDK 58 的 `runtimeVersion` 使用 `${appVersion}-sdk58`（当前为 `0.8.0-sdk58`），不包含 `preview.N` 展示后缀。SDK 57 的旧包使用 `0.7.0`，不会接收 SDK 58 的热更新。工作流的版本检查只比较基础版本，不能证明已经发布相同 runtime 的原生包；升级 SDK 后必须先发布使用新 runtime 的整包，再发布热更新。
 
 `preview` 和 `production` 分别使用独立的 EAS channel、EAS environment 和整包更新清单。工作流会自动创建首次使用的 EAS channel；Preview 热更新固定注入 `docs/releases/preview.json`，Production 热更新使用 `docs/releases/latest.json`，更新配置中的应用版本统一使用基础版本。清单的 `displayVersion` 继续用于待升级版本展示。热更新会同时发布 Android 和 iOS Update，各平台只会接收与自身 runtime version 匹配的更新。
 
-应用启动时静默检查并下载 EAS Update，下载完成后提示重启生效。修改原生依赖、权限、Expo config plugin、Android/iOS 原生配置或需要变更 `versionCode` 时，必须走整包发版。
+应用启动时静默检查并下载 EAS Update。没有更高整包可用时，下载完成后提示重启生效；已检测到更高整包时，兼容 OTA 只静默下载，不显示重启提示，也不主动重启，等待下次冷启动应用。关闭整包弹窗不会转而显示 OTA 提示；发现整包时也会清除此前已显示的 OTA 提示。修改原生依赖、权限、Expo config plugin、Android/iOS 原生配置或需要变更 `versionCode` 时，必须走整包发版。
+
+整包检测与 OTA 检查、下载并行进行：整包结果返回就立即显示，不等待 OTA；OTA 下载完成后的重启提示则等待本轮整包判定，避免 OTA 先返回时误弹。此前已显示的 OTA 重启按钮也会等待当前整包判定；若发现更高整包，则不执行重启。整包检查失败且没有已知更高整包时，仍保留正常 OTA 提示，并报告整包检查失败。重复检查在本轮两路任务结束前会被去重。
 
 整包更新当前针对 Android arm64-v8a APK，覆盖绝大多数现代 Android 真机，不支持仅有 32 位 CPU 的旧设备。Android 首次安装或从旧 EAS APK 升级时，必须使用同一 applicationId 和同一签名 keystore；复用上述旧 EAS keystore 可以保持升级兼容。iOS 不能由应用直接安装 IPA；如果未来需要 iOS 整包更新，应将 `releaseUrl` 指向可分发页面或 TestFlight。
