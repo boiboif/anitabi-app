@@ -1,9 +1,9 @@
 import CameraRatioPicker from '@/components/comparison-camera/camera-ratio-picker';
-import { ComparisonImagePressable } from '@/components/comparison-camera/comparison-image-pressable';
 import {
   COMPARISON_CAMERA_BOTTOM_REGION_HEIGHT,
   COMPARISON_CAMERA_TOP_REGION_HEIGHT,
 } from '@/components/comparison-camera/comparison-camera-layout';
+import { ComparisonImagePressable } from '@/components/comparison-camera/comparison-image-pressable';
 import ComparisonResultModal from '@/components/comparison-camera/comparison-result-modal';
 import { ThemeSlider } from '@/components/ui/theme-slider';
 import {
@@ -46,7 +46,6 @@ import {
   type CameraRef,
   CommonResolutions,
   type FlashMode,
-  type PhotoFile,
   useCameraDevice,
   useCameraPermission,
   useOrientation,
@@ -82,6 +81,7 @@ const FLASH_SEQUENCE: FlashMode[] = ['off', 'auto', 'on'];
 const ORIENTATION_DEBOUNCE_MS = 500;
 const ORIENTATION_ANIMATION_DURATION_MS = 280;
 const STARTUP_LOADING_DELAY_MS = 200;
+const FULL_REFERENCE_LOADING_DELAY_MS = 200;
 const CAMERA_CONTROL_BACKGROUND = '#1c1c1e';
 const CAMERA_CONTROL_FOREGROUND = '#c7c7cc';
 const AnimatedImage = Animated.createAnimatedComponent(Image);
@@ -248,6 +248,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
   }, []);
   const [ratioPreference, setRatioPreference] = useState(getCameraRatioPreference);
   const [referenceUri, setReferenceUri] = useState(initialReferenceUri);
+  const [loadingFullReference, setLoadingFullReference] = useState(false);
   // The thumbnail and full-resolution URI both represent the original point image.
   const canRestoreReference = Boolean(
     (initialReferenceUri || fullReferenceUri) &&
@@ -264,9 +265,10 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
   // The largest advertised photo is the baseline for estimating centered sensor crops.
   const sensorSize = supportedPhotoSizes
     .filter(isValidImageSize)
-    .reduce<
-      ImageSize | undefined
-    >((largest, size) => (largest && largest.width * largest.height >= size.width * size.height ? largest : size), undefined);
+    .reduce<ImageSize | undefined>(
+      (largest, size) => (largest && largest.width * largest.height >= size.width * size.height ? largest : size),
+      undefined,
+    );
   const requestedRatio = selectCameraRatio(ratioPreference, referenceRatio, supportedPhotoSizes);
   // The output hook treats targetResolution identity as a configuration dependency.
   const targetResolution = useMemo(
@@ -314,7 +316,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
   }, [device, photoOutput]);
   const [assistMode, setAssistMode] = useState<CameraAssistMode>('split');
   const [overlayOpacity, setOverlayOpacity] = useState(0.4);
-  const [photoFile, setPhotoFile] = useState<PhotoFile>();
+  const [photoFile, setPhotoFile] = useState<{ filePath: string }>();
   const mounted = useRef(true);
   const [resultPhotoUri, setResultPhotoUri] = useState<string>();
   const [resultPhotoDimensions, setResultPhotoDimensions] = useState<{ uri: string; size: ImageSize }>();
@@ -419,6 +421,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
   }, [orientationRotation, photoOutput]);
 
   useEffect(() => {
+    setLoadingFullReference(false);
     if (
       capturing ||
       referenceUri !== initialReferenceUri ||
@@ -428,18 +431,29 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
       return;
 
     let cancelled = false;
+    // Cached and quickly loaded images should not flash a loading indicator.
+    const loadingTimer = setTimeout(() => setLoadingFullReference(true), FULL_REFERENCE_LOADING_DELAY_MS);
 
-    void Image.prefetch(fullReferenceUri, 'memory-disk').then((prefetched) => {
-      if (!cancelled && prefetched) {
-        setReferenceUri((current) => (current === initialReferenceUri ? fullReferenceUri : current));
-        setReferenceDimensions((current) =>
-          current && current.uri === initialReferenceUri ? { ...current, uri: fullReferenceUri } : current,
-        );
-      }
-    });
+    void Image.prefetch(fullReferenceUri, 'memory-disk')
+      .then((prefetched) => {
+        if (!cancelled && prefetched) {
+          setReferenceUri((current) => (current === initialReferenceUri ? fullReferenceUri : current));
+          setReferenceDimensions((current) =>
+            current && current.uri === initialReferenceUri ? { ...current, uri: fullReferenceUri } : current,
+          );
+        }
+      })
+      .catch(() => {
+        // Keep the thumbnail when the full-resolution image cannot be loaded.
+      })
+      .finally(() => {
+        clearTimeout(loadingTimer);
+        if (!cancelled) setLoadingFullReference(false);
+      });
 
     return () => {
       cancelled = true;
+      clearTimeout(loadingTimer);
     };
   }, [capturing, referenceUri, fullReferenceUri, initialReferenceUri]);
 
@@ -929,6 +943,11 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
           )}
         </View>
       </ComparisonImagePressable>
+      {loadingFullReference && !capturing && referenceUri === initialReferenceUri && (
+        <View position="absolute" b={8} self="center" pointerEvents="none">
+          <ActivityIndicator size={12} color="white" />
+        </View>
+      )}
       {restoreReferenceControl}
     </View>
   );
