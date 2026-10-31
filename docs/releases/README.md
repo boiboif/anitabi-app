@@ -174,6 +174,8 @@ OTA 成功后复用 `Mobile Release`，各任务显式检出该 OTA 的同一个
 
 `preview` 和 `production` 分别使用独立的 EAS channel、EAS environment 和整包更新清单。工作流会自动创建首次使用的 EAS channel；Preview 热更新固定注入 `docs/releases/preview.json`，Production 热更新使用 `docs/releases/latest.json`，更新配置中的应用版本统一使用基础版本。清单的 `displayVersion` 继续用于待升级版本展示。热更新会同时发布 Android 和 iOS Update，各平台只会接收与自身 runtime version 匹配的更新。
 
-应用启动时静默检查并下载 EAS Update，下载完成后提示重启生效。修改原生依赖、权限、Expo config plugin、Android/iOS 原生配置或需要变更 `versionCode` 时，必须走整包发版。
+应用启动时静默检查并下载 EAS Update。没有更高整包可用时，下载完成后提示重启生效；已检测到更高整包时，兼容 OTA 只静默下载，不显示重启提示，也不主动重启，等待下次冷启动应用。关闭整包弹窗不会转而显示 OTA 提示；发现整包时也会清除此前已显示的 OTA 提示。修改原生依赖、权限、Expo config plugin、Android/iOS 原生配置或需要变更 `versionCode` 时，必须走整包发版。
+
+整包检测与 OTA 检查、下载并行进行：整包结果返回就立即显示，不等待 OTA；OTA 下载完成后的重启提示则等待本轮整包判定，避免 OTA 先返回时误弹。此前已显示的 OTA 重启按钮也会等待当前整包判定；若发现更高整包，则不执行重启。整包检查失败且没有已知更高整包时，仍保留正常 OTA 提示，并报告整包检查失败。重复检查在本轮两路任务结束前会被去重。
 
 整包更新当前针对 Android arm64-v8a APK，覆盖绝大多数现代 Android 真机，不支持仅有 32 位 CPU 的旧设备。Android 首次安装或从旧 EAS APK 升级时，必须使用同一 applicationId 和同一签名 keystore；复用上述旧 EAS keystore 可以保持升级兼容。iOS 不能由应用直接安装 IPA；如果未来需要 iOS 整包更新，应将 `releaseUrl` 指向可分发页面或 TestFlight。

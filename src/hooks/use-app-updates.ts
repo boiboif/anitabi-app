@@ -53,6 +53,7 @@ export function useAppUpdates(): AppUpdateManager {
   const [binaryProgress, setBinaryProgress] = useState<BinaryDownloadProgress | null>(null);
   const [binaryDownloadError, setBinaryDownloadError] = useState<string | null>(null);
   const isCheckingRef = useRef(false);
+  const binaryDecisionRef = useRef<Promise<void> | null>(null);
   const binaryUpdateRef = useRef<BinaryUpdate | null>(null);
   const downloadRunningRef = useRef(false);
 
@@ -108,34 +109,55 @@ export function useAppUpdates(): AppUpdateManager {
     setIsChecking(true);
 
     try {
-      const [appUpdate, Updates] = await Promise.all([getAppUpdateModule(), import('expo-updates')]);
-      const [binaryResult, hotResult] = await Promise.allSettled([
-        appUpdate.checkBinaryUpdate(),
-        Updates.isEnabled ? Updates.checkForUpdateAsync() : Promise.resolve({ isAvailable: false }),
-      ]);
-
-      if (binaryResult.status === 'fulfilled' && binaryResult.value) {
-        binaryUpdateRef.current = binaryResult.value;
-        setBinaryUpdate(binaryResult.value);
-        const downloaded = appUpdate.isBinaryUpdateDownloaded(binaryResult.value);
-        setIsBinaryDownloaded(downloaded);
-        setBinaryProgress(downloaded ? null : appUpdate.getResumableBinaryDownloadProgress(binaryResult.value));
-        setBinaryDownloadError(null);
-        setIsBinaryUpdateVisible(true);
-        // A system-managed transfer can outlive this JS runtime. Reattach to
-        // its progress instead of asking the user to start another download.
-        if (!downloaded && appUpdate.hasBackgroundBinaryUpdateDownload(binaryResult.value)) {
-          void runBinaryDownload(binaryResult.value, { installWhenReady: false });
+      const binaryCheck = getAppUpdateModule().then(async (appUpdate) => {
+        const update = await appUpdate.checkBinaryUpdate();
+        if (update) {
+          // Apply the installer result without waiting for the OTA service.
+          binaryUpdateRef.current = update;
+          setBinaryUpdate(update);
+          // A newer installer takes priority even after its dialog is dismissed.
+          setHotUpdateReady(false);
+          const downloaded = appUpdate.isBinaryUpdateDownloaded(update);
+          setIsBinaryDownloaded(downloaded);
+          setBinaryProgress(downloaded ? null : appUpdate.getResumableBinaryDownloadProgress(update));
+          setBinaryDownloadError(null);
+          setIsBinaryUpdateVisible(true);
+          // A system-managed transfer can outlive this JS runtime. Reattach to
+          // its progress instead of asking the user to start another download.
+          if (!downloaded && appUpdate.hasBackgroundBinaryUpdateDownload(update)) {
+            void runBinaryDownload(update, { installWhenReady: false });
+          }
         }
-      }
+        return update;
+      });
+      // Publish the decision before yielding so an earlier OTA action can wait
+      // for it. checkNow reports failures; this promise only tracks settlement.
+      binaryDecisionRef.current = binaryCheck.then(
+        () => undefined,
+        () => undefined,
+      );
 
-      if (hotResult.status === 'fulfilled' && hotResult.value.isAvailable) {
+      const hotCheck = import('expo-updates').then(async (Updates) => {
+        if (!Updates.isEnabled) return { isAvailable: false, isNew: false };
+        // Preserve the existing policy: a failed OTA check must not hide a
+        // successful installer result. Download failures are still reported.
+        const available = await Updates.checkForUpdateAsync().catch(() => null);
+        if (!available?.isAvailable) return { isAvailable: false, isNew: false };
         const fetched = await Updates.fetchUpdateAsync();
-        if (fetched.isNew) setHotUpdateReady(true);
+        return { isAvailable: true, isNew: fetched.isNew };
+      });
+
+      const [binaryResult, hotResult] = await Promise.allSettled([binaryCheck, hotCheck]);
+      // Download independently, but decide whether to prompt only after the
+      // installer check has settled, regardless of which service was faster.
+      if (hotResult.status === 'fulfilled' && hotResult.value.isNew && !binaryUpdateRef.current) {
+        setHotUpdateReady(true);
       }
+      if (hotResult.status === 'rejected') throw hotResult.reason;
       if (binaryResult.status === 'rejected') throw binaryResult.reason;
-      return Boolean(binaryResult.value || (hotResult.status === 'fulfilled' && hotResult.value.isAvailable));
+      return Boolean(binaryResult.value || hotResult.value.isAvailable);
     } finally {
+      binaryDecisionRef.current = null;
       isCheckingRef.current = false;
       setIsChecking(false);
     }
@@ -170,6 +192,15 @@ export function useAppUpdates(): AppUpdateManager {
 
   const reloadForHotUpdate = useCallback(async () => {
     const Updates = await import('expo-updates');
+    if (binaryUpdateRef.current) return;
+    // An earlier OTA button must wait for the current installer decision,
+    // without waiting for that check's OTA download to finish.
+    while (binaryDecisionRef.current) {
+      const decision = binaryDecisionRef.current;
+      await decision;
+      if (binaryDecisionRef.current === decision) break;
+    }
+    if (binaryUpdateRef.current) return;
     await Updates.reloadAsync();
   }, []);
 
