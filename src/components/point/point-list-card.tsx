@@ -28,6 +28,8 @@ type Props = {
   description?: string;
   /** 卡片底部左侧的分组、收藏时间等辅助信息。 */
   meta?: string;
+  /** 简介行数，默认为 2。 */
+  descriptionNumberOfLines?: number;
   /** 自定义截图路径，未传入时使用巡礼点截图。 */
   image?: string;
   /** 无截图时展示的封面，可用于收藏或计划快照。 */
@@ -91,6 +93,7 @@ export default function PointListCard({
   subtitle,
   showSubtitle = true,
   description,
+  descriptionNumberOfLines = 2,
   meta,
   image,
   cover,
@@ -216,12 +219,21 @@ export default function PointListCard({
             <YStack flex={1} px="$2" py="$1" pl="$0" pr={topRightAction ? 44 : '$2'} justify="space-between">
               <YStack>
                 <XStack height={30} items="center" gap="$1">
-                  <Text flex={1} fontSize="$body" fontWeight="600" color="$color12" numberOfLines={1}>
+                  <Text
+                    flex={1}
+                    fontSize="$body"
+                    fontWeight="600"
+                    color="$color12"
+                    numberOfLines={1}
+                    pr={showFavorite ? '$5' : undefined}
+                  >
                     {resolvedTitle}
                   </Text>
                   {statusAction}
                   {showFavorite && point && bangumi ? (
-                    <FavoritePointButton point={point} bangumi={bangumi} buttonSize={30} />
+                    <View position="absolute" t="$1.5" r="$0">
+                      <FavoritePointButton point={point} bangumi={bangumi} buttonSize={28} size={16} />
+                    </View>
                   ) : null}
                 </XStack>
                 {showSubtitle && resolvedSubtitle ? (
@@ -230,14 +242,20 @@ export default function PointListCard({
                   </Text>
                 ) : null}
                 {description ? (
-                  <Text fontSize="$caption" lineHeight={12} color="$color11" mt="$0.5" numberOfLines={2}>
+                  <Text
+                    fontSize="$caption"
+                    lineHeight={12}
+                    color="$color11"
+                    mt="$0.5"
+                    numberOfLines={descriptionNumberOfLines}
+                  >
                     {description}
                   </Text>
                 ) : null}
               </YStack>
 
-              <XStack minH={meta ? actionSize : undefined} items="baseline" gap="$1">
-                <Text flex={1} fontSize="$caption" color="$color10" numberOfLines={1}>
+              <XStack height={meta ? actionSize : undefined} items="center" gap="$1">
+                <Text flex={1} fontSize="$caption" color="$color10" numberOfLines={1} pt="$1.5">
                   {meta || ' '}
                 </Text>
                 {point && bangumi && (showAddToPlan || showCamera || showNavigation) ? (

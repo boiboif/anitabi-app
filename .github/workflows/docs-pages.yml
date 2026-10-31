@@ -27,6 +27,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
+          # Release workflows explicitly dispatch this after pushing download.json.
+          ref: main
           fetch-depth: 0
 
       - name: Setup Node

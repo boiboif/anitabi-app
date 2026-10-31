@@ -355,9 +355,19 @@ const en = {
   viewLicensesForAnitabiAndThirdPartyDependencies: 'View licenses for Anitabi and third-party dependencies',
   externalLinks: 'External links',
   appUpdates: 'App updates',
+  appUpdateDownloadTitle: 'Anitabi update',
+  installerDownloadFinished: 'Download complete. Return to the app to install.',
   checkForUpdates: 'Check for updates',
   newVersionVVersionAvailable: 'New version v{{version}} available',
   checkForTheLatestVersion: 'Check for the latest version',
+  versionSourceEmbedded: 'Bundled with installer',
+  versionSourceHotUpdate: 'OTA update',
+  versionSourceEmergency: 'Emergency fallback to bundled code',
+  versionSourceDevelopment: 'Local development',
+  currentVersionSource: 'Running from: {{source}}',
+  installedPackageVersionAndBuild: 'Installed package: {{version}} (build {{build}})',
+  installedPackageVersion: 'Installed package: {{version}}',
+  currentOtaUpdateId: 'OTA ID: {{id}}',
   checking: 'Checking...',
   updateAvailable: 'Update available',
   otherThirdPartyDependencies: 'Other third-party dependencies',
@@ -628,6 +638,7 @@ const en = {
   pilgrimageRecordsCleanupFailed: 'Records deleted; some images remain',
   pilgrimageRecordsCleanupFailedHint:
     'The records were deleted, but some in-app images could not be removed. Photos in your system library are unaffected.',
+  gbcclub: 'Girls Band Cry Fans Club',
 } as const satisfies Record<TranslationKey, string>;
 
 export default en;

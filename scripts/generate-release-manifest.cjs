@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+/* global __dirname */
+
 const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -157,7 +159,7 @@ function readReleaseFromGithub(tag, repo, preferredAssetName) {
 
   return {
     title: release.name || tag,
-    releaseNotes: release.body?.trim() || `Anitabi ${tag}`,
+    releaseNotes: release.body?.replace(/\n?<!-- anitabi-build-number: \d+ -->/g, '').trim() || `Anitabi ${tag}`,
     releaseUrl: release.url,
     apkUrl: `https://github.com/${repo}/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(apkAsset.name)}`,
     fileName: apkAsset.name,

@@ -13,7 +13,7 @@ type Props = {
   overlay?: boolean;
 };
 
-export default function FavoritePointButton({ point, bangumi, size = 18, buttonSize = 36, overlay = false }: Props) {
+export default function FavoritePointButton({ point, bangumi, size = 20, buttonSize = 30, overlay = false }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const key = getFavoritePointKey(bangumi.id, point.id);

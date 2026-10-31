@@ -33,6 +33,7 @@ function createHarness() {
     '@/components/plan/plan-picker-provider': { default: 'PlanPickerProvider' },
     '@/hooks/use-app-update-manager': { AppUpdateManagerContext: { Provider: 'AppUpdateManagerProvider' } },
     '@/hooks/use-app-updates': { useAppUpdates: () => ({}) },
+    '@/hooks/use-update-test-reporter': { useUpdateTestReporter() {} },
     '@/i18n': { default: { changeLanguage() {} }, resolveLanguagePreference: () => 'en' },
     '@/services/sentry': { Sentry: { wrap: (component) => component, captureException() {} } },
     '@/store/use-language-preference': { useLanguagePreference: (select) => select({ preference: 'en' }) },

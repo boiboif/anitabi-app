@@ -8,15 +8,34 @@ const updateChannel = process.env.EXPO_UPDATE_CHANNEL || 'development';
 const appVariant = process.env.APP_VARIANT || 'production';
 const isDevelopmentBuild = appVariant === 'development';
 const isTestBuild = appVariant === 'test';
-const appName = isDevelopmentBuild ? 'Anitabi Dev' : isTestBuild ? 'Anitabi Test' : 'Anitabi';
+const appName = isDevelopmentBuild
+  ? 'Anitabi Dev'
+  : isTestBuild
+    ? process.env.ANITABI_TEST_APP_NAME || 'Anitabi Test'
+    : 'Anitabi';
 const appIdentifier = isDevelopmentBuild
   ? 'bbf.anitabiapp.dev'
   : isTestBuild
-    ? 'bbf.anitabiapp.test'
+    ? process.env.ANITABI_TEST_APP_ID || 'bbf.anitabiapp.test'
     : 'bbf.anitabiapp';
 const appScheme = isDevelopmentBuild ? 'anitabiapp-dev' : isTestBuild ? 'anitabiapp-test' : 'anitabiapp';
 const appUpdatesEnabled = updateChannel === 'preview' || updateChannel === 'production';
 const binaryUpdateManifestName = updateChannel === 'preview' ? 'preview.json' : 'latest.json';
+// Only OTA publishing and its bundled installers opt in to a content suffix.
+// Ordinary releases also run in GitHub Actions, so GITHUB_SHA alone is insufficient.
+const contentRevision = process.env.APP_CONTENT_REVISION || undefined;
+if (contentRevision && !/^[a-f0-9]{7,40}$/i.test(contentRevision)) {
+  throw new Error('APP_CONTENT_REVISION must be a Git commit identifier');
+}
+// Controlled OTA verification is opt-in and cannot redirect production builds.
+const updateTestServerUrl = isTestBuild ? process.env.ANITABI_UPDATE_TEST_SERVER_URL?.replace(/\/+$/, '') : undefined;
+const updateTestServerMatch = updateTestServerUrl?.match(/^http:\/\/(127\.0\.0\.1|localhost):(\d+)$/);
+if (
+  updateTestServerUrl &&
+  (!updateTestServerMatch || Number(updateTestServerMatch[2]) < 1 || Number(updateTestServerMatch[2]) > 65535)
+) {
+  throw new Error('The OTA test server must be an explicit loopback HTTP URL');
+}
 
 const config: ExpoConfig = {
   name: appName,
@@ -27,7 +46,7 @@ const config: ExpoConfig = {
   runtimeVersion: `${appVersion}-sdk58`,
   updates: {
     enabled: appUpdatesEnabled,
-    url: `https://u.expo.dev/${process.env.EXPO_PROJECT_ID}`,
+    url: updateTestServerUrl ? `${updateTestServerUrl}/updates` : `https://u.expo.dev/${process.env.EXPO_PROJECT_ID}`,
     requestHeaders: {
       'expo-channel-name': updateChannel,
     },
@@ -63,7 +82,11 @@ const config: ExpoConfig = {
     predictiveBackGestureEnabled: false,
     package: appIdentifier,
     versionCode: Number(process.env.ANDROID_VERSION_CODE ?? 1),
-    permissions: ['android.permission.CAMERA', 'android.permission.REQUEST_INSTALL_PACKAGES'],
+    permissions: [
+      'android.permission.CAMERA',
+      'android.permission.REQUEST_INSTALL_PACKAGES',
+      'android.permission.POST_NOTIFICATIONS',
+    ],
   },
   plugins: [
     'expo-router',
@@ -82,6 +105,7 @@ const config: ExpoConfig = {
       },
     ],
     'expo-sharing',
+    ['@kesha-antonov/react-native-background-downloader', { skipMmkvDependency: true }],
     'expo-font',
     'expo-image',
     [
@@ -97,6 +121,12 @@ const config: ExpoConfig = {
             // Match Firebase's fixed consumer rules: https://github.com/firebase/firebase-android-sdk/pull/6044
             '-keep class * implements com.google.firebase.components.ComponentRegistrar { void <init>(); }',
             '-keep,allowshrinking interface com.google.firebase.components.ComponentRegistrar',
+            // Background downloader persists task configuration through Gson.
+            '-keep class com.eko.RNBGDTaskConfig { *; }',
+            '-keepattributes Signature',
+            '-keep class com.google.gson.reflect.TypeToken { *; }',
+            '-keep class * extends com.google.gson.reflect.TypeToken',
+            '-keep class com.tencent.mmkv.** { *; }',
           ].join('\n'),
         },
       },
@@ -179,8 +209,12 @@ const config: ExpoConfig = {
     appVariant,
     updateChannel,
     appUpdatesEnabled,
+    contentRevision: contentRevision?.toLowerCase(),
+    updateTestServerUrl,
     binaryUpdateManifestUrl: appUpdatesEnabled
-      ? `https://raw.githubusercontent.com/boiboif/anitabi-app/main/docs/releases/${binaryUpdateManifestName}`
+      ? updateTestServerUrl
+        ? `${updateTestServerUrl}/releases/latest.json`
+        : `https://raw.githubusercontent.com/boiboif/anitabi-app/main/docs/releases/${binaryUpdateManifestName}`
       : undefined,
     eas: {
       projectId: process.env.EXPO_PROJECT_ID,

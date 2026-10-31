@@ -356,9 +356,19 @@ const ja = {
   viewLicensesForAnitabiAndThirdPartyDependencies: 'Anitabiとサードパーティ依存関係のライセンスを表示',
   externalLinks: '外部リンク',
   appUpdates: 'アプリ更新',
+  appUpdateDownloadTitle: 'Anitabiの更新',
+  installerDownloadFinished: 'ダウンロード完了。アプリに戻ってインストール',
   checkForUpdates: '更新を確認',
   newVersionVVersionAvailable: '新しいバージョン v{{version}}',
   checkForTheLatestVersion: '最新バージョンを確認',
+  versionSourceEmbedded: 'インストーラー内蔵',
+  versionSourceHotUpdate: 'OTA更新',
+  versionSourceEmergency: '内蔵コードへの緊急復帰',
+  versionSourceDevelopment: 'ローカル開発',
+  currentVersionSource: '実行元：{{source}}',
+  installedPackageVersionAndBuild: 'インストール済み：{{version}}（ビルド {{build}}）',
+  installedPackageVersion: 'インストール済み：{{version}}',
+  currentOtaUpdateId: 'OTA ID：{{id}}',
   checking: '確認中...',
   updateAvailable: '更新可能',
   otherThirdPartyDependencies: 'その他のサードパーティ依存関係',
@@ -629,6 +639,7 @@ const ja = {
   pilgrimageRecordsCleanupFailed: '記録は削除されましたが、一部の画像が残っています',
   pilgrimageRecordsCleanupFailedHint:
     '記録は削除されましたが、一部のアプリ内画像を削除できませんでした。システムの写真ライブラリ内の写真には影響しません。',
+  gbcclub: 'ガルクラ同好会',
 } as const satisfies Record<TranslationKey, string>;
 
 export default ja;

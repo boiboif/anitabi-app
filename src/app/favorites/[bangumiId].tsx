@@ -56,6 +56,7 @@ function FavoriteCard({ item, onPress }: { item: ResolvedFavorite; onPress: () =
       title={getPointName(item, i18n.resolvedLanguage ?? i18n.language)}
       showSubtitle={false}
       description={item.point?.mark || item.favorite.snapshot.pointMark}
+      descriptionNumberOfLines={3}
       meta={
         available
           ? t('favoritedDate', {

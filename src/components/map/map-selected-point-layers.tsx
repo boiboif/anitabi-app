@@ -1,4 +1,4 @@
-import { SELECTED_MAP_POINT_LAYER_ID } from '@/lib/constants';
+import { MAP_MARKER_HITBOX, SELECTED_MAP_POINT_LAYER_ID } from '@/lib/constants';
 import { SELECTED_MAP_POINT_DOT_DIAMETER } from '@/lib/ui-sizes';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
@@ -31,6 +31,7 @@ export function SelectedMapPointLayer({ selected, maxVisualDiameter, onPress }: 
     <ShapeSource
       id="selected-map-point-source"
       shape={shape}
+      hitbox={MAP_MARKER_HITBOX}
       onPress={() => {
         if (selected) onPress(selected.point, selected.bangumi);
       }}

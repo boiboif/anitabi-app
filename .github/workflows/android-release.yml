@@ -32,9 +32,11 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
-  group: android-release
+  group: binary-release
+  queue: max
   cancel-in-progress: false
 
 jobs:
@@ -44,6 +46,7 @@ jobs:
       EXPO_PROJECT_ID: ${{ vars.EXPO_PROJECT_ID }}
       EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN: ${{ vars.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN }}
       EXPO_UPDATE_CHANNEL: production
+      APP_CONTENT_REVISION: ''
       ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -56,6 +59,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read current published release state
+        run: git fetch origin main --quiet
 
       - name: Require main branch
         shell: bash
@@ -125,25 +133,7 @@ jobs:
       - name: Calculate next Android versionCode
         shell: bash
         run: |
-          highest_build_number="${ANDROID_VERSION_CODE_OFFSET:-1000}"
-          if ! [[ "$highest_build_number" =~ ^[0-9]+$ ]]; then
-            echo "ANDROID_VERSION_CODE_OFFSET must be a non-negative integer"
-            exit 1
-          fi
-
-          for manifest_path in docs/releases/latest.json docs/releases/preview.json; do
-            if [[ ! -f "$manifest_path" ]]; then continue; fi
-            manifest_build_number="$(node -e 'const fs = require("fs"); const manifest = JSON.parse(fs.readFileSync(process.argv[1], "utf8")); process.stdout.write(String(manifest.buildNumber ?? 0));' "$manifest_path")"
-            if ! [[ "$manifest_build_number" =~ ^[0-9]+$ ]]; then
-              echo "$manifest_path contains an invalid buildNumber"
-              exit 1
-            fi
-            if (( manifest_build_number > highest_build_number )); then
-              highest_build_number="$manifest_build_number"
-            fi
-          done
-
-          version_code=$((highest_build_number + 1))
+          version_code=$(node scripts/release-state.cjs next-build)
           echo "ANDROID_VERSION_CODE=$version_code" >> "$GITHUB_ENV"
           echo "Using Android versionCode=$version_code"
 
@@ -193,6 +183,7 @@ jobs:
           echo "EXPO_UPDATE_CHANNEL=$update_channel" >> "$GITHUB_ENV"
           echo "APP_NATIVE_VERSION=$native_app_version" >> "$GITHUB_ENV"
           echo "MANIFEST_PATH=$manifest_path" >> "$GITHUB_ENV"
+          echo "DOWNLOAD_MANIFEST_PATH=$(node scripts/release-state.cjs download-path "$RELEASE_TYPE")" >> "$GITHUB_ENV"
           echo "ASSET_NAME=$asset_name" >> "$GITHUB_ENV"
           echo "TAG=$tag" >> "$GITHUB_ENV"
           echo "Using GitHub Release tag=$tag, Android versionName=$native_app_version"
@@ -283,7 +274,11 @@ jobs:
           if [[ -n "${RELEASE_NOTES:-}" ]]; then
             node -e 'const fs = require("fs"); fs.writeFileSync("release-notes.md", `${process.env.RELEASE_NOTES.replace(/\\n/g, "\n")}\n`);'
           fi
-          release_args=(gh release create "$TAG" "$ASSET_NAME" --repo "$GITHUB_REPOSITORY" --title "$TAG" --notes-file release-notes.md)
+          if [[ ! -f release-notes.md ]]; then
+            if [[ -f "release-notes/${TAG}.md" ]]; then cp "release-notes/${TAG}.md" release-notes.md; else echo "$TAG" > release-notes.md; fi
+          fi
+          echo "<!-- anitabi-build-number: $ANDROID_VERSION_CODE -->" >> release-notes.md
+          release_args=(gh release create "$TAG" "$ASSET_NAME" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "$TAG" --notes-file release-notes.md)
           if [[ "$RELEASE_TYPE" == "preview" ]]; then release_args+=(--prerelease); fi
           "${release_args[@]}"
 
@@ -302,16 +297,22 @@ jobs:
           if [[ -n "$MIN_SUPPORTED_VERSION" ]]; then manifest_args+=(--min-supported-version "$MIN_SUPPORTED_VERSION"); fi
           if [[ -n "$MIN_SUPPORTED_BUILD_NUMBER" ]]; then manifest_args+=(--min-supported-build-number "$MIN_SUPPORTED_BUILD_NUMBER"); fi
           "${manifest_args[@]}"
+          cp "$MANIFEST_PATH" "$DOWNLOAD_MANIFEST_PATH"
 
       - name: Commit update manifest
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "$MANIFEST_PATH"
+          git add "$MANIFEST_PATH" "$DOWNLOAD_MANIFEST_PATH"
           if git diff --cached --quiet; then
             echo 'latest.json is unchanged'
           else
             git commit -m "chore: update release manifest for $TAG"
+            git pull --rebase origin main
             git push origin HEAD:main
           fi
+
+      - name: Refresh website downloads
+        if: env.RELEASE_TYPE == 'production'
+        run: gh workflow run docs-pages.yml --ref main
