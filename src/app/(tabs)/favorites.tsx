@@ -260,7 +260,7 @@ export default function FavoritesScreen() {
             <View
               bg="$pageBackground"
               px="$pageHorizontalInset"
-              pb={getCardListBoundarySpacing(getTokens().space['2'].val)}
+              py={getCardListBoundarySpacing(getTokens().space['2'].val)}
             >
               <Text fontSize="$body" lineHeight={20} fontWeight="700" color="$color11">
                 {item.label}
