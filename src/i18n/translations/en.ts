@@ -638,6 +638,7 @@ const en = {
   pilgrimageRecordsCleanupFailed: 'Records deleted; some images remain',
   pilgrimageRecordsCleanupFailedHint:
     'The records were deleted, but some in-app images could not be removed. Photos in your system library are unaffected.',
+  gbcclub: 'Girls Band Cry Fans Club',
 } as const satisfies Record<TranslationKey, string>;
 
 export default en;

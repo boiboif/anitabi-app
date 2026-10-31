@@ -9,7 +9,7 @@ import {
   getCurrentAppVersionInfo,
 } from '@/services/app-update';
 import { MaxContentWidth } from '@/tamagui.config';
-import { CircleUserRound, Github, Globe2, Palette, RefreshCw, Scale } from '@tamagui/lucide-icons-2';
+import { CircleUserRound, Github, Globe2, Guitar, Palette, RefreshCw, Scale } from '@tamagui/lucide-icons-2';
 import * as Linking from 'expo-linking';
 import { router, Stack } from 'expo-router';
 import { HeaderTitle } from 'expo-router/react-navigation';
@@ -17,7 +17,7 @@ import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Platform, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { View, useTheme } from 'tamagui';
+import { useTheme, View } from 'tamagui';
 
 const externalLinks: {
   title: TranslationMessage;
@@ -55,6 +55,12 @@ const externalLinks: {
     value: '',
     url: 'https://compose.anitabi.cn/',
     icon: Palette,
+  },
+  {
+    title: { key: 'gbcclub', defaultValue: 'GBC同好站' },
+    value: '',
+    url: 'https://www.gbcclub.com/',
+    icon: Guitar,
   },
 ];
 

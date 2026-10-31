@@ -607,6 +607,7 @@ const zh = {
   pilgrimageRecordsOpenBackup: '打开备份与恢复',
   pilgrimageRecordsCleanupFailed: '记录已删除，部分图片未清理',
   pilgrimageRecordsCleanupFailedHint: '记录已删除，但部分应用内图片未能清理。系统相册照片不会受影响。',
+  gbcclub: 'GBC同好站',
 } as const;
 
 export type TranslationKey = keyof typeof zh;

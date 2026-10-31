@@ -639,6 +639,7 @@ const ja = {
   pilgrimageRecordsCleanupFailed: '記録は削除されましたが、一部の画像が残っています',
   pilgrimageRecordsCleanupFailedHint:
     '記録は削除されましたが、一部のアプリ内画像を削除できませんでした。システムの写真ライブラリ内の写真には影響しません。',
+  gbcclub: 'ガルクラ同好会',
 } as const satisfies Record<TranslationKey, string>;
 
 export default ja;
