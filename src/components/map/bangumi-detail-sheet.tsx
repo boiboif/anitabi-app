@@ -670,6 +670,7 @@ function BangumiDetailSheet() {
   if (!shouldRenderSheet) return null;
 
   const coverUri = buildImageUrl(selectedBangumi?.cover ?? '');
+  const thumbnailUri = buildImageUrl(selectedBangumi?.cover ?? '', 'plan=h360');
   return (
     <TrueSheet
       key={sheetKey}
@@ -709,7 +710,7 @@ function BangumiDetailSheet() {
               <>
                 <View px="$2" mb="$2" display="flex" flexDirection="row" rounded="$4" gap="$2.5">
                   <PreviewableImage
-                    source={{ uri: coverUri }}
+                    source={{ uri: thumbnailUri }}
                     previewUri={coverUri || undefined}
                     previewBorderRadius={getTokens().radius['4'].val}
                     accessibilityLabel={coverPreviewLabel}

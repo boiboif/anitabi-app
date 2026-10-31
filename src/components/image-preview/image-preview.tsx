@@ -38,6 +38,8 @@ export type ImagePreviewProps = {
   getSourceBounds?: (index: number) => ImagePreviewBounds | null;
   onClose: () => void;
   onIndexChange?: (index: number) => void;
+  /** Full-size image loaded successfully; thumbnail placeholders do not trigger this callback. */
+  onImageLoad?: (image: PreviewImage, index: number) => void;
   /** Override the built-in save/share menu when provided. */
   onLongPress?: (image: PreviewImage, index: number) => void;
 };
@@ -98,7 +100,7 @@ function PreviewPage({
       <Image
         key={`${image.id}:${retry}`}
         source={{ uri: image.uri }}
-        placeholder={image.thumbnailUri ? { uri: image.thumbnailUri } : undefined}
+        placeholder={image.thumbnailUri && image.thumbnailUri !== image.uri ? { uri: image.thumbnailUri } : undefined}
         placeholderContentFit="contain"
         contentFit="contain"
         cachePolicy="memory-disk"
@@ -122,6 +124,7 @@ function PreviewSession({
   getSourceBounds,
   onClose,
   onIndexChange,
+  onImageLoad,
   onLongPress,
 }: Omit<ImagePreviewProps, 'visible'>) {
   const { t } = useTranslation();
@@ -410,11 +413,12 @@ function PreviewSession({
                         if (width > 0 && height > 0)
                           setLoadedDimensions((previous) => ({ ...previous, [image.id]: { width, height } }));
                       }}
-                      onStatus={(nextStatus) =>
+                      onStatus={(nextStatus) => {
                         setStatuses((previous) =>
                           previous[image.id] === nextStatus ? previous : { ...previous, [image.id]: nextStatus },
-                        )
-                      }
+                        );
+                        if (nextStatus === 'loaded') onImageLoad?.(image, pageIndex);
+                      }}
                     />
                   )}
                 />
