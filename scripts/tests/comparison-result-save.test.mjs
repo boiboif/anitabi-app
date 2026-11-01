@@ -222,6 +222,7 @@ function createHarness({ platform = 'android', permission = true, failAt, record
     '@/lib/storage': { getComparisonExportSettings: () => settings, setComparisonExportSettings() {} },
     '@/lib/localized-data': { getPointTitle: (point) => point.name, getBangumiTitle: (work) => work.title },
     '@/components/comparison-camera/comparison-camera-layout': {},
+    '@/hooks/use-image-loading': {},
     'react-native-view-shot': {},
     './comparison-export-sheet': { __esModule: true, default: 'ExportSheet' },
     './comparison-image-pressable': { ComparisonImagePressable: 'ComparisonImagePressable' },
@@ -263,7 +264,7 @@ function createHarness({ platform = 'android', permission = true, failAt, record
     nativeEvent: { layout: { width: 400, height: 800 } },
   });
   for (const uri of inputUris) {
-    find((node) => node.type === 'Image' && node.props.source.uri === uri).props.onLoad({
+    find((node) => node.props?.onLoad && (node.props.source?.uri ?? node.props.uri) === uri).props.onLoad({
       source: { width: 1200, height: 900 },
     });
   }

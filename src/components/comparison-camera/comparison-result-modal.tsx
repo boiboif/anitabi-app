@@ -2,6 +2,7 @@ import {
   COMPARISON_CAMERA_BOTTOM_REGION_HEIGHT,
   COMPARISON_CAMERA_TOP_REGION_HEIGHT,
 } from '@/components/comparison-camera/comparison-camera-layout';
+import { useImageLoading } from '@/hooks/use-image-loading';
 import { fitImageSize, getCenterCrop, isValidImageSize, type ImageSize } from '@/lib/comparison-camera-geometry';
 import {
   buildComparisonMetadata,
@@ -20,7 +21,7 @@ import type { Bangumi, Point } from '@/services/types';
 import { Toast } from '@boiboif/react-native-toast';
 import { Download, Images, RotateCcw, Settings2, Undo2, X } from '@tamagui/lucide-icons-2';
 import { File } from 'expo-file-system';
-import { Image } from 'expo-image';
+import { Image, type ImageProps } from 'expo-image';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as MediaLibrary from 'expo-media-library';
 import { type ComponentRef, useEffect, useRef, useState } from 'react';
@@ -59,6 +60,24 @@ type Props = {
   onRestoreReference?: () => void;
   onRetake: () => void;
 };
+
+/** The URI-keyed child cancels its retries when replaced or when the result closes. */
+function ReferenceImage({ uri, onLoad, ...props }: Omit<ImageProps, 'source'> & { uri: string }) {
+  const { controller, imageRef } = useImageLoading();
+  return (
+    <Image
+      {...props}
+      ref={imageRef}
+      source={{ uri }}
+      onLoadStart={controller.onLoadStart}
+      onError={controller.onError}
+      onLoad={(event) => {
+        controller.onLoad();
+        onLoad?.(event);
+      }}
+    />
+  );
+}
 
 type ActionButtonProps = {
   label: string;
@@ -247,9 +266,7 @@ export default function ComparisonResultModal({
     typeof point.s === 'number' && Number.isFinite(point.s) && point.s >= 0 ? formatDuration(point.s) : '';
   const metadataValues = {
     capturedAt:
-      date && Number.isFinite(date.getTime())
-        ? date.toLocaleString(i18n.resolvedLanguage ?? i18n.language)
-        : '',
+      date && Number.isFinite(date.getTime()) ? date.toLocaleString(i18n.resolvedLanguage ?? i18n.language) : '',
     location: getPointTitle(point, i18n.language) || '',
     work: getBangumiTitle(bangumi, i18n.language) || '',
     scene: [episode, sceneTime].filter(Boolean).join(' · '),
@@ -608,9 +625,10 @@ export default function ComparisonResultModal({
                       style={{ flex: 1 }}
                     >
                       <View flex={1} overflow="hidden" bg={borderColor}>
-                        {referenceUri ? (
-                          <Image
-                            source={{ uri: referenceUri }}
+                        {visible && referenceUri ? (
+                          <ReferenceImage
+                            key={referenceUri}
+                            uri={referenceUri}
                             cachePolicy="disk"
                             contentFit={settings.matchPhotoRatio ? settings.referenceFit : 'contain'}
                             recyclingKey={referenceUri}

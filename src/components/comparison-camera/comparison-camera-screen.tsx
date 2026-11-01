@@ -6,6 +6,7 @@ import {
 import { ComparisonImagePressable } from '@/components/comparison-camera/comparison-image-pressable';
 import ComparisonResultModal from '@/components/comparison-camera/comparison-result-modal';
 import { ThemeSlider } from '@/components/ui/theme-slider';
+import { useImageLoading } from '@/hooks/use-image-loading';
 import {
   fitComparisonPanels,
   fitImageSize,
@@ -22,6 +23,7 @@ import { type CameraZoomState, restoreCameraZoom } from '@/lib/comparison-camera
 import { readPhotoCaptureTime } from '@/lib/comparison-export';
 import { getCameraRatioPreference, setCameraRatioPreference } from '@/lib/storage';
 import type { Bangumi, Point } from '@/services/types';
+import { prefetchImageWithRetry } from '@/utils/prefetch-image-with-retry';
 import { Blend, Columns2, Images, Layers2, SwitchCamera, Undo2, X, Zap, ZapOff } from '@tamagui/lucide-icons-2';
 import { File } from 'expo-file-system';
 import { Image } from 'expo-image';
@@ -139,16 +141,23 @@ function RotatingReferenceImage({
   uri: string;
   viewport?: ReferenceViewport;
 }) {
+  const { controller, imageRef } = useImageLoading();
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotation.value}deg` }],
   }));
 
   return (
     <AnimatedImage
+      ref={imageRef}
       pointerEvents={pointerEvents}
       source={{ uri }}
       contentFit="contain"
-      onLoad={({ source }) => onLoadSize({ width: source.width, height: source.height })}
+      onLoadStart={controller.onLoadStart}
+      onError={controller.onError}
+      onLoad={({ source }) => {
+        controller.onLoad();
+        onLoadSize({ width: source.width, height: source.height });
+      }}
       cachePolicy="disk"
       style={[getReferenceImageLayout(orientationRotation, viewport), { opacity }, animatedStyle]}
       transition={0}
@@ -430,29 +439,24 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
     )
       return;
 
-    let cancelled = false;
     // Cached and quickly loaded images should not flash a loading indicator.
     const loadingTimer = setTimeout(() => setLoadingFullReference(true), FULL_REFERENCE_LOADING_DELAY_MS);
-
-    void Image.prefetch(fullReferenceUri, 'memory-disk')
-      .then((prefetched) => {
-        if (!cancelled && prefetched) {
-          setReferenceUri((current) => (current === initialReferenceUri ? fullReferenceUri : current));
-          setReferenceDimensions((current) =>
-            current && current.uri === initialReferenceUri ? { ...current, uri: fullReferenceUri } : current,
-          );
-        }
-      })
-      .catch(() => {
-        // Keep the thumbnail when the full-resolution image cannot be loaded.
-      })
-      .finally(() => {
+    const cancelPrefetch = prefetchImageWithRetry(fullReferenceUri, {
+      onLoad: () => {
+        setReferenceUri((current) => (current === initialReferenceUri ? fullReferenceUri : current));
+        setReferenceDimensions((current) =>
+          current && current.uri === initialReferenceUri ? { ...current, uri: fullReferenceUri } : current,
+        );
+      },
+      onSettled: () => {
+        // Exhausted retries keep the usable thumbnail and its existing ratio.
         clearTimeout(loadingTimer);
-        if (!cancelled) setLoadingFullReference(false);
-      });
+        setLoadingFullReference(false);
+      },
+    });
 
     return () => {
-      cancelled = true;
+      cancelPrefetch();
       clearTimeout(loadingTimer);
     };
   }, [capturing, referenceUri, fullReferenceUri, initialReferenceUri]);
@@ -928,6 +932,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
         <View flex={1} overflow="hidden" bg="#090909">
           {referenceUri ? (
             <RotatingReferenceImage
+              key={referenceUri}
               uri={referenceUri}
               onLoadSize={onReferenceLoad}
               orientationRotation={orientationRotation}
@@ -980,6 +985,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
         {referenceUri ? (
           <>
             <RotatingReferenceImage
+              key={referenceUri}
               pointerEvents="none"
               uri={referenceUri}
               onLoadSize={onReferenceLoad}

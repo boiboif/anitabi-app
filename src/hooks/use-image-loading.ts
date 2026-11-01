@@ -2,7 +2,7 @@ import { createImageLoadController } from '@/utils/image-load-controller';
 import type { Image } from 'expo-image';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 
-/** Source identity is owned by PreviewableImage's key, so pending work dies with a recycled image. */
+/** The caller keys the owning component by source identity so changing images cancels pending work. */
 export function useImageLoading() {
   const [{ controller, imageRef }] = useState(() => {
     let image: Image | null = null;
