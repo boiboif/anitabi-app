@@ -3,7 +3,7 @@ import { SettingsSection } from '@/components/ui/settings/settings-section';
 import { clearAppCache } from '@/lib/app-cache';
 import { getCurrentAppDisplayVersion } from '@/services/app-update';
 import { BottomTabInset, MaxContentWidth, TopLevelPageTopPadding } from '@/tamagui.config';
-import { BookImage, DatabaseBackup, HardDrive, Info, Languages, Moon } from '@tamagui/lucide-icons-2';
+import { BookImage, DatabaseBackup, HardDrive, Info, Languages, Moon, Settings2 } from '@tamagui/lucide-icons-2';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -96,6 +96,13 @@ export default function ProfileScreen() {
             title={t('pilgrimageRecords')}
             description={t('pilgrimageRecordsEntryDescription')}
             onPress={() => router.navigate('/pilgrimage-records' as never)}
+            showDivider
+          />
+          <SettingCell
+            icon={Settings2}
+            title={t('pilgrimageSettings')}
+            description={t('pilgrimageSettingsDescription')}
+            onPress={() => router.navigate('/pilgrimage-settings' as never)}
           />
         </SettingsSection>
 

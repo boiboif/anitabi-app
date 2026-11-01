@@ -1,6 +1,7 @@
 import { createMMKV } from 'react-native-mmkv';
 import { CAMERA_RATIO_OPTIONS, type CameraRatioPreference } from './comparison-camera-geometry';
 import { normalizeComparisonExportSettings, type ComparisonExportSettings } from './comparison-export';
+import type { NavigationMap } from './pilgrimage-navigation';
 
 export type ThemePreference = 'system' | 'light' | 'dark';
 export type AppLanguage = 'zh-CN' | 'ja' | 'en';
@@ -18,9 +19,18 @@ const LANGUAGE_KEY = 'language-preference';
 const MAP_STYLE_FOLLOWS_THEME_KEY = 'map-style-follows-theme';
 const CAMERA_RATIO_KEY = 'comparison-camera-ratio';
 const COMPARISON_EXPORT_KEY = 'comparison-export-settings';
+const NAVIGATION_MAP_KEY = 'pilgrimage-navigation-map';
 
 const DEFAULT_THEME_PREFERENCE: ThemePreference = 'system';
 const DEFAULT_LANGUAGE_PREFERENCE: LanguagePreference = 'system';
+
+export function getNavigationMapPreference(): string | undefined {
+  return storage.getString(NAVIGATION_MAP_KEY);
+}
+
+export function setNavigationMapPreference(map: NavigationMap): void {
+  storage.set(NAVIGATION_MAP_KEY, map);
+}
 
 export function getLanguagePreference(): LanguagePreference {
   const preference = storage.getString(LANGUAGE_KEY);

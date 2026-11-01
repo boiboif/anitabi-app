@@ -638,6 +638,17 @@ const en = {
   pilgrimageRecordsCleanupFailed: 'Records deleted; some images remain',
   pilgrimageRecordsCleanupFailedHint:
     'The records were deleted, but some in-app images could not be removed. Photos in your system library are unaffected.',
+  pilgrimageSettings: 'Pilgrimage settings',
+  pilgrimageSettingsDescription: 'Choose a map app for walking directions',
+  navigationMap: 'Navigation app',
+  navigationMapDescription: 'Location navigation buttons open walking directions in your selected map app.',
+  googleMaps: 'Google Maps',
+  amap: 'Amap',
+  baiduMaps: 'Baidu Maps',
+  appleMaps: 'Apple Maps',
+  navigateWithMap: 'Walking directions in {{map}}',
+  couldNotOpenNavigation: 'Could not open navigation',
+  pleaseInstallMapOrChangeNavigationSettings: 'Install {{map}}, or choose another map in pilgrimage settings.',
   gbcclub: 'Girls Band Cry Fans Club',
 } as const satisfies Record<TranslationKey, string>;
 

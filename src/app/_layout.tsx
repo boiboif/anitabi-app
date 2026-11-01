@@ -159,6 +159,10 @@ function RootLayout() {
                       options={{ headerShown: true, headerTitleAlign: 'center', title: t('pilgrimageRecords') }}
                     />
                     <Stack.Screen
+                      name="pilgrimage-settings"
+                      options={{ headerShown: true, headerTitleAlign: 'center', title: t('pilgrimageSettings') }}
+                    />
+                    <Stack.Screen
                       name="dark-mode"
                       options={{
                         headerShown: true,

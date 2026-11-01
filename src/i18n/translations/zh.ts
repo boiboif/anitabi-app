@@ -607,6 +607,17 @@ const zh = {
   pilgrimageRecordsOpenBackup: '打开备份与恢复',
   pilgrimageRecordsCleanupFailed: '记录已删除，部分图片未清理',
   pilgrimageRecordsCleanupFailedHint: '记录已删除，但部分应用内图片未能清理。系统相册照片不会受影响。',
+  pilgrimageSettings: '巡礼配置',
+  pilgrimageSettingsDescription: '设置步行导航使用的地图 App',
+  navigationMap: '导航地图',
+  navigationMapDescription: '点击点位的导航按钮时，将打开所选地图 App 的步行导航。',
+  googleMaps: 'Google Maps',
+  amap: '高德地图',
+  baiduMaps: '百度地图',
+  appleMaps: 'Apple Maps',
+  navigateWithMap: '在{{map}}中步行导航',
+  couldNotOpenNavigation: '无法打开导航',
+  pleaseInstallMapOrChangeNavigationSettings: '请先安装{{map}}，或在巡礼配置中选择其他地图。',
   gbcclub: 'GBC同好站',
 } as const;
 

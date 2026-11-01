@@ -1,6 +1,6 @@
 import ComparisonCameraButton from '@/components/comparison-camera/comparison-camera-button';
 import type { PlanMapResolvedPoint } from '@/components/plan/plan-map-point-types';
-import GoogleMapsNavigationButton from '@/components/point/google-maps-navigation-button';
+import PointNavigationButton from '@/components/point/point-navigation-button';
 import PointImage from '@/components/point/point-image';
 import PointSequenceBadge from '@/components/point/point-sequence-badge';
 import SwipeableCardCarousel, { type SwipeableCardCarouselHandle } from '@/components/ui/swipeable-card-carousel';
@@ -244,7 +244,7 @@ function PlanMapPointCard({
         </XStack>
         <View width="$0.25" height={16} bg="$color5" opacity={0.3} />
         <XStack flex={1} items="center" justify="center">
-          <GoogleMapsNavigationButton point={point} compact compactSize={42} bare />
+          <PointNavigationButton point={point} compact compactSize={42} bare />
         </XStack>
         <View width="$0.25" height={16} bg="$color5" opacity={0.3} />
         <XStack flex={1} items="center" justify="center">

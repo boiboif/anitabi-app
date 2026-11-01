@@ -1,6 +1,6 @@
 import ComparisonCameraButton from '@/components/comparison-camera/comparison-camera-button';
 import AddToPlanButton from '@/components/point/add-to-plan-button';
-import GoogleMapsNavigationButton from '@/components/point/google-maps-navigation-button';
+import PointNavigationButton from '@/components/point/point-navigation-button';
 import type { Bangumi, Point } from '@/services/types';
 import { XStack } from 'tamagui';
 
@@ -27,7 +27,7 @@ export default function PointCardActions({
     <XStack justify="flex-end" items="center" gap="$0.5">
       {showAddToPlan ? <AddToPlanButton bare point={point} bangumi={bangumi} size={size} /> : null}
       {showCamera ? <ComparisonCameraButton bare point={point} bangumi={bangumi} compact compactSize={size} /> : null}
-      {showNavigation ? <GoogleMapsNavigationButton bare point={point} compact compactSize={size} /> : null}
+      {showNavigation ? <PointNavigationButton bare point={point} compact compactSize={size} /> : null}
     </XStack>
   );
 }

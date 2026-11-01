@@ -639,6 +639,17 @@ const ja = {
   pilgrimageRecordsCleanupFailed: '記録は削除されましたが、一部の画像が残っています',
   pilgrimageRecordsCleanupFailedHint:
     '記録は削除されましたが、一部のアプリ内画像を削除できませんでした。システムの写真ライブラリ内の写真には影響しません。',
+  pilgrimageSettings: '巡礼設定',
+  pilgrimageSettingsDescription: '徒歩ルートに使用する地図アプリを選択',
+  navigationMap: 'ナビアプリ',
+  navigationMapDescription: 'スポットのナビボタンから、選択した地図アプリで徒歩ルートを開きます。',
+  googleMaps: 'Google マップ',
+  amap: '高徳地図',
+  baiduMaps: '百度地図',
+  appleMaps: 'Apple マップ',
+  navigateWithMap: '{{map}}で徒歩ルートを開く',
+  couldNotOpenNavigation: 'ナビを開けませんでした',
+  pleaseInstallMapOrChangeNavigationSettings: '{{map}}をインストールするか、巡礼設定で別の地図を選んでください。',
   gbcclub: 'ガルクラ同好会',
 } as const satisfies Record<TranslationKey, string>;
 
