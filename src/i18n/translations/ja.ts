@@ -394,6 +394,9 @@ const ja = {
   theComparisonCameraIsOnlyAvailableOnMobile: '比較カメラはモバイル版のみ対応しています',
   useTheIosOrAndroidAppToTakeComparisonPhotos: '撮影機能はiOSまたはAndroidアプリで利用してください。',
   updateDetected: '更新があります',
+  goToDownloadPage: 'ダウンロードページへ',
+  iosUpdateRequiresSigningAndSideloading:
+    'iOS のアプリ本体を更新するには、新しい IPA をダウンロードし、再署名してサイドロードする必要があります。アプリ内で直接インストールすることはできません。',
   updateReady: '更新の準備ができました',
   downloadTheLatestInstallerForAllFeaturesAndFixes:
     '最新インストーラーをダウンロードして、すべての機能と修正を利用できます。',

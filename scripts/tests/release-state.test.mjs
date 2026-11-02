@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { createRequire } from 'node:module';
+import vm from 'node:vm';
 
 const require = createRequire(import.meta.url);
 const {
@@ -17,6 +18,46 @@ const {
 const yaml = require('js-yaml');
 const root = path.resolve(import.meta.dirname, '../..');
 const workflow = (name) => yaml.load(fs.readFileSync(path.join(root, '.github/workflows', name), 'utf8'));
+
+test('release manifests advertise iOS updates only when the release includes an IPA', () => {
+  for (const hasIpa of [false, true]) {
+    let output = '';
+    const assets = [{ name: 'app.apk', url: 'https://example.test/app.apk' }];
+    if (hasIpa) assets.push({ name: 'app-unsigned.ipa', url: 'https://example.test/app.ipa' });
+    const processDouble = {
+      argv: [
+        'node',
+        'generate-release-manifest.cjs',
+        '--repo',
+        'boiboif/anitabi-app',
+        '--version',
+        '0.9.0',
+        '--from-github',
+        '--dry-run',
+      ],
+      env: {},
+      stdout: {
+        write: (value) => {
+          output += value;
+        },
+      },
+    };
+    vm.runInNewContext(fs.readFileSync(path.join(root, 'scripts/generate-release-manifest.cjs'), 'utf8'), {
+      __dirname: path.join(root, 'scripts'),
+      process: processDouble,
+      console,
+      require: (name) =>
+        name === 'child_process'
+          ? {
+              execFileSync: () =>
+                JSON.stringify({ name: 'v0.9.0', body: 'Release notes', url: 'https://example.test/release', assets }),
+            }
+          : require(name),
+    });
+    assert.equal(processDouble.exitCode, undefined);
+    assert.equal(JSON.parse(output).iosAvailable, hasIpa);
+  }
+});
 
 test('build numbers advance across native, production and preview download manifests', () => {
   assert.equal(

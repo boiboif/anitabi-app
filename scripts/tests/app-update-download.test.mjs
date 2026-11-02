@@ -428,6 +428,54 @@ test('binary detection preserves the native baseline when a download-only snapsh
   assert.equal(runtime.service.isNewerBinaryUpdate({ ...update, version: '0.7.0', buildNumber: 9999 }), false);
   assert.equal(runtime.service.isNewerBinaryUpdate({ ...update, version: '0.9.0', buildNumber: 1 }), true);
 });
+
+test('iOS detects newer installers without touching Android download files or tasks', async () => {
+  const runtime = setup({ platform: 'ios', libraryAvailable: true });
+  runtime.state.files.set(readyUri, 1000);
+  runtime.state.files.set(partialUri, 400);
+  assert.equal(await runtime.service.checkBinaryUpdate(), update);
+  assert.equal(runtime.service.isBinaryUpdateDownloaded(update), false);
+  assert.equal(runtime.service.getResumableBinaryDownloadProgress(update), null);
+  assert.equal(runtime.service.hasBackgroundBinaryUpdateDownload(update), false);
+  assert.equal(runtime.discoveryCalls(), 0);
+  assert.equal(runtime.state.files.size, 2);
+  assert.equal(runtime.state.created.length, 0);
+  assert.equal(runtime.openedUrls.length, 0);
+
+  for (const manifest of [
+    { ...update, buildNumber: 1026 },
+    { ...update, version: '0.7.0', buildNumber: 9999 },
+    { ...update, iosAvailable: false },
+    { ...update, iosAvailable: 'yes' },
+    { version: '0.9.0' },
+  ]) {
+    runtime.setManifest(manifest);
+    assert.equal(await runtime.service.checkBinaryUpdate(), null);
+  }
+  runtime.setManifest({ ...update, version: '0.9.0', buildNumber: 1, iosAvailable: true });
+  assert.equal((await runtime.service.checkBinaryUpdate()).version, '0.9.0');
+});
+
+test('iOS browser actions use the release page or download page and never the APK URL', async () => {
+  const runtime = setup({ platform: 'ios' });
+  const iosUpdate = { ...update, releaseUrl: 'https://example.test/releases/v0.8.0' };
+  await runtime.service.openBinaryUpdateInBrowser(iosUpdate);
+  await runtime.service.openBinaryUpdateInBrowser(update);
+  await runtime.service.downloadAndInstallBinaryUpdate(update);
+  assert.deepEqual(runtime.openedUrls, [
+    iosUpdate.releaseUrl,
+    'https://boiboif.github.io/anitabi-app/download',
+    'https://boiboif.github.io/anitabi-app/download',
+  ]);
+  assert.equal(runtime.legacyTasks.length, 0);
+  assert.equal(runtime.installs.length, 0);
+
+  const android = setup();
+  android.setManifest({ ...update, iosAvailable: false });
+  assert.ok(await android.service.checkBinaryUpdate());
+  await android.service.openBinaryUpdateInBrowser(iosUpdate);
+  assert.deepEqual(android.openedUrls, [update.apkUrl]);
+});
 test('old native packages keep resumable Expo downloads and install the complete file', async () => {
   const runtime = setup();
   runtime.state.files.set(partialUri, 400);

@@ -161,6 +161,7 @@ function readReleaseFromGithub(tag, repo, preferredAssetName) {
     title: release.name || tag,
     releaseNotes: release.body?.replace(/\n?<!-- anitabi-build-number: \d+ -->/g, '').trim() || `Anitabi ${tag}`,
     releaseUrl: release.url,
+    iosAvailable: assets.some((asset) => typeof asset.name === 'string' && asset.name.endsWith('.ipa') && asset.url),
     apkUrl: `https://github.com/${repo}/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(apkAsset.name)}`,
     fileName: apkAsset.name,
   };
@@ -283,6 +284,7 @@ function buildManifest(options) {
   };
 
   if (options.minSupportedVersion) manifest.minSupportedVersion = options.minSupportedVersion;
+  if (releaseData.iosAvailable !== undefined) manifest.iosAvailable = releaseData.iosAvailable;
   if (options.buildNumber) manifest.buildNumber = Number(options.buildNumber);
   if (options.minSupportedBuildNumber) {
     manifest.minSupportedBuildNumber = Number(options.minSupportedBuildNumber);

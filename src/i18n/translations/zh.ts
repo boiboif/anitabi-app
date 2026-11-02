@@ -376,6 +376,8 @@ const zh = {
   theComparisonCameraIsOnlyAvailableOnMobile: '对比图相机仅支持手机端',
   useTheIosOrAndroidAppToTakeComparisonPhotos: '请在 iOS 或 Android 应用中使用拍摄功能。',
   updateDetected: '检测到更新',
+  goToDownloadPage: '前往下载页',
+  iosUpdateRequiresSigningAndSideloading: 'iOS 整包更新需要下载新版 IPA，并重新签名侧载安装，无法在应用内直接安装。',
   updateReady: '更新已准备完成',
   downloadTheLatestInstallerForAllFeaturesAndFixes: '下载最新安装包，获取完整功能和修复。',
   theUpdateHasDownloadedInTheBackgroundAndWillApplyAfterRestarting: '更新内容已在后台下载完成，重启应用后立即生效。',

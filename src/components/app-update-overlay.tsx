@@ -4,7 +4,7 @@ import { getBinaryUpdateDisplayVersion, getCurrentAppDisplayVersion, isMandatory
 import { getApplicableReleaseNotes } from '@/services/release-notes';
 import * as Application from 'expo-application';
 import { useTranslation } from 'react-i18next';
-import { Modal, ScrollView } from 'react-native';
+import { Modal, Platform, ScrollView } from 'react-native';
 import { Progress, Text, View, XStack, YStack } from 'tamagui';
 
 type Props = {
@@ -29,6 +29,7 @@ export function AppUpdateOverlay({ manager }: Props) {
   if (!visible) return null;
 
   const isBinary = Boolean(visibleBinaryUpdate);
+  const isIosBinary = isBinary && Platform.OS === 'ios';
   const title = isBinary
     ? t('updateDetected', { defaultValue: '检测到更新' })
     : t('updateReady', { defaultValue: '更新已准备完成' });
@@ -52,7 +53,8 @@ export function AppUpdateOverlay({ manager }: Props) {
     : [];
   const progress = binaryProgress?.percent ?? 0;
   const hasPartialDownload = (binaryProgress?.bytesWritten ?? 0) > 0;
-  const showBinaryProgress = isBinary && !isBinaryDownloaded && (isDownloadingBinary || binaryProgress !== null);
+  const showBinaryProgress =
+    isBinary && !isIosBinary && !isBinaryDownloaded && (isDownloadingBinary || binaryProgress !== null);
 
   return (
     <Modal
@@ -116,6 +118,14 @@ export function AppUpdateOverlay({ manager }: Props) {
             </ScrollView>
           </YStack>
 
+          {isIosBinary ? (
+            <Text fontSize="$footnote" lineHeight={20} color="$color11">
+              {t('iosUpdateRequiresSigningAndSideloading', {
+                defaultValue: 'iOS 整包更新需要下载新版 IPA，并重新签名侧载安装，无法在应用内直接安装。',
+              })}
+            </Text>
+          ) : null}
+
           {showBinaryProgress ? (
             <YStack gap="$2">
               <XStack justify="space-between">
@@ -162,7 +172,7 @@ export function AppUpdateOverlay({ manager }: Props) {
               </Button>
             ) : null}
             <XStack>
-              {isBinary && !isBinaryDownloaded && !isDownloadingBinary ? (
+              {isBinary && !isIosBinary && !isBinaryDownloaded && !isDownloadingBinary ? (
                 <Button
                   chromeless
                   onPress={() => void manager.downloadBinaryUpdateInBrowser()}
@@ -178,19 +188,27 @@ export function AppUpdateOverlay({ manager }: Props) {
                 disabled={isDownloadingBinary}
                 accessibilityState={{ disabled: isDownloadingBinary }}
                 opacity={isDownloadingBinary ? 0.5 : 1}
-                onPress={isBinary ? () => void manager.installBinaryUpdate() : () => void manager.reloadForHotUpdate()}
+                onPress={
+                  isIosBinary
+                    ? () => void manager.downloadBinaryUpdateInBrowser()
+                    : isBinary
+                      ? () => void manager.installBinaryUpdate()
+                      : () => void manager.reloadForHotUpdate()
+                }
               >
-                {isDownloadingBinary
-                  ? isBinaryDownloaded
-                    ? t('opening', { defaultValue: '正在打开…' })
-                    : t('downloading', { defaultValue: '下载中…' })
-                  : isBinary
+                {isIosBinary
+                  ? t('goToDownloadPage', { defaultValue: '前往下载页' })
+                  : isDownloadingBinary
                     ? isBinaryDownloaded
-                      ? t('installNow', { defaultValue: '立即安装' })
-                      : hasPartialDownload
-                        ? t('resumeDownload', { defaultValue: '继续下载' })
-                        : t('updateNow', { defaultValue: '立即更新' })
-                    : t('restartToUpdate', { defaultValue: '重启更新' })}
+                      ? t('opening', { defaultValue: '正在打开…' })
+                      : t('downloading', { defaultValue: '下载中…' })
+                    : isBinary
+                      ? isBinaryDownloaded
+                        ? t('installNow', { defaultValue: '立即安装' })
+                        : hasPartialDownload
+                          ? t('resumeDownload', { defaultValue: '继续下载' })
+                          : t('updateNow', { defaultValue: '立即更新' })
+                      : t('restartToUpdate', { defaultValue: '重启更新' })}
               </Button>
             </XStack>
           </XStack>

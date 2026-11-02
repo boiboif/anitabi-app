@@ -37,6 +37,7 @@ export type BinaryUpdate = {
   releaseNotesHistory?: ReleaseNoteEntry[];
   apkUrl: string;
   releaseUrl?: string;
+  iosAvailable?: boolean;
   mandatory?: boolean;
   minSupportedVersion?: string;
   minSupportedBuildNumber?: number;
@@ -78,6 +79,7 @@ type ActiveBackgroundBinaryDownload = {
 };
 
 const DEFAULT_MANIFEST_URL = 'https://raw.githubusercontent.com/boiboif/anitabi-app/main/docs/releases/latest.json';
+const DEFAULT_IOS_DOWNLOAD_URL = 'https://boiboif.github.io/anitabi-app/download';
 const BINARY_DOWNLOAD_STATE_KEY = 'binary-download-v1';
 const BINARY_READY_FILE_SUFFIX = '.ready.apk';
 const BINARY_TEMPORARY_FILE_SUFFIX = `${BINARY_READY_FILE_SUFFIX}.download`;
@@ -157,6 +159,7 @@ function isBinaryUpdate(value: unknown): value is BinaryUpdate {
   return (
     typeof candidate.version === 'string' &&
     typeof candidate.apkUrl === 'string' &&
+    (candidate.iosAvailable === undefined || typeof candidate.iosAvailable === 'boolean') &&
     (candidate.displayVersion === undefined || typeof candidate.displayVersion === 'string') &&
     (candidate.buildNumber === undefined || typeof candidate.buildNumber === 'number')
   );
@@ -352,6 +355,7 @@ async function cleanupObsoleteBinaryUpdateFiles(currentUpdate: BinaryUpdate | nu
 }
 
 export function getResumableBinaryDownloadProgress(update: BinaryUpdate): BinaryDownloadProgress | null {
+  if (Platform.OS !== 'android') return null;
   return (
     getBackgroundUpdateDownloadProgress(getBinaryUpdateKey(update)) ??
     readPersistedBinaryDownload(update)?.progress ??
@@ -360,6 +364,7 @@ export function getResumableBinaryDownloadProgress(update: BinaryUpdate): Binary
 }
 
 export function hasBackgroundBinaryUpdateDownload(update: BinaryUpdate): boolean {
+  if (Platform.OS !== 'android') return false;
   return getBackgroundUpdateDownloadProgress(getBinaryUpdateKey(update)) !== null;
 }
 
@@ -404,11 +409,11 @@ async function waitForAppForeground(): Promise<void> {
 }
 
 export async function openBinaryUpdateInBrowser(update: BinaryUpdate): Promise<void> {
-  await Linking.openURL(update.apkUrl);
+  await Linking.openURL(Platform.OS === 'ios' ? update.releaseUrl || DEFAULT_IOS_DOWNLOAD_URL : update.apkUrl);
 }
 
 export async function checkBinaryUpdate(): Promise<BinaryUpdate | null> {
-  if (Platform.OS !== 'android' || !areAppUpdatesEnabled()) return null;
+  if ((Platform.OS !== 'android' && Platform.OS !== 'ios') || !areAppUpdatesEnabled()) return null;
 
   const manifestUrl = `${getManifestUrl()}${getManifestUrl().includes('?') ? '&' : '?'}t=${Date.now()}`;
   const response = await fetch(manifestUrl, {
@@ -418,9 +423,11 @@ export async function checkBinaryUpdate(): Promise<BinaryUpdate | null> {
 
   const manifest: unknown = await response.json();
   if (!isBinaryUpdate(manifest)) return null;
+  // Android-only releases share this feed; legacy manifests predate this flag.
+  if (Platform.OS === 'ios' && manifest.iosAvailable === false) return null;
 
   const update = isNewerBinaryUpdate(manifest) ? manifest : null;
-  await cleanupObsoleteBinaryUpdateFiles(update);
+  if (Platform.OS === 'android') await cleanupObsoleteBinaryUpdateFiles(update);
   if (!update) return null;
   return update;
 }
@@ -494,7 +501,7 @@ export async function downloadAndInstallBinaryUpdate(
   downloadOptions: BinaryDownloadOptions = {},
 ): Promise<BinaryDownloadResult> {
   if (Platform.OS !== 'android') {
-    await Linking.openURL(update.releaseUrl ?? update.apkUrl);
+    await openBinaryUpdateInBrowser(update);
     return 'completed';
   }
   if (supportsBackgroundUpdateDownloads()) {

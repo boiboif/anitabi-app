@@ -393,6 +393,9 @@ const en = {
   theComparisonCameraIsOnlyAvailableOnMobile: 'The comparison camera is only available on mobile',
   useTheIosOrAndroidAppToTakeComparisonPhotos: 'Use the iOS or Android app to take comparison photos.',
   updateDetected: 'Update available',
+  goToDownloadPage: 'Go to download page',
+  iosUpdateRequiresSigningAndSideloading:
+    'To update on iOS, download the new IPA, then sign it again and sideload it. Installation cannot be completed within the app.',
   updateReady: 'Update ready',
   downloadTheLatestInstallerForAllFeaturesAndFixes: 'Download the latest installer for all features and fixes.',
   theUpdateHasDownloadedInTheBackgroundAndWillApplyAfterRestarting:
