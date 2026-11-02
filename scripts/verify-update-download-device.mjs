@@ -13,7 +13,7 @@ import WebSocket from 'ws';
 const execFileAsync = promisify(execFile);
 const projectRoot = fileURLToPath(new URL('../', import.meta.url));
 const packageName = 'bbf.anitabiapp.dev';
-const implementation = '@kesha-antonov/react-native-background-downloader@4.6.4';
+const implementation = '@kesha-antonov/react-native-background-downloader@4.7.0';
 const cases = [
   ['foreground', '前台下载完整 APK 并打开安装界面'],
   ['background', '按 Home 后系统下载字节继续增长'],
@@ -244,7 +244,7 @@ async function main() {
       'utf8',
     ),
   );
-  assert.equal(dependency.version, '4.6.4', 'This validation plan is pinned to library version 4.6.4');
+  assert.equal(dependency.version, '4.7.0', 'This validation plan is pinned to library version 4.7.0');
   const apk = await stat(options.apk);
   assert.ok(apk.isFile() && apk.size > 0, 'A built development APK is required');
   const apkHash = createHash('sha256');

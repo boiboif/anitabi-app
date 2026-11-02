@@ -1934,15 +1934,15 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
-"@kesha-antonov/react-native-background-downloader@4.6.4":
-  version "4.6.4"
-  resolved "https://registry.yarnpkg.com/@kesha-antonov/react-native-background-downloader/-/react-native-background-downloader-4.6.4.tgz#eee069c72bcb134141c438cc1071b001c05cef9c"
-  integrity sha512-ioWPDmtFwAKRZGiZXuBReeioIKKj9dbg/XjITAPR8h86dHHIKH57hvNlxgQAzSqYuvCKhUJAXtyPR/scmkUPQw==
+"@kesha-antonov/react-native-background-downloader@4.7.0":
+  version "4.7.0"
+  resolved "https://registry.yarnpkg.com/@kesha-antonov/react-native-background-downloader/-/react-native-background-downloader-4.7.0.tgz#6d53f91b5ef04a3ffba7adb8f5e221444133c37d"
+  integrity sha512-TK1tFcSap5yfpE+95P7+UIDlJ7flnSlzQT7aQZzH75eVPlto4oIcEzfnyHIL5RaWatJu1N7fOLqEd9uM5uCh1g==
 
-"@legendapp/list@3.7.0":
-  version "3.7.0"
-  resolved "https://registry.yarnpkg.com/@legendapp/list/-/list-3.7.0.tgz#d7d0def18927cfcbc7d25087b4f5ca1ee7a701e5"
-  integrity sha512-Er2D5eKIv+rfbakJ3ra4pD7NCNtOj2m1nrU6s6Ea3dO+x3vgt0h9NE0dn5WHOLIRkPEWHiwbslgl95QxZiEkjg==
+"@legendapp/list@3.7.1":
+  version "3.7.1"
+  resolved "https://registry.yarnpkg.com/@legendapp/list/-/list-3.7.1.tgz#0e27b2d1fb2882fc43a5eab06e4965cafabc8457"
+  integrity sha512-zgIy84yG2JP93+kib61rZBTcYGZ6fULrkCQz/MF7WrjVJeJQa/rR4z+rXfM5oveirO5mYkro4IDGytARIjJe9w==
   dependencies:
     use-sync-external-store "^1.5.0"
 
