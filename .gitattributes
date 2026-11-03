@@ -1,0 +1,6 @@
+# Exclude tests and bundled agent skills from GitHub language statistics.
+scripts/tests/** -linguist-detectable
+.agents/skills/** -linguist-detectable
+.claude/skills/** -linguist-detectable
+
+# Keep default language detection for application code, scripts, and config.
