@@ -42,10 +42,11 @@
       "buildNumber": 1027
     }
   ],
-  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.9.0/anitabi-app-v0.9.0-android.apk",
-  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.9.0",
+  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.9.0-ota.1028/anitabi-app-v0.9.0-ota.1028-android.apk",
+  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.9.0-ota.1028",
   "mandatory": false,
   "iosAvailable": true,
   "buildNumber": 1027,
-  "fileName": "anitabi-app-v0.9.0-android.apk"
+  "fileName": "anitabi-app-v0.9.0-ota.1028-android.apk",
+  "artifactBuildNumber": 1028
 }
