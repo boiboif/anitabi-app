@@ -162,6 +162,8 @@ npx eas-cli@21.8.0 update --channel production --environment production --platfo
 
 OTA 成功后复用 `Mobile Release`，各任务显式检出该 OTA 的同一个 commit SHA，将当前 JavaScript 和资源内置到新的 APK/IPA。production 标签为 `v<version>-ota.<buildNumber>`，preview 为 `v<version>-preview-ota.<buildNumber>`；后缀仅用于 Release 和下载页展示，原生版本仍为基础版本，runtime 与更新频道不变。
 
+OTA 配套整包的 GitHub Release 正文会自动添加说明：“本安装包基于 `<当前版本>`，已内置本次热更新。已安装 `<当前版本>` 的用户可直接通过 OTA 更新。”版本号取自本次发布的 `APP_VERSION`，随后以“本次更新：”引出填写的 `Update message`，发版时只需填写具体更新内容。官网下载清单默认沿用这份 Release 正文，App 内升级清单仍保留原生基线的更新说明。
+
 OTA 发布任务和 Android/iOS 配套构建任务均显式传入该来源 SHA 的 `APP_CONTENT_REVISION`，写入 `extra.contentRevision`，使通过 OTA 更新的旧安装和直接安装配套整包的新安装显示相同内容版本。常规 native 发版不携带此内容标识。
 
 配套整包成功发布后，生成 `download.json` 或 `download-preview.json`，再以最新 `origin/main` 的对应升级清单为基线，刷新安装资源及 `artifactBuildNumber`。`latest.json` / `preview.json` 的 `version`、`buildNumber`、标题、更新说明和强制更新策略保持不变；两个清单一起提交。不得将下载清单整体复制为升级清单，否则其更大的构建号会让已有同版本用户收到整包提示。production 配套包会标记为 GitHub 最新 Release 并刷新官网下载；preview 仍为 prerelease。新用户安装后已经包含本次代码，新旧安装都继续接收相同 runtime、channel 的后续 OTA。

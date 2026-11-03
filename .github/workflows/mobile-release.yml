@@ -506,7 +506,15 @@ jobs:
       - name: Create or update release
         run: |
           if [[ -n "${RELEASE_NOTES:-}" ]]; then
-            node -e 'const fs = require("fs"); fs.writeFileSync("release-notes.md", `${process.env.RELEASE_NOTES.replace(/\\n/g, "\n")}\n`);'
+            node -e '
+              const fs = require("node:fs");
+              const notes = process.env.RELEASE_NOTES.replace(/\\n/g, "\n");
+              const version = process.env.APP_VERSION;
+              const introduction = process.env.OTA_BUNDLE === "true"
+                ? `本安装包基于 ${version}，已内置本次热更新。已安装 ${version} 的用户可直接通过 OTA 更新。\n\n本次更新：\n`
+                : "";
+              fs.writeFileSync("release-notes.md", `${introduction}${notes}\n`);
+            '
           else
             # actions/checkout creates a shallow lightweight tag for tag-triggered
             # runs. Force-fetch the real annotated tag before reading its message.
