@@ -51,6 +51,13 @@ on:
       update_url:
         required: true
         type: string
+      ota_release_json:
+        required: true
+        type: string
+      publication_mode:
+        required: false
+        default: coordinated
+        type: string
 
 permissions:
   contents: write
@@ -66,6 +73,14 @@ jobs:
   prepare:
     name: Prepare versions
     runs-on: ubuntu-latest
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      OTA_UPDATE_URL: ${{ inputs.update_url }}
+      OTA_RUNTIME_VERSION: ${{ inputs.ota_runtime_version }}
+      OTA_CHANNEL: ${{ inputs.release_type }}
+      OTA_SOURCE_SHA: ${{ inputs.source_sha }}
+      OTA_PUBLICATION_MODE: ${{ inputs.publication_mode }}
+      OTA_RELEASE_JSON: ${{ inputs.ota_release_json }}
     if: github.event_name == 'push' || inputs.release_type == 'preview' || github.ref == 'refs/heads/main'
     outputs:
       app_version: ${{ steps.config.outputs.app_version }}
@@ -184,15 +199,21 @@ jobs:
 
       - name: Verify current OTA before building
         if: inputs.ota_bundle
-        env:
-          OTA_UPDATE_URL: ${{ inputs.update_url }}
-          OTA_RUNTIME_VERSION: ${{ inputs.ota_runtime_version }}
-          OTA_CHANNEL: ${{ steps.config.outputs.update_channel }}
-          OTA_SOURCE_SHA: ${{ inputs.source_sha }}
-        run: node scripts/assert-current-ota.cjs
+        run: node scripts/ota-release.cjs verify
 
       - name: Validate release note metadata
         run: node scripts/generate-release-manifest.cjs --version "${{ steps.config.outputs.app_version }}" --tag "${{ steps.config.outputs.tag }}" --validate-notes
+
+      - name: Reserve OTA build number with a draft release
+        if: inputs.ota_bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.config.outputs.tag }}
+          APP_VERSION: ${{ steps.config.outputs.app_version }}
+          BUILD_NUMBER: ${{ steps.config.outputs.build_number }}
+          RELEASE_TYPE: ${{ steps.config.outputs.update_channel }}
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+        run: node scripts/ota-bundle-release.cjs reserve
 
   android:
     name: Build Android APK
@@ -455,6 +476,14 @@ jobs:
       DOWNLOAD_MANIFEST_PATH: ${{ needs.prepare.outputs.download_manifest_path }}
       OTA_BUNDLE: ${{ inputs.ota_bundle || false }}
       ANDROID_ASSET_NAME: ${{ needs.prepare.outputs.android_asset_name }}
+      IOS_ASSET_NAME: ${{ needs.prepare.outputs.ios_asset_name }}
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      OTA_UPDATE_URL: ${{ inputs.update_url }}
+      OTA_RUNTIME_VERSION: ${{ inputs.ota_runtime_version }}
+      OTA_CHANNEL: ${{ needs.prepare.outputs.update_channel }}
+      OTA_SOURCE_SHA: ${{ inputs.source_sha }}
+      OTA_PUBLICATION_MODE: ${{ inputs.publication_mode }}
+      OTA_RELEASE_JSON: ${{ inputs.ota_release_json }}
       RELEASE_NOTES: ${{ inputs.release_notes }}
       MANDATORY: ${{ inputs.mandatory }}
       MIN_SUPPORTED_VERSION: ${{ inputs.min_supported_version }}
@@ -483,15 +512,10 @@ jobs:
 
       - name: Recheck bundled release before publishing or retrying
         if: inputs.ota_bundle
-        env:
-          OTA_UPDATE_URL: ${{ inputs.update_url }}
-          OTA_RUNTIME_VERSION: ${{ inputs.ota_runtime_version }}
-          OTA_CHANNEL: ${{ needs.prepare.outputs.update_channel }}
-          OTA_SOURCE_SHA: ${{ inputs.source_sha }}
         run: |
           git fetch origin main --quiet
           node scripts/release-state.cjs check-ota-baseline "$RELEASE_TYPE" "$APP_VERSION" "$BUILD_NUMBER"
-          node scripts/assert-current-ota.cjs
+          node scripts/ota-release.cjs verify
 
       - name: Generate APK checksum
         run: |
@@ -504,16 +528,13 @@ jobs:
           cat "$apk_file.sha256"
 
       - name: Create or update release
+        if: '!inputs.ota_bundle'
         run: |
           if [[ -n "${RELEASE_NOTES:-}" ]]; then
             node -e '
               const fs = require("node:fs");
               const notes = process.env.RELEASE_NOTES.replace(/\\n/g, "\n");
-              const version = process.env.APP_VERSION;
-              const introduction = process.env.OTA_BUNDLE === "true"
-                ? `本安装包基于 ${version}，已内置本次热更新。已安装 ${version} 的用户可直接通过 OTA 更新。\n\n本次更新：\n`
-                : "";
-              fs.writeFileSync("release-notes.md", `${introduction}${notes}\n`);
+              fs.writeFileSync("release-notes.md", `${notes}\n`);
             '
           else
             # actions/checkout creates a shallow lightweight tag for tag-triggered
@@ -539,6 +560,10 @@ jobs:
             gh release create "$TAG" dist/* --target "$GITHUB_SHA" --title "$TAG" --notes-file release-notes.md $PRERELEASE_FLAG
           fi
 
+      - name: Upload and verify draft OTA installers
+        if: inputs.ota_bundle
+        run: node scripts/ota-bundle-release.cjs upload
+
       - name: Generate update manifest
         run: |
           manifest_args=(node scripts/generate-release-manifest.cjs --version "$APP_VERSION" --tag "$TAG" --build-number "$BUILD_NUMBER" --from-github --asset-name "$ANDROID_ASSET_NAME" --output "$MANIFEST_PATH")
@@ -554,6 +579,28 @@ jobs:
       - name: Refresh upgrade installer without advancing the native baseline
         if: inputs.ota_bundle
         run: node scripts/release-state.cjs refresh-ota-upgrade "$RELEASE_TYPE"
+
+      - name: Recheck all release gates before making installers public
+        if: inputs.ota_bundle
+        run: |
+          git fetch origin main --quiet
+          node scripts/release-state.cjs check-ota-baseline "$RELEASE_TYPE" "$APP_VERSION" "$BUILD_NUMBER"
+          node scripts/ota-release.cjs verify
+
+      - name: Publish prepared OTA installers
+        if: inputs.ota_bundle
+        run: node scripts/ota-bundle-release.cjs publish
+
+      - name: Make the prepared OTA available to all users
+        if: inputs.ota_bundle
+        run: node scripts/ota-release.cjs promote
+
+      - name: Recheck and refresh manifests after OTA publication
+        if: inputs.ota_bundle
+        run: |
+          git fetch origin main --quiet
+          node scripts/ota-release.cjs verify
+          node scripts/release-state.cjs refresh-ota-upgrade "$RELEASE_TYPE"
 
       - name: Commit update manifest
         run: |

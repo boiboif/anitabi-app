@@ -60,6 +60,63 @@ test('release manifests advertise iOS updates only when the release includes an 
   }
 });
 
+test('a draft installer manifest uses public download links and omits internal ownership markers', () => {
+  const tag = 'v0.9.0-ota.1030';
+  const assetName = `anitabi-app-${tag}-android.apk`;
+  const release = {
+    name: tag,
+    url: 'https://github.com/boiboif/anitabi-app/releases/tag/untagged-temporary-id',
+    body: [
+      'Already includes this OTA update.',
+      '<!-- anitabi-build-number: 1030 -->',
+      '<!-- anitabi-ota-release: {"sourceSha":"internal-source","runId":"123"} -->',
+    ].join('\n'),
+    assets: [
+      { name: assetName, url: 'https://api.github.com/repos/boiboif/anitabi-app/releases/assets/123' },
+      {
+        name: `anitabi-app-${tag}-unsigned.ipa`,
+        url: 'https://api.github.com/repos/boiboif/anitabi-app/releases/assets/124',
+      },
+    ],
+  };
+  let output = '';
+  const processDouble = {
+    argv: [
+      'node',
+      'generate-release-manifest.cjs',
+      '--repo',
+      'boiboif/anitabi-app',
+      '--version',
+      '0.9.0',
+      '--tag',
+      tag,
+      '--asset-name',
+      assetName,
+      '--build-number',
+      '1030',
+      '--from-github',
+      '--dry-run',
+    ],
+    env: {},
+    stdout: { write: (value) => (output += value) },
+  };
+  vm.runInNewContext(fs.readFileSync(path.join(root, 'scripts/generate-release-manifest.cjs'), 'utf8'), {
+    __dirname: path.join(root, 'scripts'),
+    process: processDouble,
+    console,
+    require: (name) => (name === 'child_process' ? { execFileSync: () => JSON.stringify(release) } : require(name)),
+  });
+  assert.equal(processDouble.exitCode, undefined);
+  const manifest = JSON.parse(output);
+  assert.equal(manifest.apkUrl, `https://github.com/boiboif/anitabi-app/releases/download/${tag}/${assetName}`);
+  assert.equal(manifest.releaseUrl, `https://github.com/boiboif/anitabi-app/releases/tag/${tag}`);
+  assert.equal(manifest.fileName, assetName);
+  assert.equal(manifest.iosAvailable, true, 'iOS uses the eventual public release page containing the IPA');
+  assert.equal(manifest.releaseNotes, 'Already includes this OTA update.');
+  assert.equal(manifest.releaseNotesHistory[0].notes, 'Already includes this OTA update.');
+  assert.doesNotMatch(output, /internal-source|anitabi-ota-release|anitabi-build-number|untagged-temporary-id/);
+});
+
 test('build numbers advance across native, production and preview download manifests', () => {
   assert.equal(
     nextBuildNumber([{ buildNumber: 1026 }, { buildNumber: 1021 }, { buildNumber: 1030 }, { buildNumber: 1032 }], []),
@@ -323,15 +380,24 @@ test('OTA gates the reusable dual-platform release and pins every checkout to it
   assert.equal(mobile.concurrency['cancel-in-progress'], false);
 });
 
-test('the published OTA installer refreshes the upgrade feed before both manifests are committed', () => {
+test('OTA installer resources refresh the upgrade feed before exposure and again before manifest commit', () => {
   const { steps } = workflow('mobile-release.yml').jobs.publish;
-  const refreshIndex = steps.findIndex((step) => step.run?.includes('release-state.cjs refresh-ota-upgrade'));
-  assert.ok(refreshIndex > steps.findIndex((step) => step.name === 'Create or update release'));
+  const refreshIndices = steps.flatMap((step, index) =>
+    step.run?.includes('release-state.cjs refresh-ota-upgrade') ? [index] : [],
+  );
+  assert.equal(refreshIndices.length, 2);
+  const [refreshIndex, finalRefreshIndex] = refreshIndices;
+  assert.ok(refreshIndex > steps.findIndex((step) => step.run?.includes('ota-bundle-release.cjs upload')));
   assert.ok(refreshIndex > steps.findIndex((step) => step.name === 'Generate update manifest'));
   assert.equal(steps[refreshIndex].if, 'inputs.ota_bundle');
   assert.match(steps[refreshIndex].run, /refresh-ota-upgrade "\$RELEASE_TYPE"/);
+  assert.ok(refreshIndex < steps.findIndex((step) => step.run?.includes('ota-bundle-release.cjs publish')));
+  assert.ok(finalRefreshIndex > steps.findIndex((step) => step.run?.includes('ota-release.cjs promote')));
+  assert.equal(steps[finalRefreshIndex].if, 'inputs.ota_bundle');
+  assert.match(steps[finalRefreshIndex].run, /git fetch origin main/);
+  assert.match(steps[finalRefreshIndex].run, /ota-release.cjs verify/);
   const commitIndex = steps.findIndex((step) => step.name === 'Commit update manifest');
-  assert.ok(commitIndex > refreshIndex);
+  assert.ok(commitIndex > finalRefreshIndex);
   assert.match(steps[commitIndex].run, /manifest-path "\$RELEASE_TYPE" false/);
 });
 

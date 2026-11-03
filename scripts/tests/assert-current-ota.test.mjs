@@ -213,7 +213,7 @@ test('retry settings and source identity are validated before making any request
   }
 });
 
-test('the successful OTA caller supplies its resolved config and child guards both build and publication', () => {
+test('the successful OTA caller supplies its resolved config and exact candidate to both child guards', () => {
   const yaml = require('js-yaml');
   const readWorkflow = (name) =>
     yaml.load(fs.readFileSync(new URL(`../../.github/workflows/${name}`, import.meta.url), 'utf8'));
@@ -224,21 +224,30 @@ test('the successful OTA caller supplies its resolved config and child guards bo
   assert.equal(caller.jobs['bundled-release'].needs, 'publish');
   assert.equal(caller.jobs['bundled-release'].with.ota_runtime_version, '${{ needs.publish.outputs.runtime_version }}');
   assert.equal(caller.jobs['bundled-release'].with.update_url, '${{ needs.publish.outputs.update_url }}');
+  assert.equal(caller.jobs['bundled-release'].with.ota_release_json, '${{ needs.publish.outputs.ota_release_json }}');
+  assert.equal(caller.jobs['bundled-release'].with.publication_mode, '${{ inputs.publication_mode }}');
   assert.equal(mobile.on.workflow_call.inputs.ota_runtime_version.required, true);
   assert.equal(mobile.on.workflow_call.inputs.update_url.required, true);
+  assert.equal(mobile.on.workflow_call.inputs.ota_release_json.required, true);
   for (const name of ['prepare', 'publish']) {
-    const steps = mobile.jobs[name].steps;
-    const guard = steps.find((step) => step.run?.includes('node scripts/assert-current-ota.cjs'));
+    const job = mobile.jobs[name];
+    const steps = job.steps;
+    const guard = steps.find((step) => step.run?.includes('node scripts/ota-release.cjs verify'));
+    assert.ok(guard, `Verify the exact candidate before ${name}`);
     assert.equal(guard.if, 'inputs.ota_bundle');
-    assert.equal(guard.env.OTA_SOURCE_SHA, '${{ inputs.source_sha }}');
-    assert.equal(guard.env.OTA_RUNTIME_VERSION, '${{ inputs.ota_runtime_version }}');
-    assert.equal(guard.env.OTA_UPDATE_URL, '${{ inputs.update_url }}');
-    if (name === 'publish')
-      assert.ok(steps.indexOf(guard) < steps.findIndex((step) => step.run?.includes('gh release create')));
+    const env = { ...job.env, ...guard.env };
+    assert.equal(env.OTA_SOURCE_SHA, '${{ inputs.source_sha }}');
+    assert.equal(env.OTA_RUNTIME_VERSION, '${{ inputs.ota_runtime_version }}');
+    assert.equal(env.OTA_UPDATE_URL, '${{ inputs.update_url }}');
+    assert.equal(env.OTA_RELEASE_JSON, '${{ inputs.ota_release_json }}');
+    assert.equal(env.OTA_PUBLICATION_MODE, '${{ inputs.publication_mode }}');
+    assert.equal(env.EXPO_TOKEN, '${{ secrets.EXPO_TOKEN }}');
+    const action = name === 'prepare' ? 'reserve' : 'upload';
+    assert.ok(steps.indexOf(guard) < steps.findIndex((step) => step.run?.includes(`ota-bundle-release.cjs ${action}`)));
   }
   assert.ok(
     !fs
       .readFileSync(new URL('../../.github/workflows/android-release.yml', import.meta.url), 'utf8')
-      .includes('assert-current-ota.cjs'),
+      .includes('ota-release.cjs'),
   );
 });

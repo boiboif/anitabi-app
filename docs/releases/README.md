@@ -154,13 +154,26 @@ yarn release:manifest --from-github --min-supported-build-number 1001
 
 ## 热更新
 
-热更新只适用于 JavaScript、资源和配置中不涉及原生代码的改动。进入 `Actions` → `EAS Hot Update` → `Run workflow`，选择目标 channel 并填写更新说明。原生版本以当前 `app.config.ts` 的 `version` 和已安装应用为准。此入口会先发布 OTA，成功后自动构建并发布 Android APK 与 iOS 未签名 IPA；运行它即会启动这两个平台的构建。OTA 发布步骤执行：
+热更新只适用于 JavaScript、资源和配置中不涉及原生代码的改动。进入 `Actions` → `EAS Hot Update` → `Run workflow`，选择目标 channel、填写更新说明，并选择 `publication_mode`。原生版本以当前 `app.config.ts` 的 `version` 和已安装应用为准。两种模式都会自动构建 Android APK 与 iOS 未签名 IPA，运行此入口即会启动双端构建。
+
+| `publication_mode`    | OTA 何时对用户可见                          | 整包构建失败时                                                    |
+| --------------------- | ------------------------------------------- | ----------------------------------------------------------------- |
+| `coordinated`（默认） | APK、IPA 与清单都准备好后，进入统一上线阶段 | 候选 OTA 保持 0%，整包 Release 保持草稿，现有用户继续使用先前更新 |
+| `ota-first`（应急）   | 上传 OTA 成功后立即可见                     | OTA 保持上线，配套整包等待重试                                    |
+
+默认流程先在真实 channel 对应的 branch 上传 0% 候选，不改变应用的生产／预览环境配置：
 
 ```bash
-npx eas-cli@21.8.0 update --channel production --environment production --platform all --message "更新说明" --non-interactive
+npx eas-cli@21.8.0 update --channel production --environment production --platform all --message "更新说明" --rollout-percentage 0 --json --non-interactive
 ```
 
-OTA 成功后复用 `Mobile Release`，各任务显式检出该 OTA 的同一个 commit SHA，将当前 JavaScript 和资源内置到新的 APK/IPA。production 标签为 `v<version>-ota.<buildNumber>`，preview 为 `v<version>-preview-ota.<buildNumber>`；后缀仅用于 Release 和下载页展示，原生版本仍为基础版本，runtime 与更新频道不变。
+`ota-first` 省略 `--rollout-percentage 0`，沿用立即发布的行为。EAS 的更新消息末尾会附加当前 Actions run 与模式的内部身份标记，GitHub Release 正文不包含它。候选上传后，工作流保存双端 update ID、group、`createdAt`、完整来源 SHA、runtime 和实际频道映射，并归档为 `ota-release-state` Artifact。若上传成功但后续记录或归档失败，同一运行重试会先核验并复用所属候选，跳过再次上传；原始发布结果即使后续校验失败也会尽量归档。随后复用 `Mobile Release`，各任务显式检出同一个 commit SHA，将该内容内置到新的 APK/IPA。
+
+默认模式等双端构建和资产校验通过、下载清单与升级清单均生成成功后，才公开已上传完整资源的 GitHub Release，然后将原候选的两端发布比例提升到 100%，核验公开 OTA 端点，最后提交清单并刷新官网。推广只修改原 update ID 的发布比例，不重新发布 OTA，因此候选时间仍早于新整包的内嵌时间。新装整包不需要再次下载相同内容的 OTA。频道映射保持不变，同一频道其他 runtime 的历史更新也继续可用。[EAS 发布比例说明](https://docs.expo.dev/eas/workflows/pre-packaged-jobs/#update)、[更新比例的官方实现](https://github.com/expo/eas-cli/blob/v21.8.0/packages/eas-cli/src/graphql/mutations/PublishMutation.ts)。
+
+GitHub、EAS、Git 清单与官网部署不是一个原子事务；“统一上线”指全部准备完成后才开始这个短暂的上线阶段，不保证各入口在同一毫秒可见。上线中途失败时可能已有部分入口可见，应在原 Actions 运行中选择 **Re-run failed jobs** 继续完成，不自动回滚或覆盖其他更新。
+
+production 标签为 `v<version>-ota.<buildNumber>`，preview 为 `v<version>-preview-ota.<buildNumber>`。例如 `v0.9.0-ota.1028` 中的 `1028` 是整包构建号，同时用于 Android `versionCode` 和 iOS 构建号，不是日期或 OTA 次数。工作流取现有清单、Release 和已预留草稿中的最大构建号再加 1；正式版、预览版、OTA 配套整包共用序列，因此下次通常是 `1029`，有其他发布或失败草稿占号时可以跳号。分配编号后会先创建带来源及运行身份的草稿 Release 预留该编号。原生版本仍为基础版本，runtime 与更新频道不变。
 
 OTA 配套整包的 GitHub Release 正文会自动添加说明：“本安装包基于 `<当前版本>`，已内置本次热更新。已安装 `<当前版本>` 的用户可直接通过 OTA 更新。”版本号取自本次发布的 `APP_VERSION`，随后以“本次更新：”引出填写的 `Update message`，发版时只需填写具体更新内容。官网下载清单默认沿用这份 Release 正文，App 内升级清单仍保留原生基线的更新说明。
 
@@ -179,15 +192,19 @@ OTA 的清单提交在临时 worktree 中以已校验的 `origin/main` 为父提
 
 Android `0.8.0` 用户下次检查更新后可以直接下载安装该配套整包，无需先安装原始 `0.9.0` 再应用本次 OTA。原始 `0.9.0 / build 1027` 用户仍只接收 OTA，安装配套包的用户也不会再收到基线整包提示。旧客户端无需修改代码；已经打开的旧更新弹窗或已经开始的下载，需要重新检查更新才能采用新地址。iOS 的 App 内整包提示从 `0.9.0` 才开始支持，更早的 iOS 安装仍需手动下载并侧载。
 
-如果排队期间当前原生升级基线已换成其他基础版本，补充构建会在编译前停止，避免用旧 runtime 的包覆盖官网下载。若双端构建任一失败，则不发布此次整包或推进下载清单；已经成功发布的 OTA 不会撤回，可从该次 Actions 运行重试失败任务。发布整包与发布 OTA 是两个状态，不能以 OTA 成功推断 APK/IPA 已经生成。
+如果排队期间当前原生升级基线已换成其他基础版本，补充构建会在编译前停止，避免用旧 runtime 的包覆盖官网下载。若双端构建任一失败，则不公开此次整包或推进下载清单；默认模式的候选 OTA 仍未向用户开放，应急模式中已经上线的 OTA 不撤回。应从该次 Actions 运行选择 **Re-run failed jobs**，保留成功的 OTA 与构建产物。全部重跑虽不会再次上传同一候选，但会重新分配构建号、重新构建，且可能与已存在的同名构建 Artifact 冲突。
 
-补充包还会在编译前和创建 Release 前重新读取实际更新 URL，对 Android、iOS 分别携带该次发布的 channel/runtime 请求当前 OTA。只有两端 manifest 的 `extra.expoClient.extra.contentRevision` 都等于来源完整 Git SHA、runtime 都相同，才继续。URL/runtime 取自成功 OTA 任务解析的源配置，不假定 channel 对应同名 EAS branch。缺少 revision、无可用更新、rollback directive、网络错误或不一致响应都停止发包；为容忍刚发布时的短暂传播延迟，最多检查 5 次、间隔 2 秒，每个请求最多 10 秒。这里只进行公开端点读取，不需要在整包任务中增加 Expo token。
+上传前先检查目标 channel 实际映射的 branch：如果相同 runtime 任一平台已有其他运行未完成的 rollout，新运行会停止，包括 `ota-first`，防止覆盖等待整包的候选。应先恢复原运行，或由发布负责人明确处理现有候选；工作流不会自动删除或回退它。旧运行的重试若找不到仍属自己的最新候选，也会停止，不能重新上传旧内容覆盖后来更新；若上次在上传前就已失败，应重新发起一次 workflow dispatch。暂停频道、多分支 rollout 或不受支持的映射也会停止，需要先恢复明确的单分支发布状态。
 
-这项检查防止旧失败任务重试覆盖新内容：例如 A 的 OTA 成功但补包失败，随后 B 的 OTA 已发布，即使 B 的整包还没成功，A 的旧任务也不能靠分配更大构建号发布一个更晚内嵌旧 JS 的包。否则该包的内嵌时间晚于 B OTA，可能不再接收已经存在的 B 更新。此时应重试当前 B 来源的补包任务；不能增大构建号或关闭检查绕过来源保护。相同来源仍为当前 OTA 时可正常重试。常规 native 发版不执行这一 OTA 守卫。
+编译前、公开安装包前、开放 OTA 前及提交清单前，均重新校验该 channel／runtime 两个平台最新 update ID，必须仍为本次记录的候选；即使来源 SHA 相同，也不能替换成另一次发布。精确候选 manifest 的 `extra.expoClient.extra.contentRevision`、runtime、ID、`createdAt` 都必须匹配，拒绝缺失内容标识、rollback directive、错误响应和其他来源。候选通过精确 manifest 地址检查；完全开放后再读取正常 channel／runtime 公开端点核对双端 ID。校验和推广使用已有 `EXPO_TOKEN`，不依赖频道和 branch 同名。
+
+双端发布比例由 EAS 分别保存。若只成功开放一个平台，重试会核对同一候选并只补齐尚未达到 100% 的平台，不重建 update ID／时间，也不覆盖后来的更新。草稿资产只允许所属运行重传；已公开 Release 的重试会校验并复用原资源，拒绝覆盖不同内容。内部的构建号与运行身份 HTML 标记不会进入下载清单的更新文案。
+
+这项检查保留了此前的过期任务保护：例如应急模式 A 的 OTA 成功但补包失败，随后 B 的 OTA 已发布，即使 B 的整包还没成功，A 的旧任务也不能靠分配更大构建号发布一个更晚内嵌旧 JS 的包。否则该包的内嵌时间晚于 B OTA，可能不再接收已经存在的 B 更新。此时应重试当前 B 的补包任务，不能增大构建号或关闭守卫绕过保护。相同候选仍为当前最新更新时可正常重试。常规 native 发版不执行这一 OTA 守卫。
 
 同一 channel 的本工作流发布保持串行；外部命令或其他发布入口需要与该流程协调，避免在检查与发布之间并发改变 channel。实时读取防护不等同于跨 EAS/GitHub 的原子发布事务。
 
-工作流只能从 `main` 分支运行，并会在发布前检查 `app.config.ts` 的基础版本是否与目标 channel 最新整包清单中的 `version` 相同；基础版本不一致时工作流会直接报错。SDK 58 的 `runtimeVersion` 使用 `${appVersion}-sdk58`（当前为 `0.8.0-sdk58`），不包含 `preview.N` 展示后缀。SDK 57 的旧包使用 `0.7.0`，不会接收 SDK 58 的热更新。工作流的版本检查只比较基础版本，不能证明已经发布相同 runtime 的原生包；升级 SDK 后必须先发布使用新 runtime 的整包，再发布热更新。
+工作流只能从 `main` 分支运行，并会在发布前检查 `app.config.ts` 的基础版本是否与目标 channel 最新整包清单中的 `version` 相同；基础版本不一致时工作流会直接报错。SDK 58 的 `runtimeVersion` 使用 `${appVersion}-sdk58`（当前为 `0.9.0-sdk58`），不包含 `preview.N` 展示后缀。SDK 57 的旧包使用 `0.7.0`，不会接收 SDK 58 的热更新。工作流的版本检查只比较基础版本，不能证明已经发布相同 runtime 的原生包；升级 SDK 后必须先发布使用新 runtime 的整包，再发布热更新。
 
 `preview` 和 `production` 分别使用独立的 EAS channel、EAS environment 和整包更新清单。工作流会自动创建首次使用的 EAS channel；Preview 热更新固定注入 `docs/releases/preview.json`，Production 热更新使用 `docs/releases/latest.json`，更新配置中的应用版本统一使用基础版本。清单的 `displayVersion` 继续用于待升级版本展示。热更新会同时发布 Android 和 iOS Update，各平台只会接收与自身 runtime version 匹配的更新。
 

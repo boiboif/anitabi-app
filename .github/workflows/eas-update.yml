@@ -15,6 +15,14 @@ on:
         description: 'Update message'
         required: true
         type: string
+      publication_mode:
+        description: 'coordinated waits for APK + IPA; ota-first publishes OTA immediately for emergencies'
+        required: true
+        default: coordinated
+        type: choice
+        options:
+          - coordinated
+          - ota-first
 
 permissions:
   contents: write
@@ -27,10 +35,12 @@ concurrency:
 
 jobs:
   publish:
+    name: Prepare OTA
     runs-on: ubuntu-latest
     outputs:
       runtime_version: ${{ steps.update-config.outputs.runtime_version }}
       update_url: ${{ steps.update-config.outputs.update_url }}
+      ota_release_json: ${{ steps.ota-release.outputs.release }}
     env:
       EXPO_PROJECT_ID: ${{ vars.EXPO_PROJECT_ID }}
       EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN: ${{ vars.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN }}
@@ -130,13 +140,66 @@ jobs:
             });
           '
 
-      - name: Publish EAS Update
-        run: npx eas-cli@21.8.0 update --channel "$EXPO_UPDATE_CHANNEL" --environment "$EAS_ENVIRONMENT" --platform all --message "$INPUT_MESSAGE" --non-interactive
+      - name: Check for an unfinished OTA release
+        id: ota-preflight
+        env:
+          OTA_UPDATE_URL: ${{ steps.update-config.outputs.update_url }}
+          OTA_RUNTIME_VERSION: ${{ steps.update-config.outputs.runtime_version }}
+          OTA_CHANNEL: ${{ inputs.channel }}
+          OTA_SOURCE_SHA: ${{ github.sha }}
+          OTA_PUBLICATION_MODE: ${{ inputs.publication_mode }}
+        run: node scripts/ota-release.cjs preflight
+
+      - name: Upload OTA candidate or publish emergency OTA
+        if: steps.ota-preflight.outputs.resume != 'true'
+        shell: bash
+        run: |
+          reserved_marker='<!--[[:space:]]*anitabi-(ota-run|ota-release|build-number):'
+          if [[ "$INPUT_MESSAGE" =~ $reserved_marker ]]; then
+            echo 'Update message cannot contain reserved release metadata.'
+            exit 1
+          fi
+          # Keep an ownership marker in EAS metadata so a retry after upload can
+          # recover this run's candidate even if recording its output failed.
+          printf -v update_message '%s\n\n<!-- anitabi-ota-run: %s; mode: %s -->' "$INPUT_MESSAGE" "$GITHUB_RUN_ID" "$PUBLICATION_MODE"
+          update_args=(update --channel "$EXPO_UPDATE_CHANNEL" --environment "$EAS_ENVIRONMENT" --platform all --message "$update_message" --non-interactive --json)
+          if [[ "$PUBLICATION_MODE" == "coordinated" ]]; then
+            update_args+=(--rollout-percentage 0)
+          fi
+          npx eas-cli@21.8.0 "${update_args[@]}" > ota-update.json
         env:
           INPUT_MESSAGE: ${{ inputs.message }}
+          PUBLICATION_MODE: ${{ inputs.publication_mode }}
+
+      - name: Record and verify exact OTA identities
+        id: ota-release
+        env:
+          OTA_UPDATE_URL: ${{ steps.update-config.outputs.update_url }}
+          OTA_RUNTIME_VERSION: ${{ steps.update-config.outputs.runtime_version }}
+          OTA_CHANNEL: ${{ inputs.channel }}
+          OTA_SOURCE_SHA: ${{ github.sha }}
+          OTA_PUBLICATION_MODE: ${{ inputs.publication_mode }}
+          OTA_RESUME: ${{ steps.ota-preflight.outputs.resume }}
+        run: node scripts/ota-release.cjs capture ota-update.json
+
+      - name: Save OTA release state
+        env:
+          OTA_RELEASE_JSON: ${{ steps.ota-release.outputs.release }}
+        run: printf '%s\n' "$OTA_RELEASE_JSON" > ota-release-state.json
+
+      - name: Upload OTA release state
+        if: always() && hashFiles('ota-update.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: ota-release-state
+          overwrite: true
+          path: |
+            ota-release-state.json
+            ota-update.json
+          if-no-files-found: error
 
   bundled-release:
-    name: Publish downloadable APK and IPA
+    name: Build and finalize OTA, APK and IPA
     needs: publish
     uses: ./.github/workflows/mobile-release.yml
     with:
@@ -145,5 +208,7 @@ jobs:
       source_sha: ${{ github.sha }}
       ota_runtime_version: ${{ needs.publish.outputs.runtime_version }}
       update_url: ${{ needs.publish.outputs.update_url }}
+      publication_mode: ${{ inputs.publication_mode }}
+      ota_release_json: ${{ needs.publish.outputs.ota_release_json }}
       ota_bundle: true
     secrets: inherit

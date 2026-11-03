@@ -159,8 +159,14 @@ function readReleaseFromGithub(tag, repo, preferredAssetName) {
 
   return {
     title: release.name || tag,
-    releaseNotes: release.body?.replace(/\n?<!-- anitabi-build-number: \d+ -->/g, '').trim() || `Anitabi ${tag}`,
-    releaseUrl: release.url,
+    releaseNotes:
+      release.body
+        ?.replace(/\n?<!-- anitabi-build-number: \d+ -->/g, '')
+        .replace(/\n?<!-- anitabi-ota-release: .*? -->/g, '')
+        .trim() || `Anitabi ${tag}`,
+    // Draft releases may have a temporary URL. The manifest is validated before
+    // publication, but must always link to the eventual public tag page.
+    releaseUrl: `https://github.com/${repo}/releases/tag/${encodeURIComponent(tag)}`,
     iosAvailable: assets.some((asset) => typeof asset.name === 'string' && asset.name.endsWith('.ipa') && asset.url),
     apkUrl: `https://github.com/${repo}/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(apkAsset.name)}`,
     fileName: apkAsset.name,

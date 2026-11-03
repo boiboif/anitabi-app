@@ -1,5 +1,17 @@
 # OTA 配套整包与后台下载验证报告
 
+## 后续调整：准备完成后统一上线（2026-11-03）
+
+此前 `d901004` 将双端整包工作流放在公开 OTA 成功之后，OTA 会在整包编译期间先到达用户。本次按新的发布要求，将 `EAS Hot Update` 的默认模式改为 `coordinated`：先上传 0% 候选，预留草稿 Release 构建号，等双端产物与两份清单均准备完成，再依次公开安装包、将原 OTA 提升到 100%、提交清单与刷新官网。`ota-first` 保留原来的应急发布时序。
+
+候选保留原始 ID、`createdAt`、runtime、来源 SHA 和频道映射；推广不重新上传或 republish。这样延续下文真机验证所依赖的 `OTA 时间 < 配套整包内嵌时间` 顺序，其他 runtime 的历史 OTA 不被切换频道所影响。新的守卫同时检查实际双端最新 ID 和精确 manifest，补强此前仅凭来源 SHA 判断是否过期的限制。
+
+`ota-release`、`ota-bundle-release`、`coordinated-release-workflow`、`assert-current-ota`、`release-state`、`update-config` 六组共 102/102 项轻量测试通过，0 跳过，相关 ESLint 与 Prettier 检查通过。测试覆盖默认／应急的真实工作流 shell 参数、0% 暂存、上传后记录失败的同 run 恢复、双端 100%／0% 部分成功续发、相同 SHA 的较新 OTA 阻止旧任务重试、草稿归属与编号预留、APK／IPA 完整性、公开资产重试哈希比对、草稿链接规范化和内部标记剥离。保留已有真实 Git/worktree 清单提交回归，验证当前基线策略与独立 `main` 改动不会被覆盖。
+
+另外只读核对了固定 `eas-cli@21.8.0` 的官方 API 契约和现有线上频道：默认映射为 `version: 0`、`branchMappingLogic: "true"`；精确 manifest 地址为 `https://u.expo.dev/update/<update ID>`，实际返回的 ID、runtime、`createdAt` 与元数据一致。EAS 官方文档明确允许 0–100% 发布比例。动作工作流通过 Actionlint 检查时仅忽略旧有 `concurrency.queue` 字段不被该工具识别的告警，保留仓库现行排队配置。
+
+这些检查不等同于新流程的云端端到端验收。本次未触发新的 OTA、APK／IPA 构建或线上推广；尚未实际演练服务端 0%→100% 的完整发布。GitHub、EAS、Git 清单和官网部署不构成原子事务，上线中途失败须从原运行继续完成，不自动回滚。下文“先发布 OTA 再补包”的报告保留为历史行为证据。
+
 ## 后续调整：较旧版本直接下载 OTA 配套整包（2026-11-03）
 
 此前 OTA 配套包只刷新官网下载清单，客户端升级清单仍指向原始整包，导致 `0.8.0` 用户先安装原始 `0.9.0`，再接收该版本的 OTA。现调整发布流程：配套 APK/IPA 发布成功后，以最新 `origin/main` 的升级清单为基线，仅刷新安装资源和 `artifactBuildNumber`，保留原生升级门槛、标题、跨版本更新说明与强制更新策略。
