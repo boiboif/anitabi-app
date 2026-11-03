@@ -21,6 +21,7 @@ function createHarness(initialSettings) {
   let cursor = 0;
   let tree;
   let visible = true;
+  let loadingFullReference = false;
   let effects = [];
   const react = {
     useState(initial) {
@@ -52,6 +53,7 @@ function createHarness(initialSettings) {
       View: 'NativeView',
       Modal: 'Modal',
       Pressable: 'Pressable',
+      ActivityIndicator: 'ActivityIndicator',
       PixelRatio: { get: () => 2 },
       StyleSheet: { absoluteFill: {} },
     },
@@ -83,6 +85,7 @@ function createHarness(initialSettings) {
     effects = [];
     tree = module.exports.default({
       visible,
+      loadingFullReference,
       bangumi: {},
       point: { ep: 1, geo: [35, 139] },
       capturedAt: '2026-10-08T12:30:00+08:00',
@@ -112,6 +115,11 @@ function createHarness(initialSettings) {
     exportReady: () => find((node) => node.type === 'ExportSheet').props.ready,
     saveDisabled: () => find((node) => node.props?.primary === true).props.disabled,
     reference: () => find((node) => node.props?.uri === 'reference' && node.props.onLoad),
+    referenceLoading: () => find((node) => node.type === 'ActivityIndicator' && node.props.size === 12),
+    setReferenceLoading(next) {
+      loadingFullReference = next;
+      render();
+    },
     setVisible(next) {
       visible = next;
       render();
@@ -264,4 +272,28 @@ test('closing the result removes the reference image so its pending retries can 
   assert.equal(app.reference(), undefined);
   app.setVisible(true);
   assert.ok(app.reference());
+});
+
+test('background original loading is visible without blocking an already prepared result or its save action', () => {
+  const app = createHarness(exporter.DEFAULT_COMPARISON_EXPORT_SETTINGS);
+  app.measureFooter(72);
+  app.presentPreview();
+  assert.equal(app.referenceLoading(), undefined);
+  app.setReferenceLoading(true);
+  assert.ok(app.referenceLoading());
+  assert.equal(app.preview().props.opacity, 1);
+  assert.equal(app.exportReady(), true);
+  assert.equal(app.saveDisabled(), false);
+  app.setReferenceLoading(false);
+  assert.equal(app.referenceLoading(), undefined);
+  assert.equal(app.exportReady(), true);
+  assert.equal(app.saveDisabled(), false);
+});
+
+test('closing the result hides its original loading indicator even if background prefetch continues', () => {
+  const app = createHarness(exporter.DEFAULT_COMPARISON_EXPORT_SETTINGS);
+  app.setReferenceLoading(true);
+  assert.ok(app.referenceLoading());
+  app.setVisible(false);
+  assert.equal(app.referenceLoading(), undefined);
 });

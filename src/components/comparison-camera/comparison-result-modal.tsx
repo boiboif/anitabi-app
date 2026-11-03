@@ -54,6 +54,7 @@ type Props = {
   capturedAt?: string;
   referenceUri?: string;
   referenceDimensions?: { uri: string; size: ImageSize };
+  loadingFullReference?: boolean;
   onClose: () => void;
   onPickPhoto: () => Promise<void>;
   onPickReference: () => Promise<void>;
@@ -226,6 +227,7 @@ export default function ComparisonResultModal({
   capturedAt,
   referenceUri,
   referenceDimensions,
+  loadingFullReference = false,
   onPickPhoto,
   onPickReference,
   onRestoreReference,
@@ -646,6 +648,11 @@ export default function ComparisonResultModal({
                         ) : null}
                       </View>
                     </ComparisonImagePressable>
+                    {visible && loadingFullReference ? (
+                      <View position="absolute" b={8} self="center" pointerEvents="none">
+                        <ActivityIndicator size={12} color="white" />
+                      </View>
+                    ) : null}
                     {onRestoreReference ? (
                       <View position="absolute" t={8} l={8}>
                         <ActionButton

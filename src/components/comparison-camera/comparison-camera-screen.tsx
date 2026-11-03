@@ -6,6 +6,7 @@ import {
 import { ComparisonImagePressable } from '@/components/comparison-camera/comparison-image-pressable';
 import ComparisonResultModal from '@/components/comparison-camera/comparison-result-modal';
 import { ThemeSlider } from '@/components/ui/theme-slider';
+import { useComparisonReferenceImage } from '@/hooks/use-comparison-reference-image';
 import { useImageLoading } from '@/hooks/use-image-loading';
 import {
   fitComparisonPanels,
@@ -23,7 +24,6 @@ import { type CameraZoomState, restoreCameraZoom } from '@/lib/comparison-camera
 import { readPhotoCaptureTime } from '@/lib/comparison-export';
 import { getCameraRatioPreference, setCameraRatioPreference } from '@/lib/storage';
 import type { Bangumi, Point } from '@/services/types';
-import { prefetchImageWithRetry } from '@/utils/prefetch-image-with-retry';
 import { Blend, Columns2, Images, Layers2, SwitchCamera, Undo2, X, Zap, ZapOff } from '@tamagui/lucide-icons-2';
 import { File } from 'expo-file-system';
 import { Image } from 'expo-image';
@@ -83,7 +83,6 @@ const FLASH_SEQUENCE: FlashMode[] = ['off', 'auto', 'on'];
 const ORIENTATION_DEBOUNCE_MS = 500;
 const ORIENTATION_ANIMATION_DURATION_MS = 280;
 const STARTUP_LOADING_DELAY_MS = 200;
-const FULL_REFERENCE_LOADING_DELAY_MS = 200;
 const CAMERA_CONTROL_BACKGROUND = '#1c1c1e';
 const CAMERA_CONTROL_FOREGROUND = '#c7c7cc';
 const AnimatedImage = Animated.createAnimatedComponent(Image);
@@ -256,8 +255,9 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
     setZoom((current) => (Math.abs(current - value) < 0.005 ? current : value));
   }, []);
   const [ratioPreference, setRatioPreference] = useState(getCameraRatioPreference);
-  const [referenceUri, setReferenceUri] = useState(initialReferenceUri);
-  const [loadingFullReference, setLoadingFullReference] = useState(false);
+  const [capturing, setCapturing] = useState(false);
+  const { referenceUri, setReferenceUri, referenceDimensions, onReferenceLoad, loadingFullReference } =
+    useComparisonReferenceImage({ initialReferenceUri, fullReferenceUri, capturing });
   // The thumbnail and full-resolution URI both represent the original point image.
   const canRestoreReference = Boolean(
     (initialReferenceUri || fullReferenceUri) &&
@@ -265,7 +265,6 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
     referenceUri !== initialReferenceUri &&
     referenceUri !== fullReferenceUri,
   );
-  const [referenceDimensions, setReferenceDimensions] = useState<{ uri: string; size: ImageSize }>();
   const referenceReady = Boolean(referenceUri && referenceDimensions?.uri === referenceUri);
   // Keep the last known ratio while a replacement loads. URI readiness still gates capture,
   // but should not temporarily reset the header and both panes to the default 4:3 layout.
@@ -333,7 +332,6 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
   const [resultVisible, setResultVisible] = useState(false);
   const [flashMode, setFlashMode] = useState<FlashMode>('off');
   const [cameraReady, setCameraReady] = useState(false);
-  const [capturing, setCapturing] = useState(false);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [stageViewport, setStageViewport] = useState<ImageSize>({ width: 0, height: 0 });
   const [hasPresentedStage, setHasPresentedStage] = useState(false);
@@ -429,38 +427,6 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
     setComparisonPhotoOrientation(photoOutput, orientationRotation);
   }, [orientationRotation, photoOutput]);
 
-  useEffect(() => {
-    setLoadingFullReference(false);
-    if (
-      capturing ||
-      referenceUri !== initialReferenceUri ||
-      !fullReferenceUri ||
-      fullReferenceUri === initialReferenceUri
-    )
-      return;
-
-    // Cached and quickly loaded images should not flash a loading indicator.
-    const loadingTimer = setTimeout(() => setLoadingFullReference(true), FULL_REFERENCE_LOADING_DELAY_MS);
-    const cancelPrefetch = prefetchImageWithRetry(fullReferenceUri, {
-      onLoad: () => {
-        setReferenceUri((current) => (current === initialReferenceUri ? fullReferenceUri : current));
-        setReferenceDimensions((current) =>
-          current && current.uri === initialReferenceUri ? { ...current, uri: fullReferenceUri } : current,
-        );
-      },
-      onSettled: () => {
-        // Exhausted retries keep the usable thumbnail and its existing ratio.
-        clearTimeout(loadingTimer);
-        setLoadingFullReference(false);
-      },
-    });
-
-    return () => {
-      cancelPrefetch();
-      clearTimeout(loadingTimer);
-    };
-  }, [capturing, referenceUri, fullReferenceUri, initialReferenceUri]);
-
   const defaultZoom = useCallback(() => {
     if (!device) return 1;
 
@@ -527,7 +493,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
     } finally {
       setPickerVisible(false);
     }
-  }, [t, pickerVisible]);
+  }, [t, pickerVisible, setReferenceUri]);
 
   const pickResultPhoto = useCallback(async () => {
     try {
@@ -797,15 +763,6 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
     currentOutputs && cameraFrame.width > 0 && cameraFrame.height > 0
       ? getCameraPreviewLayout(cameraFrame, currentOutputs.preview, sharedSensorRatio)
       : StyleSheet.absoluteFill;
-  const onReferenceLoad = (size: ImageSize) => {
-    if (!referenceUri || !isValidImageSize(size)) return;
-    setReferenceDimensions((current) =>
-      current?.uri === referenceUri && current.size.width === size.width && current.size.height === size.height
-        ? current
-        : { uri: referenceUri, size },
-    );
-  };
-
   const cameraView =
     device && cameraCanMount ? (
       <>
@@ -920,6 +877,12 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
     </View>
   ) : null;
 
+  const referenceLoadingIndicator = loadingFullReference ? (
+    <View position="absolute" b={8} self="center" pointerEvents="none">
+      <ActivityIndicator size={12} color="white" />
+    </View>
+  ) : null;
+
   const referencePane = (
     <View width={referenceFrame.width} height={referenceFrame.height} overflow="hidden" bg="#090909">
       <ComparisonImagePressable
@@ -947,11 +910,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
           )}
         </View>
       </ComparisonImagePressable>
-      {loadingFullReference && !capturing && referenceUri === initialReferenceUri && (
-        <View position="absolute" b={8} self="center" pointerEvents="none">
-          <ActivityIndicator size={12} color="white" />
-        </View>
-      )}
+      {referenceLoadingIndicator}
       {restoreReferenceControl}
     </View>
   );
@@ -1008,6 +967,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
             </View>
           </Pressable>
         )}
+        {referenceLoadingIndicator}
         {restoreReferenceControl}
       </View>
     );
@@ -1199,6 +1159,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
         capturedAt={resultCapturedAt}
         referenceUri={referenceUri}
         referenceDimensions={referenceDimensions}
+        loadingFullReference={loadingFullReference}
         onClose={() => router.back()}
         onPickPhoto={pickResultPhoto}
         onPickReference={pickReference}
