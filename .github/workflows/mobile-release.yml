@@ -543,10 +543,32 @@ jobs:
           "${manifest_args[@]}"
           if [[ "$MANIFEST_PATH" != "$DOWNLOAD_MANIFEST_PATH" ]]; then cp "$MANIFEST_PATH" "$DOWNLOAD_MANIFEST_PATH"; fi
 
+      - name: Refresh upgrade installer without advancing the native baseline
+        if: inputs.ota_bundle
+        run: node scripts/release-state.cjs refresh-ota-upgrade "$RELEASE_TYPE"
+
       - name: Commit update manifest
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          upgrade_manifest_path=$(node scripts/release-state.cjs manifest-path "$RELEASE_TYPE" false)
+          if [[ "$OTA_BUNDLE" == "true" ]]; then
+            # Keep the OTA source checkout pinned, but commit manifests on the
+            # published state used by the guards. Rebasing from the source SHA
+            # can conflict with a previous bundle's URLs on repeated releases.
+            manifest_worktree=$(mktemp -d)
+            git worktree add --detach "$manifest_worktree" origin/main
+            cp "$upgrade_manifest_path" "$manifest_worktree/$upgrade_manifest_path"
+            cp "$DOWNLOAD_MANIFEST_PATH" "$manifest_worktree/$DOWNLOAD_MANIFEST_PATH"
+            git -C "$manifest_worktree" add "$upgrade_manifest_path" "$DOWNLOAD_MANIFEST_PATH"
+            if git -C "$manifest_worktree" diff --cached --quiet; then
+              echo "manifest is unchanged"
+            else
+              git -C "$manifest_worktree" commit -m "chore: update release manifest for $TAG"
+              git -C "$manifest_worktree" push origin HEAD:main
+            fi
+            exit 0
+          fi
           git add "$MANIFEST_PATH" "$DOWNLOAD_MANIFEST_PATH"
           if git diff --cached --quiet; then
             echo "manifest is unchanged"

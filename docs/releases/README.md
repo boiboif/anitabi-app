@@ -43,9 +43,9 @@ versionCode = max(offset, 升级清单构建号, 下载清单构建号, 已发�
 
 ### 升级入口与下载入口
 
-- `latest.json` / `preview.json` 是客户端整包升级清单，原有 URL 保持不变。只有需要向已安装用户提供整包升级时才推进它们。
-- `download.json` / `download-preview.json` 是最新可下载安装包清单。官网读取 production 的 `download.json`，可以提供比客户端升级清单更新的安装包。
-- 常规原生发版同时更新对应的升级清单和下载清单；OTA 后的补充整包只更新下载清单。已安装用户因此继续接收热更新，不会因为补充整包的构建号更大而收到该包的升级提示。
+- `latest.json` / `preview.json` 是客户端整包升级清单，原有 URL 保持不变。`version` 和 `buildNumber` 是原生升级门槛，只有常规原生发版才推进；安装资源可以随 OTA 配套整包刷新。
+- `download.json` / `download-preview.json` 是最新可下载安装包清单，`buildNumber` 记录产物的实际构建号。官网读取 production 的 `download.json`。
+- 常规原生发版同时更新对应的升级清单和下载清单。OTA 配套整包成功发布后，更新下载清单，并将升级清单的 `apkUrl`、`fileName`、`releaseUrl`、`iosAvailable` 指向同一产物，使用 `artifactBuildNumber` 记录该产物的实际构建号；保留升级门槛、标题、跨版本更新说明及强制更新策略。较旧版本直接下载包含最新 OTA 的整包，已经达到原生基线的用户继续接收 OTA，不因配套包构建号增大收到整包提示。
 - production 清单提交后显式触发官网部署。不能依赖 Actions 的 `GITHUB_TOKEN` 提交自动触发另一条 `push` 工作流。
 
 ## 整包发版
@@ -102,7 +102,7 @@ production 发版流程如下：
 
 常规 production 原生发版使用精确 tag `v<version>`，例如 `v0.0.1`。如果同名 GitHub Release 或 Git tag 已存在，工作流会在 Android 构建前直接报错；常规原生发版前必须先修改 `app.config.ts` 的 `appVersion`。OTA 补充整包使用下面介绍的独立标签，不需要修改基础版本。
 
-清单中的 `version` 是基础版本，用于运行时兼容和版本比较；`displayVersion` 是待升级目标的完整发布版本。测试、production 和 preview 整包的原生版本统一使用基础版本，不附加 `test.N` 或 `preview.N`，避免原生生成插件无法识别带后缀的版本号。`buildNumber` 对应 Android `versionCode`，客户端在基础版本相同时比较它，因此同一个基础版本可以发布多个构建。
+清单中的 `version` 是基础版本，用于运行时兼容和版本比较；`displayVersion` 是待升级目标的完整发布版本。测试、production 和 preview 整包的原生版本统一使用基础版本，不附加 `test.N` 或 `preview.N`，避免原生生成插件无法识别带后缀的版本号。常规原生发版的 `buildNumber` 对应 Android `versionCode`，客户端在基础版本相同时比较它，因此同一个基础版本可以发布多个需要升级的原生构建。OTA 配套整包只更新安装资源：升级清单的 `buildNumber` 保留原生升级门槛，`artifactBuildNumber` 和下载清单的 `buildNumber` 才是实际产物的 `versionCode`。
 
 应用内“我的”和“关于”的当前版本只在运行 OTA 内容或安装其配套整包时附加内容 SHA：普通 0.9.0 整包显示 `v0.9.0`；应用 OTA 后显示 `v0.9.0-<SHA 前 8 位>`，直接安装该 OTA 的配套整包也显示相同版本。发布 OTA 和构建配套整包时显式设置 `APP_CONTENT_REVISION` 为同一个来源提交 SHA，普通整包不设置它；`GITHUB_SHA` 不会自动成为内容版本后缀。原生版本、构建号、runtime 和整包升级判断不受此展示规则影响。
 
@@ -136,7 +136,7 @@ yarn release:manifest --from-github --min-supported-build-number 1001
 
 可通过 `yarn release:manifest --help` 查看全部参数。生成后：
 
-1. 检查生成的 `docs/releases/latest.json`。`buildNumber` 对应 Android `versionCode`，整包更新优先比较它。
+1. 检查生成的 `docs/releases/latest.json`。客户端先比较 `version`，版本相同时再比较 `buildNumber`；OTA 配套整包不得推进这两个升级门槛字段。
 2. 提交该文件到 `main` 分支。
 3. 如果旧版本低于 `minSupportedVersion`，应用会按强制更新处理。
 
@@ -164,7 +164,18 @@ OTA 成功后复用 `Mobile Release`，各任务显式检出该 OTA 的同一个
 
 OTA 发布任务和 Android/iOS 配套构建任务均显式传入该来源 SHA 的 `APP_CONTENT_REVISION`，写入 `extra.contentRevision`，使通过 OTA 更新的旧安装和直接安装配套整包的新安装显示相同内容版本。常规 native 发版不携带此内容标识。
 
-补充包只推进 `download.json` 或 `download-preview.json`，不改 `latest.json` / `preview.json`，也不会启用强制更新。production 补充包会标记为 GitHub 最新 Release 并刷新官网下载；preview 仍为 prerelease。新用户安装后已经包含本次代码，新旧安装都继续接收相同 runtime、channel 的后续 OTA。
+配套整包成功发布后，生成 `download.json` 或 `download-preview.json`，再以最新 `origin/main` 的对应升级清单为基线，刷新安装资源及 `artifactBuildNumber`。`latest.json` / `preview.json` 的 `version`、`buildNumber`、标题、更新说明和强制更新策略保持不变；两个清单一起提交。不得将下载清单整体复制为升级清单，否则其更大的构建号会让已有同版本用户收到整包提示。production 配套包会标记为 GitHub 最新 Release 并刷新官网下载；preview 仍为 prerelease。新用户安装后已经包含本次代码，新旧安装都继续接收相同 runtime、channel 的后续 OTA。
+
+OTA 的清单提交在临时 worktree 中以已校验的 `origin/main` 为父提交，源码检出仍固定于 OTA 的来源 SHA，避免同一来源重复发布时与上次清单地址产生 rebase 冲突。清单生成后若远端再次变化，普通 push 会拒绝覆盖，应重新检查当前 OTA 来源后重试。
+
+例如原生基线为 `0.9.0 / build 1027`，本次 OTA 配套包为 `0.9.0 / build 1030`：
+
+| 清单            | `version` | `buildNumber` | `artifactBuildNumber` | 下载目标          |
+| --------------- | --------- | ------------- | --------------------- | ----------------- |
+| `latest.json`   | `0.9.0`   | `1027`        | `1030`                | 本次 OTA 配套整包 |
+| `download.json` | `0.9.0`   | `1030`        | 无需单列              | 本次 OTA 配套整包 |
+
+Android `0.8.0` 用户下次检查更新后可以直接下载安装该配套整包，无需先安装原始 `0.9.0` 再应用本次 OTA。原始 `0.9.0 / build 1027` 用户仍只接收 OTA，安装配套包的用户也不会再收到基线整包提示。旧客户端无需修改代码；已经打开的旧更新弹窗或已经开始的下载，需要重新检查更新才能采用新地址。iOS 的 App 内整包提示从 `0.9.0` 才开始支持，更早的 iOS 安装仍需手动下载并侧载。
 
 如果排队期间当前原生升级基线已换成其他基础版本，补充构建会在编译前停止，避免用旧 runtime 的包覆盖官网下载。若双端构建任一失败，则不发布此次整包或推进下载清单；已经成功发布的 OTA 不会撤回，可从该次 Actions 运行重试失败任务。发布整包与发布 OTA 是两个状态，不能以 OTA 成功推断 APK/IPA 已经生成。
 

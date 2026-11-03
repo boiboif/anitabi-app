@@ -16,7 +16,10 @@ function nextBuildNumber(manifests, releases, offset = 1000) {
     if (!Number.isSafeInteger(number) || number < 0) throw new Error(`Invalid build number: ${value}`);
     highest = Math.max(highest, number);
   };
-  for (const manifest of manifests) include(manifest.buildNumber ?? 0);
+  for (const manifest of manifests) {
+    include(manifest.buildNumber ?? 0);
+    include(manifest.artifactBuildNumber ?? 0);
+  }
   for (const release of releases) {
     const marker = /<!-- anitabi-build-number: (\d+) -->/.exec(release.body ?? '');
     const tag = /-ota\.(\d+)$/.exec(release.tag_name ?? '');
@@ -56,6 +59,45 @@ function assertOtaBaseline(baseline, download, version, buildNumber) {
   if (download?.buildNumber > buildNumber) {
     throw new Error('A newer download has already been published; this bundled release cannot replace it.');
   }
+}
+
+function refreshOtaUpgradeManifest(baseline, download) {
+  if (!baseline || typeof baseline.version !== 'string' || !baseline.version) {
+    throw new Error('An existing native upgrade baseline is required');
+  }
+  assertOtaBaseline(baseline, null, download?.version, download?.buildNumber);
+  if (!Number.isSafeInteger(baseline.buildNumber) || baseline.buildNumber < 1) {
+    throw new Error('Invalid native baseline build number');
+  }
+  if (
+    baseline.artifactBuildNumber !== undefined &&
+    (!Number.isSafeInteger(baseline.artifactBuildNumber) || baseline.artifactBuildNumber < 1)
+  ) {
+    throw new Error('Invalid previous artifact build number');
+  }
+  if (download.buildNumber < Math.max(baseline.buildNumber, baseline.artifactBuildNumber ?? 0)) {
+    throw new Error('An older installer cannot replace the native baseline or its newer artifact');
+  }
+  for (const field of ['apkUrl', 'fileName', 'releaseUrl']) {
+    if (typeof download[field] !== 'string' || !download[field].trim()) {
+      throw new Error(`The bundled download is missing ${field}`);
+    }
+  }
+  if (typeof download.iosAvailable !== 'boolean') {
+    throw new Error('The bundled download must specify iosAvailable');
+  }
+
+  // Legacy clients compare buildNumber before following apkUrl. Keep that
+  // native upgrade threshold while letting older installations download the
+  // latest embedded content, without prompting the baseline's existing users.
+  return {
+    ...baseline,
+    apkUrl: download.apkUrl,
+    fileName: download.fileName,
+    releaseUrl: download.releaseUrl,
+    iosAvailable: download.iosAvailable,
+    artifactBuildNumber: download.buildNumber,
+  };
 }
 
 function readManifest(ref, file) {
@@ -99,10 +141,27 @@ function main() {
       version,
       Number(build),
     );
+  } else if (command === 'refresh-ota-upgrade') {
+    const upgradePath = releaseManifestPath(channel, false);
+    const downloadPath = downloadManifestPath(channel);
+    // The source checkout may predate a policy change or another manifest
+    // publication. The workflow fetches origin/main before reaching this step.
+    const baseline = readManifest('origin/main', upgradePath);
+    const download = readManifest(null, downloadPath);
+    assertOtaBaseline(baseline, readManifest('origin/main', downloadPath), download?.version, download?.buildNumber);
+    const manifest = refreshOtaUpgradeManifest(baseline, download);
+    fs.writeFileSync(upgradePath, `${JSON.stringify(manifest, null, 2)}\n`);
   } else {
     throw new Error(`Unknown release-state command: ${command}`);
   }
 }
 
-module.exports = { nextBuildNumber, downloadManifestPath, releaseManifestPath, otaTag, assertOtaBaseline };
+module.exports = {
+  nextBuildNumber,
+  downloadManifestPath,
+  releaseManifestPath,
+  otaTag,
+  assertOtaBaseline,
+  refreshOtaUpgradeManifest,
+};
 if (require.main === module) main();
