@@ -141,7 +141,7 @@ function RotatingReferenceImage({
   uri: string;
   viewport?: ReferenceViewport;
 }) {
-  const { controller, imageRef } = useImageLoading();
+  const { controller, imageRef } = useImageLoading(uri);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotation.value}deg` }],
   }));
@@ -932,7 +932,6 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
         <View flex={1} overflow="hidden" bg="#090909">
           {referenceUri ? (
             <RotatingReferenceImage
-              key={referenceUri}
               uri={referenceUri}
               onLoadSize={onReferenceLoad}
               orientationRotation={orientationRotation}
@@ -985,7 +984,6 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
         {referenceUri ? (
           <>
             <RotatingReferenceImage
-              key={referenceUri}
               pointerEvents="none"
               uri={referenceUri}
               onLoadSize={onReferenceLoad}

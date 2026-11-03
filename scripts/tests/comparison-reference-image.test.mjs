@@ -32,16 +32,32 @@ const error = { error: 'reference request failed' };
 // Run the actual private image components, hook and controller. Export seams are
 // appended only to the in-memory JS; native animation and drawing are not tested.
 function harness(variant) {
-  let slots = [];
+  const slots = [];
   let cursor = 0;
   let node;
   let uri;
+  let dirty = false;
+  let pendingEffects = [];
   let now = 0;
   let nextId = 1;
   const tasks = new Map();
   const reloads = [];
+  const reloadInstances = [];
   const sizes = [];
   const loads = [];
+  const nativeImage = {
+    async reloadAsync() {
+      reloads.push(uri);
+      reloadInstances.push(this);
+    },
+  };
+  const queueEffect = (effect, dependencies) => {
+    const index = cursor++;
+    const slot = (slots[index] ??= {});
+    if (!slot.dependencies || dependencies.some((value, i) => !Object.is(value, slot.dependencies[i]))) {
+      pendingEffects.push({ slot, effect, dependencies });
+    }
+  };
   const props = {
     opacity: 0.4,
     orientationRotation: '90deg',
@@ -64,17 +80,21 @@ function harness(variant) {
           slot.value,
           (next) => {
             slot.value = typeof next === 'function' ? next(slot.value) : next;
+            dirty = true;
           },
         ];
       },
-      useEffect(effect) {
-        const index = cursor++;
-        slots[index] ??= { cleanup: effect() };
-      },
+      useEffect: queueEffect,
       useSyncExternalStore(subscribe, getSnapshot) {
-        const index = cursor++;
-        slots[index] ??= { cleanup: subscribe(() => {}) };
-        return getSnapshot();
+        const snapshot = getSnapshot();
+        queueEffect(() => {
+          const unsubscribe = subscribe(() => {
+            dirty = true;
+          });
+          if (!Object.is(snapshot, getSnapshot())) dirty = true;
+          return unsubscribe;
+        }, [subscribe]);
+        return snapshot;
       },
     },
     'react/jsx-runtime': { jsx: (type, hostProps) => ({ type, props: hostProps }) },
@@ -103,25 +123,38 @@ function harness(variant) {
   modules['@/hooks/use-image-loading'] = evaluate(compiledHook);
   const component = evaluate(compile(variant.source) + `\nexports.testImage = ${variant.component};`).testImage;
   const cleanup = () => {
-    for (const slot of slots) slot.cleanup?.();
     node?.props.ref(null);
+    for (const slot of slots) slot.cleanup?.();
+    dirty = false;
   };
-  const render = (nextUri = uri ?? 'reference') => {
-    if (nextUri !== uri) {
-      cleanup();
-      slots = [];
-      uri = nextUri;
-    }
-    cursor = 0;
-    node = component({ ...props, uri });
+  const render = (nextUri = uri ?? 'reference', beforeEffects) => {
+    uri = nextUri;
+    const previousRef = node?.props.ref;
+    let renderCount = 0;
+    do {
+      assert.ok(++renderCount <= 25, 'render-phase state updates must converge');
+      cursor = 0;
+      dirty = false;
+      pendingEffects = [];
+      node = component({ ...props, uri });
+    } while (dirty);
     assert.equal(node.type, variant.host);
-    const imageUri = uri;
-    node.props.ref({
-      reloadAsync: async () => {
-        reloads.push(imageUri);
-      },
-    });
+    if (previousRef !== node.props.ref) {
+      previousRef?.(null);
+      node.props.ref(nativeImage);
+    }
+    // Cached native events can arrive after commit, before passive effects run.
+    beforeEffects?.(node.props);
+    for (const { slot } of pendingEffects) slot.cleanup?.();
+    for (const { slot, effect, dependencies } of pendingEffects) {
+      slot.dependencies = dependencies;
+      slot.cleanup = effect();
+    }
+    if (dirty) return render();
     return node;
+  };
+  const flush = () => {
+    if (dirty) render();
   };
   const advance = (ms) => {
     const end = now + ms;
@@ -131,6 +164,7 @@ function harness(variant) {
       now = task.at;
       tasks.delete(id);
       task.callback();
+      flush();
     }
     now = end;
   };
@@ -139,17 +173,22 @@ function harness(variant) {
     render,
     advance,
     reloads,
+    reloadInstances,
+    nativeImage,
     sizes,
     loads,
     unmount: cleanup,
     get image() {
+      flush();
       return node.props;
     },
     fail() {
       node.props.onError(error);
+      flush();
     },
     loaded() {
       node.props.onLoad(load);
+      flush();
     },
   };
 }
@@ -190,25 +229,76 @@ for (const variant of variants) {
     assert.equal(h.sizes.length + h.loads.length, 1, 'an error must not clear or replace successful size information');
   });
 
-  test(`${variant.name} reference unmount and URI remount cancel old requests without consuming the new budget`, () => {
-    for (const replacement of [undefined, 'next-reference']) {
-      const h = harness(variant);
-      h.fail();
-      const oldError = h.image.onError;
-      if (replacement) h.render(replacement);
-      else h.unmount();
-      oldError(error);
-      h.advance(10000);
-      assert.deepEqual(h.reloads, []);
-      if (!replacement) continue;
-      h.fail();
-      h.advance(500);
-      assert.deepEqual(h.reloads, ['next-reference']);
-    }
+  test(`${variant.name} reference URI changes cancel old retries and renew the budget on the same Image instance`, () => {
+    const h = harness(variant);
+    h.fail();
+    h.advance(500);
+    h.fail();
+    const oldError = h.image.onError;
+    h.render('next-reference');
+    oldError(error);
+    h.advance(10000);
+    assert.deepEqual(h.reloads, ['reference']);
+    h.fail();
+    h.advance(500);
+    h.fail();
+    h.advance(1500);
+    h.fail();
+    h.advance(10000);
+    assert.deepEqual(h.reloads, ['reference', 'next-reference', 'next-reference']);
+    assert.ok(h.reloadInstances.every((instance) => instance === h.nativeImage));
+  });
+
+  test(`${variant.name} successful old content does not suppress retries for a replacement URI`, () => {
+    const h = harness(variant);
+    h.loaded();
+    h.render('next-reference');
+    h.image.onLoadStart();
+    h.fail();
+    h.advance(500);
+    assert.deepEqual(h.reloads, ['next-reference']);
+  });
+
+  test(`${variant.name} rerendering the same URI preserves a pending retry and the exhausted budget`, () => {
+    const h = harness(variant);
+    h.fail();
+    h.advance(250);
+    h.render();
+    h.advance(250);
+    assert.deepEqual(h.reloads, ['reference']);
+    h.fail();
+    h.advance(1500);
+    h.fail();
+    h.render();
+    h.fail();
+    h.advance(10000);
+    assert.deepEqual(h.reloads, ['reference', 'reference']);
+  });
+
+  test(`${variant.name} cached replacement success before effects is not reset into another retry`, () => {
+    const h = harness(variant);
+    h.fail();
+    const cachedLoad = { source: { url: 'cached-reference', width: 1600, height: 900 } };
+    h.render('cached-reference', (image) => image.onLoad(cachedLoad));
+    h.fail();
+    h.advance(10000);
+    assert.deepEqual(h.reloads, []);
+    if (variant.name === 'camera') assert.deepEqual(h.sizes, [{ width: 1600, height: 900 }]);
+    else assert.deepEqual(h.loads, [cachedLoad]);
+  });
+
+  test(`${variant.name} reference unmount cancels retries and ignores old application callbacks`, () => {
+    const h = harness(variant);
+    h.fail();
+    const oldError = h.image.onError;
+    h.unmount();
+    oldError(error);
+    h.advance(10000);
+    assert.deepEqual(h.reloads, []);
   });
 }
 
-test('camera and result reference call sites key their loading state by the displayed URI', () => {
+test('camera and result reference call sites keep their image mounted when the URI changes', () => {
   for (const variant of variants) {
     const sourceFile = ts.createSourceFile(
       `${variant.name}.tsx`,
@@ -241,7 +331,8 @@ test('camera and result reference call sites key their loading state by the disp
     assert.equal(calls.length, variant.name === 'camera' ? 2 : 1);
     for (const attributes of calls) {
       assert.equal(attributes.get('uri'), 'referenceUri');
-      assert.equal(attributes.get('key'), attributes.get('uri'), 'changing reference URI must reset its controller');
+      assert.equal(attributes.has('key'), false, 'source changes must not remount the native image');
+      assert.equal(attributes.has('recyclingKey'), false, 'source changes must not clear the displayed reference');
     }
   }
 });

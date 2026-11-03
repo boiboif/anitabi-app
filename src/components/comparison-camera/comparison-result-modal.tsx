@@ -61,9 +61,8 @@ type Props = {
   onRetake: () => void;
 };
 
-/** The URI-keyed child cancels its retries when replaced or when the result closes. */
 function ReferenceImage({ uri, onLoad, ...props }: Omit<ImageProps, 'source'> & { uri: string }) {
-  const { controller, imageRef } = useImageLoading();
+  const { controller, imageRef } = useImageLoading(uri);
   return (
     <Image
       {...props}
@@ -627,11 +626,9 @@ export default function ComparisonResultModal({
                       <View flex={1} overflow="hidden" bg={borderColor}>
                         {visible && referenceUri ? (
                           <ReferenceImage
-                            key={referenceUri}
                             uri={referenceUri}
                             cachePolicy="disk"
                             contentFit={settings.matchPhotoRatio ? settings.referenceFit : 'contain'}
-                            recyclingKey={referenceUri}
                             onLoad={({ source }) => {
                               const size = { width: source.width, height: source.height };
                               if (isValidImageSize(size))
