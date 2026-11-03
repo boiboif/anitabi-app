@@ -9,6 +9,7 @@ import { Text, useTheme, View, XStack } from 'tamagui';
 type Props = {
   bangumi: Bangumi;
   point: Point;
+  initialReferenceUri?: string;
   compact?: boolean;
   compactSize?: number;
   bare?: boolean;
@@ -17,6 +18,7 @@ type Props = {
 export default function ComparisonCameraButton({
   bangumi,
   point,
+  initialReferenceUri,
   compact = false,
   compactSize = 36,
   bare = false,
@@ -29,7 +31,7 @@ export default function ComparisonCameraButton({
     event.stopPropagation();
     router.navigate({
       pathname: '/comparison-camera',
-      params: { bangumiId: String(bangumi.id), pointId: point.id },
+      params: { bangumiId: String(bangumi.id), pointId: point.id, initialReferenceUri },
     } as Href);
   };
 

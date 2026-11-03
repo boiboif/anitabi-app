@@ -12,6 +12,8 @@ type Props = ViewProps & {
   /** Lists use h160; map cards use h360 with h160 while it loads. */
   thumbnailSize?: 'h160' | 'h360';
   thumbnailSource?: string | (ImageSource & { uri: string });
+  /** Reports the loaded main thumbnail, not its placeholder. */
+  onThumbnailLoad?: (uri: string) => void;
   imageStyle?: ImageProps['style'];
   recyclingKey?: string;
   previewBorderRadius?: number;
@@ -28,6 +30,7 @@ export default function PointImage({
   title,
   thumbnailSize = 'h360',
   thumbnailSource,
+  onThumbnailLoad,
   imageStyle,
   recyclingKey,
   previewBorderRadius = 0,
@@ -72,6 +75,7 @@ export default function PointImage({
       {source && path ? (
         <PreviewableImage
           source={source}
+          onLoad={() => onThumbnailLoad?.(source.uri)}
           placeholder={fallbackUri ? { uri: fallbackUri } : undefined}
           previewFallbackUri={fallbackUri}
           previewUri={buildImageUrl(path)}

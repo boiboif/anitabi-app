@@ -9,7 +9,15 @@ import { Text, View, XStack } from 'tamagui';
 export default function ComparisonCameraRoute() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { bangumiId, pointId } = useLocalSearchParams<{ bangumiId?: string; pointId?: string }>();
+  const {
+    bangumiId,
+    pointId,
+    initialReferenceUri: requestedReferenceUri,
+  } = useLocalSearchParams<{
+    bangumiId?: string;
+    pointId?: string;
+    initialReferenceUri?: string;
+  }>();
   const data = useMapData((state) => state.data);
   const isPartial = useMapData((state) => state.isPartial);
   const bangumi = data?.data.bangumis.find((item) => item.id === Number(bangumiId));
@@ -44,11 +52,17 @@ export default function ComparisonCameraRoute() {
     );
   }
 
+  const initialReferenceUri = point.image
+    ? requestedReferenceUri === buildImageUrl(point.image, 'plan=h360')
+      ? requestedReferenceUri
+      : buildImageUrl(point.image, 'plan=h160')
+    : undefined;
+
   return (
     <ComparisonCameraScreen
       bangumi={bangumi}
       point={point}
-      initialReferenceUri={point.image ? buildImageUrl(point.image, 'plan=h160') : undefined}
+      initialReferenceUri={initialReferenceUri}
       fullReferenceUri={point.image ? buildImageUrl(point.image) : undefined}
     />
   );

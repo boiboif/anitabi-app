@@ -7,6 +7,7 @@ import { XStack } from 'tamagui';
 type Props = {
   point: Point;
   bangumi: Bangumi;
+  initialReferenceUri?: string;
   showAddToPlan?: boolean;
   showCamera?: boolean;
   showNavigation?: boolean;
@@ -16,6 +17,7 @@ type Props = {
 export default function PointCardActions({
   point,
   bangumi,
+  initialReferenceUri,
   showAddToPlan = true,
   showCamera = false,
   showNavigation = false,
@@ -26,7 +28,16 @@ export default function PointCardActions({
   return (
     <XStack justify="flex-end" items="center" gap="$0.5">
       {showAddToPlan ? <AddToPlanButton bare point={point} bangumi={bangumi} size={size} /> : null}
-      {showCamera ? <ComparisonCameraButton bare point={point} bangumi={bangumi} compact compactSize={size} /> : null}
+      {showCamera ? (
+        <ComparisonCameraButton
+          bare
+          point={point}
+          bangumi={bangumi}
+          initialReferenceUri={initialReferenceUri}
+          compact
+          compactSize={size}
+        />
+      ) : null}
       {showNavigation ? <PointNavigationButton bare point={point} compact compactSize={size} /> : null}
     </XStack>
   );

@@ -3,8 +3,10 @@ import PointCardActions from '@/components/point/point-card-actions';
 import PointImage from '@/components/point/point-image';
 import { formatDuration } from '@/lib/formatDuration';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
+import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
 import { useMapBrowse } from '@/store/use-map-browse';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Linking, Pressable } from 'react-native';
 import { getTokens, Text, useTheme, View } from 'tamagui';
@@ -18,6 +20,9 @@ type Props = {
 export default function PopupCard({ point, bangumi, bangumiTitlePressEnabled = true }: Props) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
+  const [loadedThumbnailUri, setLoadedThumbnailUri] = useState<string>();
+  // This card is reused across selections; only reuse the current screenshot.
+  const thumbnailUri = point.image ? buildImageUrl(point.image, 'plan=h360') : undefined;
   const openBangumiDetails = useMapBrowse((state) => state.openBangumiDetails);
   const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const pointTitle =
@@ -40,6 +45,7 @@ export default function PopupCard({ point, bangumi, bangumiTitlePressEnabled = t
         image={point.image}
         cover={bangumi.cover}
         title={pointTitle}
+        onThumbnailLoad={setLoadedThumbnailUri}
         previewBorderRadius={innerRadius}
         maxPressDistance={8}
         rounded="$2"
@@ -121,7 +127,13 @@ export default function PopupCard({ point, bangumi, bangumiTitlePressEnabled = t
           </Text>
         ) : null}
         <View pt="$2">
-          <PointCardActions point={point} bangumi={bangumi} showCamera showNavigation />
+          <PointCardActions
+            point={point}
+            bangumi={bangumi}
+            initialReferenceUri={loadedThumbnailUri === thumbnailUri ? thumbnailUri : undefined}
+            showCamera
+            showNavigation
+          />
         </View>
       </View>
     </View>
