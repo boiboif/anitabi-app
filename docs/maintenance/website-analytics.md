@@ -1,15 +1,18 @@
 # 官网访问统计配置
 
-官网使用 Umami Cloud 记录页面浏览量和访客数。部署时提取最近 30 天的汇总；初始化并维持累计检查点后，也可展示累计浏览量。访客明细和 Umami 控制台不公开；API 密钥不会写入页面。
+官网使用两个独立的统计服务：Umami Cloud 继续供维护者在后台查看；[GoatCounter](https://boiboif.goatcounter.com/) 为首页提供公开的全站总浏览量和近 30 天浏览量。GoatCounter 独立统计，不会自动继承 Umami 的历史数据，两者的数字和统计口径也可能不同。
 
-1. 在 [Umami Cloud](https://cloud.umami.is/signup) 注册账号，添加一个网站。网站域名填写 `boiboif.github.io`（不包含 `/anitabi-app/` 路径），保持分享链接关闭。
-2. 在该网站的 Tracking code 中找到 `data-website-id`。在 GitHub 仓库的 **Settings → Secrets and variables → Actions → Variables** 中新建 `DOCS_UMAMI_WEBSITE_ID`，填入该 ID。设置后部署的官网会加载统计脚本。
-3. 在 Umami 的 Settings → API keys 中[创建 API 密钥](https://docs.umami.is/docs/cloud/api-key)，并在 GitHub 仓库的 **Settings → Secrets and variables → Actions → Secrets** 中新建 `DOCS_UMAMI_API_KEY`。密钥只能存放在 Secret 中，不能提交到仓库或放入 Variables。
-4. 首次设置累计值时，打开 **Actions → Deploy website to GitHub Pages → Run workflow**，勾选 `bootstrap_stats` 后运行。仅当检查点不存在且明确勾选时才会初始化；常规运行不会自动重置。初始化取 Umami 当前保留的最早数据作为起点，之前已清除的数据无法恢复，因此不保证包括官网上线后的全部历史。
-5. 工作流每天更新一次；手动运行时通常不勾选 `bootstrap_stats`。只修改变量或 Secret 不会立即重新部署。最近 30 天指部署时的最近 30×24 小时，统计为快照而非实时值；广告拦截器等因素也可能使统计低于实际访问量。
+## GoatCounter：官网展示
 
-累计检查点保存在 GitHub Actions 的 `website-stats-checkpoint` artifact 中，每次成功更新后上传，最多保留 90 天。新计算会重新查询上一次的 30 天窗口并替换其数值，以减少边界重复和近期延迟入库的影响；更晚于 30 天才入库的数据无法保证计入。如果检查点不可读取、无效、站点 ID 不匹配或距今超过 60 天，则当次只发布近 30 天数据，不猜测累计值；检查点完全丢失时不能自动恢复，重新初始化也无法找回 Umami 已清除的历史。若有备份，应先恢复可信检查点。GitHub Actions 的 artifact 或 Umami 请求失败不会阻止官网部署。
+1. 登录 [boiboif.goatcounter.com](https://boiboif.goatcounter.com/)，在站点设置中启用 **Allow adding visitor counts on your website**。该选项默认关闭；启用后，知道页面路径的人也可能查询单页的汇总浏览量，但不会因此公开管理后台或单个访客记录。[官方说明](https://www.goatcounter.com/help/visitor-counter)
+2. 在 **Settings → Data collection → Sessions** 中关闭会话去重，才能让重复浏览同一页面也计入浏览量；默认开启时统计口径更接近页面访问次数。[官方说明](https://www.goatcounter.com/help/sessions)
+3. 网站使用 `boiboif.goatcounter.com` 的公开计数接口，无需 API 密钥。GoatCounter 的追踪仅在 `https://boiboif.github.io/anitabi-app/` 及其子路径运行；本地开发不发送访问数据。站内切换页面会计数，追踪路径不包含查询参数或页面锚点。
+4. 首页分别读取全站累计数字和 `start=month` 的近 30 天数字。后者按最近 30×24 小时计算，GoatCounter 数据按小时汇总，公开计数可能缓存最多四小时，因此并非实时数据。服务不可用或公开计数未启用时，首页不会编造数字。[官方说明](https://www.goatcounter.com/help/visitor-counter)
 
-统计 JSON 位于部署产物的 `website-stats.json`，格式为 `{"period":"30d","pageviews":123,"visitors":45,"updatedAt":"2026-11-04T01:17:00.000Z","totalPageviews":987,"totalSince":"2026-06-01T00:00:00.000Z"}`。只有成功维护检查点时才提供可选的 `totalPageviews` 和 `totalSince`；密钥或网站 ID 未配置、30 天查询失败或返回数据无效时不会生成文件。只有网站 ID 时仍会收集统计，但不会公开汇总数字。
+GoatCounter 需要新收集访问数据；展示的累计数从该服务已有记录开始，不应与 Umami 的历史总数直接相加。广告拦截器等因素也可能使两种服务的数字不同。
 
-本地开发默认不加载统计脚本；如需检查接入，可在运行官网构建命令前设置 `DOCS_UMAMI_WEBSITE_ID`。若以后更换官网域名，应同步修改 `docs/.vitepress/config.mts` 中的 `data-domains` 值。
+## Umami Cloud：后台统计
+
+Umami 网站 ID 已通过 GitHub Actions 变量 `DOCS_UMAMI_WEBSITE_ID` 配置。需要重新设置时，可在 Umami Tracking code 找到 `data-website-id`，然后在仓库 **Settings → Secrets and variables → Actions → Variables** 中填入。设置后需重新部署官网才会生效；站点域名为 `boiboif.github.io`，不包含 `/anitabi-app/` 路径。官网的 `data-domains` 位于 `docs/.vitepress/config.mts`，更换域名时需同步更新。
+
+Umami 分享链接可以保持关闭，后台数据与 GoatCounter 互不影响。Umami Cloud 免费版不包含 API 访问；首页公开计数不再需要 `DOCS_UMAMI_API_KEY`、累计检查点或 `bootstrap_stats` 初始化。

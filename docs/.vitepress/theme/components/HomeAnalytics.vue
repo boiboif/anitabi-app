@@ -1,14 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { useData, withBase } from 'vitepress';
+import { useData } from 'vitepress';
+import { fetchGoatCounterStats } from './goatcounter-stats.mjs';
 
 type WebsiteStats = {
-  period: '30d';
-  visitors: number;
-  pageviews: number;
-  updatedAt: string;
-  totalPageviews?: number;
-  totalSince?: string;
+  total: number | null;
+  recent: number | null;
 };
 
 const { lang } = useData();
@@ -25,27 +22,7 @@ const numberFormat = computed(() => new Intl.NumberFormat(lang.value));
 
 onMounted(async () => {
   try {
-    const response = await fetch(withBase('/website-stats.json'), { signal: controller.signal });
-    if (!response.ok) return;
-    const data: unknown = await response.json();
-    if (!data || typeof data !== 'object') return;
-    const value = data as Record<string, unknown>;
-    if (
-      value.period !== '30d' ||
-      !Number.isSafeInteger(value.visitors) || (value.visitors as number) < 0 ||
-      !Number.isSafeInteger(value.pageviews) || (value.pageviews as number) < 0 ||
-      typeof value.updatedAt !== 'string' || !Number.isFinite(Date.parse(value.updatedAt))
-    ) return;
-    const validTotal = Number.isSafeInteger(value.totalPageviews) && (value.totalPageviews as number) >= 0 &&
-      typeof value.totalSince === 'string' && Number.isFinite(Date.parse(value.totalSince)) &&
-      Date.parse(value.totalSince) <= Date.parse(value.updatedAt);
-    stats.value = {
-      period: '30d',
-      visitors: value.visitors as number,
-      pageviews: value.pageviews as number,
-      updatedAt: value.updatedAt,
-      ...(validTotal ? { totalPageviews: value.totalPageviews as number, totalSince: value.totalSince as string } : {}),
-    };
+    stats.value = await fetchGoatCounterStats({ signal: controller.signal });
   } catch {
     // Statistics are optional; keep the rest of the homepage usable if unavailable.
   }
@@ -59,11 +36,11 @@ onUnmounted(() => controller.abort());
     <dl class="site-activity__metrics">
       <div class="site-activity__metric">
         <dt>{{ copy.total }}</dt>
-        <dd>{{ stats.totalPageviews === undefined ? '—' : numberFormat.format(stats.totalPageviews) }}</dd>
+        <dd>{{ stats.total === null ? '—' : numberFormat.format(stats.total) }}</dd>
       </div>
       <div class="site-activity__metric">
         <dt>{{ copy.recent }}</dt>
-        <dd>{{ numberFormat.format(stats.pageviews) }}</dd>
+        <dd>{{ stats.recent === null ? '—' : numberFormat.format(stats.recent) }}</dd>
       </div>
     </dl>
   </section>

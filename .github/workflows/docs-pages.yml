@@ -8,20 +8,11 @@ on:
       - 'package.json'
       - 'yarn.lock'
       - 'tsconfig.json'
-      - 'scripts/fetch-website-stats.mjs'
       - '.github/workflows/docs-pages.yml'
   workflow_dispatch:
-    inputs:
-      bootstrap_stats:
-        description: 'Initialize the total from the data currently retained by Umami (only when no checkpoint exists)'
-        type: boolean
-        default: false
-  schedule:
-    - cron: '17 1 * * *'
 
 permissions:
   contents: read
-  actions: read
   pages: write
   id-token: write
 
@@ -59,65 +50,6 @@ jobs:
           DOCS_BASE: /anitabi-app/
           DOCS_UMAMI_WEBSITE_ID: ${{ vars.DOCS_UMAMI_WEBSITE_ID }}
         run: yarn docs:build
-
-      - name: Restore statistics checkpoint
-        id: checkpoint
-        env:
-          GH_TOKEN: ${{ github.token }}
-          DOCS_UMAMI_WEBSITE_ID: ${{ vars.DOCS_UMAMI_WEBSITE_ID }}
-          DOCS_UMAMI_API_KEY: ${{ secrets.DOCS_UMAMI_API_KEY }}
-        run: |
-          if [ -z "$DOCS_UMAMI_WEBSITE_ID" ] || [ -z "$DOCS_UMAMI_API_KEY" ]; then
-            echo 'state=unconfigured' >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if ! artifacts=$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=website-stats-checkpoint&per_page=100"); then
-            echo 'state=unavailable' >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if ! id=$(echo "$artifacts" | jq -er 'if (.artifacts | type) != "array" then error("invalid response") else [.artifacts[] | select(.expired == false and .workflow_run.head_branch == "main" and .workflow_run.head_repository_id == .workflow_run.repository_id)] | sort_by(.created_at) | last | .id // "" end'); then
-            echo 'state=unavailable' >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if [ -z "$id" ]; then
-            echo 'state=missing' >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          mkdir -p "$RUNNER_TEMP/docs-stats-checkpoint"
-          if gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$id/zip" > "$RUNNER_TEMP/docs-stats-checkpoint.zip" && \
-             unzip -oq "$RUNNER_TEMP/docs-stats-checkpoint.zip" -d "$RUNNER_TEMP/docs-stats-checkpoint" && \
-             [ -f "$RUNNER_TEMP/docs-stats-checkpoint/checkpoint.json" ]; then
-            echo 'state=ready' >> "$GITHUB_OUTPUT"
-          else
-            echo 'state=unavailable' >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Generate public website statistics
-        id: stats
-        env:
-          DOCS_UMAMI_WEBSITE_ID: ${{ vars.DOCS_UMAMI_WEBSITE_ID }}
-          DOCS_UMAMI_API_KEY: ${{ secrets.DOCS_UMAMI_API_KEY }}
-          DOCS_STATS_CHECKPOINT_STATE: ${{ steps.checkpoint.outputs.state }}
-          DOCS_STATS_BOOTSTRAP: ${{ inputs.bootstrap_stats && 'true' || 'false' }}
-          DOCS_STATS_CHECKPOINT: ${{ runner.temp }}/docs-stats-checkpoint/checkpoint.json
-          DOCS_STATS_CHECKPOINT_OUTPUT: ${{ runner.temp }}/docs-stats-checkpoint-output.json
-        run: |
-          node scripts/fetch-website-stats.mjs
-          if [ -f "$DOCS_STATS_CHECKPOINT_OUTPUT" ]; then
-            mkdir -p "$RUNNER_TEMP/docs-stats-upload"
-            cp "$DOCS_STATS_CHECKPOINT_OUTPUT" "$RUNNER_TEMP/docs-stats-upload/checkpoint.json"
-            echo 'checkpoint=true' >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Save statistics checkpoint
-        if: steps.stats.outputs.checkpoint == 'true'
-        continue-on-error: true
-        uses: actions/upload-artifact@v4
-        with:
-          name: website-stats-checkpoint
-          path: ${{ runner.temp }}/docs-stats-upload/checkpoint.json
-          retention-days: 90
-          overwrite: true
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5
