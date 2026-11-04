@@ -1,6 +1,6 @@
 # Privacy Policy
 
-Last updated: October 15, 2026
+Last updated: November 4, 2026
 
 This policy explains how Anitabi App and the project website handle information related to their use.
 
@@ -36,7 +36,7 @@ These services may process necessary network information such as IP addresses, r
 
 ## 4. Website analytics
 
-When website analytics is enabled, the project website uses Umami Cloud to count page views and visitors. The website sends page paths, browser and device information, and other technical data to Umami so maintainers can view aggregate statistics. Query parameters and page fragments are excluded. We do not use this for advertising tracking or display visitor statistics publicly. The service may process IP addresses as needed to handle requests, but Umami states that it does not store IP addresses. See the [Umami privacy policy](https://umami.is/privacy).
+When website analytics is enabled, the project website uses Umami Cloud to count page views and visitors. The website sends page paths, browser and device information, and other technical data to Umami for aggregate statistics. Query parameters and page fragments are excluded. We do not use this for advertising tracking. The website may publicly display aggregate page views for the last 30 days and a cumulative total, but not individual visitor records. The service may process IP addresses as needed to handle requests, but Umami states that it does not store IP addresses. See the [Umami privacy policy](https://umami.is/privacy).
 
 ## 5. Policy changes and contact
 
