@@ -22,6 +22,7 @@ Some official Expo skills still describe SDK 57 APIs. When they conflict with SD
 
 ## UI Implementation
 
+- **IMPORTANT:** Avoid unnecessary secondary labels and descriptions. Let the layout do the explaining.
 - For Expo UI, prefer Tamagui primitives and props (`XStack`, `YStack`, spacing tokens, color tokens, and variants) over React Native `StyleSheet.create`.
 - Before writing or modifying anything related to Tamagui, including components, configuration, themes, tokens, styling, integrations, debugging, or upgrades, consult `docs/tamagui-llms.txt` for the relevant APIs, options, concepts, and usage examples, and use it as the project-local Tamagui reference.
 - Use inline styles only when a value is dynamic or cannot be expressed with Tamagui props.
