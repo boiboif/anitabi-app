@@ -43,18 +43,39 @@ function createHarness(mode = 'plan') {
   let tree;
   let draft;
   let project = async () => [100, 100];
+  let query = async () => ({ features: [] });
   const projected = [];
   const selected = [];
   const mapPresses = [];
   const browseSelections = [];
   let browseClears = 0;
+  let hasMapData = true;
+  let nextLocationId = 1;
+  const nearbyOpens = [];
   const browseState = {
     selectedMapPoint: null,
     lastPopupMapPoint: null,
-    selectMapPoint: (value) => browseSelections.push(plain(value)),
-    clearSelectedMapPoint: () => browseClears++,
+    nearbyMapLocation: null,
+    lastNearbyMapLocation: null,
+    filteredBangumiId: null,
+    selectMapPoint: (value) => { browseSelections.push(plain(value)); browseState.selectedMapPoint = value; },
+    clearSelectedMapPoint: () => { browseClears++; browseState.selectedMapPoint = null; browseState.nearbyMapLocation = null; },
+    openNearbyMapLocation: (geo) => {
+      const location = { id: nextLocationId++, geo, place: null };
+      nearbyOpens.push(plain(location));
+      browseState.nearbyMapLocation = location;
+      browseState.lastNearbyMapLocation = location;
+    },
+    setNearbyMapPlace: (id, place) => {
+      if (browseState.nearbyMapLocation?.id === id) browseState.nearbyMapLocation.place = place;
+    },
+    focusPointFromNearby: () => {},
     openBangumiDetails: () => {},
   };
+  const useMapBrowse = (selector) => selector(browseState);
+  useMapBrowse.getState = () => browseState;
+  const useMapData = () => {};
+  useMapData.getState = () => ({ data: hasMapData ? {} : null });
   const sameDeps = (a, b) => a?.length === b?.length && a.every((value, index) => Object.is(value, b[index]));
   const memo = (calculate, deps) => {
     const index = cursor++;
@@ -94,22 +115,29 @@ function createHarness(mode = 'plan') {
     ahooks: { useDebounceFn: () => debounce },
     'react-i18next': { useTranslation: () => ({ i18n: { resolvedLanguage: 'zh-CN' } }) },
     '@/i18n': { resolveLanguageTag: () => 'zh-CN' },
-    '@/lib/map-styles': { MAP_STYLES: [{ url: 'fixture', key: 'streets' }] },
+    '@/lib/map-styles': { MAP_STYLES: [{ url: 'fixture', key: 'streets' }, { url: 'dark', key: 'dark' }] },
     '@/lib/constants': { MAP_DEFAULT_ZOOM: 4.6, MAP_COMPASS_TOP_OFFSET: 0 },
-    '@/store/use-map-browse': { useMapBrowse: (selector) => selector(browseState) },
+    '@/store/use-map-browse': { useMapBrowse },
+    '@/store/use-map-data': { useMapData },
+    '@/store/use-map-bangumi-filter': { useMapBangumiFilter: (selector) => selector({ selectedBangumiIds: [] }) },
+    '@/services/administrative-region': { observeAdministrativeRegion: () => () => {} },
+    '@/utils/nearby-points': { findNearbyPoints: () => [] },
+    '@/utils/plan-point-distances': { isValidCoordinate: (lat, lon) => Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 },
     '@/components/map/map-marker-selection': { MapMarkerSelectionContext: { Provider: 'Provider' } },
     '@/components/map/map-markers': { __esModule: true, default: 'MapMarkers' },
     '@/components/map/point-image-markers': { __esModule: true, default: 'PointImageMarkers' },
     '@/components/map/bangumi-icons': { __esModule: true, default: 'BangumiIcons' },
     '@/components/map/point-popup-card': { __esModule: true, default: 'PopupCard' },
+    '@/components/map/nearby-point-popup-card': { __esModule: true, default: 'NearbyPointPopupCard' },
     '@/components/map/map-selected-point-layers': {
       getSelectedPlanMarkerKey: (bangumiId, pointId, showImage) => `${bangumiId}:${pointId}:${showImage}`,
       SelectedPlanMapPointLayer: 'SelectedPlanMapPointLayer',
       SelectedMapPointLayer: 'SelectedMapPointLayer',
     },
     '@rnmapbox/maps': { MapView: 'MapView', Camera: 'Camera', Images: 'Images', Image: 'Image' },
+    '@tamagui/lucide-icons-2': { Bus: 'Bus', Fuel: 'Fuel', Hospital: 'Hospital', School: 'School', Shield: 'Shield', Train: 'Train', Utensils: 'Utensils' },
     'react-native-svg': { __esModule: true, default: 'Svg', Circle: 'Circle', Path: 'Path' },
-    tamagui: { YStack: 'YStack' },
+    tamagui: { YStack: 'YStack', useTheme: () => ({ primary: { val: '#000' } }) },
   };
   const module = { exports: {} };
   vm.runInNewContext(compiled, {
@@ -125,6 +153,7 @@ function createHarness(mode = 'plan') {
       projected.push([...coordinate]);
       return project(coordinate);
     },
+    queryRenderedFeaturesAtPoint: (...args) => query(...args),
   };
   props = {
     insets: { top: 0, bottom: 0, left: 0, right: 0 },
@@ -173,8 +202,15 @@ function createHarness(mode = 'plan') {
     setProject(next) {
       project = next;
     },
+    setQuery(next) { query = next; },
     setMap(next) {
       find(tree, 'MapView').props.ref.current = next;
+    },
+    moveCamera() {
+      find(tree, 'MapView').props.onCameraChanged({
+        properties: { center: [139, 35], zoom: 12 },
+        gestures: { isGestureActive: true },
+      });
     },
     hitRects(pointId = props.selectedPoint?.pointId, showImage = props.showPointImageMarkers) {
       find(tree, 'SelectedPlanMapPointLayer').props.onHitRectsChange(`${work.id}:${pointId}:${showImage}`, [hitRect]);
@@ -186,9 +222,10 @@ function createHarness(mode = 'plan') {
         at,
       );
     },
-    mapPress(at = screenPoint) {
-      this.mapHandler({ properties: { screenPointX: at.x, screenPointY: at.y } });
+    mapPress(at = screenPoint, coordinates = [139, 35]) {
+      this.mapHandler({ geometry: { coordinates }, properties: { screenPointX: at.x, screenPointY: at.y } });
     },
+    setHasMapData(value) { hasMapData = value; },
     get pointHandler() {
       return find(tree, 'MapMarkers').props.onPointSelect;
     },
@@ -206,6 +243,8 @@ function createHarness(mode = 'plan') {
     selected,
     mapPresses,
     browseSelections,
+    nearbyOpens,
+    get nearbyLocation() { return browseState.nearbyMapLocation; },
     get browseClears() {
       return browseClears;
     },
@@ -418,4 +457,88 @@ test('browse point selection and blank-map dismissal remain independent of the p
   assert.deepEqual(h.browseSelections, [reference('b')]);
   assert.equal(h.browseClears, 1);
   assert.deepEqual(h.projected, []);
+});
+
+test('browse blank presses first dismiss an open popup, then open at the next position', () => {
+  const h = createHarness('browse');
+  h.pointPress('b');
+  h.mapPress(screenPoint, [140, 36]);
+  assert.equal(h.browseClears, 1);
+  assert.deepEqual(h.nearbyOpens, []);
+  h.mapPress(screenPoint, [141, 37]);
+  assert.deepEqual(h.nearbyOpens.map((item) => item.geo), [[37, 141]]);
+  h.mapPress(screenPoint, [142, 38]);
+  assert.equal(h.browseClears, 2);
+  assert.equal(h.nearbyOpens.length, 1);
+});
+
+test('missing map data prevents opening, but never prevents closing a popup', () => {
+  const h = createHarness('browse');
+  h.setHasMapData(false);
+  h.mapPress();
+  assert.deepEqual(h.nearbyOpens, []);
+  h.pointPress('a');
+  h.mapPress();
+  assert.equal(h.browseClears, 1);
+});
+
+test('browse map rejects invalid coordinates and normalizes wrapped longitude', () => {
+  const h = createHarness('browse');
+  h.mapPress(screenPoint, [0, 91]);
+  assert.deepEqual(h.nearbyOpens, []);
+  h.mapPress(screenPoint, [181, 35]);
+  assert.deepEqual(h.nearbyOpens.map((item) => item.geo), [[35, -179]]);
+});
+
+test('nearby place lookup queries basemap layers at the tapped screen point', async () => {
+  const h = createHarness('browse');
+  const queries = [];
+  h.setQuery(async (point, filter, layers) => {
+    queries.push({ point: plain(point), filter: plain(filter), layers: plain(layers) });
+    return { features: [{ properties: { name: 'Original', 'name_zh-Hans': '中文', name_en: 'English', maki: 'police' } }] };
+  });
+  h.mapPress({ x: 23, y: 45 }, [139, 35]);
+  await flush();
+  assert.deepEqual(queries, [{ point: [23, 45], filter: [], layers: ['poi-label'] }]);
+  assert.deepEqual(plain(h.nearbyLocation.place), { name: '中文', englishName: 'English', icon: 'police' });
+});
+
+test('a delayed basemap lookup cannot overwrite a dismissed or replaced nearby card', async () => {
+  const h = createHarness('browse');
+  const pending = deferred();
+  let calls = 0;
+  h.setQuery(() => ++calls === 1 ? pending.promise : Promise.resolve({ features: [] }));
+  h.mapPress();
+  h.mapPress();
+  h.mapPress(screenPoint, [140, 36]);
+  pending.resolve({ features: [{ properties: { name: 'Old location' } }] });
+  await flush();
+  assert.deepEqual(plain(h.nearbyLocation.geo), [36, 140]);
+  assert.equal(h.nearbyLocation.place, null);
+  assert.ok(calls > 1);
+});
+
+test('a basemap style change discards an in-flight lookup', async () => {
+  const h = createHarness('browse');
+  const pending = deferred();
+  h.setQuery(() => pending.promise);
+  h.mapPress();
+  h.update({ styleIndex: 1 });
+  pending.resolve({ features: [{ properties: { name: 'Old style' } }] });
+  await flush();
+  assert.equal(h.nearbyLocation.place, null);
+});
+
+test('camera movement discards an in-flight lookup at the old screen point', async () => {
+  const h = createHarness('browse');
+  const pending = deferred();
+  let calls = 0;
+  h.setQuery(() => { calls++; return pending.promise; });
+  h.mapPress();
+  h.moveCamera();
+  pending.resolve({ features: [{ properties: { name: 'Old screen position' } }] });
+  await flush();
+  assert.equal(h.nearbyLocation.place, null);
+  assert.equal(calls, 1);
+  assert.deepEqual(plain(h.nearbyLocation.geo), [35, 139]);
 });

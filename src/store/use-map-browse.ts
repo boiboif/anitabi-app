@@ -6,6 +6,13 @@ export type MapPointReference = {
   pointId: string;
 };
 
+/** A location on the browse map, in the application's [latitude, longitude] order. */
+export type NearbyMapLocation = {
+  id: number;
+  geo: [number, number];
+  place: { name: string; englishName?: string; icon?: string } | null;
+};
+
 /**
  * 首页地图需要执行的一次性相机定位请求。
  * 请求由首页消费后清除，不与当前选中点位的持久状态混用。
@@ -14,7 +21,7 @@ export type MapCameraRequest =
   | (MapPointReference & {
       id: number;
       kind: 'point';
-      source: 'map-control' | 'external-list' | 'bangumi-detail-sheet';
+      source: 'map-control' | 'external-list' | 'bangumi-detail-sheet' | 'nearby';
     })
   | { id: number; kind: 'bangumi-overview'; bangumiId: number };
 
@@ -27,6 +34,9 @@ type MapBrowseState = {
   selectedMapPoint: MapPointReference | null;
   /** 保留最近一次弹窗点位，使隐藏后的卡片无需重新挂载。 */
   lastPopupMapPoint: MapPointReference | null;
+  nearbyMapLocation: NearbyMapLocation | null;
+  /** Keep the marker mounted while hidden, like the ordinary point popup. */
+  lastNearbyMapLocation: NearbyMapLocation | null;
   /** 等待首页地图执行的相机动作。 */
   mapCameraRequest: MapCameraRequest | null;
 
@@ -38,6 +48,9 @@ type MapBrowseState = {
   closeBangumiDetails: () => void;
   /** 用户在地图内选择点位。 */
   selectMapPoint: (point: MapPointReference) => void;
+  openNearbyMapLocation: (geo: [number, number]) => void;
+  setNearbyMapPlace: (id: number, place: NearbyMapLocation['place']) => void;
+  focusPointFromNearby: (point: MapPointReference) => void;
   /** 用户通过地图控件选择点位，强制定位到该点。 */
   focusPointFromMapControl: (point: MapPointReference) => void;
   /** 用户从搜索或收藏列表选择点位，返回地图后强制定位到该点。 */
@@ -52,6 +65,7 @@ type MapBrowseState = {
 
 // 请求序号仅用于识别已消费的相机动作，不属于业务状态。
 let nextMapCameraRequestId = 1;
+let nextNearbyMapLocationId = 1;
 
 function createMapCameraRequest(
   point: MapPointReference,
@@ -65,6 +79,8 @@ export const useMapBrowse = create<MapBrowseState>((set) => ({
   filteredBangumiId: null,
   selectedMapPoint: null,
   lastPopupMapPoint: null,
+  nearbyMapLocation: null,
+  lastNearbyMapLocation: null,
   mapCameraRequest: null,
 
   openBangumiDetails: (bangumiId) =>
@@ -72,6 +88,7 @@ export const useMapBrowse = create<MapBrowseState>((set) => ({
       openedBangumiDetailsId: bangumiId,
       filteredBangumiId: state.openedBangumiDetailsId === bangumiId ? state.filteredBangumiId : null,
       selectedMapPoint: null,
+      nearbyMapLocation: null,
       mapCameraRequest: null,
     })),
   activateBangumiDetailsMap: (bangumiId) =>
@@ -94,7 +111,28 @@ export const useMapBrowse = create<MapBrowseState>((set) => ({
     set({
       selectedMapPoint: point,
       lastPopupMapPoint: point,
+      nearbyMapLocation: null,
       mapCameraRequest: null,
+    }),
+
+  openNearbyMapLocation: (geo) => {
+    const location: NearbyMapLocation = { id: nextNearbyMapLocationId++, geo, place: null };
+    set({ nearbyMapLocation: location, lastNearbyMapLocation: location, selectedMapPoint: null, mapCameraRequest: null });
+  },
+
+  setNearbyMapPlace: (id, place) =>
+    set((state) => {
+      if (state.nearbyMapLocation?.id !== id) return state;
+      const location = { ...state.nearbyMapLocation, place };
+      return { nearbyMapLocation: location, lastNearbyMapLocation: location };
+    }),
+
+  focusPointFromNearby: (point) =>
+    set({
+      nearbyMapLocation: null,
+      selectedMapPoint: point,
+      lastPopupMapPoint: point,
+      mapCameraRequest: createMapCameraRequest(point, 'nearby'),
     }),
 
   focusPointFromMapControl: (point) =>
@@ -103,6 +141,7 @@ export const useMapBrowse = create<MapBrowseState>((set) => ({
       filteredBangumiId: null,
       selectedMapPoint: point,
       lastPopupMapPoint: point,
+      nearbyMapLocation: null,
       mapCameraRequest: createMapCameraRequest(point, 'map-control'),
     }),
 
@@ -112,6 +151,7 @@ export const useMapBrowse = create<MapBrowseState>((set) => ({
       filteredBangumiId: null,
       selectedMapPoint: point,
       lastPopupMapPoint: point,
+      nearbyMapLocation: null,
       mapCameraRequest: createMapCameraRequest(point, 'external-list'),
     }),
 
@@ -123,11 +163,12 @@ export const useMapBrowse = create<MapBrowseState>((set) => ({
             filteredBangumiId: point.bangumiId,
             selectedMapPoint: point,
             lastPopupMapPoint: point,
+            nearbyMapLocation: null,
             mapCameraRequest: createMapCameraRequest(point, 'bangumi-detail-sheet'),
           },
     ),
 
-  clearSelectedMapPoint: () => set({ selectedMapPoint: null, mapCameraRequest: null }),
+  clearSelectedMapPoint: () => set({ selectedMapPoint: null, nearbyMapLocation: null, mapCameraRequest: null }),
 
   completeMapCameraRequest: (requestId) =>
     set((state) => (state.mapCameraRequest?.id === requestId ? { mapCameraRequest: null } : state)),

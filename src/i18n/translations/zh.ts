@@ -612,6 +612,7 @@ const zh = {
   pilgrimageSettings: '巡礼配置',
   pilgrimageSettingsDescription: '设置步行导航使用的地图 App',
   navigationMap: '导航地图',
+  navigationAction: '导航',
   navigationMapDescription: '点击点位的导航按钮时，将打开所选地图 App 的步行导航。',
   googleMaps: 'Google Maps',
   amap: '高德地图',

@@ -23,6 +23,55 @@ const workB = 20;
 const pointA = { bangumiId: workA, pointId: 'point-a' };
 const pointB = { bangumiId: workB, pointId: 'point-b' };
 
+test('nearby selection requests a camera move while retaining the current work context', () => {
+  const store = createStore();
+  openAtLowDetent(store);
+  store.getState().openNearbyMapLocation([35, 139]);
+  const nearby = store.getState().nearbyMapLocation;
+  assert.ok(nearby);
+  store.getState().focusPointFromNearby(pointA);
+  const state = store.getState();
+  assert.equal(state.openedBangumiDetailsId, workA);
+  assert.equal(state.filteredBangumiId, workA);
+  assert.equal(state.nearbyMapLocation, null);
+  assert.equal(state.selectedMapPoint, pointA);
+  assert.equal(state.lastPopupMapPoint, pointA);
+  assert.equal(state.mapCameraRequest.kind, 'point');
+  assert.equal(state.mapCameraRequest.source, 'nearby');
+});
+
+test('old location lookups cannot replace a newer popup or reopen a dismissed one', () => {
+  const store = createStore();
+  store.getState().openNearbyMapLocation([35, 139]);
+  const firstId = store.getState().nearbyMapLocation.id;
+  store.getState().clearSelectedMapPoint();
+  store.getState().openNearbyMapLocation([36, 140]);
+  const current = store.getState();
+  store.getState().setNearbyMapPlace(firstId, { name: 'old' });
+  assert.equal(store.getState(), current);
+  const secondId = current.nearbyMapLocation.id;
+  store.getState().setNearbyMapPlace(secondId, { name: 'new' });
+  assert.equal(store.getState().nearbyMapLocation.place.name, 'new');
+  store.getState().clearSelectedMapPoint();
+  const closed = store.getState();
+  store.getState().setNearbyMapPlace(secondId, { name: 'late' });
+  assert.equal(store.getState(), closed);
+});
+
+test('opening details or selecting a point dismisses a nearby card', () => {
+  for (const operation of [
+    (state) => state.openBangumiDetails(workA),
+    (state) => state.selectMapPoint(pointA),
+    (state) => state.focusPointFromList(pointA),
+    (state) => state.focusPointFromMapControl(pointA),
+  ]) {
+    const store = createStore();
+    store.getState().openNearbyMapLocation([35, 139]);
+    operation(store.getState());
+    assert.equal(store.getState().nearbyMapLocation, null);
+  }
+});
+
 function openAtLowDetent(store, bangumiId = workA) {
   store.getState().openBangumiDetails(bangumiId);
   store.getState().activateBangumiDetailsMap(bangumiId);

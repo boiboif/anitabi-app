@@ -644,6 +644,7 @@ const en = {
   pilgrimageSettings: 'Pilgrimage settings',
   pilgrimageSettingsDescription: 'Choose a map app for walking directions',
   navigationMap: 'Navigation app',
+  navigationAction: 'Navigate',
   navigationMapDescription: 'Location navigation buttons open walking directions in your selected map app.',
   googleMaps: 'Google Maps',
   amap: 'Amap',

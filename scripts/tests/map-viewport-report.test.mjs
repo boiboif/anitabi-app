@@ -54,6 +54,8 @@ function createHarness() {
     '@/i18n': { resolveLanguageTag: () => 'zh-CN' },
     '@/lib/map-styles': { MAP_STYLES: [{ url: 'fixture', key: 'streets' }] },
     '@/store/use-map-browse': { useMapBrowse: (selector) => selector({ filteredBangumiId: null }) },
+    '@/store/use-map-bangumi-filter': { useMapBangumiFilter: (selector) => selector({ selectedBangumiIds: [] }) },
+    tamagui: { YStack: 'YStack', useTheme: () => ({ primary: { val: '#000' } }) },
     '@/components/map/map-marker-selection': { MapMarkerSelectionContext: { Provider: 'Provider' } },
     '@rnmapbox/maps': { MapView: 'MapView', Camera: 'Camera' },
   };

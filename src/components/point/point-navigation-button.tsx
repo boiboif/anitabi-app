@@ -6,16 +6,16 @@ import { useRef } from 'react';
 import type { GestureResponderEvent } from 'react-native';
 import { Alert, Linking, Platform, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { useTheme, View } from 'tamagui';
+import { Text, useTheme, View } from 'tamagui';
 
-type Props = {
-  point: Point;
+type Props = ({ point: Point; mapCoordinate?: never } | { point?: never; mapCoordinate: [number, number] }) & {
   compact?: boolean;
   compactSize?: number;
   bare?: boolean;
+  showLabel?: boolean;
 };
 
-export default function PointNavigationButton({ point, compact = false, compactSize = 30, bare = false }: Props) {
+export default function PointNavigationButton({ point, mapCoordinate, compact = false, compactSize = 30, bare = false, showLabel = false }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
   const navigationMap = usePilgrimagePreferences((state) => state.navigationMap);
@@ -27,7 +27,7 @@ export default function PointNavigationButton({ point, compact = false, compactS
     if (opening.current) return;
     opening.current = true;
     try {
-      const url = buildWalkingNavigationUrl(navigationMap, point.geo, Platform.OS);
+      const url = buildWalkingNavigationUrl(navigationMap, point ? point.geo : mapCoordinate, Platform.OS, point ? 'point' : 'map');
       await Linking.openURL(url);
     } catch {
       Alert.alert(t('couldNotOpenNavigation'), t('pleaseInstallMapOrChangeNavigationSettings', { map: mapName }));
@@ -45,13 +45,17 @@ export default function PointNavigationButton({ point, compact = false, compactS
       style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
     >
       <View
-        width={compact ? compactSize : 36}
+        width={showLabel ? undefined : compact ? compactSize : 36}
         height={compact ? compactSize : 36}
+        px={showLabel ? '$2' : undefined}
         rounded="$9"
         bg={bare ? 'transparent' : '$color2'}
+        flexDirection="row"
+        gap="$1"
         items="center"
         justify="center"
       >
+        {showLabel ? <Text fontSize="$caption" color="$primary">{t('navigationAction')}</Text> : null}
         <Navigation size={compact ? compactSize * (bare ? 0.58 : 0.5) : 18} color={theme.primary.val} />
       </View>
     </Pressable>
