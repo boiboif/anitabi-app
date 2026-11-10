@@ -1,6 +1,7 @@
 import type { TranslationKey } from './zh';
 
 const en = {
+  copiedToClipboard: 'Copied to clipboard',
   mapDataLoadPaused: 'Location loading paused. Retry to continue.',
   mapDataReconnecting: 'Connection interrupted. Retrying…',
   pilgrimageRecordSaveFailed: 'Could not save the pilgrimage record',

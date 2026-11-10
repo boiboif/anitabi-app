@@ -1,4 +1,5 @@
 const zh = {
+  copiedToClipboard: '已复制到剪贴板',
   mapDataLoadPaused: '地点加载已暂停，可重试继续。',
   mapDataReconnecting: '连接暂时中断，正在重试…',
   pilgrimageRecordSaveFailed: '巡礼记录保存失败',

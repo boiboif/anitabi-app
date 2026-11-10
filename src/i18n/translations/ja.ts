@@ -1,6 +1,7 @@
 import type { TranslationKey } from './zh';
 
 const ja = {
+  copiedToClipboard: 'クリップボードにコピーしました',
   mapDataLoadPaused: 'スポットの読み込みを一時停止しました。再試行して続けてください。',
   mapDataReconnecting: '接続が一時的に切れました。再試行中…',
   pilgrimageRecordSaveFailed: '巡礼記録を保存できませんでした',

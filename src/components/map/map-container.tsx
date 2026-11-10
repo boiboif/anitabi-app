@@ -44,10 +44,9 @@ import {
   useState,
 } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bus, Fuel, Hospital, School, Shield, Train, Utensils } from '@tamagui/lucide-icons-2';
 import type { EdgeInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
-import { useTheme, YStack } from 'tamagui';
+import { YStack } from 'tamagui';
 
 export type Bounds = { ne: number[]; sw: number[] };
 type ScaleBarPosition = ComponentProps<typeof MapView>['scaleBarPosition'];
@@ -87,20 +86,8 @@ const LOCATION_PUCK_CIRCLE_STROKE_WIDTH = 2;
 // Only query known Mapbox basemap layers, never the application's own marker sources.
 const NEARBY_PLACE_LAYERS = ['poi-label', 'transit-label', 'airport-label', 'natural-point-label'];
 
-function nearbyPlaceIcon(icon: string | undefined, color: ComponentProps<typeof Shield>['color']) {
-  switch (icon) {
-    case 'police': return <Shield size={16} color={color} />;
-    case 'fuel': return <Fuel size={16} color={color} />;
-    case 'hospital': return <Hospital size={16} color={color} />;
-    case 'school': return <School size={16} color={color} />;
-    case 'rail': case 'rail-light': case 'rail-metro': return <Train size={16} color={color} />;
-    case 'bus': return <Bus size={16} color={color} />;
-    case 'restaurant': return <Utensils size={16} color={color} />;
-    default: return null;
-  }
-}
-
-function readNearbyPlace(properties: GeoJSON.GeoJsonProperties, language: string) {
+function readNearbyPlace(feature: GeoJSON.Feature, layer: string, language: string) {
+  const properties = feature.properties;
   if (!properties) return null;
   const stringValue = (value: unknown) => typeof value === 'string' && value.trim() ? value.trim() : undefined;
   const localizedName = language === 'zh-CN'
@@ -109,10 +96,22 @@ function readNearbyPlace(properties: GeoJSON.GeoJsonProperties, language: string
   const name = localizedName ?? stringValue(properties.name);
   if (!name) return null;
   const englishName = stringValue(properties.name_en);
+  const betaIcon = stringValue(properties.maki_beta);
+  const standardIcon = stringValue(properties.maki);
+  const geometry = feature.geometry;
+  const featureKey = typeof feature.id === 'string' ||
+    (typeof feature.id === 'number' && Number.isFinite(feature.id))
+    ? JSON.stringify([layer, 'id', feature.id])
+    : geometry?.type === 'Point' && Number.isFinite(geometry.coordinates[0]) && Number.isFinite(geometry.coordinates[1])
+      ? JSON.stringify([layer, 'point', geometry.coordinates[0], geometry.coordinates[1], name])
+      : undefined;
   return {
     name,
     englishName: englishName !== name ? englishName : undefined,
-    icon: stringValue(properties.maki),
+    icon: betaIcon ?? standardIcon,
+    fallbackIcon: betaIcon && standardIcon !== betaIcon ? standardIcon : undefined,
+    category: stringValue(properties.class),
+    featureKey,
   };
 }
 const BUILDING_COLORS: Partial<Record<(typeof MAP_STYLES)[number]['key'], string>> = {
@@ -171,7 +170,6 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   ref,
 ) {
   const { i18n } = useTranslation();
-  const theme = useTheme();
   const isPlanMode = mode === 'plan';
   const language = resolveLanguageTag(i18n.resolvedLanguage);
   const mapLabelLocale = language === 'zh-CN' ? 'zh-Hans' : language;
@@ -182,9 +180,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   const styleRevisionRef = useRef(0);
   const navigation = useNavigation();
   const storedSelectedMapPoint = useMapBrowse((state) => state.selectedMapPoint);
-  const lastPopupMapPoint = useMapBrowse((state) => state.lastPopupMapPoint);
   const nearbyMapLocation = useMapBrowse((state) => state.nearbyMapLocation);
-  const lastNearbyMapLocation = useMapBrowse((state) => state.lastNearbyMapLocation);
   const filteredBangumiId = useMapBrowse((state) => state.filteredBangumiId);
   const selectedMapBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);
   const focusPointFromNearby = useMapBrowse((state) => state.focusPointFromNearby);
@@ -197,17 +193,6 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     const point = bangumi?.points.find((item) => item.id === activeSelectedPoint.pointId);
     return bangumi && point ? { bangumi, point } : null;
   }, [activeSelectedPoint, bangumis]);
-  const popupPointData = useMemo(() => {
-    if (selectedPointData || !lastPopupMapPoint) return selectedPointData;
-    const bangumi = bangumis.find((item) => item.id === lastPopupMapPoint.bangumiId);
-    const point = bangumi?.points.find((item) => item.id === lastPopupMapPoint.pointId);
-    return bangumi && point ? { bangumi, point } : null;
-  }, [bangumis, lastPopupMapPoint, selectedPointData]);
-  const selectedPopupPositionKey = selectedPointData
-    ? `${selectedPointData.bangumi.id}:${selectedPointData.point.id}:${selectedPointData.point.geo.join(',')}`
-    : null;
-  const [positionedPopupKey, setPositionedPopupKey] = useState<string | null>(null);
-  const [positionedNearbyId, setPositionedNearbyId] = useState<number | null>(null);
   const [nearbyRegion, setNearbyRegion] = useState<{ id: number; region: string | null } | null>(null);
   const nearbyLocationId = nearbyMapLocation?.id;
   const nearbyGeo = nearbyMapLocation?.geo;
@@ -221,6 +206,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   const mapViewRef = useRef<MapView>(null);
   const mapSizeRef = useRef({ width: 0, height: 0 });
   const cameraRevisionRef = useRef(0);
+  const browsePressRevisionRef = useRef(0);
   const selectedHitRectsRef = useRef<{ key: string; rects: MarkerHitRect[] } | null>(null);
   const selectedMarkerKey = selectedPointData
     ? getSelectedPlanMarkerKey(selectedPointData.bangumi.id, selectedPointData.point.id, showPointImageMarkers)
@@ -239,6 +225,18 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     styleRevisionRef.current++;
   }, [styleIndex]);
 
+  useLayoutEffect(() => {
+    browsePressRevisionRef.current++;
+  }, [isPlanMode]);
+
+  useLayoutEffect(() => useMapBrowse.subscribe((state, previous) => {
+    if (state.selectedMapPoint !== previous.selectedMapPoint ||
+      state.nearbyMapLocation?.id !== previous.nearbyMapLocation?.id ||
+      state.openedBangumiDetailsId !== previous.openedBangumiDetailsId) {
+      browsePressRevisionRef.current++;
+    }
+  }), []);
+
   // Native source press handlers must stay stable: changing onPress makes
   // ShapeSource serialize its entire GeoJSON even when the points are unchanged.
   // Publish only committed values, before native events can observe the new UI.
@@ -250,71 +248,9 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   }, [isPlanMode, onMapPress, onPointSelect, selectedMarkerKey, selectedPointData]);
 
   useEffect(() => {
-    if (
-      isPlanMode ||
-      !selectedPointData ||
-      !selectedPopupPositionKey ||
-      positionedPopupKey === selectedPopupPositionKey
-    )
-      return;
-
-    let cancelled = false;
-    let frame: number | null = null;
-    const revealAfterNativePosition = () => {
-      if (cancelled) return;
-      frame = requestAnimationFrame(() => {
-        frame = requestAnimationFrame(() => {
-          frame = null;
-          if (!cancelled) setPositionedPopupKey(selectedPopupPositionKey);
-        });
-      });
-    };
-
-    // Keep the reused annotation hidden until its new coordinate has crossed the native map boundary.
-    const map = mapViewRef.current;
-    if (map) {
-      void map
-        .getPointInView([selectedPointData.point.geo[1], selectedPointData.point.geo[0]])
-        .then(revealAfterNativePosition, revealAfterNativePosition);
-    } else {
-      revealAfterNativePosition();
-    }
-
-    return () => {
-      cancelled = true;
-      if (frame !== null) cancelAnimationFrame(frame);
-    };
-  }, [isPlanMode, positionedPopupKey, selectedPointData, selectedPopupPositionKey]);
-
-  const isPopupVisible = !!selectedPointData && positionedPopupKey === selectedPopupPositionKey;
-
-  useEffect(() => {
     if (isPlanMode || nearbyLocationId === undefined || !nearbyGeo) return;
     return observeAdministrativeRegion(nearbyGeo, (region) => setNearbyRegion({ id: nearbyLocationId, region }));
   }, [isPlanMode, nearbyLocationId, nearbyGeo]);
-
-  useEffect(() => {
-    if (isPlanMode || nearbyLocationId === undefined || !nearbyGeo || positionedNearbyId === nearbyLocationId) return;
-    let cancelled = false;
-    let frame: number | null = null;
-    const id = nearbyLocationId;
-    const revealAfterNativePosition = () => {
-      if (cancelled) return;
-      frame = requestAnimationFrame(() => {
-        frame = requestAnimationFrame(() => {
-          frame = null;
-          if (!cancelled) setPositionedNearbyId(id);
-        });
-      });
-    };
-    const map = mapViewRef.current;
-    if (map) void map.getPointInView([nearbyGeo[1], nearbyGeo[0]])
-      .then(revealAfterNativePosition, revealAfterNativePosition);
-    else revealAfterNativePosition();
-    return () => { cancelled = true; if (frame !== null) cancelAnimationFrame(frame); };
-  }, [isPlanMode, nearbyLocationId, nearbyGeo, positionedNearbyId]);
-
-  const isNearbyPopupVisible = !!nearbyMapLocation && positionedNearbyId === nearbyMapLocation.id;
 
   // 合并本地 cameraRef 与外部转发 ref
   const setCameraRef = useCallback(
@@ -493,6 +429,9 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   // callback independent prevents popup dismissal from invalidating the full point source.
   const handleBrowsePointSelect = useCallback(
     (point: Bangumi['points'][number], bangumi: Bangumi) => {
+      browsePressRevisionRef.current++;
+      const selected = useMapBrowse.getState().selectedMapPoint;
+      if (selected?.bangumiId === bangumi.id && selected.pointId === point.id) return;
       selectMapPoint({ bangumiId: bangumi.id, pointId: point.id });
     },
     [selectMapPoint],
@@ -532,55 +471,85 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
 
   const handleBrowseMapPress = useCallback(
     (event: GeoJSON.Feature<GeoJSON.Point, { screenPointX: number; screenPointY: number }>) => {
+      browsePressRevisionRef.current++;
       const browse = useMapBrowse.getState();
-      if (browse.selectedMapPoint || browse.nearbyMapLocation) {
-        browse.clearSelectedMapPoint();
-        return;
-      }
-      if (!useMapData.getState().data) return;
+      const hadPopup = !!(browse.selectedMapPoint || browse.nearbyMapLocation);
+      if (!hadPopup && !useMapData.getState().data) return;
       const [rawLongitude, latitude] = event.geometry.coordinates;
       if (!Number.isFinite(rawLongitude) || !Number.isFinite(latitude)) return;
       // World copies can report longitudes outside [-180, 180].
       const longitude = ((rawLongitude + 180) % 360 + 360) % 360 - 180;
       if (!isValidCoordinate(latitude, longitude)) return;
-      browse.openNearbyMapLocation([latitude, longitude]);
-      const location = useMapBrowse.getState().nearbyMapLocation;
+      if (!hadPopup) browse.openNearbyMapLocation([latitude, longitude]);
+      const current = useMapBrowse.getState();
+      const location = current.nearbyMapLocation;
+      const selectedPoint = current.selectedMapPoint;
+      const detailsId = current.openedBangumiDetailsId;
+      const pressRevision = browsePressRevisionRef.current;
       const map = mapViewRef.current;
       const styleRevision = styleRevisionRef.current;
       // The rendered-feature query uses the original screen point. Once the
       // camera moves, that point no longer describes the clicked coordinate.
       const cameraRevision = cameraRevisionRef.current;
       const { screenPointX, screenPointY } = event.properties;
-      if (!location || !map || !Number.isFinite(screenPointX) || !Number.isFinite(screenPointY)) return;
+      if (!map || !Number.isFinite(screenPointX) || !Number.isFinite(screenPointY)) return;
+
+      const isCurrent = () => {
+        const state = useMapBrowse.getState();
+        return pressRevision === browsePressRevisionRef.current && map === mapViewRef.current &&
+          styleRevision === styleRevisionRef.current && cameraRevision === cameraRevisionRef.current &&
+          !pointSelectionRef.current?.isPlanMode && pointSelectionRef.current !== null &&
+          state.nearbyMapLocation?.id === location?.id && state.selectedMapPoint === selectedPoint &&
+          state.openedBangumiDetailsId === detailsId;
+      };
+      const styleKey = MAP_STYLES[styleIndex].key;
+      const layers = NEARBY_PLACE_LAYERS.filter((layer) =>
+        layer !== 'transit-label' || (styleKey !== 'dark' && styleKey !== 'light'));
 
       void (async () => {
-        for (const layer of NEARBY_PLACE_LAYERS) {
-          if (map !== mapViewRef.current || styleRevision !== styleRevisionRef.current ||
-            cameraRevision !== cameraRevisionRef.current ||
-            useMapBrowse.getState().nearbyMapLocation?.id !== location.id) return;
+        let queryFailed = false;
+        for (const layer of layers) {
+          if (!isCurrent()) return;
           try {
             const result = await map.queryRenderedFeaturesAtPoint([screenPointX, screenPointY], [], [layer]);
-            if (map !== mapViewRef.current || styleRevision !== styleRevisionRef.current ||
-              cameraRevision !== cameraRevisionRef.current ||
-              useMapBrowse.getState().nearbyMapLocation?.id !== location.id) return;
-            for (const feature of result?.features ?? []) {
-              const place = readNearbyPlace(feature.properties, language);
+            if (!isCurrent()) return;
+            if (!result || !Array.isArray(result.features)) {
+              queryFailed = true;
+              continue;
+            }
+            for (const feature of result.features) {
+              const place = readNearbyPlace(feature, layer, language);
               if (place) {
-                useMapBrowse.getState().setNearbyMapPlace(location.id, place);
+                const state = useMapBrowse.getState();
+                if (!hadPopup && location) {
+                  state.setNearbyMapPlace(location.id, place);
+                } else {
+                  const old = state.nearbyMapLocation;
+                  const sameFeature = !!old?.place && (place.featureKey && old.place.featureKey
+                    ? place.featureKey === old.place.featureKey
+                    : !place.featureKey && !old.place.featureKey && old.place.name === place.name &&
+                      old.geo[0] === latitude && old.geo[1] === longitude);
+                  if (!sameFeature && useMapData.getState().data) {
+                    state.openNearbyMapLocation([latitude, longitude], place);
+                  }
+                }
                 return;
               }
             }
           } catch {
-            // Some map styles do not contain every basemap layer.
+            // A native query failure cannot safely be interpreted as blank map.
+            queryFailed = true;
           }
         }
+        if (hadPopup && !queryFailed && isCurrent()) useMapBrowse.getState().clearSelectedMapPoint();
       })();
     },
-    [language],
+    [language, styleIndex],
   );
 
   const handleBangumiIconPress = useCallback(
     (bangumi: Bangumi) => {
+      browsePressRevisionRef.current++;
       openBangumiDetails(bangumi.id);
     },
     [openBangumiDetails],
@@ -691,54 +660,35 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
             onPress={handlePointSelect}
           />
         )}
-        {!isPlanMode && popupPointData ? (
+        {/* Keep a point's annotation and content together instead of moving a reused native view. */}
+        {!isPlanMode && selectedPointData ? (
           <MarkerView
-            coordinate={[popupPointData.point.geo[1], popupPointData.point.geo[0]]}
+            key={JSON.stringify([selectedPointData.bangumi.id, selectedPointData.point.id, ...selectedPointData.point.geo])}
+            coordinate={[selectedPointData.point.geo[1], selectedPointData.point.geo[0]]}
             anchor={{ x: 0.5, y: 1 }}
             allowOverlap
             allowOverlapWithPuck
-            isSelected={isPopupVisible}
-            pointerEvents={isPopupVisible ? 'auto' : 'none'}
+            isSelected
           >
-            {/* Android mounts the marker content in Mapbox's annotation tree, so hide the content itself. */}
-            <YStack
-              collapsable={false}
-              opacity={isPopupVisible ? 1 : 0}
-              pointerEvents={isPopupVisible ? 'auto' : 'none'}
-              accessibilityElementsHidden={!isPopupVisible}
-              importantForAccessibility={isPopupVisible ? 'auto' : 'no-hide-descendants'}
-            >
-              <PopupCard point={popupPointData.point} bangumi={popupPointData.bangumi} />
-            </YStack>
+            <PopupCard point={selectedPointData.point} bangumi={selectedPointData.bangumi} />
           </MarkerView>
         ) : null}
-        {!isPlanMode && lastNearbyMapLocation ? (
+        {!isPlanMode && nearbyMapLocation ? (
           <MarkerView
-            coordinate={[lastNearbyMapLocation.geo[1], lastNearbyMapLocation.geo[0]]}
+            key={`nearby:${nearbyMapLocation.id}`}
+            coordinate={[nearbyMapLocation.geo[1], nearbyMapLocation.geo[0]]}
             anchor={{ x: 0.5, y: 1 }}
             allowOverlap
             allowOverlapWithPuck
-            isSelected={isNearbyPopupVisible}
-            pointerEvents={isNearbyPopupVisible ? 'auto' : 'none'}
+            isSelected
           >
-            <YStack
-              collapsable={false}
-              opacity={isNearbyPopupVisible ? 1 : 0}
-              pointerEvents={isNearbyPopupVisible ? 'auto' : 'none'}
-              accessibilityElementsHidden={!isNearbyPopupVisible}
-              importantForAccessibility={isNearbyPopupVisible ? 'auto' : 'no-hide-descendants'}
-            >
-              <NearbyPointPopupCard
-                geo={lastNearbyMapLocation.geo}
-                nearbyPoints={nearbyPoints}
-                place={lastNearbyMapLocation.place ? {
-                  ...lastNearbyMapLocation.place,
-                  icon: nearbyPlaceIcon(lastNearbyMapLocation.place.icon, theme.primary.val),
-                } : null}
-                region={nearbyRegion?.id === lastNearbyMapLocation.id ? nearbyRegion.region : null}
-                onPointPress={(point, bangumi) => focusPointFromNearby({ bangumiId: bangumi.id, pointId: point.id })}
-              />
-            </YStack>
+            <NearbyPointPopupCard
+              geo={nearbyMapLocation.geo}
+              nearbyPoints={nearbyPoints}
+              place={nearbyMapLocation.place}
+              region={nearbyRegion?.id === nearbyMapLocation.id ? nearbyRegion.region : null}
+              onPointPress={(point, bangumi) => focusPointFromNearby({ bangumiId: bangumi.id, pointId: point.id })}
+            />
           </MarkerView>
         ) : null}
       </MapView>

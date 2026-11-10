@@ -1,17 +1,22 @@
 import PointImage from '@/components/point/point-image';
 import PointNavigationButton from '@/components/point/point-navigation-button';
+import NearbyPlaceIcon from '@/components/map/nearby-place-icon';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import type { Bangumi, Point } from '@/services/types';
 import { formatNearbyDistance, type NearbyPoint } from '@/utils/nearby-points';
-import type { ReactNode } from 'react';
+import { getNearbyPlaceColor } from '@/utils/nearby-place-appearance';
+import { Toast } from '@boiboif/react-native-toast';
+import * as Clipboard from 'expo-clipboard';
 import { useTranslation } from 'react-i18next';
 import { Pressable } from 'react-native';
-import { Text, View, XStack, YStack } from 'tamagui';
+import { Text, useTheme, useThemeName, View, XStack, YStack } from 'tamagui';
 
 export type NearbyPlace = {
   name: string;
   englishName?: string | null;
-  icon?: ReactNode;
+  icon?: string;
+  fallbackIcon?: string;
+  category?: string;
 };
 
 type Props = {
@@ -25,7 +30,21 @@ type Props = {
 
 export default function NearbyPointPopupCard({ geo, nearbyPoints, place, region, onPointPress }: Props) {
   const { t, i18n } = useTranslation();
-  const location = region || `${geo[1].toFixed(6)}, ${geo[0].toFixed(6)}`;
+  const theme = useTheme();
+  const colorScheme = useThemeName() === 'dark' ? 'dark' : 'light';
+  const placeColor = place && (
+    getNearbyPlaceColor(place.icon, undefined, colorScheme) ??
+    getNearbyPlaceColor(place.fallbackIcon, place.category, colorScheme)
+  );
+  const title = place?.name || `${geo[1].toFixed(6)}, ${geo[0].toFixed(6)}`;
+
+  const copyText = async (text: string) => {
+    try {
+      if (await Clipboard.setStringAsync(text)) Toast.show(t('copiedToClipboard'));
+    } catch {
+      // Do not report success when the clipboard is unavailable.
+    }
+  };
 
   return (
     <YStack bg="$background" rounded="$3" boxShadow="0 2px 8px rgba(0,0,0,0.4)" width={220}>
@@ -67,24 +86,34 @@ export default function NearbyPointPopupCard({ geo, nearbyPoints, place, region,
         </XStack>
       ) : null}
       <YStack px="$2" py="$1.5" gap="$1">
-        {place?.name ? (
-          <XStack items="center" gap="$2">
-            <YStack flex={1} minW={0}>
-              <Text fontWeight="600" fontSize="$footnote" color="$color12" numberOfLines={1}>
-                {place.name}
+        <XStack items="center" gap="$2">
+          <YStack flex={1} minW={0}>
+            <Pressable accessibilityRole="button" accessibilityLabel={title} onPress={(event) => {
+              event.stopPropagation();
+              void copyText(title);
+            }}>
+              <Text fontWeight="600" fontSize="$footnote" color="$color12" style={placeColor ? { color: placeColor } : undefined} numberOfLines={1}>
+                {title}
               </Text>
-              {place.englishName ? (
-                <Text fontSize="$caption" color="$color10" numberOfLines={1}>
+            </Pressable>
+            {place?.englishName ? (
+              <Pressable accessibilityRole="button" accessibilityLabel={place.englishName} onPress={(event) => {
+                event.stopPropagation();
+                void copyText(place.englishName!);
+              }}>
+                <Text fontSize="$caption" color="$color10" style={placeColor ? { color: placeColor } : undefined} opacity={placeColor ? 0.65 : 1} numberOfLines={1}>
                   {place.englishName}
                 </Text>
-              ) : null}
-            </YStack>
-            {place.icon ? <View>{place.icon}</View> : null}
-          </XStack>
-        ) : null}
+              </Pressable>
+            ) : null}
+          </YStack>
+          {place?.icon || place?.fallbackIcon ? (
+            <NearbyPlaceIcon name={place.icon} fallbackName={place.fallbackIcon} color={placeColor || theme.color12.val} />
+          ) : null}
+        </XStack>
         <XStack items="center" justify="space-between" gap="$1">
-          <Text flex={1} minW={0} fontWeight="600" fontSize="$caption" color="$color12" numberOfLines={2}>
-            {location}
+          <Text flex={1} minW={0} fontWeight="600" fontSize="$caption" color="$color12" numberOfLines={2} selectable>
+            {region}
           </Text>
           <PointNavigationButton mapCoordinate={geo} compact showLabel />
         </XStack>

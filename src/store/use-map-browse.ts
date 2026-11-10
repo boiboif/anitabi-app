@@ -10,7 +10,7 @@ export type MapPointReference = {
 export type NearbyMapLocation = {
   id: number;
   geo: [number, number];
-  place: { name: string; englishName?: string; icon?: string } | null;
+  place: { name: string; englishName?: string; icon?: string; fallbackIcon?: string; category?: string; featureKey?: string } | null;
 };
 
 /**
@@ -32,11 +32,7 @@ type MapBrowseState = {
   filteredBangumiId: number | null;
   /** 当前在地图上展示弹窗的巡礼点。 */
   selectedMapPoint: MapPointReference | null;
-  /** 保留最近一次弹窗点位，使隐藏后的卡片无需重新挂载。 */
-  lastPopupMapPoint: MapPointReference | null;
   nearbyMapLocation: NearbyMapLocation | null;
-  /** Keep the marker mounted while hidden, like the ordinary point popup. */
-  lastNearbyMapLocation: NearbyMapLocation | null;
   /** 等待首页地图执行的相机动作。 */
   mapCameraRequest: MapCameraRequest | null;
 
@@ -48,7 +44,7 @@ type MapBrowseState = {
   closeBangumiDetails: () => void;
   /** 用户在地图内选择点位。 */
   selectMapPoint: (point: MapPointReference) => void;
-  openNearbyMapLocation: (geo: [number, number]) => void;
+  openNearbyMapLocation: (geo: [number, number], place?: NearbyMapLocation['place']) => void;
   setNearbyMapPlace: (id: number, place: NearbyMapLocation['place']) => void;
   focusPointFromNearby: (point: MapPointReference) => void;
   /** 用户通过地图控件选择点位，强制定位到该点。 */
@@ -78,9 +74,7 @@ export const useMapBrowse = create<MapBrowseState>((set) => ({
   openedBangumiDetailsId: null,
   filteredBangumiId: null,
   selectedMapPoint: null,
-  lastPopupMapPoint: null,
   nearbyMapLocation: null,
-  lastNearbyMapLocation: null,
   mapCameraRequest: null,
 
   openBangumiDetails: (bangumiId) =>
@@ -110,28 +104,26 @@ export const useMapBrowse = create<MapBrowseState>((set) => ({
   selectMapPoint: (point) =>
     set({
       selectedMapPoint: point,
-      lastPopupMapPoint: point,
       nearbyMapLocation: null,
       mapCameraRequest: null,
     }),
 
-  openNearbyMapLocation: (geo) => {
-    const location: NearbyMapLocation = { id: nextNearbyMapLocationId++, geo, place: null };
-    set({ nearbyMapLocation: location, lastNearbyMapLocation: location, selectedMapPoint: null, mapCameraRequest: null });
+  openNearbyMapLocation: (geo, place = null) => {
+    const location: NearbyMapLocation = { id: nextNearbyMapLocationId++, geo, place };
+    set({ nearbyMapLocation: location, selectedMapPoint: null, mapCameraRequest: null });
   },
 
   setNearbyMapPlace: (id, place) =>
     set((state) => {
       if (state.nearbyMapLocation?.id !== id) return state;
       const location = { ...state.nearbyMapLocation, place };
-      return { nearbyMapLocation: location, lastNearbyMapLocation: location };
+      return { nearbyMapLocation: location };
     }),
 
   focusPointFromNearby: (point) =>
     set({
       nearbyMapLocation: null,
       selectedMapPoint: point,
-      lastPopupMapPoint: point,
       mapCameraRequest: createMapCameraRequest(point, 'nearby'),
     }),
 
@@ -140,7 +132,6 @@ export const useMapBrowse = create<MapBrowseState>((set) => ({
       openedBangumiDetailsId: null,
       filteredBangumiId: null,
       selectedMapPoint: point,
-      lastPopupMapPoint: point,
       nearbyMapLocation: null,
       mapCameraRequest: createMapCameraRequest(point, 'map-control'),
     }),
@@ -150,7 +141,6 @@ export const useMapBrowse = create<MapBrowseState>((set) => ({
       openedBangumiDetailsId: null,
       filteredBangumiId: null,
       selectedMapPoint: point,
-      lastPopupMapPoint: point,
       nearbyMapLocation: null,
       mapCameraRequest: createMapCameraRequest(point, 'external-list'),
     }),
@@ -162,7 +152,6 @@ export const useMapBrowse = create<MapBrowseState>((set) => ({
         : {
             filteredBangumiId: point.bangumiId,
             selectedMapPoint: point,
-            lastPopupMapPoint: point,
             nearbyMapLocation: null,
             mapCameraRequest: createMapCameraRequest(point, 'bangumi-detail-sheet'),
           },

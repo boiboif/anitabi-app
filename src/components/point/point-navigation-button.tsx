@@ -47,7 +47,7 @@ export default function PointNavigationButton({ point, mapCoordinate, compact = 
       <View
         width={showLabel ? undefined : compact ? compactSize : 36}
         height={compact ? compactSize : 36}
-        px={showLabel ? '$2' : undefined}
+        px={showLabel ? '$2.5' : undefined}
         rounded="$9"
         bg={bare ? 'transparent' : '$color2'}
         flexDirection="row"

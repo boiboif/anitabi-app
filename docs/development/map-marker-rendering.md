@@ -10,7 +10,7 @@
 
 `Images` 与 `Mapbox.Image` 从地图首次挂载开始保持注册，地图未就绪时使用透明占位子视图；地图加载完成后才将子根替换为完整 artwork。Android 的 `RNMBXImage` 首次添加子视图时可能尚未拿到地图引用，而后续 `addToMap` 不会补挂该子视图；未挂到窗口的 Fresco 图片不会开始加载，所以仅反复刷新快照无法解决首入空框。提前注册父容器、在地图就绪后替换整个子根，确保照片挂入离屏视图。保留布局快照与 `onLoad` 后的完整照片刷新；设备验收同时覆盖首入、退出重入和连续切点。
 
-首页 PopupCard 包含图片预览、收藏、导航等多个操作，继续使用交互式 `MarkerView`。首次选中后保留 marker；取消选中时保留上次点位内容，以不透明度 0 隐藏，并关闭触摸和无障碍访问。同一点再次选中时直接显示；切换点位时保持 marker 挂载，更新坐标后等待一次原生地图调用和两个绘制帧，再显示卡片，避免旧原生位置尚未更新就显示。
+首页巡礼点 PopupCard 和附近位置卡片包含图片、导航等交互，使用 `MarkerView`。关闭时卸载对应注解；切换巡礼点或位置时为新目标创建独立注解，不再对复用注解同时更新坐标和内容，也不再依赖透明度或双帧等待来隐藏旧位置。普通点位的 key 包含作品 ID、点位 ID 和坐标，附近位置使用点击序号；同一附近位置的异步地名或行政区更新不会重新创建注解。原生注解重建的开销和首次定位表现仍需在 Android、iOS 设备上验证。
 
 两种模式共用 `SELECTED_MAP_POINT_LAYER_ID` 作为排序锚点。普通圆点、点位缩略图和番剧图标都设置 `belowLayerID`，保证选中标记高于这些图层。选中层始终挂载；新增 marker 图层时也要声明这一关系。该关系不代表选中标记高于 Popup 等原生视图。
 
@@ -32,9 +32,9 @@
 ## 回归
 
 ```powershell
-node --test scripts/tests/selected-map-point-source.test.mjs scripts/tests/selected-plan-marker-lifecycle.test.mjs scripts/tests/map-viewport-report.test.mjs scripts/tests/map-point-selection-callbacks.test.mjs
+node --test scripts/tests/selected-map-point-source.test.mjs scripts/tests/selected-plan-marker-lifecycle.test.mjs scripts/tests/map-viewport-report.test.mjs scripts/tests/map-point-selection-callbacks.test.mjs scripts/tests/map-popup-lifecycle.test.mjs
 ```
 
 测试覆盖空选中、单点载荷、连续切换、无效坐标、图片注册生命周期、视口报告和计划地图事件边界。事件测试执行当前组件，分离 render 与 layout commit，检查回调身份、最新已提交数据、丢弃渲染、延迟投影、命中优先级和普通点回退；不执行 React Native 渲染、原生 Mapbox 样式解析或绘制，也不提供设备帧率结论。
 
-设备回归检查冷启动、密集重叠点位置顶、连续快速切换、取消选中、图片开关、无图点位、延迟图片加载、地图样式切换、旋转/倾斜、主题和语言变化。首页同时检查 Popup 的独立按钮操作、隐藏后地图点击是否穿透，以及再次选中时是否闪现上一个点位内容。
+设备回归检查冷启动、密集重叠点位置顶、连续快速切换、取消选中、图片开关、无图点位、延迟图片加载、地图样式切换、旋转/倾斜、主题和语言变化。首页同时检查 Popup 的独立按钮操作、关闭后地图点击是否穿透、附近卡片切换到巡礼点，以及再次选中时是否闪现上一个点位内容或位置。
