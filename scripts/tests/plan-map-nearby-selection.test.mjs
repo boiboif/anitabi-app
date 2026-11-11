@@ -109,7 +109,7 @@ function createHarness(params = {}) {
   return api;
 }
 
-test('nearby cards coexist with the selected plan point and dismissal only closes the nearby card', () => {
+test('nearby cards coexist with the selected point until selecting another plan point', () => {
   const h = createHarness({ bangumiId: '1', pointId: 'a' });
   assert.equal(h.card().resolved.point.id, 'a');
   assert.equal(h.map().nearbyLocation, null);
@@ -125,7 +125,7 @@ test('nearby cards coexist with the selected plan point and dismissal only close
   assert.equal(h.cameraCalls.length, 0, 'opening a nearby card does not move the camera');
   h.map().onPointSelect({ bangumiId: 2, pointId: 'b' });
   h.render();
-  assert.equal(h.map().nearbyLocation, nearby, 'selecting a plan point leaves the independent nearby card open');
+  assert.equal(h.map().nearbyLocation, null, 'selecting a different plan point closes the nearby card');
   assert.equal(h.card().resolved.point.id, 'b');
   h.map().onMapPress();
   h.render();
@@ -156,7 +156,7 @@ test('plan points and work filters are passed independently; hiding a selected p
   assert.deepEqual(plain(h.map().selectedBangumiIds), [2, 1]);
 });
 
-test('nearby thumbnail selection preserves map-tap camera policy and same-point identity', () => {
+test('map point selection preserves the map-tap camera policy and same-point identity', () => {
   const h = createHarness();
   h.map().onViewportChange({ zoom: 19, bounds: { sw: [138, 34], ne: [141, 37] } });
   h.map().onNearbyLocationOpen(location());
@@ -164,14 +164,22 @@ test('nearby thumbnail selection preserves map-tap camera policy and same-point 
   h.map().onPointSelect({ bangumiId: 1, pointId: 'a' });
   h.render();
   const reference = h.map().selectedPoint;
+  assert.equal(h.map().nearbyLocation, null, 'selecting an initial plan point closes the nearby card');
   assert.deepEqual(plain(h.cameraCalls[0].centerCoordinate), [139, 35]);
   assert.equal(h.cameraCalls[0].zoomLevel, undefined);
   assert.equal(h.cameraCalls[0].animationDuration, 200);
   assert.equal(h.cameraCalls[0].animationMode, 'easeTo');
+  const nearbySamePoint = location(3);
+  h.map().onNearbyLocationOpen(nearbySamePoint);
+  h.render();
   h.map().onPointSelect({ bangumiId: 1, pointId: 'a' });
   h.render();
   assert.equal(h.map().selectedPoint, reference);
+  assert.equal(h.map().nearbyLocation, nearbySamePoint, 'ordinary selection of the current point is not a switch');
   assert.equal(h.cameraCalls.length, 2, 'same-point presses still retain existing camera refocus behavior');
+  h.card().onRefocus();
+  h.render();
+  assert.equal(h.map().nearbyLocation, nearbySamePoint, 'refocusing the current point keeps nearby open');
   h.map().onViewportChange({ zoom: 16, bounds: null });
   h.map().onNearbyLocationOpen(location(2));
   h.render();
@@ -180,8 +188,8 @@ test('nearby thumbnail selection preserves map-tap camera policy and same-point 
   assert.equal(h.cameraCalls.at(-1).animationDuration, 1000);
 });
 
-test('point-list selection preserves the nearby card, list camera rules and work-filter behavior', () => {
-  const h = createHarness();
+test('selecting another point from the list closes nearby and preserves camera and filter behavior', () => {
+  const h = createHarness({ bangumiId: '2', pointId: 'b' });
   h.filter().onToggleBangumi(2);
   h.render();
   h.map().onViewportChange({ zoom: 19, bounds: { sw: [138, 34], ne: [141, 37] } });
@@ -190,11 +198,38 @@ test('point-list selection preserves the nearby card, list camera rules and work
   h.render();
   h.list().onSelect(h.list().points[0]);
   h.render();
-  assert.equal(h.map().nearbyLocation, nearby);
+  assert.equal(h.map().nearbyLocation, null);
   assert.equal(h.card().resolved.point.id, 'a');
   assert.deepEqual(plain(h.map().selectedBangumiIds), []);
   assert.equal(h.cameraCalls.at(-1).zoomLevel, undefined);
   assert.equal(h.cameraCalls.at(-1).animationDuration, 200);
+});
+
+test('the bottom card previous and next callbacks close nearby when they switch the current point', () => {
+  const h = createHarness({ bangumiId: '1', pointId: 'a' });
+  h.map().onNearbyLocationOpen(location());
+  h.render();
+  h.card().onPrevious();
+  h.render();
+  assert.equal(h.card().resolved.point.id, 'b');
+  assert.equal(h.map().nearbyLocation, null);
+  h.map().onNearbyLocationOpen(location(2));
+  h.render();
+  h.card().onNext();
+  h.render();
+  assert.equal(h.card().resolved.point.id, 'a');
+  assert.equal(h.map().nearbyLocation, null);
+});
+
+test('selecting the current point from the list does not close nearby', () => {
+  const h = createHarness({ bangumiId: '1', pointId: 'a' });
+  const nearby = location();
+  h.map().onNearbyLocationOpen(nearby);
+  h.render();
+  h.list().onSelect(h.list().points[0]);
+  h.render();
+  assert.equal(h.map().nearbyLocation, nearby);
+  assert.equal(h.card().resolved.point.id, 'a');
 });
 
 test('separate plan screen instances own independent nearby selections', () => {

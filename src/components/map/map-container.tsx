@@ -738,10 +738,8 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
             onPress={handlePointSelect}
           />
         )}
-        {/* Keep a point's annotation and content together instead of moving a reused native view. */}
         {!isPlanMode && selectedPointData ? (
           <MarkerView
-            key={JSON.stringify([selectedPointData.bangumi.id, selectedPointData.point.id, ...selectedPointData.point.geo])}
             coordinate={[selectedPointData.point.geo[1], selectedPointData.point.geo[0]]}
             anchor={{ x: 0.5, y: 1 }}
             allowOverlap

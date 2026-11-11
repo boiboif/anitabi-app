@@ -292,6 +292,9 @@ export default function PlanMapScreen() {
       if (selectedBangumiIds.length > 0 && !selectedBangumiIds.includes(resolved.bangumi.id)) {
         setSelectedBangumiIds([]);
       }
+      if (selectedPoint?.bangumiId !== resolved.bangumi.id || selectedPoint.pointId !== resolved.point.id) {
+        setNearbyLocation(null);
+      }
       setSelectedPoint((current) =>
         current?.bangumiId === resolved.bangumi.id && current.pointId === resolved.point.id
           ? current
@@ -299,7 +302,7 @@ export default function PlanMapScreen() {
       );
       moveCameraToPoint(resolved, source);
     },
-    [moveCameraToPoint, selectedBangumiIds],
+    [moveCameraToPoint, selectedBangumiIds, selectedPoint],
   );
   const focusPreviousPoint = useCallback(() => {
     if (previousPoint) focusPoint(previousPoint);

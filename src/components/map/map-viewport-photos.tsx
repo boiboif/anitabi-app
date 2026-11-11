@@ -13,8 +13,8 @@ import { useTranslation } from 'react-i18next';
 import { FlatList } from 'react-native';
 import { type GetThemeValueForKey, styled, View } from 'tamagui';
 
-const PHOTO_WIDTH = 74;
-const PHOTO_HEIGHT = 50;
+const PHOTO_WIDTH = 80;
+const PHOTO_HEIGHT = 54;
 const PHOTO_GAP = 6;
 const EDGE_INSET = 12;
 const Photo = styled(Image, { width: '100%', height: '100%' });

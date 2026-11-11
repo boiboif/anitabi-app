@@ -1096,6 +1096,31 @@ test('plan nearby-card screenshots select the plan point and close only the near
   assert.equal(h.browseClears, 0);
 });
 
+test('a nearby screenshot of the current plan point still selects it and closes the nearby card', async () => {
+  const h = createHarness('plan');
+  const browseLocation = { id: 99, geo: [10, 20], place: null };
+  h.setBrowseState({ nearbyMapLocation: browseLocation, selectedMapPoint: reference('c') });
+  h.enablePlanNearby(reference('a'));
+  h.setNearbyCandidates([{ point: work.points[0], bangumi: work, distanceMeters: 20 }]);
+  h.mapPress();
+  await flush();
+
+  assert.equal(h.nearbyCard.props.nearbyPoints[0].point.id, 'a');
+  h.nearbyCard.props.onPointPress(work.points[0], work);
+  await flush();
+
+  assert.deepEqual(h.selected, [reference('a')], 'the plan receives the selection so it can refocus');
+  assert.deepEqual(plain(h.planSelectedPoint), reference('a'));
+  assert.deepEqual(h.mapPresses, ['press'], 'the nearby dismissal callback runs even for the current point');
+  assert.equal(h.planNearbyLocation, null);
+  assert.equal(h.nearbyCard, undefined);
+  assert.deepEqual(h.projected, [], 'a card screenshot does not perform artwork hit testing');
+  assert.deepEqual(h.browseSelections, []);
+  assert.deepEqual(plain(h.selectedMapPoint), reference('c'));
+  assert.equal(h.nearbyLocation, browseLocation);
+  assert.equal(h.browseClears, 0);
+});
+
 test('ordinary plan-marker selection keeps the independent nearby card open', async () => {
   const h = createHarness('plan');
   h.enablePlanNearby(reference('a'));

@@ -146,15 +146,19 @@ function createHarness() {
     return render();
   }
   function popup(type = 'PopupCard') {
+    return popups(type).at(-1);
+  }
+  function popups(type = 'PopupCard') {
+    const result = [];
     function walk(node) {
       if (!node || typeof node !== 'object') return;
-      if (node.type === 'MarkerView' && find(node, type)) return node;
+      if (node.type === 'MarkerView' && find(node, type)) result.push(node);
       for (const child of [node.props?.children].flat(Infinity)) {
-        const result = walk(child);
-        if (result) return result;
+        walk(child);
       }
     }
-    return walk(tree);
+    walk(tree);
+    return result;
   }
   async function settleProjection(index) {
     projections[index].resolve([100, 100]);
@@ -185,16 +189,16 @@ function createHarness() {
     if (dirty) render();
   }
   render();
-  return { select, openNearby, close, updatePlace, updateRegion, popup, projections, settleProjection, frame, render, frames };
+  return { select, openNearby, close, updatePlace, updateRegion, popup, popups, projections, settleProjection, frame, render, frames };
 }
 
 function assertPoint(marker, pointId, coordinate) {
-  assert.ok(marker, `point ${pointId} has its own native annotation`);
+  assert.ok(marker, `point ${pointId} has a native annotation`);
   assert.equal(find(marker, 'PopupCard').props.point.id, pointId);
   assert.deepEqual([...marker.props.coordinate], coordinate);
 }
 
-test('rapid A → B → A replaces the native point annotation for each target', () => {
+test('rapid A → B → A retains one point annotation and updates its coordinate and content', () => {
   const h = createHarness();
   h.select('a');
   const firstA = h.popup();
@@ -202,11 +206,13 @@ test('rapid A → B → A replaces the native point annotation for each target',
   h.select('b');
   const b = h.popup();
   assertPoint(b, 'b', [140, 36]);
-  assert.notEqual(firstA.key, b.key, 'changing the target replaces rather than moves the native annotation');
+  assert.equal(firstA.key, b.key, 'switching points keeps the same annotation key');
+  assert.equal(h.popups().length, 1, 'no previous point annotation remains mounted');
   h.select('a');
   const newA = h.popup();
   assertPoint(newA, 'a', [139, 35]);
-  assert.notEqual(b.key, newA.key, 'returning to A replaces B even if A was previously shown');
+  assert.equal(b.key, newA.key);
+  assert.equal(h.popups().length, 1);
   assert.equal(h.projections.length, 0, 'the point popup does not queue native position gates');
   assert.equal(h.frames.size, 0, 'the point popup does not schedule delayed visibility frames');
 });
