@@ -1,10 +1,10 @@
-import { observePlaceSprite, type PlaceSprite, type SpriteRect } from '@/services/nearby-place-sprite';
+import type { PreparedPlaceIcon } from '@/services/nearby-place-sprite';
 import { Bus, Fuel, Hospital, School, Shield, Train, Utensils } from '@tamagui/lucide-icons-2';
 import { Image } from 'expo-image';
-import { useEffect, useState, type ComponentProps, type ReactNode } from 'react';
+import type { ComponentProps } from 'react';
 import { View } from 'tamagui';
 
-type Props = { name?: string; fallbackName?: string; color: string };
+type Props = { name?: string; fallbackName?: string; color: string; asset?: PreparedPlaceIcon | null };
 
 function fallbackIcon(name: string | undefined, color: string) {
   const iconColor = color as ComponentProps<typeof Shield>['color'];
@@ -30,55 +30,15 @@ function fallbackIcon(name: string | undefined, color: string) {
   }
 }
 
-function SpriteImage({ sprite, rect, fallback }: { sprite: PlaceSprite; rect: SpriteRect; fallback: ReactNode }) {
-  const [phase, setPhase] = useState<'loading' | 'loaded' | 'failed'>('loading');
-  if (phase === 'failed') return fallback;
-  // The upstream image is 2x; keep unusually large symbols inside the card.
-  const scale = Math.min(0.5, 22 / rect.width, 22 / rect.height);
-  return (
-    <View width={rect.width * scale} height={rect.height * scale} overflow="hidden" pointerEvents="none">
-      <Image
-        source={{ uri: sprite.uri }}
-        contentFit="fill"
-        cachePolicy="memory-disk"
-        transition={0}
-        onLoad={() => setPhase('loaded')}
-        onError={() => setPhase('failed')}
-        style={{
-          position: 'absolute',
-          left: -rect.x * scale,
-          top: -rect.y * scale,
-          width: 1024 * scale,
-          height: 1082 * scale,
-        }}
-      />
-      {phase === 'loading' && fallback ? (
-        <View position="absolute" t={0} r={0} b={0} l={0} items="center" justify="center">
-          {fallback}
-        </View>
-      ) : null}
-    </View>
-  );
-}
-
-/** Draw the selected map symbol using Anitabi's sprite; missing data keeps the existing fallback. */
-export default function NearbyPlaceIcon({ name, fallbackName, color }: Props) {
-  const [sprite, setSprite] = useState<PlaceSprite | null>(null);
-  const hasName = !!(name || fallbackName);
-  useEffect(() => {
-    if (!hasName) return;
-    return observePlaceSprite(setSprite);
-  }, [hasName]);
-
-  if (!hasName) return null;
-  const candidates = [name, fallbackName].filter((value): value is string => !!value);
-  const fallback = candidates.map((value) => fallbackIcon(value, color)).find(Boolean) ?? null;
-  for (const candidate of candidates) {
-    // Some Mapbox styles suffix a Maki name with the icon's nominal size.
-    const match = [candidate, candidate.replace(/-(?:11|15)$/, '')].find((value) => sprite?.icons.has(value));
-    if (!match || !sprite) continue;
-    const rect = sprite.icons.get(match)!;
-    return <SpriteImage key={`${sprite.uri}:${match}`} sprite={sprite} rect={rect} fallback={fallback} />;
+/** The source is already decoded; a displayed card never upgrades its fallback icon. */
+export default function NearbyPlaceIcon({ name, fallbackName, color, asset }: Props) {
+  if (asset) {
+    return (
+      <View width={asset.width} height={asset.height} pointerEvents="none">
+        <Image source={asset.source} contentFit="contain" transition={0} style={{ width: asset.width, height: asset.height }} />
+      </View>
+    );
   }
-  return fallback;
+  const candidates = [name, fallbackName].filter((value): value is string => !!value);
+  return candidates.map((value) => fallbackIcon(value, color)).find(Boolean) ?? null;
 }

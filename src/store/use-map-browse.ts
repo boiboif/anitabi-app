@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { PreparedPlaceIcon } from '@/services/nearby-place-sprite';
 
 /** 地图、列表和详情抽屉之间传递点位时使用的轻量引用。 */
 export type MapPointReference = {
@@ -10,7 +11,16 @@ export type MapPointReference = {
 export type NearbyMapLocation = {
   id: number;
   geo: [number, number];
-  place: { name: string; englishName?: string; icon?: string; fallbackIcon?: string; category?: string; featureKey?: string } | null;
+  place: {
+    name: string;
+    englishName?: string;
+    icon?: string;
+    fallbackIcon?: string;
+    iconAsset?: PreparedPlaceIcon | null;
+    category?: string;
+    featureKey?: string;
+    mapFeature?: { layerId: string; feature: GeoJSON.Feature };
+  } | null;
 };
 
 /**

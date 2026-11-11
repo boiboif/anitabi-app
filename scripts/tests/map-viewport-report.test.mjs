@@ -151,6 +151,7 @@ test('moving the camera center still reports a viewport when enclosing bounds re
   app.move(45, 0, [139.1, 35]);
   await app.flush();
   assert.equal(app.reports.length, 2);
+  assert.deepEqual([...app.reports[1].center], [139.1, 35], 'reports the native center for viewport photo ordering');
 });
 
 test('leaving the map discards native reads still in flight', async () => {

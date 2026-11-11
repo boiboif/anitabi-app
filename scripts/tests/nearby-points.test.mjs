@@ -21,23 +21,31 @@ const { findNearbyPoints, formatNearbyDistance } = await import(moduleUrl(source
 const work = (id, points) => ({ id, points });
 const point = (id, geo, image) => ({ id, geo, image });
 
-test('finds closest points across works including imageless and distant points', () => {
+test('excludes imageless points before taking the closest three and still includes distant screenshots', () => {
   const bangumis = [
     work(1, [point('far', [36, 139], 'far.jpg'), point('near-no-image', [35.001, 139])]),
-    work(2, [point('same', [35, 139]), point('next', [35.002, 139], 'next.jpg')]),
+    work(2, [point('same', [35, 139], 'same.jpg'), point('next', [35.002, 139], 'next.jpg')]),
   ];
   const before = structuredClone(bangumis);
   const result = findNearbyPoints(bangumis, [35, 139], null, []);
-  assert.deepEqual(result.map(({ point }) => point.id), ['same', 'near-no-image', 'next']);
-  assert.ok(result[1].distanceMeters > 110 && result[1].distanceMeters < 112);
+  assert.deepEqual(result.map(({ point }) => point.id), ['same', 'next', 'far']);
+  assert.ok(result[1].distanceMeters > 222 && result[1].distanceMeters < 223);
   assert.deepEqual(bangumis, before);
-  assert.equal(findNearbyPoints([bangumis[0]], [0, 0], null, []).length, 2, 'no distance radius is imposed');
+  assert.equal(findNearbyPoints([bangumis[0]], [0, 0], null, []).length, 1, 'no distance radius is imposed');
+});
+
+test('missing or blank screenshot paths never use covers to fill the nearby list', () => {
+  const missing = [point('missing', [35, 139]), point('empty', [35, 139], ''), point('blank', [35, 139], '  ')];
+  const bangumi = { ...work(1, missing), cover: 'cover.jpg' };
+  assert.deepEqual(findNearbyPoints([bangumi], [35, 139], null, []), []);
+  const partial = { ...bangumi, points: [...missing, point('only', [35.003, 139], 'only.jpg')] };
+  assert.deepEqual(findNearbyPoints([partial], [35, 139], null, []).map(({ point }) => point.id), ['only']);
 });
 
 test('uses detail filter before selected works and preserves stable order at equal distance', () => {
   const bangumis = [
-    work(1, [point('first', [35, 139]), point('second', [35, 139])]),
-    work(2, [point('third', [35, 139])]),
+    work(1, [point('first', [35, 139], 'first.jpg'), point('second', [35, 139], 'second.jpg')]),
+    work(2, [point('third', [35, 139], 'third.jpg')]),
   ];
   assert.deepEqual(findNearbyPoints(bangumis, [35, 139], null, []).map(({ point }) => point.id), [
     'first', 'second', 'third',
@@ -50,7 +58,7 @@ test('excludes missing and invalid point coordinates but allows clicking the geo
   const bangumis = [work(1, [
     point('placeholder', [0, 0]), point('bad', [91, 0]), point('nan', [NaN, 5]),
     point('missing', undefined), point('wrong-shape', [1, 2, 3]), point('valid', [0, 0.001]),
-  ])];
+  ].map((entry) => ({ ...entry, image: 'screenshot.jpg' })))];
   assert.deepEqual(findNearbyPoints(bangumis, [0, 0], null, []).map(({ point }) => point.id), ['valid']);
   assert.deepEqual(findNearbyPoints(bangumis, [91, 0], null, []), []);
 });

@@ -4,7 +4,7 @@ import { distanceMeters, isValidCoordinate } from './plan-point-distances';
 
 export type NearbyPoint = { point: Point; bangumi: Bangumi; distanceMeters: number };
 
-/** The map's actual work filter takes precedence over the multi-work selection. */
+/** Find up to three screenshot-bearing points within the map's active work filter. */
 export function findNearbyPoints(
   bangumis: readonly Bangumi[],
   geo: readonly [number, number],
@@ -21,6 +21,7 @@ export function findNearbyPoints(
       continue;
     }
     for (const point of bangumi.points) {
+      if (!point.image?.trim()) continue;
       const pointGeo = point.geo;
       if (
         !Array.isArray(pointGeo) ||

@@ -5,6 +5,7 @@ import LoadingBadge from '@/components/map/loading-badge';
 import LocateButton from '@/components/map/locate-button';
 import MapContainer from '@/components/map/map-container';
 import MapTopBangumiIcons from '@/components/map/map-top-bangumi-icons';
+import MapViewportPhotos from '@/components/map/map-viewport-photos';
 import PointImageMarkerSwitch from '@/components/map/point-image-marker-switch';
 import SearchBox from '@/components/ui/search-box';
 import { useMapLocate } from '@/hooks/use-map-locate';
@@ -21,6 +22,7 @@ import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
 import { useMapBrowse } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
 import type { MapViewportState } from '@/utils/map-viewport';
+import type { ViewportImagePoint } from '@/utils/map-viewport-points';
 import type { Camera } from '@rnmapbox/maps';
 import { Dices } from '@tamagui/lucide-icons-2';
 import { useIsFocused, useNavigation, useRouter } from 'expo-router';
@@ -188,6 +190,15 @@ export default function HomeScreen() {
   }, [bangumis, clearMapBangumiFilter, focusPointFromMapControl, t]);
 
   const [styleIndex, setStyleIndex] = useThemedMapStyle();
+  const handleViewportPointSelect = ({ point, bangumi }: ViewportImagePoint) => {
+    useMapBrowse.getState().selectMapPoint({ bangumiId: bangumi.id, pointId: point.id });
+    // Omit zoom/heading/pitch so the native camera retains the user's current view.
+    cameraRef.current?.setCamera({
+      centerCoordinate: [point.geo[1], point.geo[0]],
+      animationMode: 'easeTo',
+      animationDuration: 350,
+    });
+  };
   const handle3DBuildingsChange = useCallback((enabled: boolean) => {
     setShow3DBuildings(enabled);
     cameraRef.current?.setCamera({
@@ -239,6 +250,8 @@ export default function HomeScreen() {
       </View>
 
       {progress && <LoadingBadge progress={progress} insets={insets} onRetry={() => void initializeMapData()} />}
+
+      <MapViewportPhotos bangumis={bangumis} viewport={cameraState} onSelect={handleViewportPointSelect} />
 
       {!selectedBangumi && (
         <>

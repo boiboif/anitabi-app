@@ -18,7 +18,7 @@ import { MAP_CONTROL_ICON_SIZE, MAP_CONTROL_SIZE, MAP_TOP_CONTROLS_TOP_OFFSET } 
 import { getPointFlyToZoom } from '@/lib/map-camera';
 import { ICON_BUTTON_ICON_SIZE, SELECTED_MAP_POINT_DOT_DIAMETER } from '@/lib/ui-sizes';
 import type { Bangumi, Point } from '@/services/types';
-import { type MapPointReference } from '@/store/use-map-browse';
+import type { MapPointReference, NearbyMapLocation } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
 import { usePlans } from '@/store/use-plans';
 import { createBangumiPointLookup } from '@/utils/bangumi-point-lookup';
@@ -125,6 +125,7 @@ export default function PlanMapScreen() {
     return pointId && Number.isFinite(parsedBangumiId) ? { bangumiId: parsedBangumiId, pointId } : null;
   }, [bangumiId, pointId]);
   const [selectedPoint, setSelectedPoint] = useState<MapPointReference | null>(initialPointReference);
+  const [nearbyLocation, setNearbyLocation] = useState<NearbyMapLocation | null>(null);
 
   const bangumiById = useMemo(
     () => new Map(data?.data.bangumis.map((bangumi, index) => [bangumi.id, { bangumi, index }] as const)),
@@ -323,6 +324,10 @@ export default function PlanMapScreen() {
     [focusPoint, resolvedPlanPoints],
   );
 
+  const handleMapPress = () => {
+    setNearbyLocation(null);
+  };
+
   const handleSelectFromList = useCallback(
     (resolved: PlanMapResolvedPoint) => {
       focusPoint(resolved);
@@ -373,9 +378,12 @@ export default function PlanMapScreen() {
             scaleBarPosition={{ left: 14, bottom: bottomOverlayHeight + 12 }}
             onMapReady={() => setIsMapReady(true)}
             selectedPoint={selectedPoint}
+            nearbyLocation={nearbyLocation}
             selectedBangumiIds={selectedBangumiIds}
             maxPointMarkerDiameter={SELECTED_MAP_POINT_DOT_DIAMETER - 2}
             onPointSelect={handlePointSelect}
+            onNearbyLocationOpen={setNearbyLocation}
+            onMapPress={handleMapPress}
             onCameraChange={setCameraState}
             onViewportChange={(viewport) => {
               currentViewportRef.current = viewport;

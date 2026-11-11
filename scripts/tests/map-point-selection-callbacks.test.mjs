@@ -44,6 +44,8 @@ function createHarness(mode = 'plan') {
   let draft;
   let project = async () => [100, 100];
   let query = async () => ({ features: [] });
+  let prepareIcon = async () => null;
+  const iconPreparations = [];
   const projected = [];
   const selected = [];
   const mapPresses = [];
@@ -52,6 +54,10 @@ function createHarness(mode = 'plan') {
   let hasMapData = true;
   let nextLocationId = 1;
   const nearbyOpens = [];
+  const planNearbyOpens = [];
+  const nearbySearches = [];
+  let nearbyCandidates = [];
+  let browseSelectedBangumiIds = [];
   const browseSubscribers = new Set();
   let browseState = {
     selectedMapPoint: null,
@@ -132,9 +138,14 @@ function createHarness(mode = 'plan') {
     '@/lib/constants': { MAP_DEFAULT_ZOOM: 4.6, MAP_COMPASS_TOP_OFFSET: 0 },
     '@/store/use-map-browse': { useMapBrowse },
     '@/store/use-map-data': { useMapData },
-    '@/store/use-map-bangumi-filter': { useMapBangumiFilter: (selector) => selector({ selectedBangumiIds: [] }) },
+    '@/store/use-map-bangumi-filter': { useMapBangumiFilter: (selector) => selector({ selectedBangumiIds: browseSelectedBangumiIds }) },
     '@/services/administrative-region': { observeAdministrativeRegion: () => () => {} },
-    '@/utils/nearby-points': { findNearbyPoints: () => [] },
+    '@/services/nearby-place-sprite': {
+      preparePlaceIcon: (...args) => { iconPreparations.push(args); return prepareIcon(...args); },
+      prefetchPlaceSprite: () => {},
+    },
+    '@/services/map-text-color': { prefetchMapStyle: () => {} },
+    '@/utils/nearby-points': { findNearbyPoints: (...args) => { nearbySearches.push(args); return nearbyCandidates; } },
     '@/utils/plan-point-distances': { isValidCoordinate: (lat, lon) => Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 },
     '@/components/map/map-marker-selection': { MapMarkerSelectionContext: { Provider: 'Provider' } },
     '@/components/map/map-markers': { __esModule: true, default: 'MapMarkers' },
@@ -147,7 +158,7 @@ function createHarness(mode = 'plan') {
       SelectedPlanMapPointLayer: 'SelectedPlanMapPointLayer',
       SelectedMapPointLayer: 'SelectedMapPointLayer',
     },
-    '@rnmapbox/maps': { MapView: 'MapView', Camera: 'Camera', Images: 'Images', Image: 'Image' },
+    '@rnmapbox/maps': { MapView: 'MapView', Camera: 'Camera', Images: 'Images', Image: 'Image', MarkerView: 'MarkerView' },
     '@tamagui/lucide-icons-2': { Bus: 'Bus', Fuel: 'Fuel', Hospital: 'Hospital', School: 'School', Shield: 'Shield', Train: 'Train', Utensils: 'Utensils' },
     'react-native-svg': { __esModule: true, default: 'Svg', Circle: 'Circle', Path: 'Path' },
     tamagui: { YStack: 'YStack', useTheme: () => ({ primary: { val: '#000' } }) },
@@ -216,6 +227,33 @@ function createHarness(mode = 'plan') {
       project = next;
     },
     setQuery(next) { query = next; },
+    setPrepareIcon(next) { prepareIcon = next; },
+    enablePlanNearby(selectedPoint = null) {
+      const update = (patch) => { render(patch); commit(); };
+      update({
+        selectedPoint,
+        nearbyLocation: null,
+        onNearbyLocationOpen: (location) => {
+          planNearbyOpens.push(location);
+          update({ nearbyLocation: location });
+        },
+        onPointSelect: (value) => {
+          selected.push(plain(value));
+          update({ selectedPoint: value });
+        },
+        onMapPress: () => {
+          mapPresses.push('press');
+          update({ nearbyLocation: null });
+        },
+      });
+    },
+    setBrowseState,
+    setBrowseSelectedBangumiIds(ids) { browseSelectedBangumiIds = ids; },
+    setNearbyCandidates(candidates) { nearbyCandidates = candidates; },
+    get planNearbyLocation() { return props.nearbyLocation; },
+    get planSelectedPoint() { return props.selectedPoint; },
+    get nearbyCard() { return find(tree, 'NearbyPointPopupCard'); },
+    clearPopup() { browseState.clearSelectedMapPoint(); },
     setMap(next) {
       find(tree, 'MapView').props.ref.current = next;
     },
@@ -257,6 +295,9 @@ function createHarness(mode = 'plan') {
     mapPresses,
     browseSelections,
     nearbyOpens,
+    planNearbyOpens,
+    nearbySearches,
+    iconPreparations,
     get nearbyLocation() { return browseState.nearbyMapLocation; },
     get selectedMapPoint() { return browseState.selectedMapPoint; },
     get browseClears() {
@@ -316,6 +357,7 @@ test('selected artwork wins overlapping point presses; an outside hit preserves 
 
 test('blank-map presses preserve artwork priority and use the latest map callback outside it', async () => {
   const h = createHarness();
+  h.update({ nearbyLocation: { id: 1, geo: [35, 139], place: null } });
   h.hitRects();
   h.mapPress();
   await flush();
@@ -429,11 +471,13 @@ test('hit rectangles for another artwork never intercept ordinary point presses'
 
 test('native projection failures preserve ordinary point and blank-map fallback behavior', async () => {
   const h = createHarness();
+  h.update({ nearbyLocation: { id: 1, geo: [35, 139], place: null } });
   h.hitRects();
   h.setProject(async () => {
     throw new Error('map projection unavailable');
   });
   h.pointPress();
+  await flush();
   h.mapPress();
   await flush();
   assert.deepEqual(h.selected, [reference('c')]);
@@ -488,6 +532,7 @@ test('browse blank presses first dismiss an open popup, then open at the next po
   assert.equal(h.browseClears, 1);
   assert.deepEqual(h.nearbyOpens, []);
   h.mapPress(screenPoint, [141, 37]);
+  await flush();
   assert.deepEqual(h.nearbyOpens.map((item) => item.geo), [[37, 141]]);
   h.mapPress(screenPoint, [142, 38]);
   await flush();
@@ -506,11 +551,12 @@ test('missing map data prevents opening, but never prevents closing a popup', as
   assert.equal(h.browseClears, 1);
 });
 
-test('browse map rejects invalid coordinates and normalizes wrapped longitude', () => {
+test('browse map rejects invalid coordinates and normalizes wrapped longitude', async () => {
   const h = createHarness('browse');
   h.mapPress(screenPoint, [0, 91]);
   assert.deepEqual(h.nearbyOpens, []);
   h.mapPress(screenPoint, [181, 35]);
+  await flush();
   assert.deepEqual(h.nearbyOpens.map((item) => item.geo), [[35, -179]]);
 });
 
@@ -524,8 +570,12 @@ test('nearby place lookup queries basemap layers at the tapped screen point', as
   h.mapPress({ x: 23, y: 45 }, [139, 35]);
   await flush();
   assert.deepEqual(queries, [{ point: [23, 45], filter: [], layers: ['poi-label'] }]);
-  const { featureKey: _featureKey, ...place } = plain(h.nearbyLocation.place);
+  const { featureKey: _featureKey, mapFeature, iconAsset: _iconAsset, ...place } = plain(h.nearbyLocation.place);
   assert.deepEqual(place, { name: '中文', englishName: 'English', icon: 'police' });
+  assert.deepEqual(mapFeature, {
+    layerId: 'poi-label',
+    feature: { properties: { name: 'Original', 'name_zh-Hans': '中文', name_en: 'English', maki: 'police' } },
+  });
 });
 
 test('nearby place preserves the preferred icon, standard fallback and map category', async () => {
@@ -535,7 +585,7 @@ test('nearby place preserves the preferred icon, standard fallback and map categ
   }));
   h.mapPress({ x: 23, y: 45 }, [139, 35]);
   await flush();
-  const { featureKey: _featureKey, ...place } = plain(h.nearbyLocation.place);
+  const { featureKey: _featureKey, mapFeature: _mapFeature, iconAsset: _iconAsset, ...place } = plain(h.nearbyLocation.place);
   assert.deepEqual(place, {
     name: 'Station', icon: 'rail-beta', fallbackIcon: 'rail', category: 'transit',
   });
@@ -557,7 +607,7 @@ for (const initial of ['point', 'nearby']) {
     pending.resolve({ features: [{ properties: { name: 'Original', 'name_zh-Hans': '中文', name_en: 'English', maki: 'police' } }] });
     await flush();
     assert.deepEqual(plain(h.nearbyLocation.geo), [36, 140]);
-    const { featureKey: _featureKey, ...place } = plain(h.nearbyLocation.place);
+    const { featureKey: _featureKey, mapFeature: _mapFeature, iconAsset: _iconAsset, ...place } = plain(h.nearbyLocation.place);
     assert.deepEqual(place, { name: '中文', englishName: 'English', icon: 'police' });
     assert.equal(h.nearbyOpens.at(-1).place?.name, '中文', 'the replacement must be created with its name already available');
     assert.equal(h.selectedMapPoint, null);
@@ -580,16 +630,56 @@ for (const initial of ['point', 'nearby']) {
   });
 }
 
-test('with no open popup, a map tap opens coordinates immediately and fills in a later POI', async () => {
+test('with no open popup, the first card mounts with the complete POI instead of growing after opening', async () => {
   const h = createHarness('browse');
   const pending = deferred();
   h.setQuery(() => pending.promise);
   h.mapPress(screenPoint, [139, 35]);
+  assert.equal(h.nearbyLocation, null);
+  assert.deepEqual(h.nearbyOpens, []);
+  pending.resolve({ features: [{ properties: { name: 'Station', name_en: 'Station English', maki: 'rail' } }] });
+  await flush();
+  assert.deepEqual(plain(h.nearbyLocation.geo), [35, 139]);
+  assert.equal(h.nearbyLocation.place.name, 'Station');
+  assert.equal(h.nearbyOpens.length, 1);
+  assert.equal(h.nearbyOpens[0].place.englishName, 'Station English');
+  assert.equal(h.nearbyOpens[0].place.icon, 'rail');
+});
+
+for (const result of ['empty', 'error', 'unavailable']) {
+  test(`with no open popup, a ${result} POI lookup still opens the coordinates card`, async () => {
+    const h = createHarness('browse');
+    h.setQuery(async () => {
+      if (result === 'error') throw new Error('native query failed');
+      return result === 'empty' ? { features: [] } : undefined;
+    });
+    h.mapPress(screenPoint, [139, 35]);
+    await flush();
+    assert.deepEqual(plain(h.nearbyLocation.geo), [35, 139]);
+    assert.equal(h.nearbyLocation.place, null);
+    assert.equal(h.nearbyOpens.length, 1);
+    assert.equal(h.iconPreparations.length, 0, 'coordinate-only cards do not wait for icon resources');
+  });
+}
+
+test('without a queryable screen point a first tap falls back directly to coordinates', () => {
+  const h = createHarness('browse');
+  h.setQuery(() => assert.fail('invalid screen coordinates must not reach the native query'));
+  h.mapPress({ x: NaN, y: NaN }, [139, 35]);
   assert.deepEqual(plain(h.nearbyLocation.geo), [35, 139]);
   assert.equal(h.nearbyLocation.place, null);
+});
+
+test('map data becoming unavailable during the first lookup prevents opening a card', async () => {
+  const h = createHarness('browse');
+  const pending = deferred();
+  h.setQuery(() => pending.promise);
+  h.mapPress();
+  h.setHasMapData(false);
   pending.resolve({ features: [{ properties: { name: 'Station' } }] });
   await flush();
-  assert.equal(h.nearbyLocation.place.name, 'Station');
+  assert.equal(h.nearbyLocation, null);
+  assert.deepEqual(h.nearbyOpens, []);
 });
 
 for (const initial of ['point', 'nearby']) {
@@ -777,13 +867,13 @@ test('a delayed basemap lookup cannot overwrite a dismissed or replaced nearby c
   let calls = 0;
   h.setQuery(() => ++calls === 1 ? pending.promise : Promise.resolve({ features: [] }));
   h.mapPress();
-  h.mapPress();
-  await flush();
   h.mapPress(screenPoint, [140, 36]);
+  await flush();
   pending.resolve({ features: [{ properties: { name: 'Old location' } }] });
   await flush();
   assert.deepEqual(plain(h.nearbyLocation.geo), [36, 140]);
   assert.equal(h.nearbyLocation.place, null);
+  assert.equal(h.nearbyOpens.length, 1);
   assert.ok(calls > 1);
 });
 
@@ -795,7 +885,7 @@ test('a basemap style change discards an in-flight lookup', async () => {
   h.update({ styleIndex: 1 });
   pending.resolve({ features: [{ properties: { name: 'Old style' } }] });
   await flush();
-  assert.equal(h.nearbyLocation.place, null);
+  assert.equal(h.nearbyLocation, null);
 });
 
 test('camera movement discards an in-flight lookup at the old screen point', async () => {
@@ -807,7 +897,362 @@ test('camera movement discards an in-flight lookup at the old screen point', asy
   h.moveCamera();
   pending.resolve({ features: [{ properties: { name: 'Old screen position' } }] });
   await flush();
-  assert.equal(h.nearbyLocation.place, null);
+  assert.equal(h.nearbyLocation, null);
   assert.equal(calls, 1);
-  assert.deepEqual(plain(h.nearbyLocation.geo), [35, 139]);
+  assert.deepEqual(h.nearbyOpens, []);
+});
+
+for (const initial of ['none', 'point', 'nearby']) {
+  test(`prepared icon and color arrive with the first new card while preserving the previous ${initial} selection`, async () => {
+    const h = createHarness('browse');
+    if (initial === 'point') h.pointPress('a');
+    if (initial === 'nearby') { h.mapPress(); await flush(); }
+    const oldLocation = h.nearbyLocation;
+    const oldPoint = h.selectedMapPoint;
+    const oldOpenCount = h.nearbyOpens.length;
+    const pending = deferred();
+    h.setQuery(async () => ({ features: [{ id: 201, properties: { name: 'New place', maki_beta: 'government', maki: 'town-hall' } }] }));
+    h.setPrepareIcon(() => pending.promise);
+    h.mapPress(screenPoint, [140, 36]);
+    await flush();
+    assert.equal(h.nearbyLocation, oldLocation);
+    assert.equal(h.selectedMapPoint, oldPoint);
+    assert.equal(h.nearbyOpens.length, oldOpenCount);
+    assert.deepEqual(h.iconPreparations, [['government', 'town-hall']]);
+    const asset = { uri: 'file:///ready.png', color: '#3156a7' };
+    pending.resolve(asset);
+    await flush();
+    assert.equal(h.nearbyOpens.length, oldOpenCount + 1);
+    assert.equal(h.nearbyLocation.place.name, 'New place');
+    assert.equal(h.nearbyLocation.place.iconAsset, asset, 'the prepared asset is available in the opening state');
+    assert.deepEqual(plain(h.nearbyLocation.geo), [36, 140]);
+  });
+}
+
+test('the newest map click wins when icon preparation resolves out of order', async () => {
+  const h = createHarness('browse');
+  const first = deferred();
+  const second = deferred();
+  let id = 1;
+  h.setQuery(async () => ({ features: [{ id, properties: { name: `Place ${id}`, maki: `${id}` } }] }));
+  h.setPrepareIcon((icon) => icon === '1' ? first.promise : second.promise);
+  h.mapPress(screenPoint, [140, 36]);
+  await flush();
+  id = 2;
+  h.mapPress(screenPoint, [141, 37]);
+  await flush();
+  second.resolve({ uri: 'file:///second.png', color: '#222222' });
+  await flush();
+  first.resolve({ uri: 'file:///first.png', color: '#111111' });
+  await flush();
+  assert.equal(h.nearbyOpens.length, 1);
+  assert.equal(h.nearbyLocation.place.name, 'Place 2');
+  assert.deepEqual(plain(h.nearbyLocation.geo), [37, 141]);
+});
+
+for (const change of ['camera', 'style', 'map replacement', 'unmount', 'point selection', 'clear']) {
+  test(`${change} while icon preparation is pending prevents the old card from opening`, async () => {
+    const h = createHarness('browse');
+    h.pointPress('a');
+    const pending = deferred();
+    h.setQuery(async () => ({ features: [{ properties: { name: 'Stale place', maki: 'police' } }] }));
+    h.setPrepareIcon(() => pending.promise);
+    h.mapPress();
+    await flush();
+    assert.equal(h.iconPreparations.length, 1);
+    if (change === 'camera') h.moveCamera();
+    else if (change === 'style') h.update({ styleIndex: 1 });
+    else if (change === 'map replacement') h.setMap({});
+    else if (change === 'unmount') h.unmount();
+    else if (change === 'point selection') h.pointPress('b');
+    else h.clearPopup();
+    pending.resolve({ uri: 'file:///stale.png', color: '#3156a7' });
+    await flush();
+    assert.equal(h.nearbyLocation, null);
+    assert.deepEqual(h.nearbyOpens, []);
+    assert.deepEqual(plain(h.selectedMapPoint), change === 'clear' ? null : reference(change === 'point selection' ? 'b' : 'a'));
+  });
+}
+
+test('an empty-map click closes the current card without waiting for pending icon preparation', async () => {
+  const h = createHarness('browse');
+  h.pointPress('a');
+  const pending = deferred();
+  h.setPrepareIcon(() => pending.promise);
+  h.setQuery(async () => ({ features: [{ properties: { name: 'Old place', maki: 'police' } }] }));
+  h.mapPress();
+  await flush();
+  h.setQuery(async () => ({ features: [] }));
+  h.mapPress(screenPoint, [140, 36]);
+  await flush();
+  assert.equal(h.selectedMapPoint, null);
+  assert.equal(h.nearbyLocation, null);
+  assert.equal(h.browseClears, 1);
+  assert.equal(h.iconPreparations.length, 1);
+  pending.resolve({ uri: 'file:///stale.png', color: '#3156a7' });
+  await flush();
+  assert.deepEqual(h.nearbyOpens, []);
+});
+
+test('icon preparation failure still opens the recognized place with a stable null asset', async () => {
+  const h = createHarness('browse');
+  h.setQuery(async () => ({ features: [{ properties: { name: 'Recognized place', maki: 'police' } }] }));
+  h.setPrepareIcon(async () => { throw new Error('icon unavailable'); });
+  h.mapPress();
+  await flush();
+  assert.equal(h.nearbyLocation.place.name, 'Recognized place');
+  assert.equal(h.nearbyLocation.place.iconAsset, null);
+  assert.equal(h.browseClears, 0);
+  assert.equal(h.nearbyOpens.length, 1);
+});
+
+test('a repeated hit on the selected feature does not prepare its icon again', async () => {
+  const h = createHarness('browse');
+  h.setQuery(async () => ({ features: [{ id: 17, properties: { name: 'Station', maki: 'rail' } }] }));
+  h.mapPress();
+  await flush();
+  const original = h.nearbyLocation;
+  h.setPrepareIcon(() => assert.fail('same-feature clicks must reuse the current card'));
+  h.mapPress(screenPoint, [139.0001, 35.0001]);
+  await flush();
+  assert.equal(h.nearbyLocation, original);
+  assert.equal(h.iconPreparations.length, 1);
+});
+
+test('losing map data while the icon is preparing prevents opening a card', async () => {
+  const h = createHarness('browse');
+  const pending = deferred();
+  h.setQuery(async () => ({ features: [{ properties: { name: 'Place', maki: 'rail' } }] }));
+  h.setPrepareIcon(() => pending.promise);
+  h.mapPress();
+  await flush();
+  h.setHasMapData(false);
+  pending.resolve(null);
+  await flush();
+  assert.equal(h.nearbyLocation, null);
+  assert.deepEqual(h.nearbyOpens, []);
+});
+
+test('plan empty-map taps open and close their own coordinate card without changing browse selection', async () => {
+  const h = createHarness('plan');
+  const browseLocation = { id: 99, geo: [10, 20], place: null };
+  h.setBrowseState({ nearbyMapLocation: browseLocation, selectedMapPoint: reference('c') });
+  h.enablePlanNearby(reference('a'));
+  h.mapPress(screenPoint, [140, 36]);
+  await flush();
+  assert.deepEqual(plain(h.planNearbyLocation.geo), [36, 140]);
+  assert.equal(h.planNearbyLocation.place, null);
+  assert.deepEqual(plain(h.planSelectedPoint), reference('a'), 'a selected plan point does not prevent opening nearby coordinates');
+  assert.ok(h.nearbyCard, 'the plan map renders its controlled nearby card');
+  h.mapPress(screenPoint, [141, 37]);
+  await flush();
+  assert.equal(h.planNearbyLocation, null);
+  assert.deepEqual(plain(h.planSelectedPoint), reference('a'), 'closing nearby leaves the bottom plan card selected');
+  assert.equal(h.planNearbyOpens.length, 1);
+  assert.equal(h.nearbyLocation, browseLocation);
+  assert.deepEqual(plain(h.selectedMapPoint), reference('c'));
+  assert.deepEqual(h.nearbyOpens, []);
+  assert.equal(h.browseClears, 0);
+});
+
+test('a named plan-map place opens independently after its appearance is ready and keeps the selected plan point', async () => {
+  const h = createHarness('plan');
+  h.enablePlanNearby(reference('a'));
+  const pending = deferred();
+  h.setQuery(async () => ({ features: [{ id: 51, properties: { name: 'Station', maki: 'rail' } }] }));
+  h.setPrepareIcon(() => pending.promise);
+  h.mapPress(screenPoint, [140, 36]);
+  await flush();
+  assert.deepEqual(plain(h.planSelectedPoint), reference('a'));
+  assert.equal(h.planNearbyLocation, null);
+  pending.resolve(null);
+  await flush();
+  assert.deepEqual(plain(h.planSelectedPoint), reference('a'));
+  assert.equal(h.planNearbyLocation.place.name, 'Station');
+  assert.deepEqual(plain(h.planNearbyLocation.geo), [36, 140]);
+  assert.equal(h.mapPresses.length, 0, 'the old card was replaced instead of closed first');
+  assert.deepEqual(h.browseSelections, []);
+});
+
+test('plan nearby-card screenshots select the plan point and close only the nearby card', async () => {
+  const h = createHarness('plan');
+  const browseLocation = { id: 99, geo: [10, 20], place: null };
+  h.setBrowseState({ nearbyMapLocation: browseLocation, selectedMapPoint: reference('c') });
+  h.enablePlanNearby(reference('a'));
+  h.setNearbyCandidates([{ point: work.points[1], bangumi: work, distanceMeters: 20 }]);
+  h.mapPress();
+  await flush();
+  assert.equal(h.nearbyCard.props.nearbyPoints[0].point.id, 'b');
+  h.nearbyCard.props.onPointPress(work.points[1], work);
+  await flush();
+  assert.deepEqual(plain(h.planSelectedPoint), reference('b'));
+  assert.equal(h.planNearbyLocation, null);
+  assert.equal(h.nearbyCard, undefined, 'the nearby annotation is removed after screenshot selection');
+  assert.deepEqual(h.selected, [reference('b')]);
+  assert.deepEqual(h.projected, [], 'a card screenshot does not perform artwork hit testing');
+  assert.deepEqual(h.browseSelections, []);
+  assert.deepEqual(plain(h.selectedMapPoint), reference('c'));
+  assert.equal(h.nearbyLocation, browseLocation);
+  assert.equal(h.browseClears, 0);
+});
+
+test('ordinary plan-marker selection keeps the independent nearby card open', async () => {
+  const h = createHarness('plan');
+  h.enablePlanNearby(reference('a'));
+  h.mapPress();
+  await flush();
+  const nearby = h.planNearbyLocation;
+  h.pointPress('b');
+  await flush();
+  assert.deepEqual(plain(h.planSelectedPoint), reference('b'));
+  assert.equal(h.planNearbyLocation, nearby);
+  assert.ok(h.nearbyCard);
+  assert.equal(h.mapPresses.length, 0, 'ordinary marker selection does not invoke nearby dismissal');
+});
+
+test('plan nearby candidates use the supplied plan points and plan work filter rather than browse filters', async () => {
+  const h = createHarness('plan');
+  h.setBrowseState({ filteredBangumiId: 999 });
+  h.setBrowseSelectedBangumiIds([999]);
+  h.enablePlanNearby();
+  const planWork = { ...work, points: work.points.slice(1) };
+  h.update({ bangumis: [planWork], selectedBangumiIds: [10] });
+  h.mapPress(screenPoint, [140, 36]);
+  await flush();
+  const [bangumis, geo, singleFilter, multiFilter] = h.nearbySearches.at(-1);
+  assert.equal(bangumis[0], planWork);
+  assert.deepEqual(bangumis[0].points.map((point) => point.id), ['b', 'c']);
+  assert.deepEqual(plain(geo), [36, 140]);
+  assert.equal(singleFilter, null);
+  assert.deepEqual(multiFilter, [10]);
+  h.update({ selectedBangumiIds: [] });
+  assert.deepEqual(h.nearbySearches.at(-1)[3], []);
+});
+
+test('changing browse state does not invalidate a pending plan nearby lookup', async () => {
+  const h = createHarness('plan');
+  h.enablePlanNearby();
+  const pending = deferred();
+  h.setQuery(() => pending.promise);
+  h.mapPress();
+  await flush();
+  h.setBrowseState({ selectedMapPoint: reference('b'), nearbyMapLocation: null });
+  pending.resolve({ features: [{ properties: { name: 'Plan place' } }] });
+  await flush();
+  assert.equal(h.planNearbyLocation.place.name, 'Plan place');
+  assert.deepEqual(plain(h.selectedMapPoint), reference('b'));
+});
+
+test('a named place switches directly between plan nearby cards, while hitting the same feature keeps it', async () => {
+  const h = createHarness('plan');
+  h.enablePlanNearby(reference('a'));
+  let id = 1;
+  h.setQuery(async () => ({ features: [{ id, properties: { name: 'Place' } }] }));
+  h.mapPress();
+  await flush();
+  const first = h.planNearbyLocation;
+  id = 2;
+  h.mapPress(screenPoint, [140, 36]);
+  await flush();
+  assert.notEqual(h.planNearbyLocation.id, first.id);
+  assert.equal(h.planNearbyOpens.length, 2);
+  assert.equal(h.mapPresses.length, 0);
+  const second = h.planNearbyLocation;
+  h.mapPress(screenPoint, [140.0001, 36.0001]);
+  await flush();
+  assert.equal(h.planNearbyLocation, second);
+  assert.equal(h.planNearbyOpens.length, 2);
+  assert.deepEqual(plain(h.planSelectedPoint), reference('a'));
+});
+
+for (const change of ['selected point', 'selection away and back', 'camera', 'style', 'unmount']) {
+  test(`a plan ${change} change discards pending nearby icon preparation`, async () => {
+    const h = createHarness('plan');
+    h.enablePlanNearby(reference('a'));
+    const pending = deferred();
+    h.setQuery(async () => ({ features: [{ properties: { name: 'Old place', maki: 'rail' } }] }));
+    h.setPrepareIcon(() => pending.promise);
+    h.mapPress();
+    await flush();
+    if (change === 'selected point') h.update({ selectedPoint: reference('b') });
+    else if (change === 'selection away and back') {
+      const original = h.planSelectedPoint;
+      h.update({ selectedPoint: reference('b') });
+      h.update({ selectedPoint: original });
+    } else if (change === 'camera') h.moveCamera();
+    else if (change === 'style') h.update({ styleIndex: 1 });
+    else h.unmount();
+    pending.resolve(null);
+    await flush();
+    assert.equal(h.planNearbyLocation, null);
+    assert.deepEqual(h.planNearbyOpens, []);
+  });
+}
+
+test('an empty plan-map tap supersedes a pending named-place request without clearing the selected plan point', async () => {
+  const h = createHarness('plan');
+  h.enablePlanNearby(reference('a'));
+  const pending = deferred();
+  h.setQuery(() => pending.promise);
+  h.mapPress();
+  await flush();
+  h.setQuery(async () => ({ features: [] }));
+  h.mapPress(screenPoint, [140, 36]);
+  await flush();
+  assert.deepEqual(plain(h.planSelectedPoint), reference('a'));
+  const coordinates = h.planNearbyLocation;
+  assert.deepEqual(plain(coordinates.geo), [36, 140]);
+  pending.resolve({ features: [{ properties: { name: 'Stale' } }] });
+  await flush();
+  assert.equal(h.planNearbyLocation, coordinates);
+  assert.equal(h.planNearbyOpens.length, 1);
+});
+
+test('plan source callbacks remain stable while nearby opens and its screenshot selects a plan point', async () => {
+  const h = createHarness('plan');
+  h.enablePlanNearby(reference('a'));
+  const handler = h.pointHandler;
+  const imageHandler = h.imageHandler;
+  const mapHandler = h.mapHandler;
+  h.setQuery(async () => ({ features: [{ properties: { name: 'Place' } }] }));
+  h.mapPress();
+  await flush();
+  assert.ok(h.planNearbyLocation);
+  assert.equal(h.pointHandler, handler);
+  assert.equal(h.imageHandler, imageHandler);
+  assert.equal(h.mapHandler, mapHandler);
+  h.nearbyCard.props.onPointPress(work.points[1], work);
+  await flush();
+  assert.equal(h.pointHandler, handler);
+  assert.equal(h.imageHandler, imageHandler);
+  assert.equal(h.mapHandler, mapHandler);
+});
+
+test('camera movement during plan artwork projection prevents querying the old screen point', async () => {
+  const h = createHarness('plan');
+  h.enablePlanNearby(reference('a'));
+  h.hitRects();
+  const projection = deferred();
+  h.setProject(() => projection.promise);
+  h.setQuery(() => assert.fail('the stale screen point must not reach the POI query'));
+  h.mapPress({ x: 111, y: 100 });
+  h.moveCamera();
+  projection.resolve([100, 100]);
+  await flush();
+  assert.deepEqual(plain(h.planSelectedPoint), reference('a'));
+  assert.equal(h.planNearbyLocation, null);
+});
+
+test('a failed plan POI query keeps the existing nearby card and selected plan point', async () => {
+  const h = createHarness('plan');
+  h.enablePlanNearby(reference('a'));
+  h.mapPress();
+  await flush();
+  const nearby = h.planNearbyLocation;
+  h.setQuery(async () => { throw new Error('native query failed'); });
+  h.mapPress();
+  await flush();
+  assert.deepEqual(plain(h.planSelectedPoint), reference('a'));
+  assert.equal(h.planNearbyLocation, nearby);
+  assert.equal(h.mapPresses.length, 0);
 });

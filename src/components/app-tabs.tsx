@@ -4,9 +4,11 @@ import { CalendarDays, Heart, Map, User } from '@tamagui/lucide-icons-2';
 import { BlurView } from 'expo-blur';
 import { usePathname } from 'expo-router';
 import { TabList, Tabs, TabSlot, TabTrigger } from 'expo-router/ui';
+import { useState } from 'react';
 import { Platform, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { getTokens, Text, useTheme, useThemeName, View } from 'tamagui';
+import { AppTabBarInsetContext } from './app-tab-bar-inset';
 
 const TAB_CONFIG = [
   { name: 'index', label: { key: 'map', defaultValue: '地图' }, icon: Map },
@@ -56,43 +58,54 @@ export default function AppTabs() {
 
   const themeName = useThemeName();
   const theme = themeName === 'dark' ? 'dark' : 'light';
+  const tabBarBottom = Platform.OS === 'ios' ? 54 : 34;
+  const [tabBarHeight, setTabBarHeight] = useState<number | null>(null);
 
   return (
-    <Tabs>
-      <TabSlot />
+    <AppTabBarInsetContext value={tabBarHeight === null ? null : tabBarBottom + tabBarHeight}>
+      <Tabs>
+        <TabSlot />
 
-      {/* Hidden route registration */}
-      <TabList style={{ position: 'absolute', left: -9999, width: 0, height: 0, overflow: 'hidden', opacity: 0 }}>
-        {TAB_CONFIG.map((tab) => (
-          <TabTrigger key={tab.name} name={tab.name} href={tab.name === 'index' ? '/' : `/${tab.name}`} />
-        ))}
-      </TabList>
+        {/* Hidden route registration */}
+        <TabList style={{ position: 'absolute', left: -9999, width: 0, height: 0, overflow: 'hidden', opacity: 0 }}>
+          {TAB_CONFIG.map((tab) => (
+            <TabTrigger key={tab.name} name={tab.name} href={tab.name === 'index' ? '/' : `/${tab.name}`} />
+          ))}
+        </TabList>
 
-      {/* Floating tab bar */}
-      <View rounded="$9" position="absolute" b={Platform.OS === 'ios' ? 54 : 34} l="$3" r="$3">
-        <BlurView
-          intensity={80}
-          tint={theme}
-          style={{
-            borderRadius: getTokens().radius['9'].val,
-            overflow: 'hidden',
-            boxShadow: theme === 'light' ? '0 0 10px 0 rgba(0, 0, 0, 0.1)' : '0 0 10px 0 rgba(255, 255, 255, 0.1)',
-          }}
+        {/* Floating tab bar */}
+        <View
+          rounded="$9"
+          position="absolute"
+          b={tabBarBottom}
+          l="$3"
+          r="$3"
+          onLayout={({ nativeEvent }) => setTabBarHeight(nativeEvent.layout.height)}
         >
-          <View
+          <BlurView
+            intensity={80}
+            tint={theme}
             style={{
-              flexDirection: 'row',
-              paddingVertical: 4,
-              paddingHorizontal: 8,
               borderRadius: getTokens().radius['9'].val,
+              overflow: 'hidden',
+              boxShadow: theme === 'light' ? '0 0 10px 0 rgba(0, 0, 0, 0.1)' : '0 0 10px 0 rgba(255, 255, 255, 0.1)',
             }}
           >
-            {TAB_CONFIG.map((tab) => (
-              <TabItem key={tab.name} {...tab} />
-            ))}
-          </View>
-        </BlurView>
-      </View>
-    </Tabs>
+            <View
+              style={{
+                flexDirection: 'row',
+                paddingVertical: 4,
+                paddingHorizontal: 8,
+                borderRadius: getTokens().radius['9'].val,
+              }}
+            >
+              {TAB_CONFIG.map((tab) => (
+                <TabItem key={tab.name} {...tab} />
+              ))}
+            </View>
+          </BlurView>
+        </View>
+      </Tabs>
+    </AppTabBarInsetContext>
   );
 }

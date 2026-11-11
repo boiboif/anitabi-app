@@ -95,6 +95,8 @@ function createHarness() {
       },
     },
     '@/utils/nearby-points': { findNearbyPoints: () => [] },
+    '@/services/nearby-place-sprite': { prefetchPlaceSprite() {}, preparePlaceIcon: async () => null },
+    '@/services/map-text-color': { prefetchMapStyle() {} },
     '@/components/map/map-marker-selection': { MapMarkerSelectionContext: { Provider: 'Provider' } },
     '@/components/map/map-markers': { __esModule: true, default: 'MapMarkers' },
     '@/components/map/point-image-markers': { __esModule: true, default: 'PointImageMarkers' },
@@ -215,6 +217,9 @@ test('nearby to point removes the nearby annotation and presents the selected po
   const nearby = h.popup('NearbyPointPopupCard');
   assert.ok(nearby, 'nearby annotation is mounted while selected');
   assert.deepEqual([...nearby.props.coordinate], [139.5, 35.5]);
+  const card = find(nearby, 'NearbyPointPopupCard');
+  assert.equal(card.props.mapStyleURL, 'fixture');
+  assert.equal(card.props.mapZoom, 4);
 
   h.select('b');
   assert.equal(h.popup('NearbyPointPopupCard'), undefined, 'nearby native annotation is removed');
