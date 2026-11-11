@@ -8,6 +8,11 @@ const source = readFileSync(new URL('../../src/components/map/map-container.tsx'
 const compiled = ts.transpileModule(source, {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
 }).outputText;
+const visibilitySource = readFileSync(new URL('../../src/utils/map-popup-visibility.ts', import.meta.url), 'utf8');
+const visibilityModule = { exports: {} };
+vm.runInNewContext(ts.transpileModule(visibilitySource, {
+  compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
+}).outputText, { module: visibilityModule, exports: visibilityModule.exports });
 
 const work = {
   id: 10,
@@ -53,10 +58,12 @@ function createHarness(mode = 'plan') {
   let tree;
   let draft;
   let project = async () => [100, 100];
+  let unproject = async (point) => point;
   let query = async () => ({ features: [] });
   let prepareIcon = async () => null;
   const iconPreparations = [];
   const projected = [];
+  const unprojected = [];
   const selected = [];
   const mapPresses = [];
   const browseSelections = [];
@@ -157,6 +164,7 @@ function createHarness(mode = 'plan') {
     },
     '@/services/map-text-color': { prefetchMapStyle: () => {} },
     '@/utils/nearby-points': { findNearbyPoints: (...args) => { nearbySearches.push(args); return nearbyCandidates; } },
+    '@/utils/map-popup-visibility': visibilityModule.exports,
     '@/utils/plan-point-distances': { isValidCoordinate: (lat, lon) => Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 },
     '@/components/map/map-marker-selection': { MapMarkerSelectionContext: { Provider: 'Provider' } },
     '@/components/map/map-markers': { __esModule: true, default: 'MapMarkers' },
@@ -187,6 +195,10 @@ function createHarness(mode = 'plan') {
     getPointInView(coordinate) {
       projected.push([...coordinate]);
       return project(coordinate);
+    },
+    getCoordinateFromView(point) {
+      unprojected.push([...point]);
+      return unproject(point);
     },
     queryRenderedFeaturesAtPoint: (...args) => query(...args),
   };
@@ -237,6 +249,7 @@ function createHarness(mode = 'plan') {
     setProject(next) {
       project = next;
     },
+    setUnproject(next) { unproject = next; },
     setQuery(next) { query = next; },
     setPrepareIcon(next) { prepareIcon = next; },
     enablePlanNearby(selectedPoint = null) {
@@ -286,6 +299,7 @@ function createHarness(mode = 'plan') {
         gestures: { isGestureActive: true },
       });
     },
+    idleCamera() { find(tree, 'MapView').props.onMapIdle(); },
     hitRects(pointId = props.selectedPoint?.pointId, showImage = props.showPointImageMarkers) {
       find(tree, 'SelectedPlanMapPointLayer').props.onHitRectsChange(`${work.id}:${pointId}:${showImage}`, [hitRect]);
     },
@@ -314,6 +328,7 @@ function createHarness(mode = 'plan') {
       find(tree, 'MapView').props.ref.current = null;
     },
     projected,
+    unprojected,
     selected,
     mapPresses,
     browseSelections,
@@ -349,14 +364,14 @@ function deferred() {
   return { promise, resolve, reject };
 }
 
-function createPhotoVisibilityHarness(screenPosition) {
+function createPhotoVisibilityHarness(screenPosition, visibilityObstacles = [], visibilityObstaclesReady = true) {
   const h = createHarness('browse');
   const commands = [];
   h.setCamera({ setCamera: (command) => commands.push(plain(command)) });
   h.setMapSize(400, 600);
   h.setProject(async () => screenPosition);
   h.setBrowseState({ selectedMapPoint: reference('a') });
-  h.update({ visibilityRequest: { id: 1, ...reference('a') } });
+  h.update({ visibilityRequest: { id: 1, ...reference('a') }, visibilityObstacles, visibilityObstaclesReady });
   return { h, commands };
 }
 
@@ -376,18 +391,173 @@ test('a card exactly touching the viewport edges is fully visible', async () => 
   assert.deepEqual(commands, []);
 });
 
+function assertCardFitsAfterCameraMove(command, position, card, obstacles) {
+  // The harness maps screen coordinates to themselves, so a change in camera
+  // center translates the point by the opposite displacement on screen.
+  const x = position[0] + 200 - command.centerCoordinate[0];
+  const y = position[1] + 300 - command.centerCoordinate[1];
+  const rect = { left: x - card.width / 2, right: x + card.width / 2, top: y - card.height, bottom: y };
+  assert.ok(rect.left >= 0 && rect.right <= 400 && rect.top >= 0 && rect.bottom <= 600, JSON.stringify(rect));
+  for (const obstacle of obstacles) {
+    assert.ok(
+      rect.right <= obstacle.x || rect.left >= obstacle.x + obstacle.width ||
+      rect.bottom <= obstacle.y || rect.top >= obstacle.y + obstacle.height,
+      `${JSON.stringify(rect)} overlaps ${JSON.stringify(obstacle)}`,
+    );
+  }
+}
+
+for (const [label, position, obstacle] of [
+  ['search box', [200, 250], { x: 20, y: 20, width: 360, height: 80 }],
+  ['photo list', [200, 520], { x: 0, y: 480, width: 300, height: 54 }],
+]) {
+  test(`a card obscured by the ${label} is moved completely outside it`, async () => {
+    const { h, commands } = createPhotoVisibilityHarness(position, [obstacle]);
+    h.layoutPopup(220, 200);
+    await flush();
+    assert.equal(commands.length, 1);
+    assertCardFitsAfterCameraMove(commands[0], position, { width: 220, height: 200 }, [obstacle]);
+    for (const field of ['zoomLevel', 'heading', 'pitch']) assert.equal(Object.hasOwn(commands[0], field), false);
+  });
+}
+
+test('an overlay elsewhere on screen does not move an unobscured card', async () => {
+  const { h, commands } = createPhotoVisibilityHarness([200, 320], [{ x: 0, y: 480, width: 300, height: 54 }]);
+  h.layoutPopup(220, 200);
+  await flush();
+  assert.deepEqual(commands, []);
+});
+
+test('the photo list does not obscure a card to its right at the same height', async () => {
+  const { h, commands } = createPhotoVisibilityHarness([350, 520], [{ x: 0, y: 480, width: 300, height: 54 }]);
+  h.layoutPopup(80, 200);
+  await flush();
+  assert.deepEqual(commands, []);
+});
+
+test('a correction avoids the search box and photo list at the same time', async () => {
+  const obstacles = [
+    { x: 20, y: 20, width: 360, height: 80 },
+    { x: 0, y: 300, width: 300, height: 54 },
+  ];
+  const position = [200, 240];
+  const { h, commands } = createPhotoVisibilityHarness(position, obstacles);
+  h.layoutPopup(220, 150);
+  await flush();
+  assert.equal(commands.length, 1);
+  assertCardFitsAfterCameraMove(commands[0], position, { width: 220, height: 150 }, obstacles);
+});
+
+test('an updated overlay invalidates an in-flight measurement and uses its latest bounds', async () => {
+  const first = { x: 20, y: 20, width: 360, height: 80 };
+  const latest = { x: 0, y: 480, width: 300, height: 54 };
+  const { h, commands } = createPhotoVisibilityHarness([200, 250], [first]);
+  const pending = deferred();
+  let reads = 0;
+  h.setProject(() => ++reads === 1 ? pending.promise : Promise.resolve([200, 520]));
+  h.layoutPopup(220, 200);
+  h.update({ visibilityObstacles: [latest] });
+  pending.resolve([200, 250]);
+  await flush();
+  assert.equal(commands.length, 1, 'the replacement measurement produces only one camera command');
+  assertCardFitsAfterCameraMove(commands[0], [200, 520], { width: 220, height: 200 }, [latest]);
+});
+
+test('a newer popup layout supersedes an in-flight layout projection', async () => {
+  const obstacle = { x: 20, y: 20, width: 360, height: 80 };
+  const { h, commands } = createPhotoVisibilityHarness([200, 320], [obstacle]);
+  const oldProjection = deferred();
+  let reads = 0;
+  h.setProject(() => ++reads === 1 ? oldProjection.promise : Promise.resolve([200, 320]));
+  h.layoutPopup(220, 200);
+  h.layoutPopup(220, 260);
+  await flush();
+  oldProjection.resolve([200, 320]);
+  await flush();
+  assert.equal(commands.length, 1, 'only the latest card dimensions can move the camera');
+  assertCardFitsAfterCameraMove(commands[0], [200, 320], { width: 220, height: 260 }, [obstacle]);
+});
+
+test('hiding the photo list rechecks visibility with no list obstacle', async () => {
+  const obstacle = { x: 0, y: 480, width: 300, height: 54 };
+  const { h, commands } = createPhotoVisibilityHarness([200, 520], [obstacle]);
+  const pending = deferred();
+  let reads = 0;
+  h.setProject(() => ++reads === 1 ? pending.promise : Promise.resolve([200, 520]));
+  h.layoutPopup(220, 200);
+  h.update({ visibilityObstacles: [] });
+  pending.resolve([200, 520]);
+  await flush();
+  assert.equal(reads, 2, 'rechecks with the removed obstacle');
+  assert.deepEqual(commands, [], 'the old list measurement cannot cause an unnecessary move');
+});
+
+test('card visibility waits for delayed overlay measurements', async () => {
+  const obstacle = { x: 20, y: 20, width: 360, height: 80 };
+  const { h, commands } = createPhotoVisibilityHarness([200, 250], [], false);
+  h.layoutPopup(220, 200);
+  await flush();
+  assert.deepEqual(commands, []);
+  assert.equal(h.projected.length, 0, 'does not decide using incomplete overlays');
+  h.update({ visibilityObstacles: [obstacle], visibilityObstaclesReady: true });
+  await flush();
+  assert.equal(commands.length, 1);
+  assertCardFitsAfterCameraMove(commands[0], [200, 250], { width: 220, height: 200 }, [obstacle]);
+});
+
+test('idle correction checks the position again and stops after the card becomes visible', async () => {
+  const obstacle = { x: 20, y: 20, width: 360, height: 80 };
+  const { h, commands } = createPhotoVisibilityHarness([200, 250], [obstacle]);
+  h.layoutPopup(220, 200);
+  await flush();
+  assert.equal(commands.length, 1);
+  h.setProject(async () => [200, 300]);
+  h.idleCamera();
+  await flush();
+  assert.equal(commands.length, 1, 'no further adjustment once clear');
+});
+
+test('idle correction retries when perspective leaves the card partially obscured', async () => {
+  const obstacle = { x: 20, y: 20, width: 360, height: 80 };
+  const { h, commands } = createPhotoVisibilityHarness([200, 250], [obstacle]);
+  h.layoutPopup(220, 200);
+  await flush();
+  assert.equal(commands.length, 1);
+  h.setProject(async () => [200, 280]);
+  h.idleCamera();
+  await flush();
+  assert.equal(commands.length, 2);
+  assertCardFitsAfterCameraMove(commands[1], [200, 280], { width: 220, height: 200 }, [obstacle]);
+  h.setProject(async () => [200, 301]);
+  h.idleCamera();
+  await flush();
+  assert.equal(commands.length, 2);
+});
+
+test('a user gesture prevents further idle corrections after an automatic move', async () => {
+  const obstacle = { x: 20, y: 20, width: 360, height: 80 };
+  const { h, commands } = createPhotoVisibilityHarness([200, 250], [obstacle]);
+  h.layoutPopup(220, 200);
+  await flush();
+  assert.equal(commands.length, 1);
+  h.moveCamera();
+  h.idleCamera();
+  await flush();
+  assert.equal(commands.length, 1, 'a user gesture takes priority over visibility corrections');
+});
+
 for (const [edge, position] of [
   ['left', [109, 300]],
   ['right', [291, 300]],
   ['top', [200, 199]],
   ['bottom', [200, 601]],
 ]) {
-  test(`a photo selection recenters when the measured card overflows the ${edge} edge`, async () => {
+  test(`a photo selection adjusts the camera when the measured card overflows the ${edge} edge`, async () => {
     const { h, commands } = createPhotoVisibilityHarness(position);
     h.layoutPopup(220, 200);
     await flush();
     assert.equal(commands.length, 1);
-    assert.deepEqual(commands[0].centerCoordinate, [139, 35]);
+    assertCardFitsAfterCameraMove(commands[0], position, { width: 220, height: 200 }, []);
     for (const field of ['zoomLevel', 'heading', 'pitch']) assert.equal(Object.hasOwn(commands[0], field), false);
   });
 }

@@ -22,6 +22,7 @@ import { useMapData } from '@/store/use-map-data';
 import type { MapCoordinate, MapViewportState } from '@/utils/map-viewport';
 import { type MapPointReference, type NearbyMapLocation, useMapBrowse } from '@/store/use-map-browse';
 import { findNearbyPoints } from '@/utils/nearby-points';
+import { getPopupAdjustment, type MapScreenRect } from '@/utils/map-popup-visibility';
 import { isValidCoordinate } from '@/utils/plan-point-distances';
 import {
   Camera,
@@ -82,6 +83,8 @@ type Props = {
   locationPuckRevision?: number;
   scaleBarPosition?: ScaleBarPosition;
   visibilityRequest?: (MapPointReference & { id: number }) | null;
+  visibilityObstacles?: readonly MapScreenRect[];
+  visibilityObstaclesReady?: boolean;
 };
 
 const DEFAULT_COORDINATES: [number, number] = [137, 35.2];
@@ -93,6 +96,11 @@ const LOCATION_PUCK_CIRCLE_STROKE_WIDTH = 2;
 // Only query known Mapbox basemap layers, never the application's own marker sources.
 const NEARBY_PLACE_LAYERS = ['poi-label', 'transit-label', 'airport-label', 'natural-point-label'];
 const EMPTY_BANGUMI_IDS: number[] = [];
+const NO_VISIBILITY_OBSTACLES: readonly MapScreenRect[] = [];
+function sameScreenRects(a: readonly MapScreenRect[], b: readonly MapScreenRect[]) {
+  return a.length === b.length && a.every((rect, i) => rect.x === b[i].x && rect.y === b[i].y &&
+    rect.width === b[i].width && rect.height === b[i].height);
+}
 
 function readNearbyPlace(feature: GeoJSON.Feature, layer: string, language: string) {
   const properties = feature.properties;
@@ -178,6 +186,8 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     locationPuckRevision = 0,
     scaleBarPosition,
     visibilityRequest,
+    visibilityObstacles = NO_VISIBILITY_OBSTACLES,
+    visibilityObstaclesReady = true,
   },
   ref,
 ) {
@@ -221,7 +231,19 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   const mapViewRef = useRef<MapView>(null);
   const mapSizeRef = useRef({ width: 0, height: 0 });
   const cameraRevisionRef = useRef(0);
-  const pendingVisibilityRef = useRef<{ request: NonNullable<Props['visibilityRequest']>; cameraRevision: number; selectionRevision: number } | null>(null);
+  const pendingVisibilityRef = useRef<{
+    request: NonNullable<Props['visibilityRequest']>;
+    cameraRevision: number;
+    selectionRevision: number;
+    obstacles: readonly MapScreenRect[];
+    layout?: { width: number; height: number };
+    attempts: number;
+    waitingForIdle: boolean;
+    checking: boolean;
+    generation: number;
+  } | null>(null);
+  const visibilityObstaclesRef = useRef(visibilityObstacles);
+  const visibilityObstaclesReadyRef = useRef(visibilityObstaclesReady);
   const browsePressRevisionRef = useRef(0);
   const planSelectionRevisionRef = useRef(0);
   const nextPlanNearbyLocationIdRef = useRef(1);
@@ -244,36 +266,83 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
 
   useLayoutEffect(() => {
     pendingVisibilityRef.current = !isPlanMode && visibilityRequest
-      ? { request: visibilityRequest, cameraRevision: cameraRevisionRef.current, selectionRevision: browsePressRevisionRef.current }
+      ? { request: visibilityRequest, cameraRevision: cameraRevisionRef.current, selectionRevision: browsePressRevisionRef.current,
+        obstacles: visibilityObstaclesRef.current, attempts: 0, waitingForIdle: false, checking: false, generation: 0 }
       : null;
     return () => { pendingVisibilityRef.current = null; };
   }, [isPlanMode, visibilityRequest]);
 
-  const handlePopupLayout = (requestId: number | undefined, width: number, height: number) => {
+  const handlePopupLayout = useCallback((requestId: number | undefined, width: number, height: number) => {
     const pending = pendingVisibilityRef.current;
     const map = mapViewRef.current;
     const selected = selectedPointData;
     const size = mapSizeRef.current;
-    if (!pending || pending.request.id !== requestId || !map || !selected || width <= 0 || height <= 0 || size.width <= 0 || size.height <= 0 ||
-      pending.selectionRevision !== browsePressRevisionRef.current || pending.cameraRevision !== cameraRevisionRef.current ||
+    if (!pending || pending.request.id !== requestId || !map || !selected || width <= 0 || height <= 0 ||
+      pending.selectionRevision !== browsePressRevisionRef.current ||
       pending.request.bangumiId !== selected.bangumi.id || pending.request.pointId !== selected.point.id) return;
+    if (pending.layout?.width !== width || pending.layout.height !== height) {
+      pending.layout = { width, height };
+      pending.generation++;
+      pending.checking = false;
+    }
+    if (pending.checking || pending.waitingForIdle || pending.cameraRevision !== cameraRevisionRef.current ||
+      !visibilityObstaclesReadyRef.current || size.width <= 0 || size.height <= 0) return;
     const camera = cameraRef.current;
+    if (!camera) return;
+    pending.checking = true;
+    const generation = pending.generation;
     const coordinate: [number, number] = [selected.point.geo[1], selected.point.geo[0]];
-    void map.getPointInView(coordinate).then(([x, y]) => {
+    const isCurrent = () => {
       const current = useMapBrowse.getState().selectedMapPoint;
-      if (pendingVisibilityRef.current !== pending || cameraRevisionRef.current !== pending.cameraRevision ||
-        browsePressRevisionRef.current !== pending.selectionRevision ||
-        mapViewRef.current !== map || cameraRef.current !== camera || !navigation.isFocused() ||
-        current?.bangumiId !== pending.request.bangumiId || current.pointId !== pending.request.pointId) return;
-      pendingVisibilityRef.current = null;
-      if (!Number.isFinite(x) || !Number.isFinite(y)) return;
-      if (x - width / 2 >= 0 && x + width / 2 <= size.width && y - height >= 0 && y <= size.height) return;
-      // Keep the user's zoom, heading and pitch when the popup needs to move into view.
-      camera?.setCamera({ centerCoordinate: coordinate, animationMode: 'easeTo', animationDuration: 350 });
+      return pendingVisibilityRef.current === pending && pending.generation === generation && cameraRevisionRef.current === pending.cameraRevision &&
+        browsePressRevisionRef.current === pending.selectionRevision &&
+        mapViewRef.current === map && cameraRef.current === camera && navigation.isFocused() &&
+        current?.bangumiId === pending.request.bangumiId && current.pointId === pending.request.pointId;
+    };
+    void map.getPointInView(coordinate).then(async ([x, y]) => {
+      if (!isCurrent()) return;
+      if (!Number.isFinite(x) || !Number.isFinite(y)) {
+        pendingVisibilityRef.current = null;
+        return;
+      }
+      const adjustment = getPopupAdjustment({ x, y }, { width, height }, size, pending.obstacles);
+      if ((!adjustment.x && !adjustment.y) || pending.attempts >= 3) {
+        pendingVisibilityRef.current = null;
+        return;
+      }
+      const center = await map.getCoordinateFromView([size.width / 2 - adjustment.x, size.height / 2 - adjustment.y]);
+      if (!isCurrent()) return;
+      if (center.length < 2 || !center.every(Number.isFinite)) {
+        pendingVisibilityRef.current = null;
+        return;
+      }
+      pending.attempts++;
+      pending.checking = false;
+      pending.waitingForIdle = true;
+      // The projected correction preserves zoom, heading and pitch. Recheck after
+      // the animation because perspective can change the screen-space offset.
+      camera?.setCamera({ centerCoordinate: center, animationMode: 'easeTo', animationDuration: 350 });
     }).catch(() => {
-      if (pendingVisibilityRef.current === pending) pendingVisibilityRef.current = null;
+      if (pendingVisibilityRef.current === pending && pending.generation === generation) pendingVisibilityRef.current = null;
     });
-  };
+  }, [navigation, selectedPointData]);
+
+  useLayoutEffect(() => {
+    if (!sameScreenRects(visibilityObstaclesRef.current, visibilityObstacles) ||
+      visibilityObstaclesReadyRef.current !== visibilityObstaclesReady) {
+      visibilityObstaclesRef.current = visibilityObstacles;
+      visibilityObstaclesReadyRef.current = visibilityObstaclesReady;
+      const pending = pendingVisibilityRef.current;
+      if (pending) {
+        pending.obstacles = visibilityObstacles;
+        pending.generation++;
+        pending.checking = false;
+        if (visibilityObstaclesReady && !pending.waitingForIdle && pending.layout) {
+          handlePopupLayout(pending.request.id, pending.layout.width, pending.layout.height);
+        }
+      }
+    }
+  }, [handlePopupLayout, visibilityObstacles, visibilityObstaclesReady]);
 
   useLayoutEffect(() => {
     styleRevisionRef.current++;
@@ -433,6 +502,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     (state: MapState) => {
       // Invalidate corner reads as soon as another native camera event arrives.
       cameraRevisionRef.current++;
+      if (state.gestures.isGestureActive) pendingVisibilityRef.current = null;
       // TabSlot restores the native map from display:none when this route regains
       // focus. Mapbox then emits one non-gesture event with the previous zoom but
       // bounds measured from the collapsed viewport. Keeping that event would make
@@ -685,12 +755,28 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
           if (mapSizeRef.current.width === layout.width && mapSizeRef.current.height === layout.height) return;
           mapSizeRef.current = { width: layout.width, height: layout.height };
           cameraRevisionRef.current++;
+          const pending = pendingVisibilityRef.current;
+          if (pending) {
+            pending.generation++;
+            pending.checking = false;
+            pending.cameraRevision = cameraRevisionRef.current;
+            if (!pending.waitingForIdle && pending.layout) {
+              handlePopupLayout(pending.request.id, pending.layout.width, pending.layout.height);
+            }
+          }
           lastReportedCameraStateRef.current = null;
           if (currentCameraStateRef.current) {
             reportCameraChange({ ...currentCameraStateRef.current, ...mapSizeRef.current });
           }
         }}
         onCameraChanged={handleCameraChanged}
+        onMapIdle={() => {
+          const pending = pendingVisibilityRef.current;
+          if (!pending?.waitingForIdle || !pending.layout) return;
+          pending.waitingForIdle = false;
+          pending.cameraRevision = cameraRevisionRef.current;
+          handlePopupLayout(pending.request.id, pending.layout.width, pending.layout.height);
+        }}
         onDidFinishLoadingMap={handleMapReady}
         onPress={isPlanMode ? handlePlanMapPress : handleLocationMapPress}
       >

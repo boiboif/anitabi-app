@@ -28,7 +28,7 @@ import { Dices } from '@tamagui/lucide-icons-2';
 import { useIsFocused, useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Pressable, StyleSheet } from 'react-native';
+import { Alert, Pressable, StyleSheet, type LayoutRectangle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, View, YStack } from 'tamagui';
 
@@ -80,6 +80,19 @@ export default function HomeScreen() {
   const [showPointImageMarkers, setShowPointImageMarkers] = useState(true);
   const nextVisibilityRequestId = useRef(0);
   const [visibilityRequest, setVisibilityRequest] = useState<{ id: number; bangumiId: number; pointId: string } | null>(null);
+  const [searchContainerLayout, setSearchContainerLayout] = useState<LayoutRectangle | null>(null);
+  const [searchLayout, setSearchLayout] = useState<LayoutRectangle | null>(null);
+  const [photosLayout, setPhotosLayout] = useState<LayoutRectangle | null>();
+  const visibilityObstacles = useMemo(() => {
+    const obstacles: LayoutRectangle[] = [];
+    if (searchContainerLayout && searchLayout) obstacles.push({
+      ...searchLayout,
+      x: searchContainerLayout.x + searchLayout.x,
+      y: searchContainerLayout.y + searchLayout.y,
+    });
+    if (photosLayout) obstacles.push(photosLayout);
+    return obstacles;
+  }, [searchContainerLayout, searchLayout, photosLayout]);
   const setCameraRef = useCallback((camera: Camera | null) => {
     cameraRef.current = camera;
     setIsCameraReady(camera !== null);
@@ -218,6 +231,8 @@ export default function HomeScreen() {
         locationPuckRevision={locationPuckRevision}
         onCameraChange={handleCameraChange}
         visibilityRequest={visibilityRequest}
+        visibilityObstacles={visibilityObstacles}
+        visibilityObstaclesReady={!!searchContainerLayout && !!searchLayout && photosLayout !== undefined}
       />
 
       <View
@@ -228,8 +243,9 @@ export default function HomeScreen() {
         pt="$2"
         z={0}
         pointerEvents="box-none"
+        onLayout={({ nativeEvent: { layout } }) => setSearchContainerLayout(layout)}
       >
-        <View mx="$3">
+        <View mx="$3" onLayout={({ nativeEvent: { layout } }) => setSearchLayout(layout)}>
           <SearchBox
             onPress={() => {
               router.navigate('/search');
@@ -249,7 +265,7 @@ export default function HomeScreen() {
 
       {progress && <LoadingBadge progress={progress} insets={insets} onRetry={() => void initializeMapData()} />}
 
-      <MapViewportPhotos bangumis={bangumis} viewport={cameraState} onSelect={handleViewportPointSelect} />
+      <MapViewportPhotos bangumis={bangumis} viewport={cameraState} onSelect={handleViewportPointSelect} onLayoutChange={setPhotosLayout} />
 
       {!selectedBangumi && (
         <>

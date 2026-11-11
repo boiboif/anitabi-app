@@ -10,7 +10,7 @@ import { findViewportImagePoints, type ViewportImagePoint } from '@/utils/map-vi
 import { Image } from 'expo-image';
 import { use, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FlatList } from 'react-native';
+import { FlatList, type LayoutRectangle } from 'react-native';
 import { type GetThemeValueForKey, styled, View } from 'tamagui';
 
 const PHOTO_WIDTH = 80;
@@ -70,9 +70,10 @@ type Props = {
   bangumis: Bangumi[];
   viewport: MapViewportState;
   onSelect: (item: ViewportImagePoint) => void;
+  onLayoutChange?: (layout: LayoutRectangle | null) => void;
 };
 
-export default function MapViewportPhotos({ bangumis, viewport, onSelect }: Props) {
+export default function MapViewportPhotos({ bangumis, viewport, onSelect, onLayoutChange }: Props) {
   const tabBarInset = use(AppTabBarInsetContext);
   const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const filteredBangumiId = useMapBrowse((state) => state.filteredBangumiId);
@@ -89,6 +90,10 @@ export default function MapViewportPhotos({ bangumis, viewport, onSelect }: Prop
     listRef.current?.scrollToOffset({ offset: 0, animated: false });
   }, [orderedKeys]);
 
+  useEffect(() => {
+    if (tabBarInset === null || items.length === 0) onLayoutChange?.(null);
+  }, [items.length, onLayoutChange, tabBarInset]);
+
   if (tabBarInset === null || items.length === 0) return null;
 
   return (
@@ -101,6 +106,7 @@ export default function MapViewportPhotos({ bangumis, viewport, onSelect }: Prop
       z={10}
       pointerEvents="box-none"
       testID="map-viewport-photos"
+      onLayout={({ nativeEvent: { layout } }) => onLayoutChange?.(layout)}
     >
       <FlatList
         ref={listRef}
