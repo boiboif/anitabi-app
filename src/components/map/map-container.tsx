@@ -46,6 +46,7 @@ import {
   useState,
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import { View } from 'react-native';
 import type { EdgeInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { YStack } from 'tamagui';
@@ -80,6 +81,7 @@ type Props = {
   locationPuckActive?: boolean;
   locationPuckRevision?: number;
   scaleBarPosition?: ScaleBarPosition;
+  visibilityRequest?: (MapPointReference & { id: number }) | null;
 };
 
 const DEFAULT_COORDINATES: [number, number] = [137, 35.2];
@@ -175,6 +177,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     locationPuckActive = true,
     locationPuckRevision = 0,
     scaleBarPosition,
+    visibilityRequest,
   },
   ref,
 ) {
@@ -218,6 +221,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   const mapViewRef = useRef<MapView>(null);
   const mapSizeRef = useRef({ width: 0, height: 0 });
   const cameraRevisionRef = useRef(0);
+  const pendingVisibilityRef = useRef<{ request: NonNullable<Props['visibilityRequest']>; cameraRevision: number; selectionRevision: number } | null>(null);
   const browsePressRevisionRef = useRef(0);
   const planSelectionRevisionRef = useRef(0);
   const nextPlanNearbyLocationIdRef = useRef(1);
@@ -237,6 +241,39 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   } | null>(null);
   const hasFocusedMapRef = useRef(false);
   const ignoreNextFocusCameraEventRef = useRef(false);
+
+  useLayoutEffect(() => {
+    pendingVisibilityRef.current = !isPlanMode && visibilityRequest
+      ? { request: visibilityRequest, cameraRevision: cameraRevisionRef.current, selectionRevision: browsePressRevisionRef.current }
+      : null;
+    return () => { pendingVisibilityRef.current = null; };
+  }, [isPlanMode, visibilityRequest]);
+
+  const handlePopupLayout = (requestId: number | undefined, width: number, height: number) => {
+    const pending = pendingVisibilityRef.current;
+    const map = mapViewRef.current;
+    const selected = selectedPointData;
+    const size = mapSizeRef.current;
+    if (!pending || pending.request.id !== requestId || !map || !selected || width <= 0 || height <= 0 || size.width <= 0 || size.height <= 0 ||
+      pending.selectionRevision !== browsePressRevisionRef.current || pending.cameraRevision !== cameraRevisionRef.current ||
+      pending.request.bangumiId !== selected.bangumi.id || pending.request.pointId !== selected.point.id) return;
+    const camera = cameraRef.current;
+    const coordinate: [number, number] = [selected.point.geo[1], selected.point.geo[0]];
+    void map.getPointInView(coordinate).then(([x, y]) => {
+      const current = useMapBrowse.getState().selectedMapPoint;
+      if (pendingVisibilityRef.current !== pending || cameraRevisionRef.current !== pending.cameraRevision ||
+        browsePressRevisionRef.current !== pending.selectionRevision ||
+        mapViewRef.current !== map || cameraRef.current !== camera || !navigation.isFocused() ||
+        current?.bangumiId !== pending.request.bangumiId || current.pointId !== pending.request.pointId) return;
+      pendingVisibilityRef.current = null;
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+      if (x - width / 2 >= 0 && x + width / 2 <= size.width && y - height >= 0 && y <= size.height) return;
+      // Keep the user's zoom, heading and pitch when the popup needs to move into view.
+      camera?.setCamera({ centerCoordinate: coordinate, animationMode: 'easeTo', animationDuration: 350 });
+    }).catch(() => {
+      if (pendingVisibilityRef.current === pending) pendingVisibilityRef.current = null;
+    });
+  };
 
   useLayoutEffect(() => {
     styleRevisionRef.current++;
@@ -746,7 +783,14 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
             allowOverlapWithPuck
             isSelected
           >
-            <PopupCard point={selectedPointData.point} bangumi={selectedPointData.bangumi} />
+            <View
+              key={visibilityRequest?.bangumiId === selectedPointData.bangumi.id && visibilityRequest.pointId === selectedPointData.point.id
+                ? visibilityRequest.id : 'popup'}
+              collapsable={false}
+              onLayout={({ nativeEvent: { layout } }) => handlePopupLayout(visibilityRequest?.id, layout.width, layout.height)}
+            >
+              <PopupCard point={selectedPointData.point} bangumi={selectedPointData.bangumi} />
+            </View>
           </MarkerView>
         ) : null}
         {nearbyMapLocation ? (

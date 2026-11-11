@@ -31,6 +31,16 @@ function find(tree, type) {
   }
 }
 
+function findParent(tree, type) {
+  if (!tree || typeof tree !== 'object') return;
+  const children = [tree.props?.children].flat();
+  if (children.some((child) => child?.type === type)) return tree;
+  for (const child of children) {
+    const found = findParent(child, type);
+    if (found) return found;
+  }
+}
+
 // Execute the production component with persistent hook slots and separate
 // render/layout-commit phases. Native projection is controlled by each test;
 // this does not run the React Native renderer or prove device frame rates.
@@ -133,6 +143,7 @@ function createHarness(mode = 'plan') {
     'expo-router': { useNavigation: () => navigation, useFocusEffect: () => {} },
     ahooks: { useDebounceFn: () => debounce },
     'react-i18next': { useTranslation: () => ({ i18n: { resolvedLanguage: 'zh-CN' } }) },
+    'react-native': { View: 'View' },
     '@/i18n': { resolveLanguageTag: () => 'zh-CN' },
     '@/lib/map-styles': { MAP_STYLES: [{ url: 'fixture', key: 'streets' }, { url: 'dark', key: 'dark' }] },
     '@/lib/constants': { MAP_DEFAULT_ZOOM: 4.6, MAP_COMPASS_TOP_OFFSET: 0 },
@@ -257,6 +268,18 @@ function createHarness(mode = 'plan') {
     setMap(next) {
       find(tree, 'MapView').props.ref.current = next;
     },
+    setCamera(camera) {
+      find(tree, 'Camera').props.ref(camera);
+    },
+    setMapSize(width, height) {
+      find(tree, 'MapView').props.onLayout({ nativeEvent: { layout: { width, height } } });
+    },
+    get popupCard() { return find(tree, 'PopupCard'); },
+    layoutPopup(width, height) {
+      const wrapper = findParent(tree, 'PopupCard');
+      assert.ok(wrapper?.props.onLayout, 'the popup reports its measured layout');
+      wrapper.props.onLayout({ nativeEvent: { layout: { width, height } } });
+    },
     moveCamera() {
       find(tree, 'MapView').props.onCameraChanged({
         properties: { center: [139, 35], zoom: 12 },
@@ -325,6 +348,103 @@ function deferred() {
   });
   return { promise, resolve, reject };
 }
+
+function createPhotoVisibilityHarness(screenPosition) {
+  const h = createHarness('browse');
+  const commands = [];
+  h.setCamera({ setCamera: (command) => commands.push(plain(command)) });
+  h.setMapSize(400, 600);
+  h.setProject(async () => screenPosition);
+  h.setBrowseState({ selectedMapPoint: reference('a') });
+  h.update({ visibilityRequest: { id: 1, ...reference('a') } });
+  return { h, commands };
+}
+
+test('a photo selection leaves the camera untouched when the entire measured card fits', async () => {
+  // MarkerView uses a bottom-center anchor: this card occupies [90, 310] x [100, 300].
+  const { h, commands } = createPhotoVisibilityHarness([200, 300]);
+  h.layoutPopup(220, 200);
+  await flush();
+  assert.deepEqual(h.projected, [[139, 35]]);
+  assert.deepEqual(commands, []);
+});
+
+test('a card exactly touching the viewport edges is fully visible', async () => {
+  const { h, commands } = createPhotoVisibilityHarness([110, 600]);
+  h.layoutPopup(220, 600);
+  await flush();
+  assert.deepEqual(commands, []);
+});
+
+for (const [edge, position] of [
+  ['left', [109, 300]],
+  ['right', [291, 300]],
+  ['top', [200, 199]],
+  ['bottom', [200, 601]],
+]) {
+  test(`a photo selection recenters when the measured card overflows the ${edge} edge`, async () => {
+    const { h, commands } = createPhotoVisibilityHarness(position);
+    h.layoutPopup(220, 200);
+    await flush();
+    assert.equal(commands.length, 1);
+    assert.deepEqual(commands[0].centerCoordinate, [139, 35]);
+    for (const field of ['zoomLevel', 'heading', 'pitch']) assert.equal(Object.hasOwn(commands[0], field), false);
+  });
+}
+
+test('a pending visibility projection cannot move the camera after the user moves it', async () => {
+  const { h, commands } = createPhotoVisibilityHarness([200, 300]);
+  const pending = deferred();
+  h.setProject(() => pending.promise);
+  h.layoutPopup(220, 200);
+  h.moveCamera();
+  pending.resolve([100, 300]);
+  await flush();
+  assert.deepEqual(commands, []);
+});
+
+test('a pending visibility projection cannot move the camera after another point is selected', async () => {
+  const { h, commands } = createPhotoVisibilityHarness([200, 300]);
+  const pending = deferred();
+  h.setProject(() => pending.promise);
+  h.layoutPopup(220, 200);
+  h.setBrowseState({ selectedMapPoint: reference('b') });
+  h.update({ visibilityRequest: { id: 2, ...reference('b') } });
+  pending.resolve([100, 300]);
+  await flush();
+  assert.deepEqual(commands, []);
+});
+
+test('a pending visibility projection remains stale after selection changes away and back', async () => {
+  const { h, commands } = createPhotoVisibilityHarness([200, 300]);
+  const pending = deferred();
+  h.setProject(() => pending.promise);
+  h.layoutPopup(220, 200);
+  h.setBrowseState({ selectedMapPoint: reference('b') });
+  h.setBrowseState({ selectedMapPoint: reference('a') });
+  pending.resolve([100, 300]);
+  await flush();
+  assert.deepEqual(commands, []);
+});
+
+test('a pending visibility projection cannot move the camera after unmount', async () => {
+  const { h, commands } = createPhotoVisibilityHarness([200, 300]);
+  const pending = deferred();
+  h.setProject(() => pending.promise);
+  h.layoutPopup(220, 200);
+  h.unmount();
+  pending.resolve([100, 300]);
+  await flush();
+  assert.deepEqual(commands, []);
+});
+
+test('a failed native projection does not move the camera', async () => {
+  const { h, commands } = createPhotoVisibilityHarness([200, 300]);
+  h.setProject(async () => { throw new Error('map projection unavailable'); });
+  h.layoutPopup(220, 200);
+  await flush();
+  assert.deepEqual(commands, []);
+});
 
 test('ordinary point and image source callbacks stay identical across committed selection and callback changes', () => {
   const h = createHarness();

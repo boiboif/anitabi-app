@@ -95,11 +95,9 @@ test('the homepage photo click opens the existing point selection without changi
   assert.equal(state.mapCameraRequest, null, 'no parent request/acknowledgement round trip');
   assert.equal(filter.getState(), originalFilter);
   assert.equal(changes.length, 1);
-  assert.equal(localUpdates.length, 0, 'the click does not copy selection into homepage state');
-  assert.equal(cameraCommands.length, 1);
-  assert.deepEqual([...cameraCommands[0].centerCoordinate], [139.8, 35.7]);
-  assert.equal(cameraCommands[0].animationMode, 'easeTo');
-  for (const property of ['zoomLevel', 'heading', 'pitch']) assert.equal(Object.hasOwn(cameraCommands[0], property), false);
+  assert.equal(localUpdates.length, 1);
+  assert.deepEqual({ ...localUpdates[0] }, { id: 1, bangumiId: 10, pointId: 'photo' });
+  assert.equal(cameraCommands.length, 0, 'the map decides whether the measured card needs a camera move');
   assert.equal(camera.zoomLevel, 16.75);
   assert.equal(camera.heading, 62);
   assert.equal(camera.pitch, 45);
@@ -108,6 +106,7 @@ test('the homepage photo click opens the existing point selection without changi
   assert.ok(browse.getState().mapCameraRequest);
   select(item);
   assert.equal(browse.getState().mapCameraRequest, null, 'selection supersedes any pending point fly-to');
+  assert.deepEqual({ ...localUpdates[1] }, { id: 2, bangumiId: 10, pointId: 'photo' }, 'reselecting creates a fresh visibility request');
 });
 
 test('a detached camera does not prevent photo selection or create a deferred zoom request', () => {

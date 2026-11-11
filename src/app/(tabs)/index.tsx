@@ -78,6 +78,8 @@ export default function HomeScreen() {
   });
   const [show3DBuildings, setShow3DBuildings] = useState(false);
   const [showPointImageMarkers, setShowPointImageMarkers] = useState(true);
+  const nextVisibilityRequestId = useRef(0);
+  const [visibilityRequest, setVisibilityRequest] = useState<{ id: number; bangumiId: number; pointId: string } | null>(null);
   const setCameraRef = useCallback((camera: Camera | null) => {
     cameraRef.current = camera;
     setIsCameraReady(camera !== null);
@@ -192,12 +194,7 @@ export default function HomeScreen() {
   const [styleIndex, setStyleIndex] = useThemedMapStyle();
   const handleViewportPointSelect = ({ point, bangumi }: ViewportImagePoint) => {
     useMapBrowse.getState().selectMapPoint({ bangumiId: bangumi.id, pointId: point.id });
-    // Omit zoom/heading/pitch so the native camera retains the user's current view.
-    cameraRef.current?.setCamera({
-      centerCoordinate: [point.geo[1], point.geo[0]],
-      animationMode: 'easeTo',
-      animationDuration: 350,
-    });
+    setVisibilityRequest({ id: ++nextVisibilityRequestId.current, bangumiId: bangumi.id, pointId: point.id });
   };
   const handle3DBuildingsChange = useCallback((enabled: boolean) => {
     setShow3DBuildings(enabled);
@@ -220,6 +217,7 @@ export default function HomeScreen() {
         locationPuckActive={isLocationPuckActive}
         locationPuckRevision={locationPuckRevision}
         onCameraChange={handleCameraChange}
+        visibilityRequest={visibilityRequest}
       />
 
       <View
