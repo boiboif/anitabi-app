@@ -244,6 +244,9 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   } | null>(null);
   const visibilityObstaclesRef = useRef(visibilityObstacles);
   const visibilityObstaclesReadyRef = useRef(visibilityObstaclesReady);
+  // Recheck a repeated photo selection without remounting its image just to get onLayout again.
+  const popupLayoutRef = useRef<{ key: string; width: number; height: number } | null>(null);
+  const committedPopupLayoutKeyRef = useRef<string | null>(null);
   const browsePressRevisionRef = useRef(0);
   const planSelectionRevisionRef = useRef(0);
   const nextPlanNearbyLocationIdRef = useRef(1);
@@ -251,6 +254,12 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   const selectedMarkerKey = selectedPointData
     ? getSelectedPlanMarkerKey(selectedPointData.bangumi.id, selectedPointData.point.id, showPointImageMarkers)
     : null;
+  const popupKey = !isPlanMode && selectedPointData
+    ? JSON.stringify([selectedPointData.bangumi.id, selectedPointData.point.id])
+    : null;
+  const popupRenderKey = selectedPointData && visibilityRequest?.bangumiId === selectedPointData.bangumi.id &&
+    visibilityRequest.pointId === selectedPointData.point.id ? popupKey : 'popup';
+  const popupLayoutKey = popupKey && JSON.stringify([popupKey, popupRenderKey]);
   const pointSelectionRef = useRef<{
     isPlanMode: boolean;
     selectedPointData: typeof selectedPointData;
@@ -263,6 +272,12 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   } | null>(null);
   const hasFocusedMapRef = useRef(false);
   const ignoreNextFocusCameraEventRef = useRef(false);
+
+  useLayoutEffect(() => {
+    committedPopupLayoutKeyRef.current = popupLayoutKey;
+    if (popupLayoutRef.current?.key !== popupLayoutKey) popupLayoutRef.current = null;
+    return () => { committedPopupLayoutKeyRef.current = null; };
+  }, [popupLayoutKey]);
 
   useLayoutEffect(() => {
     pendingVisibilityRef.current = !isPlanMode && visibilityRequest
@@ -326,6 +341,13 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
       if (pendingVisibilityRef.current === pending && pending.generation === generation) pendingVisibilityRef.current = null;
     });
   }, [navigation, selectedPointData]);
+
+  useLayoutEffect(() => {
+    const layout = popupLayoutRef.current;
+    if (layout && layout.key === popupLayoutKey && visibilityRequest) {
+      handlePopupLayout(visibilityRequest.id, layout.width, layout.height);
+    }
+  }, [handlePopupLayout, popupLayoutKey, visibilityRequest]);
 
   useLayoutEffect(() => {
     if (!sameScreenRects(visibilityObstaclesRef.current, visibilityObstacles) ||
@@ -870,10 +892,16 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
             isSelected
           >
             <View
-              key={visibilityRequest?.bangumiId === selectedPointData.bangumi.id && visibilityRequest.pointId === selectedPointData.point.id
-                ? visibilityRequest.id : 'popup'}
+              key={popupRenderKey}
               collapsable={false}
-              onLayout={({ nativeEvent: { layout } }) => handlePopupLayout(visibilityRequest?.id, layout.width, layout.height)}
+              onLayout={({ nativeEvent: { layout } }) => {
+                if (!popupLayoutKey || committedPopupLayoutKeyRef.current !== popupLayoutKey ||
+                  layout.width <= 0 || layout.height <= 0) return;
+                const current = useMapBrowse.getState().selectedMapPoint;
+                if (current?.bangumiId !== selectedPointData.bangumi.id || current.pointId !== selectedPointData.point.id) return;
+                popupLayoutRef.current = { key: popupLayoutKey, width: layout.width, height: layout.height };
+                handlePopupLayout(pendingVisibilityRef.current?.request.id, layout.width, layout.height);
+              }}
             >
               <PopupCard point={selectedPointData.point} bangumi={selectedPointData.bangumi} />
             </View>
