@@ -38,6 +38,7 @@ import { useDebounceFn } from 'ahooks';
 import { useFocusEffect, useNavigation } from 'expo-router';
 import {
   type ComponentProps,
+  type ComponentRef,
   forwardRef,
   useCallback,
   useEffect,
@@ -242,11 +243,20 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     checking: boolean;
     generation: number;
   } | null>(null);
+  // A measure can finish before the matching onLayout is delivered. Retain only
+  // that request so a later, different layout can correct the provisional result.
+  const measuredLayoutRequestRef = useRef<{
+    pending: NonNullable<typeof pendingVisibilityRef.current>;
+    width: number;
+    height: number;
+  } | null>(null);
   const visibilityObstaclesRef = useRef(visibilityObstacles);
   const visibilityObstaclesReadyRef = useRef(visibilityObstaclesReady);
   // Recheck a repeated photo selection without remounting its image just to get onLayout again.
+  const popupViewRef = useRef<ComponentRef<typeof View>>(null);
   const popupLayoutRef = useRef<{ key: string; width: number; height: number } | null>(null);
   const committedPopupLayoutKeyRef = useRef<string | null>(null);
+  const popupLayoutRevisionRef = useRef(0);
   const browsePressRevisionRef = useRef(0);
   const planSelectionRevisionRef = useRef(0);
   const nextPlanNearbyLocationIdRef = useRef(1);
@@ -257,9 +267,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   const popupKey = !isPlanMode && selectedPointData
     ? JSON.stringify([selectedPointData.bangumi.id, selectedPointData.point.id])
     : null;
-  const popupRenderKey = selectedPointData && visibilityRequest?.bangumiId === selectedPointData.bangumi.id &&
-    visibilityRequest.pointId === selectedPointData.point.id ? popupKey : 'popup';
-  const popupLayoutKey = popupKey && JSON.stringify([popupKey, popupRenderKey]);
+  const popupLayoutKey = popupKey;
   const pointSelectionRef = useRef<{
     isPlanMode: boolean;
     selectedPointData: typeof selectedPointData;
@@ -275,16 +283,23 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
 
   useLayoutEffect(() => {
     committedPopupLayoutKeyRef.current = popupLayoutKey;
+    popupLayoutRevisionRef.current++;
     if (popupLayoutRef.current?.key !== popupLayoutKey) popupLayoutRef.current = null;
-    return () => { committedPopupLayoutKeyRef.current = null; };
+    return () => {
+      committedPopupLayoutKeyRef.current = null;
+    };
   }, [popupLayoutKey]);
 
   useLayoutEffect(() => {
+    measuredLayoutRequestRef.current = null;
     pendingVisibilityRef.current = !isPlanMode && visibilityRequest
       ? { request: visibilityRequest, cameraRevision: cameraRevisionRef.current, selectionRevision: browsePressRevisionRef.current,
         obstacles: visibilityObstaclesRef.current, attempts: 0, waitingForIdle: false, checking: false, generation: 0 }
       : null;
-    return () => { pendingVisibilityRef.current = null; };
+    return () => {
+      measuredLayoutRequestRef.current = null;
+      pendingVisibilityRef.current = null;
+    };
   }, [isPlanMode, visibilityRequest]);
 
   const handlePopupLayout = useCallback((requestId: number | undefined, width: number, height: number) => {
@@ -343,11 +358,31 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
   }, [navigation, selectedPointData]);
 
   useLayoutEffect(() => {
+    if (!popupLayoutKey || !visibilityRequest || !selectedPointData ||
+      visibilityRequest.bangumiId !== selectedPointData.bangumi.id ||
+      visibilityRequest.pointId !== selectedPointData.point.id) return;
     const layout = popupLayoutRef.current;
-    if (layout && layout.key === popupLayoutKey && visibilityRequest) {
+    if (layout && layout.key === popupLayoutKey) {
       handlePopupLayout(visibilityRequest.id, layout.width, layout.height);
+      return;
     }
-  }, [handlePopupLayout, popupLayoutKey, visibilityRequest]);
+    // A reused view may not emit onLayout when a new point has the same size.
+    // Measure the committed view instead of remounting its image to force layout.
+    const view = popupViewRef.current;
+    const pending = pendingVisibilityRef.current;
+    if (!view || !pending || pending.request.id !== visibilityRequest.id) return;
+    const revision = ++popupLayoutRevisionRef.current;
+    view.measure((_x, _y, width, height) => {
+      const current = useMapBrowse.getState().selectedMapPoint;
+      if (popupViewRef.current !== view || pendingVisibilityRef.current !== pending ||
+        committedPopupLayoutKeyRef.current !== popupLayoutKey || popupLayoutRevisionRef.current !== revision ||
+        current?.bangumiId !== visibilityRequest.bangumiId || current.pointId !== visibilityRequest.pointId ||
+        width <= 0 || height <= 0) return;
+      popupLayoutRef.current = { key: popupLayoutKey, width, height };
+      measuredLayoutRequestRef.current = { pending, width, height };
+      handlePopupLayout(visibilityRequest.id, width, height);
+    });
+  }, [handlePopupLayout, popupLayoutKey, selectedPointData, visibilityRequest]);
 
   useLayoutEffect(() => {
     if (!sameScreenRects(visibilityObstaclesRef.current, visibilityObstacles) ||
@@ -384,6 +419,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
       state.nearbyMapLocation?.id !== previous.nearbyMapLocation?.id ||
       state.openedBangumiDetailsId !== previous.openedBangumiDetailsId) {
       browsePressRevisionRef.current++;
+      measuredLayoutRequestRef.current = null;
     }
   }), []);
 
@@ -507,6 +543,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
       }
 
       return () => {
+        measuredLayoutRequestRef.current = null;
         cameraRevisionRef.current++;
         lastReportedCameraStateRef.current = null;
         cancelCameraChange();
@@ -524,7 +561,12 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     (state: MapState) => {
       // Invalidate corner reads as soon as another native camera event arrives.
       cameraRevisionRef.current++;
-      if (state.gestures.isGestureActive) pendingVisibilityRef.current = null;
+      if (state.gestures.isGestureActive) {
+        measuredLayoutRequestRef.current = null;
+        pendingVisibilityRef.current = null;
+      } else if (!pendingVisibilityRef.current?.waitingForIdle) {
+        measuredLayoutRequestRef.current = null;
+      }
       // TabSlot restores the native map from display:none when this route regains
       // focus. Mapbox then emits one non-gesture event with the previous zoom but
       // bounds measured from the collapsed viewport. Keeping that event would make
@@ -775,6 +817,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
         scaleBarPosition={scaleBarPosition ?? { right: 0, bottom: 8 }}
         onLayout={({ nativeEvent: { layout } }) => {
           if (mapSizeRef.current.width === layout.width && mapSizeRef.current.height === layout.height) return;
+          measuredLayoutRequestRef.current = null;
           mapSizeRef.current = { width: layout.width, height: layout.height };
           cameraRevisionRef.current++;
           const pending = pendingVisibilityRef.current;
@@ -892,13 +935,25 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
             isSelected
           >
             <View
-              key={popupRenderKey}
+              ref={popupViewRef}
               collapsable={false}
               onLayout={({ nativeEvent: { layout } }) => {
                 if (!popupLayoutKey || committedPopupLayoutKeyRef.current !== popupLayoutKey ||
                   layout.width <= 0 || layout.height <= 0) return;
                 const current = useMapBrowse.getState().selectedMapPoint;
                 if (current?.bangumiId !== selectedPointData.bangumi.id || current.pointId !== selectedPointData.point.id) return;
+                const measured = measuredLayoutRequestRef.current;
+                measuredLayoutRequestRef.current = null;
+                if (measured && !pendingVisibilityRef.current &&
+                  (measured.width !== layout.width || measured.height !== layout.height) &&
+                  measured.pending.request.id === visibilityRequest?.id &&
+                  measured.pending.selectionRevision === browsePressRevisionRef.current &&
+                  measured.pending.cameraRevision === cameraRevisionRef.current && navigation.isFocused()) {
+                  measured.pending.checking = false;
+                  measured.pending.waitingForIdle = false;
+                  pendingVisibilityRef.current = measured.pending;
+                }
+                popupLayoutRevisionRef.current++;
                 popupLayoutRef.current = { key: popupLayoutKey, width: layout.width, height: layout.height };
                 handlePopupLayout(pendingVisibilityRef.current?.request.id, layout.width, layout.height);
               }}
