@@ -78,10 +78,8 @@ export default function HomeScreen() {
   });
   const [show3DBuildings, setShow3DBuildings] = useState(false);
   const [showPointImageMarkers, setShowPointImageMarkers] = useState(true);
-  const randomFlightRef = useRef(false);
-  const stoppingRandomFlightRef = useRef<{ pending: boolean } | null>(null);
   const nextVisibilityRequestId = useRef(0);
-  const [visibilityRequest, setVisibilityRequest] = useState<{ id: number; bangumiId: number; pointId: string; interruption?: { pending: boolean } } | null>(null);
+  const [visibilityRequest, setVisibilityRequest] = useState<{ id: number; bangumiId: number; pointId: string } | null>(null);
   const [searchContainerLayout, setSearchContainerLayout] = useState<LayoutRectangle | null>(null);
   const [searchLayout, setSearchLayout] = useState<LayoutRectangle | null>(null);
   const [photosLayout, setPhotosLayout] = useState<LayoutRectangle | null>();
@@ -97,11 +95,6 @@ export default function HomeScreen() {
   }, [searchContainerLayout, searchLayout, photosLayout]);
   const setCameraRef = useCallback((camera: Camera | null) => {
     cameraRef.current = camera;
-    if (!camera) {
-      randomFlightRef.current = false;
-      if (stoppingRandomFlightRef.current) stoppingRandomFlightRef.current.pending = false;
-      stoppingRandomFlightRef.current = null;
-    }
     setIsCameraReady(camera !== null);
   }, []);
   const handleCameraChange = useCallback((nextCameraState: CameraState) => {
@@ -171,9 +164,6 @@ export default function HomeScreen() {
     } else {
       const point = bangumi.points.find((item) => item.id === request.pointId);
       if (point) {
-        randomFlightRef.current = request.source === 'map-control';
-        if (stoppingRandomFlightRef.current) stoppingRandomFlightRef.current.pending = false;
-        stoppingRandomFlightRef.current = null;
         camera.setCamera({
           centerCoordinate: [point.geo[1], point.geo[0]],
           zoomLevel: getPointFlyToZoom(point.density),
@@ -216,16 +206,8 @@ export default function HomeScreen() {
 
   const [styleIndex, setStyleIndex] = useThemedMapStyle();
   const handleViewportPointSelect = ({ point, bangumi }: ViewportImagePoint) => {
-    const shouldStopFlight = randomFlightRef.current && cameraRef.current !== null;
-    if (shouldStopFlight) {
-      // A zero-duration camera update stops the in-flight animation without changing the view.
-      cameraRef.current?.setCamera({ animationMode: 'easeTo', animationDuration: 0 });
-      randomFlightRef.current = false;
-      stoppingRandomFlightRef.current = { pending: true };
-    }
-    const interruption = stoppingRandomFlightRef.current ?? undefined;
     useMapBrowse.getState().selectMapPoint({ bangumiId: bangumi.id, pointId: point.id });
-    setVisibilityRequest({ id: ++nextVisibilityRequestId.current, bangumiId: bangumi.id, pointId: point.id, interruption });
+    setVisibilityRequest({ id: ++nextVisibilityRequestId.current, bangumiId: bangumi.id, pointId: point.id });
   };
   const handle3DBuildingsChange = useCallback((enabled: boolean) => {
     setShow3DBuildings(enabled);
@@ -248,11 +230,6 @@ export default function HomeScreen() {
         locationPuckActive={isLocationPuckActive}
         locationPuckRevision={locationPuckRevision}
         onCameraChange={handleCameraChange}
-        onMapIdle={() => {
-          randomFlightRef.current = false;
-          if (stoppingRandomFlightRef.current) stoppingRandomFlightRef.current.pending = false;
-          stoppingRandomFlightRef.current = null;
-        }}
         visibilityRequest={visibilityRequest}
         visibilityObstacles={visibilityObstacles}
         visibilityObstaclesReady={!!searchContainerLayout && !!searchLayout && photosLayout !== undefined}

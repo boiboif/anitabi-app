@@ -70,7 +70,6 @@ type Props = {
   /** Reports the viewport immediately so point selection can use the current camera state. */
   onViewportChange?: (state: { zoom: number; bounds: { ne: [number, number]; sw: [number, number] } | null }) => void;
   onMapReady?: () => void;
-  onMapIdle?: () => void;
   mode?: 'browse' | 'plan';
   selectedPoint?: MapPointReference | null;
   /** The plan screen owns its selection independently of the browse map. */
@@ -83,7 +82,7 @@ type Props = {
   locationPuckActive?: boolean;
   locationPuckRevision?: number;
   scaleBarPosition?: ScaleBarPosition;
-  visibilityRequest?: (MapPointReference & { id: number; interruption?: { pending: boolean } }) | null;
+  visibilityRequest?: (MapPointReference & { id: number }) | null;
   visibilityObstacles?: readonly MapScreenRect[];
   visibilityObstaclesReady?: boolean;
 };
@@ -175,7 +174,6 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     onCameraChange,
     onViewportChange,
     onMapReady,
-    onMapIdle,
     mode = 'browse',
     selectedPoint,
     nearbyLocation,
@@ -323,13 +321,6 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
         return;
       }
       const adjustment = getPopupAdjustment({ x, y }, { width, height }, size, pending.obstacles);
-      if (!adjustment.x && !adjustment.y && pending.request.interruption?.pending) {
-        // Keep checking after the native stop settles; an earlier projection may
-        // have observed a still-moving camera. This never blocks card display.
-        pending.checking = false;
-        pending.waitingForIdle = true;
-        return;
-      }
       if ((!adjustment.x && !adjustment.y) || pending.attempts >= 3) {
         pendingVisibilityRef.current = null;
         return;
@@ -534,12 +525,6 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
       // Invalidate corner reads as soon as another native camera event arrives.
       cameraRevisionRef.current++;
       if (state.gestures.isGestureActive) pendingVisibilityRef.current = null;
-      else if (pendingVisibilityRef.current?.request.interruption?.pending) {
-        const pending = pendingVisibilityRef.current;
-        pending.generation++;
-        pending.checking = false;
-        pending.waitingForIdle = true;
-      }
       // TabSlot restores the native map from display:none when this route regains
       // focus. Mapbox then emits one non-gesture event with the previous zoom but
       // bounds measured from the collapsed viewport. Keeping that event would make
@@ -808,12 +793,11 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
         }}
         onCameraChanged={handleCameraChanged}
         onMapIdle={() => {
-          onMapIdle?.();
           const pending = pendingVisibilityRef.current;
-          if (!pending?.waitingForIdle) return;
+          if (!pending?.waitingForIdle || !pending.layout) return;
           pending.waitingForIdle = false;
           pending.cameraRevision = cameraRevisionRef.current;
-          if (pending.layout) handlePopupLayout(pending.request.id, pending.layout.width, pending.layout.height);
+          handlePopupLayout(pending.request.id, pending.layout.width, pending.layout.height);
         }}
         onDidFinishLoadingMap={handleMapReady}
         onPress={isPlanMode ? handlePlanMapPress : handleLocationMapPress}

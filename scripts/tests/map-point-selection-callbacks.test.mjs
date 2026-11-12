@@ -300,12 +300,6 @@ function createHarness(mode = 'plan') {
         gestures: { isGestureActive: true },
       });
     },
-    changeCameraWithoutGesture() {
-      find(tree, 'MapView').props.onCameraChanged({
-        properties: { center: [139, 35], zoom: 12 },
-        gestures: { isGestureActive: false },
-      });
-    },
     idleCamera() { find(tree, 'MapView').props.onMapIdle(); },
     hitRects(pointId = props.selectedPoint?.pointId, showImage = props.showPointImageMarkers) {
       find(tree, 'SelectedPlanMapPointLayer').props.onHitRectsChange(`${work.id}:${pointId}:${showImage}`, [hitRect]);
@@ -389,65 +383,6 @@ test('a photo selection leaves the camera untouched when the entire measured car
   await flush();
   assert.deepEqual(h.projected, [[139, 35]]);
   assert.deepEqual(commands, []);
-});
-
-test('a camera update during card projection rechecks visibility when the map settles', async () => {
-  const h = createHarness('browse');
-  const commands = [];
-  const interruption = { pending: true };
-  h.setCamera({ setCamera: (command) => commands.push(plain(command)) });
-  h.setMapSize(400, 600);
-  const oldProjection = deferred();
-  let calls = 0;
-  h.setProject(() => ++calls === 1 ? oldProjection.promise : Promise.resolve([200, 180]));
-  h.setBrowseState({ selectedMapPoint: reference('a') });
-  h.update({ visibilityRequest: { id: 1, ...reference('a'), interruption }, onMapIdle: () => { interruption.pending = false; } });
-  h.layoutPopup(220, 200);
-  h.changeCameraWithoutGesture();
-  oldProjection.resolve([200, 300]);
-  await flush();
-  assert.equal(commands.length, 0, 'the stale projection cannot decide visibility');
-  h.idleCamera();
-  await flush();
-  assert.equal(h.projected.length, 2);
-  assert.equal(commands.length, 1, 'the obscured card is adjusted after idle');
-});
-
-test('a completed visible projection is rechecked after an interrupted flight settles', async () => {
-  const h = createHarness('browse');
-  const commands = [];
-  const interruption = { pending: true };
-  h.setCamera({ setCamera: (command) => commands.push(plain(command)) });
-  h.setMapSize(400, 600);
-  let position = [200, 300];
-  h.setProject(async () => position);
-  h.setBrowseState({ selectedMapPoint: reference('a') });
-  h.update({ visibilityRequest: { id: 1, ...reference('a'), interruption }, onMapIdle: () => { interruption.pending = false; } });
-  h.layoutPopup(220, 200);
-  await flush();
-  assert.equal(h.projected.length, 1);
-  assert.equal(commands.length, 0, 'the first position is visible');
-  position = [200, 180];
-  h.changeCameraWithoutGesture();
-  h.idleCamera();
-  await flush();
-  assert.equal(h.projected.length, 2, 'the settled camera is checked even if the old projection already completed');
-  assert.equal(commands.length, 1);
-});
-
-test('an idle event preceding the photo request does not block later card visibility', async () => {
-  const h = createHarness('browse');
-  const commands = [];
-  h.setCamera({ setCamera: (command) => commands.push(plain(command)) });
-  h.setMapSize(400, 600);
-  h.setProject(async () => [200, 180]);
-  h.setBrowseState({ selectedMapPoint: reference('a') });
-  h.idleCamera();
-  h.update({ visibilityRequest: { id: 1, ...reference('a'), interruption: { pending: false } } });
-  h.layoutPopup(220, 200);
-  await flush();
-  assert.equal(h.projected.length, 1);
-  assert.equal(commands.length, 1);
 });
 
 test('a card exactly touching the viewport edges is fully visible', async () => {
