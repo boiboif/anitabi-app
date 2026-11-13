@@ -265,7 +265,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     ? getSelectedPlanMarkerKey(selectedPointData.bangumi.id, selectedPointData.point.id, showPointImageMarkers)
     : null;
   const popupKey = !isPlanMode && selectedPointData
-    ? JSON.stringify([selectedPointData.bangumi.id, selectedPointData.point.id])
+    ? JSON.stringify([selectedPointData.bangumi.id, selectedPointData.point.id, ...selectedPointData.point.geo])
     : null;
   const popupLayoutKey = popupKey;
   const pointSelectionRef = useRef<{
@@ -285,6 +285,13 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     committedPopupLayoutKeyRef.current = popupLayoutKey;
     popupLayoutRevisionRef.current++;
     if (popupLayoutRef.current?.key !== popupLayoutKey) popupLayoutRef.current = null;
+    measuredLayoutRequestRef.current = null;
+    const pending = pendingVisibilityRef.current;
+    if (pending) {
+      pending.layout = undefined;
+      pending.generation++;
+      pending.checking = false;
+    }
     return () => {
       committedPopupLayoutKeyRef.current = null;
     };
@@ -366,8 +373,8 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
       handlePopupLayout(visibilityRequest.id, layout.width, layout.height);
       return;
     }
-    // A reused view may not emit onLayout when a new point has the same size.
-    // Measure the committed view instead of remounting its image to force layout.
+    // A repeated selection may have no new onLayout, or the new view's event
+    // may still be pending. Measure without remounting just to force layout.
     const view = popupViewRef.current;
     const pending = pendingVisibilityRef.current;
     if (!view || !pending || pending.request.id !== visibilityRequest.id) return;
@@ -928,6 +935,8 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
         )}
         {!isPlanMode && selectedPointData ? (
           <MarkerView
+            // Keep the annotation's position and content together when changing points.
+            key={popupKey}
             coordinate={[selectedPointData.point.geo[1], selectedPointData.point.geo[0]]}
             anchor={{ x: 0.5, y: 1 }}
             allowOverlap
@@ -937,8 +946,8 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
             <View
               ref={popupViewRef}
               collapsable={false}
-              onLayout={({ nativeEvent: { layout } }) => {
-                if (!popupLayoutKey || committedPopupLayoutKeyRef.current !== popupLayoutKey ||
+              onLayout={({ currentTarget, nativeEvent: { layout } }) => {
+                if (currentTarget !== popupViewRef.current || !popupLayoutKey || committedPopupLayoutKeyRef.current !== popupLayoutKey ||
                   layout.width <= 0 || layout.height <= 0) return;
                 const current = useMapBrowse.getState().selectedMapPoint;
                 if (current?.bangumiId !== selectedPointData.bangumi.id || current.pointId !== selectedPointData.point.id) return;

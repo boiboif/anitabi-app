@@ -7,6 +7,9 @@ const environment = {
   ...process.env,
   APP_VARIANT: 'development',
   EXPO_UPDATE_CHANNEL: 'development',
+  // Expo's Android launcher sets up adb reverse for its selected Metro port.
+  // Advertise loopback so the device uses that mapping instead of the LAN IP.
+  REACT_NATIVE_PACKAGER_HOSTNAME: process.env.REACT_NATIVE_PACKAGER_HOSTNAME || '127.0.0.1',
 };
 
 function runExpo(args) {

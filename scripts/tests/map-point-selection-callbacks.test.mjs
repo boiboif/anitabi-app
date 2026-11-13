@@ -203,7 +203,8 @@ function createHarness(mode = 'plan') {
     },
     queryRenderedFeaturesAtPoint: (...args) => query(...args),
   };
-  const nativePopup = { measure: (callback) => measurePopup(callback) };
+  let nativePopup;
+  let nativePopupKey;
   props = {
     insets: { top: 0, bottom: 0, left: 0, right: 0 },
     bangumis: [work],
@@ -232,7 +233,17 @@ function createHarness(mode = 'plan') {
     const map = find(tree, 'MapView');
     map.props.ref.current ??= nativeMap;
     const popupRef = findParent(tree, 'PopupCard')?.props.ref;
-    if (popupRef && typeof popupRef === 'object') popupRef.current = nativePopup;
+    if (popupRef && typeof popupRef === 'object') {
+      const key = find(tree, 'MarkerView').key;
+      if (!nativePopup || nativePopupKey !== key) {
+        nativePopup = { measure: (callback) => measurePopup(callback) };
+        nativePopupKey = key;
+      }
+      popupRef.current = nativePopup;
+    } else {
+      nativePopup = undefined;
+      nativePopupKey = undefined;
+    }
     for (const effect of draft.effects) slots[effect.index] = { deps: effect.deps, cleanup: effect.run() };
     draft = undefined;
     return tree;
@@ -293,11 +304,17 @@ function createHarness(mode = 'plan') {
       find(tree, 'MapView').props.onLayout({ nativeEvent: { layout: { width, height } } });
     },
     get popupCard() { return find(tree, 'PopupCard'); },
+    get popupMarker() { return find(tree, 'MarkerView'); },
     get popupWrapper() { return findParent(tree, 'PopupCard'); },
+    capturePopupLayout() {
+      const onLayout = findParent(tree, 'PopupCard').props.onLayout;
+      const currentTarget = nativePopup;
+      return (event) => onLayout({ ...event, currentTarget });
+    },
     layoutPopup(width, height) {
       const wrapper = findParent(tree, 'PopupCard');
       assert.ok(wrapper?.props.onLayout, 'the popup reports its measured layout');
-      wrapper.props.onLayout({ nativeEvent: { layout: { width, height } } });
+      wrapper.props.onLayout({ currentTarget: nativePopup, nativeEvent: { layout: { width, height } } });
     },
     moveCamera() {
       find(tree, 'MapView').props.onCameraChanged({
@@ -578,7 +595,7 @@ test('reselecting the same photo preserves the popup and rechecks visibility wit
   const { h, commands } = createPhotoVisibilityHarness([200, 300]);
   h.layoutPopup(220, 200);
   await flush();
-  const initialKey = h.popupWrapper.key;
+  const initialKey = h.popupMarker.key;
   const initialProjections = h.projected.length;
   assert.deepEqual(commands, []);
 
@@ -587,7 +604,7 @@ test('reselecting the same photo preserves the popup and rechecks visibility wit
   h.update({ visibilityRequest: { id: 2, ...reference('a') } });
   await flush();
 
-  assert.equal(h.popupWrapper.key, initialKey, 'the existing card subtree keeps its identity');
+  assert.equal(h.popupMarker.key, initialKey, 'the existing annotation and card keep their identity');
   assert.equal(h.projected.length, initialProjections + 1, 'recheck using the current card dimensions');
   assert.equal(commands.length, 1, 'move the card back into view if it became obscured');
 });
@@ -611,14 +628,14 @@ test('selecting a different photo waits for its own card dimensions', async () =
   assert.equal(commands.length, 1);
 });
 
-test('ordinary map selection keeps the popup subtree when switching points', () => {
+test('ordinary map selection replaces the annotation and card when switching points', () => {
   const h = createHarness('browse');
   h.setBrowseState({ selectedMapPoint: reference('a') });
   h.update();
-  const initialKey = h.popupWrapper.key;
+  const initialKey = h.popupMarker.key;
   h.setBrowseState({ selectedMapPoint: reference('b') });
   h.update();
-  assert.equal(h.popupWrapper.key, initialKey, 'ordinary map selection reuses the card subtree');
+  assert.notEqual(h.popupMarker.key, initialKey, 'the new point gets its own annotation and card subtree');
 });
 
 test('a photo click on a map-opened card keeps its subtree and reuses its measured layout', async () => {
@@ -630,14 +647,14 @@ test('a photo click on a map-opened card keeps its subtree and reuses its measur
   h.setBrowseState({ selectedMapPoint: reference('a') });
   h.update();
   h.layoutPopup(220, 200);
-  const initialKey = h.popupWrapper.key;
+  const initialKey = h.popupMarker.key;
   assert.equal(h.projected.length, 0);
 
   h.setBrowseState({ selectedMapPoint: reference('a') });
   h.update({ visibilityRequest: { id: 1, ...reference('a') } });
   await flush();
 
-  assert.equal(h.popupWrapper.key, initialKey, 'selecting the same point does not remount the card');
+  assert.equal(h.popupMarker.key, initialKey, 'selecting the same point does not remount the card');
   assert.equal(h.projected.length, 1, 'visibility is checked without another layout event');
   assert.equal(commands.length, 1, 'the existing card is moved into view if necessary');
 });
@@ -651,19 +668,19 @@ test('a photo click on a random-jump card keeps its subtree after camera movemen
   h.setBrowseState({ selectedMapPoint: reference('a') });
   h.update();
   h.layoutPopup(220, 200);
-  const initialKey = h.popupWrapper.key;
+  const initialKey = h.popupMarker.key;
   h.moveCamera();
 
   h.setBrowseState({ selectedMapPoint: reference('a') });
   h.update({ visibilityRequest: { id: 1, ...reference('a') } });
   await flush();
 
-  assert.equal(h.popupWrapper.key, initialKey, 'the current card is reused after the flight');
+  assert.equal(h.popupMarker.key, initialKey, 'the current card is reused after the flight');
   assert.equal(h.projected.length, 1, 'the current camera position is checked');
   assert.deepEqual(commands, [], 'an already visible card does not move the camera');
 });
 
-test('a photo click measures a different map point even if its unchanged size caused no layout event', async () => {
+test('a photo click measures the newly mounted map point before its layout event arrives', async () => {
   const h = createHarness('browse');
   const commands = [];
   h.setCamera({ setCamera: (command) => commands.push(plain(command)) });
@@ -672,16 +689,18 @@ test('a photo click measures a different map point even if its unchanged size ca
   h.setBrowseState({ selectedMapPoint: reference('a') });
   h.update();
   h.layoutPopup(220, 200);
-  const initialKey = h.popupWrapper.key;
+  const initialKey = h.popupMarker.key;
 
   h.setBrowseState({ selectedMapPoint: reference('b') });
   h.update();
+  const newKey = h.popupMarker.key;
+  assert.notEqual(newKey, initialKey, 'the other map point remounts the annotation and card');
   h.setPopupMeasure((callback) => callback(0, 0, 220, 200, 0, 0));
   h.setBrowseState({ selectedMapPoint: reference('b') });
   h.update({ visibilityRequest: { id: 1, ...reference('b') } });
   await flush();
 
-  assert.equal(h.popupWrapper.key, initialKey, 'both the map point and photo reuse the card');
+  assert.equal(h.popupMarker.key, newKey, 'the photo selection retains the newly mounted card');
   assert.deepEqual(h.projected, [[140, 36]], 'the newly selected point is projected');
   assert.equal(commands.length, 1, 'the measured point is adjusted into view');
 });
@@ -765,7 +784,7 @@ for (const action of ['gesture', 'programmatic camera change', 'new point', 'clo
     h.update({ visibilityRequest: { id: 1, ...reference('a') }, visibilityObstacles: [obstacle] });
     await flush();
     assert.deepEqual(commands, []);
-    const oldLayout = h.popupWrapper.props.onLayout;
+    const oldLayout = h.capturePopupLayout();
 
     if (action === 'gesture') h.moveCamera();
     if (action === 'programmatic camera change') h.changeCamera();
@@ -828,7 +847,7 @@ test('a stale layout from a different map point cannot satisfy the selected phot
   h.setProject(async () => [40, 300]);
   h.setBrowseState({ selectedMapPoint: reference('a') });
   h.update();
-  const oldLayout = h.popupWrapper.props.onLayout;
+  const oldLayout = h.capturePopupLayout();
   h.layoutPopup(220, 200);
 
   h.setBrowseState({ selectedMapPoint: reference('b') });
@@ -842,6 +861,56 @@ test('a stale layout from a different map point cannot satisfy the selected phot
   await flush();
   assert.equal(h.projected.length, 1);
   assert.equal(commands.length, 1);
+});
+
+test('returning to A after B ignores layout events from the unmounted A card', async () => {
+  const h = createHarness('browse');
+  const commands = [];
+  h.setCamera({ setCamera: (command) => commands.push(plain(command)) });
+  h.setMapSize(400, 600);
+  h.setProject(async () => [40, 300]);
+  h.setBrowseState({ selectedMapPoint: reference('a') });
+  h.update();
+  const oldLayout = h.capturePopupLayout();
+  h.layoutPopup(220, 200);
+
+  h.setBrowseState({ selectedMapPoint: reference('b') });
+  h.update();
+  h.setBrowseState({ selectedMapPoint: reference('a') });
+  h.update({ visibilityRequest: { id: 1, ...reference('a') } });
+  oldLayout({ nativeEvent: { layout: { width: 220, height: 400 } } });
+  await flush();
+  assert.equal(h.projected.length, 0, 'a matching point key does not make the old native view current');
+  assert.deepEqual(commands, []);
+
+  h.layoutPopup(220, 200);
+  await flush();
+  assert.equal(h.projected.length, 1);
+  assert.equal(commands.length, 1);
+});
+
+test('changing the selected point coordinates invalidates its old layout and in-flight projection', async () => {
+  const { h, commands } = createPhotoVisibilityHarness([200, 300]);
+  const oldProjection = deferred();
+  h.setProject(() => oldProjection.promise);
+  h.layoutPopup(220, 200);
+  const initialKey = h.popupMarker.key;
+
+  h.update({ bangumis: [{
+    ...work,
+    points: work.points.map((point) => point.id === 'a' ? { ...point, geo: [35.1, 139.1] } : point),
+  }] });
+  assert.notEqual(h.popupMarker.key, initialKey, 'the changed coordinate gets a new native annotation');
+  oldProjection.resolve([40, 300]);
+  await flush();
+  assert.deepEqual(commands, [], 'the old coordinate cannot trigger a camera correction');
+  assert.equal(h.projected.length, 1, 'the new instance waits for its own dimensions');
+
+  h.setProject(async () => [40, 300]);
+  h.layoutPopup(220, 200);
+  await flush();
+  assert.deepEqual(h.projected, [[139, 35], [139.1, 35.1]]);
+  assert.equal(commands.length, 1, 'the new layout resumes the still-pending visibility request');
 });
 
 test('a repeated photo click supersedes the previous pending projection', async () => {

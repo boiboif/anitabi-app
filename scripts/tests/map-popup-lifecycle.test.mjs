@@ -10,7 +10,8 @@ const compiled = ts.transpileModule(source, {
 }).outputText;
 
 const work = { id: 10, points: [{ id: 'a', geo: [35, 139] }, { id: 'b', geo: [36, 140] }] };
-const pointRef = (pointId) => ({ bangumiId: work.id, pointId });
+const otherWork = { id: 20, points: [{ id: 'a', geo: [35, 139] }] };
+const pointRef = (pointId, bangumiId = work.id) => ({ bangumiId, pointId });
 const sameDeps = (a, b) => a?.length === b?.length && a.every((value, index) => Object.is(value, b[index]));
 
 function find(node, type) {
@@ -27,6 +28,7 @@ function find(node, type) {
 // This is not a React Native renderer and cannot prove native frame ordering.
 function createHarness() {
   const browseSubscribers = new Set();
+  let bangumis = [work, otherWork];
   let browse = {
     selectedMapPoint: null, nearbyMapLocation: null, filteredBangumiId: null,
     openBangumiDetails() {}, selectMapPoint() {}, focusPointFromNearby() {},
@@ -131,7 +133,7 @@ function createHarness() {
     effects.length = 0;
     dirty = false;
     tree = module.exports.default({
-      insets: { top: 0, bottom: 0, left: 0, right: 0 }, bangumis: [work], styleIndex: 0,
+      insets: { top: 0, bottom: 0, left: 0, right: 0 }, bangumis, styleIndex: 0,
       mode: 'browse', showPointImageMarkers: false,
     });
     find(tree, 'MapView').props.ref.current ??= nativeMap;
@@ -141,8 +143,14 @@ function createHarness() {
     }
     return tree;
   }
-  function select(pointId) {
-    updateBrowse({ selectedMapPoint: pointRef(pointId), nearbyMapLocation: null });
+  function select(pointId, bangumiId = work.id) {
+    updateBrowse({ selectedMapPoint: pointRef(pointId, bangumiId), nearbyMapLocation: null });
+    return render();
+  }
+  function updatePointGeo(bangumiId, pointId, geo) {
+    bangumis = bangumis.map((item) => item.id === bangumiId
+      ? { ...item, points: item.points.map((point) => point.id === pointId ? { ...point, geo } : point) }
+      : item);
     return render();
   }
   function popup(type = 'PopupCard') {
@@ -189,16 +197,16 @@ function createHarness() {
     if (dirty) render();
   }
   render();
-  return { select, openNearby, close, updatePlace, updateRegion, popup, popups, projections, settleProjection, frame, render, frames };
+  return { select, updatePointGeo, openNearby, close, updatePlace, updateRegion, popup, popups, projections, settleProjection, frame, render, frames };
 }
 
 function assertPoint(marker, pointId, coordinate) {
-  assert.ok(marker, `point ${pointId} has a native annotation`);
+  assert.ok(marker, `point ${pointId} has a marker element`);
   assert.equal(find(marker, 'PopupCard').props.point.id, pointId);
   assert.deepEqual([...marker.props.coordinate], coordinate);
 }
 
-test('rapid A → B → A retains one point annotation and updates its coordinate and content', () => {
+test('rapid A → B → A assigns marker identity to each point and retains one element', () => {
   const h = createHarness();
   h.select('a');
   const firstA = h.popup();
@@ -206,35 +214,72 @@ test('rapid A → B → A retains one point annotation and updates its coordinat
   h.select('b');
   const b = h.popup();
   assertPoint(b, 'b', [140, 36]);
-  assert.equal(firstA.key, b.key, 'switching points keeps the same annotation key');
-  assert.equal(h.popups().length, 1, 'no previous point annotation remains mounted');
+  assert.ok(firstA.key, 'the point marker has an explicit identity');
+  assert.notEqual(firstA.key, b.key, 'switching points changes the marker element key');
+  assert.equal(h.popups().length, 1, 'the rendered tree contains no previous point marker');
   h.select('a');
   const newA = h.popup();
   assertPoint(newA, 'a', [139, 35]);
-  assert.equal(b.key, newA.key);
+  assert.notEqual(b.key, newA.key);
+  assert.equal(firstA.key, newA.key, 'returning to the same point restores its identity');
   assert.equal(h.popups().length, 1);
   assert.equal(h.projections.length, 0, 'the point popup does not queue native position gates');
   assert.equal(h.frames.size, 0, 'the point popup does not schedule delayed visibility frames');
+});
+
+test('reselecting the same point preserves its marker element key', () => {
+  const h = createHarness();
+  h.select('a');
+  const first = h.popup();
+  h.select('a');
+  const repeated = h.popup();
+  assertPoint(repeated, 'a', [139, 35]);
+  assert.ok(first.key);
+  assert.equal(repeated.key, first.key);
+  assert.equal(h.popups().length, 1);
+});
+
+test('point identity includes the work even when point ID and coordinates match', () => {
+  const h = createHarness();
+  h.select('a');
+  const first = h.popup();
+  h.select('a', otherWork.id);
+  const other = h.popup();
+  assertPoint(other, 'a', [139, 35]);
+  assert.equal(find(other, 'PopupCard').props.bangumi.id, otherWork.id);
+  assert.notEqual(other.key, first.key);
+  assert.equal(h.popups().length, 1);
+});
+
+test('changing coordinates for the same point changes the marker element key', () => {
+  const h = createHarness();
+  h.select('a');
+  const first = h.popup();
+  h.updatePointGeo(work.id, 'a', [35.5, 139.5]);
+  const updated = h.popup();
+  assertPoint(updated, 'a', [139.5, 35.5]);
+  assert.notEqual(updated.key, first.key);
+  assert.equal(h.popups().length, 1);
 });
 
 test('nearby to point removes the nearby annotation and presents the selected point', () => {
   const h = createHarness();
   h.openNearby([35.5, 139.5]);
   const nearby = h.popup('NearbyPointPopupCard');
-  assert.ok(nearby, 'nearby annotation is mounted while selected');
+  assert.ok(nearby, 'nearby marker element is present while selected');
   assert.deepEqual([...nearby.props.coordinate], [139.5, 35.5]);
   const card = find(nearby, 'NearbyPointPopupCard');
   assert.equal(card.props.mapStyleURL, 'fixture');
   assert.equal(card.props.mapZoom, 4);
 
   h.select('b');
-  assert.equal(h.popup('NearbyPointPopupCard'), undefined, 'nearby native annotation is removed');
+  assert.equal(h.popup('NearbyPointPopupCard'), undefined, 'nearby marker element is removed');
   assertPoint(h.popup(), 'b', [140, 36]);
   assert.equal(h.projections.length, 0, 'obsolete nearby positioning cannot complete later');
   assert.equal(h.frames.size, 0, 'obsolete nearby visibility frames cannot reveal an old card');
 });
 
-test('closing either kind of popup removes its native annotation', () => {
+test('closing either kind of popup removes its marker element', () => {
   const h = createHarness();
   h.select('a');
   assert.ok(h.popup());
@@ -254,12 +299,12 @@ test('nearby details update without replacing the marker; reopening creates a ne
 
   h.updatePlace('附近地点');
   let updated = h.popup('NearbyPointPopupCard');
-  assert.equal(updated.key, first.key, 'the async place result keeps the same native annotation');
+  assert.equal(updated.key, first.key, 'the async place result keeps the same marker key');
   assert.equal(find(updated, 'NearbyPointPopupCard').props.place.name, '附近地点');
 
   h.updateRegion('日本 神奈川県');
   updated = h.popup('NearbyPointPopupCard');
-  assert.equal(updated.key, first.key, 'the async administrative region keeps the same native annotation');
+  assert.equal(updated.key, first.key, 'the async administrative region keeps the same marker key');
   assert.equal(find(updated, 'NearbyPointPopupCard').props.region, '日本 神奈川県');
 
   h.close();
