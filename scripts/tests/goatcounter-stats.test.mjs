@@ -8,23 +8,32 @@ function ok(count) {
   return { ok: true, json: async () => ({ count }) };
 }
 
-test('reads the public total and the rolling month, including formatted numbers and zero', async () => {
+test('reads the public total, rolling month and UTC calendar day, including formatted numbers and zero', async () => {
   const requests = [];
   const result = await fetchGoatCounterStats({
+    now: new Date('2026-11-13T00:30:00+08:00'),
     fetchImpl: async (url) => {
       requests.push(url);
       return ok(url === totalUrl ? '1\u202f098\u202f097' : '0');
     },
   });
-  assert.deepEqual(requests, [totalUrl, `${totalUrl}?start=month`]);
-  assert.deepEqual(result, { total: 1098097, recent: 0 });
+  assert.deepEqual(requests, [totalUrl, `${totalUrl}?start=month`, `${totalUrl}?start=2026-11-12`]);
+  assert.deepEqual(result, { total: 1098097, recent: 0, today: 0 });
 });
 
 test('keeps a valid count when the other endpoint fails', async () => {
   const result = await fetchGoatCounterStats({
     fetchImpl: async (url) => url === totalUrl ? { ok: false, status: 403 } : ok('2,345'),
   });
-  assert.deepEqual(result, { total: null, recent: 2345 });
+  assert.deepEqual(result, { total: null, recent: 2345, today: 2345 });
+});
+
+test('keeps today when the other counters fail', async () => {
+  const result = await fetchGoatCounterStats({
+    now: new Date('2026-11-13T00:00:00Z'),
+    fetchImpl: async (url) => url.endsWith('start=2026-11-13') ? ok('7') : { ok: false },
+  });
+  assert.deepEqual(result, { total: null, recent: null, today: 7 });
 });
 
 test('rejects malformed, negative, unsafe and non-string counts instead of showing false numbers', async () => {
@@ -49,6 +58,6 @@ test('cancels outstanding requests and treats a timeout as unavailable', async (
   const cancelled = fetchGoatCounterStats({ signal: controller.signal, fetchImpl });
   controller.abort();
   assert.equal(await cancelled, null);
-  assert.equal(started, 2);
+  assert.equal(started, 3);
   assert.equal(await fetchGoatCounterStats({ fetchImpl, timeoutMs: 1 }), null);
 });

@@ -6,6 +6,7 @@ import { fetchGoatCounterStats } from './goatcounter-stats.mjs';
 type WebsiteStats = {
   total: number | null;
   recent: number | null;
+  today: number | null;
 };
 
 const { lang } = useData();
@@ -13,9 +14,9 @@ const stats = ref<WebsiteStats | null>(null);
 const controller = new AbortController();
 const locale = computed(() => (lang.value.startsWith('ja') ? 'ja' : lang.value.startsWith('en') ? 'en' : 'zh'));
 const messages = {
-  zh: { label: '网站浏览量', total: '总浏览量', recent: '近 30 天' },
-  ja: { label: 'サイトのページビュー', total: '総ページビュー', recent: '過去 30 日間' },
-  en: { label: 'Website page views', total: 'Total views', recent: 'Last 30 days' },
+  zh: { label: '网站浏览量', total: '总浏览量', recent: '近 30 天', today: '今日（UTC）' },
+  ja: { label: 'サイトのページビュー', total: '総ページビュー', recent: '過去 30 日間', today: '今日（UTC）' },
+  en: { label: 'Website page views', total: 'Total views', recent: 'Last 30 days', today: 'Today (UTC)' },
 } as const;
 const copy = computed(() => messages[locale.value]);
 const numberFormat = computed(() => new Intl.NumberFormat(lang.value));
@@ -41,6 +42,10 @@ onUnmounted(() => controller.abort());
       <div class="site-activity__metric">
         <dt>{{ copy.recent }}</dt>
         <dd>{{ stats.recent === null ? '—' : numberFormat.format(stats.recent) }}</dd>
+      </div>
+      <div class="site-activity__metric">
+        <dt>{{ copy.today }}</dt>
+        <dd>{{ stats.today === null ? '—' : numberFormat.format(stats.today) }}</dd>
       </div>
     </dl>
   </section>
@@ -94,6 +99,10 @@ onUnmounted(() => controller.abort());
     transform: translateX(-50%);
   }
   .site-activity__metrics { justify-content: center; }
+}
+@media (max-width: 720px) {
+  .site-activity__metrics { gap: 4px 12px; }
+  .site-activity__metric + .site-activity__metric::before { display: none; }
 }
 @media (min-width: 721px) and (max-width: 959px) {
   .site-activity { left: 0; transform: none; text-align: left; }

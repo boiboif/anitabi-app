@@ -30,10 +30,13 @@ async function fetchCount(url, signal, fetchImpl, timeoutMs) {
 }
 
 /** Read each public counter independently, without treating errors as zero. */
-export async function fetchGoatCounterStats({ signal, fetchImpl = globalThis.fetch, timeoutMs = requestTimeoutMs } = {}) {
-  const [total, recent] = await Promise.all([
+export async function fetchGoatCounterStats({ signal, fetchImpl = globalThis.fetch, timeoutMs = requestTimeoutMs, now = new Date() } = {}) {
+  // The public counter interprets dates at midnight UTC.
+  const today = now.toISOString().slice(0, 10);
+  const [total, recent, daily] = await Promise.all([
     fetchCount(counterUrl, signal, fetchImpl, timeoutMs),
     fetchCount(`${counterUrl}?start=month`, signal, fetchImpl, timeoutMs),
+    fetchCount(`${counterUrl}?start=${today}`, signal, fetchImpl, timeoutMs),
   ]);
-  return total === null && recent === null ? null : { total, recent };
+  return total === null && recent === null && daily === null ? null : { total, recent, today: daily };
 }

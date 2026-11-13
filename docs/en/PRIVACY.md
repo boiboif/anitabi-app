@@ -36,7 +36,7 @@ These services may process necessary network information such as IP addresses, r
 
 ## 4. Website analytics
 
-The project website uses Umami Cloud and GoatCounter for website analytics. Umami provides aggregate data to maintainers; GoatCounter provides the cumulative and last-30-days page view counts shown on the website. The website sends page paths, browser and device information, and other technical data to these services. Query parameters and page fragments are excluded from the tracked page path. We do not use this for advertising tracking.
+The project website uses Umami Cloud and GoatCounter for website analytics. Umami provides aggregate data to maintainers; GoatCounter provides the cumulative, last-30-days, and today's page view counts shown on the website. The website sends page paths, browser and device information, and other technical data to these services. Query parameters and page fragments are excluded from the tracked page path. We do not use this for advertising tracking.
 
 GoatCounter's public counter can also expose aggregate counts for individual pages to anyone who knows their paths; individual visitor records are not public. These services may process IP addresses to handle requests. For details on how each service handles data, see the [Umami privacy policy](https://umami.is/privacy) and [GoatCounter privacy policy](https://www.goatcounter.com/help/privacy).
 
