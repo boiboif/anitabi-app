@@ -1,21 +1,21 @@
 {
   "version": "0.9.0",
-  "displayVersion": "0.9.0-ota.1028",
-  "title": "v0.9.0-ota.1028",
-  "releaseNotes": "本安装包基于 0.9.0，已内置本次热更新。已安装 0.9.0 的用户可直接通过 OTA 更新。\n\n本次更新：\n- 优化巡礼相机参考图加载与切换，减少缩略图切换为原图时的闪烁。\n- 从地图点位弹窗进入相机时，复用已加载的参考图。\n- 完善叠图模式和拍照结果页的原图加载提示。",
+  "displayVersion": "0.9.0-ota.1029",
+  "title": "v0.9.0-ota.1029",
+  "releaseNotes": "本安装包基于 0.9.0，已内置本次热更新。已安装 0.9.0 的用户可直接通过 OTA 更新。\n\n本次更新：\n新增地图附近地点弹窗和视野图片浏览，优化巡礼点卡片及地图交互。",
   "releaseNotesHistory": [
     {
       "version": "0.9.0",
-      "displayVersion": "0.9.0-ota.1028",
-      "notes": "本安装包基于 0.9.0，已内置本次热更新。已安装 0.9.0 的用户可直接通过 OTA 更新。\n\n本次更新：\n- 优化巡礼相机参考图加载与切换，减少缩略图切换为原图时的闪烁。\n- 从地图点位弹窗进入相机时，复用已加载的参考图。\n- 完善叠图模式和拍照结果页的原图加载提示。",
+      "displayVersion": "0.9.0-ota.1029",
+      "notes": "本安装包基于 0.9.0，已内置本次热更新。已安装 0.9.0 的用户可直接通过 OTA 更新。\n\n本次更新：\n新增地图附近地点弹窗和视野图片浏览，优化巡礼点卡片及地图交互。",
       "importance": "normal",
-      "buildNumber": 1028
+      "buildNumber": 1029
     }
   ],
-  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.9.0-ota.1028/anitabi-app-v0.9.0-ota.1028-android.apk",
-  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.9.0-ota.1028",
+  "apkUrl": "https://github.com/boiboif/anitabi-app/releases/download/v0.9.0-ota.1029/anitabi-app-v0.9.0-ota.1029-android.apk",
+  "releaseUrl": "https://github.com/boiboif/anitabi-app/releases/tag/v0.9.0-ota.1029",
   "mandatory": false,
   "iosAvailable": true,
-  "buildNumber": 1028,
-  "fileName": "anitabi-app-v0.9.0-ota.1028-android.apk"
+  "buildNumber": 1029,
+  "fileName": "anitabi-app-v0.9.0-ota.1029-android.apk"
 }
