@@ -57,6 +57,7 @@ function fixture(mode = 'coordinated') {
     mutations: [],
     requests: [],
     failMutationId: null,
+    completedRolloutIsNull: false,
     tamperManifest: null,
   };
   if (mode === 'ota-first') for (const update of updates) state.publicIds[update.platform] = update.id;
@@ -104,7 +105,7 @@ function fixture(mode = 'coordinated') {
             return response({ errors: [{ message: 'private-expo-token: permission rejected' }] });
           }
           const update = state.updates.find((item) => item.id === variables.updateId);
-          update.rolloutPercentage = variables.rolloutPercentage;
+          update.rolloutPercentage = state.completedRolloutIsNull ? null : variables.rolloutPercentage;
           state.publicIds[update.platform] = update.id;
           return response({ data: { update: { setRolloutPercentage: update } } });
         }
@@ -306,10 +307,37 @@ test('partial platform promotion preserves identity and retry only promotes the 
   assert.deepEqual(f.state.mutations, []);
 });
 
+test('a retry accepts EAS null for a fully promoted platform and promotes only the remaining candidate', async () => {
+  const f = fixture();
+  const release = await capture(f.config, f.published, f.dependencies);
+  f.state.completedRolloutIsNull = true;
+  f.state.failMutationId = id(11);
+  await assert.rejects(promote(f.config, release, f.dependencies), /Expo API rejected/);
+  assert.deepEqual(f.state.updates.map((update) => update.rolloutPercentage), [null, 0]);
+
+  f.state.failMutationId = null;
+  f.state.mutations = [];
+  const retry = { ...f.config, runAttempt: 2 };
+  const recovered = await preflight(retry, f.dependencies);
+  assert.equal(recovered.resume, true);
+  await assert.rejects(capture(f.config, recovered.published, f.dependencies), /initially.*zero-percent/);
+  const resumed = await capture({ ...retry, resume: true }, recovered.published, f.dependencies);
+  await promote(retry, resumed, f.dependencies);
+  assert.deepEqual(f.state.mutations, [{ updateId: id(11), rolloutPercentage: 100 }]);
+  assert.deepEqual(f.state.updates.map((update) => update.rolloutPercentage), [null, null]);
+  assert.deepEqual(f.state.updates.map((update) => update.id), release.updates.map((update) => update.id));
+
+  f.state.mutations = [];
+  await promote(retry, resumed, f.dependencies);
+  assert.deepEqual(f.state.mutations, []);
+});
+
 test('an unexpected rollout percentage or changed createdAt cannot be promoted', async () => {
   const f = fixture();
   const release = await capture(f.config, f.published, f.dependencies);
   f.state.updates[0].rolloutPercentage = 50;
+  await assert.rejects(promote(f.config, release, f.dependencies), /rollout percentage/);
+  f.state.updates[0].rolloutPercentage = undefined;
   await assert.rejects(promote(f.config, release, f.dependencies), /rollout percentage/);
   f.state.updates[0].rolloutPercentage = 0;
   f.state.updates[0].createdAt = '2026-11-03T02:00:00.000Z';
@@ -357,6 +385,18 @@ test('promotion checks exact public IDs and refuses same-source replacement at t
     f.state.updates.map((update) => update.rolloutPercentage),
     [100, 100],
   );
+  await assert.rejects(verify(f.config, release, f.dependencies), /both public OTA IDs/);
+});
+
+test('a null completed rollout still requires both public endpoints to match the candidate', async () => {
+  const f = fixture();
+  const release = await capture(f.config, f.published, f.dependencies);
+  f.state.completedRolloutIsNull = true;
+  f.state.tamperManifest = (manifest, publicRequest) => {
+    if (publicRequest) manifest.id = id(99);
+  };
+  await assert.rejects(promote(f.config, release, f.dependencies), /both public OTA IDs/);
+  assert.deepEqual(f.state.updates.map((update) => update.rolloutPercentage), [null, null]);
   await assert.rejects(verify(f.config, release, f.dependencies), /both public OTA IDs/);
 });
 
