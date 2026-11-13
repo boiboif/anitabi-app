@@ -305,7 +305,7 @@ function assertIdentity(actual, expected, config, release) {
   requireValue(actual.branch?.id === release.branchId, 'OTA branch identity changed');
   requireValue(
     config.mode === 'coordinated'
-      ? actual.rolloutPercentage === 0 || actual.rolloutPercentage === 100
+      ? actual.rolloutPercentage === 0 || publicPercentage(actual.rolloutPercentage)
       : publicPercentage(actual.rolloutPercentage),
     'Unexpected OTA rollout percentage',
   );
@@ -436,7 +436,8 @@ async function promote(config, release, dependencies = {}) {
       // partial success and only promote the remaining fixed update ID.
       const data = await api(PROMOTE_MUTATION, { updateId: expected.id, rolloutPercentage: 100 });
       assertIdentity(data?.update?.setRolloutPercentage, expected, config, release);
-      requireValue(data.update.setRolloutPercentage.rolloutPercentage === 100, 'OTA promotion was not applied');
+      // EAS can represent a completed 100% rollout as null.
+      requireValue(publicPercentage(data.update.setRolloutPercentage.rolloutPercentage), 'OTA promotion was not applied');
     }
   }
   current = await verify(config, release, dependencies);
