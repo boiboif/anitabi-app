@@ -16,6 +16,7 @@ import { type GetThemeValueForKey, styled, View, XStack } from 'tamagui';
 const PHOTO_COUNT = 5;
 const PHOTO_ASPECT_RATIO = 80 / 60;
 const PHOTO_GAP = 4;
+const PHOTO_BORDER_WIDTH = 1.5;
 const EDGE_INSET = 6;
 const Photo = styled(Image, { width: '100%', height: '100%' });
 
@@ -33,7 +34,7 @@ function PhotoTile({ item, onSelect }: { item: ViewportImagePoint; onSelect: (it
       rounded="$3"
       overflow="hidden"
       bg="$color3"
-      borderWidth={1.5}
+      borderWidth={PHOTO_BORDER_WIDTH}
       borderColor={(bangumi.color || '$color8') as GetThemeValueForKey<'borderColor'>}
       pressStyle={{ opacity: 0.7 }}
       onPress={() => onSelect(item)}
@@ -94,7 +95,7 @@ export default function MapViewportPhotos({ bangumis, viewport, onSelect, onLayo
     >
       {items.map((item) => <PhotoTile key={pointKey(item)} item={item} onSelect={onSelect} />)}
       {Array.from({ length: PHOTO_COUNT - items.length }, (_, index) => (
-        <View key={`empty-${index}`} flex={1} aspectRatio={PHOTO_ASPECT_RATIO} pointerEvents="none" />
+        <View key={`empty-${index}`} flex={1} aspectRatio={PHOTO_ASPECT_RATIO} borderWidth={PHOTO_BORDER_WIDTH} borderColor="transparent" pointerEvents="none" />
       ))}
     </XStack>
   );

@@ -28,12 +28,15 @@ function findAll(root, predicate) {
 }
 
 function renderCard(place, scheme = 'light', options = {}) {
+  const copyHelper = compile('../../src/lib/copy-to-clipboard.ts', {
+    'react-native': { Clipboard: { setString: options.copy ?? (() => {}) } },
+    '@boiboif/react-native-toast': { Toast: { show: options.toast ?? (() => {}) } },
+  });
   const { default: Card } = compile('../../src/components/map/nearby-point-popup-card.tsx', {
     'react/jsx-runtime': jsxRuntime,
     'react-native': { Pressable: 'Pressable' },
     'react-i18next': { useTranslation: () => ({ t: (key) => key, i18n: { resolvedLanguage: 'zh-CN' } }) },
-    'expo-clipboard': { setStringAsync: options.copy ?? (async () => true) },
-    '@boiboif/react-native-toast': { Toast: { show: options.toast ?? (() => {}) } },
+    '@/lib/copy-to-clipboard': copyHelper,
     tamagui: { Text: 'Text', View: 'View', XStack: 'XStack', YStack: 'YStack',
       useTheme: () => ({ color12: { val: scheme === 'dark' ? '#EEEEEE' : '#111111' }, background: { val: scheme === 'dark' ? '#111111' : '#FFFFFF' } }) },
     '@/components/point/point-image': { __esModule: true, default: 'PointImage' },
@@ -107,7 +110,10 @@ test('unknown types use the card theme; an absent name uses coordinates without 
 function pressForText(tree, value) {
   const targets = findAll(tree, (node) => typeof node.props?.onPress === 'function' && text(node, value));
   assert.ok(targets.length, `No press target for ${value}`);
-  return targets.at(-1).props.onPress({ stopPropagation() {} });
+  let stopped = false;
+  const result = targets.at(-1).props.onPress({ stopPropagation() { stopped = true; } });
+  assert.equal(stopped, true, 'copy presses must not propagate to the map');
+  return result;
 }
 
 test('a missing region leaves the navigation row empty and does not replace a place name with coordinates', () => {
@@ -129,43 +135,41 @@ test('a recognized region remains independently selectable beside navigation', (
   assert.ok(text(tree, '139.000000, 35.000000'));
 });
 
-test('tapping the title, English name or fallback coordinates copies the complete displayed text', async () => {
+test('tapping the title, English name or fallback coordinates sends the complete displayed text', () => {
   const copied = [];
   const notices = [];
-  const options = { copy: async (value) => { copied.push(value); return true; }, toast: (value) => notices.push(value) };
+  const options = { copy: (value) => { copied.push(value); }, toast: (value) => notices.push(value) };
   const named = renderCard({ name: '地点', englishName: 'Place' }, 'light', options);
   const unnamed = renderCard(null, 'light', options);
   for (const [tree, value] of [[named, '地点'], [named, 'Place'], [unnamed, '139.000000, 35.000000']]) {
-    await pressForText(tree, value);
-    await new Promise((resolve) => setImmediate(resolve));
+    pressForText(tree, value);
   }
   assert.deepEqual(copied, ['地点', 'Place', '139.000000, 35.000000']);
   assert.deepEqual(notices, ['copiedToClipboard', 'copiedToClipboard', 'copiedToClipboard']);
 });
 
-test('the success toast only appears after the clipboard confirms the copy', async () => {
-  let finishCopy;
+test('the toast follows the synchronous clipboard call', () => {
   const notices = [];
+  const copied = [];
   const tree = renderCard(null, 'light', {
-    copy: () => new Promise((resolve) => { finishCopy = resolve; }),
+    copy: (value) => {
+      assert.deepEqual(notices, [], 'the call precedes the toast');
+      copied.push(value);
+    },
     toast: (value) => notices.push(value),
   });
-  const pending = pressForText(tree, '139.000000, 35.000000');
-  assert.deepEqual(notices, []);
-  finishCopy(true);
-  await pending;
-  await new Promise((resolve) => setImmediate(resolve));
+  pressForText(tree, '139.000000, 35.000000');
+  assert.deepEqual(copied, ['139.000000, 35.000000']);
+  // Clipboard.setString returns void, so this cannot confirm native write success.
   assert.deepEqual(notices, ['copiedToClipboard']);
 });
 
-test('a rejected or unsuccessful clipboard write never reports success', async () => {
-  for (const copy of [async () => false, async () => { throw new Error('clipboard unavailable'); }]) {
-    const notices = [];
-    const tree = renderCard({ name: '地点' }, 'light', { copy, toast: (value) => notices.push(value) });
-    await pressForText(tree, '地点');
-    await new Promise((resolve) => setImmediate(resolve));
-    assert.deepEqual(notices, []);
-  }
+test('a synchronous clipboard failure never reports success', () => {
+  const notices = [];
+  const copy = () => { throw new Error('clipboard unavailable'); };
+  const tree = renderCard({ name: '地点' }, 'light', { copy, toast: (value) => notices.push(value) });
+  pressForText(tree, '地点');
+  assert.deepEqual(notices, []);
 });
 
 function renderIcon(name, fallbackName, asset) {

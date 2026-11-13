@@ -1,14 +1,13 @@
 import PointImage from '@/components/point/point-image';
 import PointNavigationButton from '@/components/point/point-navigation-button';
 import NearbyPlaceIcon from '@/components/map/nearby-place-icon';
+import { copyToClipboard } from '@/lib/copy-to-clipboard';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import type { Bangumi, Point } from '@/services/types';
 import type { PreparedPlaceIcon } from '@/services/nearby-place-sprite';
 import { formatNearbyDistance, type NearbyPoint } from '@/utils/nearby-points';
 import { useMapPlaceColor, type MapPlaceFeature } from '@/hooks/use-map-place-color';
 import { getReadableMapTextColor } from '@/utils/map-text-contrast';
-import { Toast } from '@boiboif/react-native-toast';
-import * as Clipboard from 'expo-clipboard';
 import { useTranslation } from 'react-i18next';
 import { Pressable } from 'react-native';
 import { Text, useTheme, View, XStack, YStack } from 'tamagui';
@@ -41,14 +40,6 @@ export default function NearbyPointPopupCard({ geo, nearbyPoints, place, region,
   const sourceColor = place?.iconAsset?.color ?? mapColor;
   const placeColor = sourceColor ? getReadableMapTextColor(sourceColor, theme.background.val) : null;
   const title = place?.name || `${geo[1].toFixed(6)}, ${geo[0].toFixed(6)}`;
-
-  const copyText = async (text: string) => {
-    try {
-      if (await Clipboard.setStringAsync(text)) Toast.show(t('copiedToClipboard'));
-    } catch {
-      // Do not report success when the clipboard is unavailable.
-    }
-  };
 
   return (
     <YStack width={220} items="center">
@@ -98,7 +89,7 @@ export default function NearbyPointPopupCard({ geo, nearbyPoints, place, region,
                 accessibilityLabel={title}
                 onPress={(event) => {
                   event.stopPropagation();
-                  void copyText(title);
+                  copyToClipboard(title, t('copiedToClipboard'));
                 }}
               >
                 <Text
@@ -117,7 +108,7 @@ export default function NearbyPointPopupCard({ geo, nearbyPoints, place, region,
                   accessibilityLabel={place.englishName}
                   onPress={(event) => {
                     event.stopPropagation();
-                    void copyText(place.englishName!);
+                    copyToClipboard(place.englishName!, t('copiedToClipboard'));
                   }}
                 >
                   <Text

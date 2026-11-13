@@ -29,7 +29,7 @@ function findAll(node, predicate) {
 
 function renderCard(kind, copy, toast) {
   const helper = compile('../../src/lib/copy-to-clipboard.ts', {
-    'expo-clipboard': { setStringAsync: copy },
+    'react-native': { Clipboard: { setString: copy } },
     '@boiboif/react-native-toast': { Toast: { show: toast } },
   });
   const useTranslation = () => ({ t: (key, opts) => opts?.defaultValue ?? key, i18n: { resolvedLanguage: 'zh-CN' } });
@@ -82,26 +82,25 @@ function pressTitle(tree) {
 }
 
 for (const kind of ['popup', 'plan']) {
-  test(`${kind}: point title copies its complete localized value and reports confirmed success`, async () => {
+  test(`${kind}: point title sends its complete localized value and reports after the call returns`, () => {
     const copied = [];
     const notices = [];
-    let complete;
-    const tree = renderCard(kind, (value) => { copied.push(value); return new Promise((resolve) => { complete = resolve; }); }, (value) => notices.push(value));
+    const tree = renderCard(kind, (value) => {
+      assert.deepEqual(notices, [], 'the call precedes the toast');
+      copied.push(value);
+    }, (value) => notices.push(value));
     const node = pressTitle(tree);
     if (kind === 'plan') assert.equal(node.props.selectable, true, 'the plan title remains selectable');
     assert.deepEqual(copied, [title]);
-    assert.deepEqual(notices, [], 'success is not announced before the clipboard confirms it');
-    complete(true);
-    await new Promise((resolve) => setImmediate(resolve));
+    // Clipboard.setString returns void; this only checks synchronous call order,
+    // not whether the native clipboard actually persisted the value.
     assert.deepEqual(notices, ['copiedToClipboard']);
   });
 
-  test(`${kind}: clipboard failure does not show a success toast`, async () => {
-    for (const copy of [async () => false, async () => { throw new Error('clipboard unavailable'); }]) {
-      const notices = [];
-      pressTitle(renderCard(kind, copy, (value) => notices.push(value)));
-      await new Promise((resolve) => setImmediate(resolve));
-      assert.deepEqual(notices, []);
-    }
+  test(`${kind}: a synchronous clipboard failure does not show a success toast`, () => {
+    const notices = [];
+    const copy = () => { throw new Error('clipboard unavailable'); };
+    pressTitle(renderCard(kind, copy, (value) => notices.push(value)));
+    assert.deepEqual(notices, []);
   });
 }

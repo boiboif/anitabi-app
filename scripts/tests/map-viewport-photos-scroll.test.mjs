@@ -105,18 +105,23 @@ test('the closest five available points are displayed in order without a scroll 
   assert.equal(result.selections[0], items[4]);
 });
 
-test('fewer than five images retain five equal-width slots without exposing placeholder controls', () => {
-  const result = renderPhotos([makeItem('a'), makeItem('b')]);
-  assert.equal(result.photos.length, 2);
-  const placeholders = result.nodes.filter((node) => node.type === 'View' && node.props.pointerEvents === 'none');
-  assert.equal(placeholders.length, 3);
-  for (const slot of [...result.photos, ...placeholders]) {
-    assert.equal(slot.props.flex, result.photos[0].props.flex);
-    assert.equal(slot.props.aspectRatio, result.photos[0].props.aspectRatio);
-  }
-  for (const placeholder of placeholders) {
-    assert.equal(placeholder.props.accessibilityRole, undefined);
-    assert.equal(placeholder.props.onPress, undefined);
+test('one to five images retain the same five slot layout without exposing placeholders', () => {
+  for (let count = 1; count <= 5; count++) {
+    const result = renderPhotos(Array.from({ length: count }, (_, index) => makeItem(String(index))));
+    assert.equal(result.photos.length, count);
+    const placeholders = result.nodes.filter((node) => node.type === 'View' && node.props.pointerEvents === 'none');
+    assert.equal(placeholders.length, 5 - count);
+    for (const slot of [...result.photos, ...placeholders]) {
+      assert.equal(slot.props.flex, result.photos[0].props.flex);
+      assert.equal(slot.props.aspectRatio, result.photos[0].props.aspectRatio);
+      // Yoga includes borders in flex basis, so the empty slots must match too.
+      assert.equal(slot.props.borderWidth, result.photos[0].props.borderWidth);
+    }
+    for (const placeholder of placeholders) {
+      assert.equal(placeholder.props.borderColor, 'transparent');
+      assert.equal(placeholder.props.accessibilityRole, undefined);
+      assert.equal(placeholder.props.onPress, undefined);
+    }
   }
 });
 

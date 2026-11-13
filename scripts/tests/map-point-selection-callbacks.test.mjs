@@ -50,6 +50,27 @@ function findParent(tree, type) {
 // render/layout-commit phases. Native projection is controlled by each test;
 // this does not run the React Native renderer or prove device frame rates.
 function createHarness(mode = 'plan') {
+  let time = 0;
+  let nextTimerId = 0;
+  const timers = new Map();
+  const setTimeout = (callback, delay = 0) => {
+    const id = ++nextTimerId;
+    timers.set(id, { callback, at: time + delay });
+    return id;
+  };
+  const clearTimeout = (id) => timers.delete(id);
+  function advanceTime(ms) {
+    const until = time + ms;
+    while (true) {
+      const next = [...timers].filter(([, timer]) => timer.at <= until).sort((a, b) => a[1].at - b[1].at)[0];
+      if (!next) break;
+      const [id, timer] = next;
+      time = timer.at;
+      timers.delete(id);
+      timer.callback();
+    }
+    time = until;
+  }
   let slots = [];
   let draftSlots;
   let cursor = 0;
@@ -187,6 +208,9 @@ function createHarness(mode = 'plan') {
   vm.runInNewContext(compiled, {
     module,
     exports: module.exports,
+    Date: class extends Date { static now() { return time; } },
+    setTimeout,
+    clearTimeout,
     require: (name) => {
       assert.ok(Object.hasOwn(modules, name), `unexpected import: ${name}`);
       return modules[name];
@@ -252,6 +276,7 @@ function createHarness(mode = 'plan') {
   commit();
 
   return {
+    advanceTime,
     render,
     commit,
     discard() {
@@ -403,6 +428,194 @@ function createPhotoVisibilityHarness(screenPosition, visibilityObstacles = [], 
   h.update({ visibilityRequest: { id: 1, ...reference('a') }, visibilityObstacles, visibilityObstaclesReady });
   return { h, commands };
 }
+
+function createInterruptedVisibilityHarness() {
+  const h = createHarness('browse');
+  const commands = [];
+  h.setCamera({ setCamera: (command) => commands.push(plain(command)) });
+  h.setMapSize(400, 600);
+  h.setProject(async () => [40, 300]);
+  h.setBrowseState({ selectedMapPoint: reference('a') });
+  h.update({ visibilityRequest: { id: 1, ...reference('a'), interruptCamera: true } });
+  return { h, commands };
+}
+
+test('a photo selected during flight waits for its expected end and subsequent camera quiet', async () => {
+  const { h, commands } = createInterruptedVisibilityHarness();
+  h.update({ visibilityRequest: { id: 2, ...reference('a'), interruptCamera: true, cameraAnimationEndTime: 1500 } });
+  h.layoutPopup(220, 200);
+  h.advanceTime(1250);
+  h.changeCamera();
+  h.advanceTime(249);
+  await flush();
+  assert.equal(h.projected.length, 0, 'does not check before the expected end of the flight');
+  h.changeCamera();
+  h.advanceTime(249);
+  await flush();
+  assert.equal(h.projected.length, 0, 'the last camera event also needs a quiet period');
+  h.advanceTime(1);
+  await flush();
+  assert.equal(commands.length, 1);
+});
+
+test('a flight visibility request eventually checks without camera events or map idle', async () => {
+  const { h, commands } = createInterruptedVisibilityHarness();
+  h.update({ visibilityRequest: { id: 2, ...reference('a'), interruptCamera: true, cameraAnimationEndTime: 1500 } });
+  h.layoutPopup(220, 200);
+  h.advanceTime(1499);
+  await flush();
+  assert.equal(commands.length, 0);
+  h.advanceTime(1);
+  await flush();
+  assert.equal(commands.length, 1);
+});
+
+test('a larger layout arriving after the flight projection rechecks a provisional measurement', async () => {
+  const { h, commands } = createInterruptedVisibilityHarness();
+  h.setProject(async () => [200, 300]);
+  h.setPopupMeasure((callback) => callback(0, 0, 220, 150));
+  h.update({ visibilityRequest: { id: 2, ...reference('a'), interruptCamera: true, cameraAnimationEndTime: 1500 } });
+  h.changeCamera();
+  h.advanceTime(1500);
+  await flush();
+  assert.equal(commands.length, 0, 'the provisional card is fully visible');
+  h.layoutPopup(220, 350);
+  await flush();
+  assert.equal(commands.length, 1, 'a later larger card is checked and corrected');
+});
+
+for (const cancel of ['gesture', 'selection']) {
+  test(`a ${cancel} invalidates a provisional flight measurement and its late layout`, async () => {
+    const { h, commands } = createInterruptedVisibilityHarness();
+    h.setProject(async () => [200, 300]);
+    h.setPopupMeasure((callback) => callback(0, 0, 220, 150));
+    h.update({ visibilityRequest: { id: 2, ...reference('a'), interruptCamera: true, cameraAnimationEndTime: 1500 } });
+    h.changeCamera();
+    if (cancel === 'gesture') h.moveCamera();
+    else h.setBrowseState({ selectedMapPoint: reference('b') });
+    h.advanceTime(1500);
+    await flush();
+    h.layoutPopup(220, 350);
+    await flush();
+    assert.equal(commands.length, 0);
+  });
+}
+
+test('visibility corrections report their duration before sending the camera command', async () => {
+  const { h, commands } = createPhotoVisibilityHarness([40, 300]);
+  const events = [];
+  h.setCamera({ setCamera: () => events.push('camera') });
+  h.update({ onCameraAnimationStart: (duration) => events.push(duration) });
+  h.layoutPopup(220, 200);
+  await flush();
+  assert.deepEqual(events, [350, 'camera']);
+  assert.equal(commands.length, 0);
+});
+
+test('gesture camera events notify the owner while programmatic events do not', () => {
+  const { h } = createInterruptedVisibilityHarness();
+  let gestures = 0;
+  h.update({ onCameraGestureStart: () => { gestures++; } });
+  h.changeCamera();
+  assert.equal(gestures, 0);
+  h.moveCamera();
+  assert.equal(gestures, 1);
+});
+
+test('interrupted photo selection checks after camera events stop without map idle', async () => {
+  const { h, commands } = createInterruptedVisibilityHarness();
+  h.layoutPopup(220, 200);
+  h.advanceTime(200);
+  h.changeCamera();
+  h.advanceTime(200);
+  h.changeCamera();
+  h.advanceTime(249);
+  await flush();
+  assert.equal(h.projected.length, 0, 'each late camera event restarts the quiet period');
+  assert.equal(commands.length, 0);
+  h.advanceTime(1);
+  await flush();
+  assert.deepEqual(h.projected, [[139, 35]]);
+  assert.equal(commands.length, 1, 'an obscured card is corrected without onMapIdle');
+  assertCardFitsAfterCameraMove(commands[0], [40, 300], { width: 220, height: 200 }, []);
+});
+
+test('interrupted selection checks even if no further camera event or idle arrives', async () => {
+  const { h, commands } = createInterruptedVisibilityHarness();
+  h.layoutPopup(220, 200);
+  h.advanceTime(250);
+  await flush();
+  assert.equal(commands.length, 1);
+});
+
+test('a late popup layout is checked after the interrupted camera becomes quiet', async () => {
+  const { h, commands } = createInterruptedVisibilityHarness();
+  h.changeCamera();
+  h.advanceTime(250);
+  await flush();
+  assert.equal(commands.length, 0);
+  h.layoutPopup(220, 200);
+  await flush();
+  assert.equal(commands.length, 1);
+});
+
+test('a late camera event invalidates an in-flight interrupted visibility projection', async () => {
+  const { h, commands } = createInterruptedVisibilityHarness();
+  const first = deferred();
+  let reads = 0;
+  h.setProject(() => ++reads === 1 ? first.promise : Promise.resolve([40, 300]));
+  h.layoutPopup(220, 200);
+  h.advanceTime(250);
+  await flush();
+  assert.equal(reads, 1);
+  h.changeCamera();
+  first.resolve([40, 300]);
+  await flush();
+  assert.equal(commands.length, 0, 'the outdated projection cannot move the camera');
+  h.advanceTime(250);
+  await flush();
+  assert.equal(reads, 2);
+  assert.equal(commands.length, 1, 'the fresh projection can correct the card');
+});
+
+test('a user gesture cancels interrupted selection visibility retries', async () => {
+  const { h, commands } = createInterruptedVisibilityHarness();
+  h.layoutPopup(220, 200);
+  h.changeCamera();
+  h.advanceTime(100);
+  h.moveCamera();
+  h.advanceTime(500);
+  await flush();
+  assert.equal(h.projected.length, 0);
+  assert.equal(commands.length, 0);
+});
+
+test('a newer selection cancels the interrupted selection visibility retry', async () => {
+  const { h, commands } = createInterruptedVisibilityHarness();
+  h.layoutPopup(220, 200);
+  h.changeCamera();
+  h.advanceTime(100);
+  h.setBrowseState({ selectedMapPoint: reference('b') });
+  h.update({ visibilityRequest: null });
+  h.advanceTime(500);
+  await flush();
+  assert.equal(h.projected.length, 0);
+  assert.equal(commands.length, 0);
+});
+
+test('rapid interrupted photo selections only check the latest card', async () => {
+  const { h, commands } = createInterruptedVisibilityHarness();
+  h.layoutPopup(220, 200);
+  h.changeCamera();
+  h.advanceTime(100);
+  h.setBrowseState({ selectedMapPoint: reference('b') });
+  h.update({ visibilityRequest: { id: 2, ...reference('b'), interruptCamera: true } });
+  h.layoutPopup(220, 200);
+  h.advanceTime(250);
+  await flush();
+  assert.deepEqual(h.projected, [[140, 36]], 'only the latest selection is projected');
+  assert.equal(commands.length, 1);
+});
 
 test('a photo selection leaves the camera untouched when the entire measured card fits', async () => {
   // MarkerView uses a bottom-center anchor: this card occupies [90, 310] x [100, 300].

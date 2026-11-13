@@ -6287,11 +6287,6 @@ expo-camera@~58.0.14:
   dependencies:
     barcode-detector "^3.0.0"
 
-expo-clipboard@~58.0.4:
-  version "58.0.4"
-  resolved "https://registry.yarnpkg.com/expo-clipboard/-/expo-clipboard-58.0.4.tgz#0e26322b86bd66bac3bc2556c0d54a5259cff46a"
-  integrity sha512-b2eEJMwdWXLTrmrkg/otsmL2OV6s9D90tytSNBsY87UswrWf6JwxcB2OaWegyUWD9XnvtBVNeVK7lej0zZh+5A==
-
 expo-constants@~58.0.14:
   version "58.0.14"
   resolved "https://registry.yarnpkg.com/expo-constants/-/expo-constants-58.0.14.tgz#70dcacd1d540927a3a835e35e104f8f9efcbc36c"

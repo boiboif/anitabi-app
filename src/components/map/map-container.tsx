@@ -70,6 +70,8 @@ type Props = {
   onCameraChange?: (state: MapViewportState) => void;
   /** Reports the viewport immediately so point selection can use the current camera state. */
   onViewportChange?: (state: { zoom: number; bounds: { ne: [number, number]; sw: [number, number] } | null }) => void;
+  onCameraAnimationStart?: (duration: number) => void;
+  onCameraGestureStart?: () => void;
   onMapReady?: () => void;
   mode?: 'browse' | 'plan';
   selectedPoint?: MapPointReference | null;
@@ -83,7 +85,7 @@ type Props = {
   locationPuckActive?: boolean;
   locationPuckRevision?: number;
   scaleBarPosition?: ScaleBarPosition;
-  visibilityRequest?: (MapPointReference & { id: number }) | null;
+  visibilityRequest?: (MapPointReference & { id: number; interruptCamera?: boolean; cameraAnimationEndTime?: number }) | null;
   visibilityObstacles?: readonly MapScreenRect[];
   visibilityObstaclesReady?: boolean;
 };
@@ -174,6 +176,8 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     planPointImageDensityZoomThreshold,
     onCameraChange,
     onViewportChange,
+    onCameraAnimationStart,
+    onCameraGestureStart,
     onMapReady,
     mode = 'browse',
     selectedPoint,
@@ -240,9 +244,30 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     layout?: { width: number; height: number };
     attempts: number;
     waitingForIdle: boolean;
+    waitingForCameraEvents: boolean;
     checking: boolean;
     generation: number;
   } | null>(null);
+  const visibilityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recheckVisibilityRef = useRef<() => void>(() => {});
+  const cancelVisibilityTimer = useCallback(() => {
+    if (visibilityTimerRef.current !== null) clearTimeout(visibilityTimerRef.current);
+    visibilityTimerRef.current = null;
+  }, []);
+  const waitForCameraEvents = useCallback((pending: NonNullable<typeof pendingVisibilityRef.current>) => {
+    cancelVisibilityTimer();
+    pending.waitingForCameraEvents = true;
+    // Wait until the expected flight duration and coalesce late camera events
+    // before projecting. Neither delay is a native animation-completion signal.
+    const delay = Math.max(CAMERA_CHANGE_DEBOUNCE_MS, (pending.request.cameraAnimationEndTime ?? 0) - Date.now());
+    visibilityTimerRef.current = setTimeout(() => {
+      visibilityTimerRef.current = null;
+      if (pendingVisibilityRef.current !== pending) return;
+      pending.waitingForCameraEvents = false;
+      pending.cameraRevision = cameraRevisionRef.current;
+      recheckVisibilityRef.current();
+    }, delay);
+  }, [cancelVisibilityTimer]);
   // A measure can finish before the matching onLayout is delivered. Retain only
   // that request so a later, different layout can correct the provisional result.
   const measuredLayoutRequestRef = useRef<{
@@ -301,13 +326,15 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     measuredLayoutRequestRef.current = null;
     pendingVisibilityRef.current = !isPlanMode && visibilityRequest
       ? { request: visibilityRequest, cameraRevision: cameraRevisionRef.current, selectionRevision: browsePressRevisionRef.current,
-        obstacles: visibilityObstaclesRef.current, attempts: 0, waitingForIdle: false, checking: false, generation: 0 }
+        obstacles: visibilityObstaclesRef.current, attempts: 0, waitingForIdle: false, waitingForCameraEvents: false, checking: false, generation: 0 }
       : null;
+    if (pendingVisibilityRef.current?.request.interruptCamera) waitForCameraEvents(pendingVisibilityRef.current);
     return () => {
+      cancelVisibilityTimer();
       measuredLayoutRequestRef.current = null;
       pendingVisibilityRef.current = null;
     };
-  }, [isPlanMode, visibilityRequest]);
+  }, [cancelVisibilityTimer, isPlanMode, visibilityRequest, waitForCameraEvents]);
 
   const handlePopupLayout = useCallback((requestId: number | undefined, width: number, height: number) => {
     const pending = pendingVisibilityRef.current;
@@ -322,7 +349,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
       pending.generation++;
       pending.checking = false;
     }
-    if (pending.checking || pending.waitingForIdle || pending.cameraRevision !== cameraRevisionRef.current ||
+    if (pending.checking || pending.waitingForIdle || pending.waitingForCameraEvents || pending.cameraRevision !== cameraRevisionRef.current ||
       !visibilityObstaclesReadyRef.current || size.width <= 0 || size.height <= 0) return;
     const camera = cameraRef.current;
     if (!camera) return;
@@ -358,11 +385,19 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
       pending.waitingForIdle = true;
       // The projected correction preserves zoom, heading and pitch. Recheck after
       // the animation because perspective can change the screen-space offset.
-      camera?.setCamera({ centerCoordinate: center, animationMode: 'easeTo', animationDuration: 350 });
+      onCameraAnimationStart?.(350);
+      camera.setCamera({ centerCoordinate: center, animationMode: 'easeTo', animationDuration: 350 });
     }).catch(() => {
       if (pendingVisibilityRef.current === pending && pending.generation === generation) pendingVisibilityRef.current = null;
     });
-  }, [navigation, selectedPointData]);
+  }, [navigation, onCameraAnimationStart, selectedPointData]);
+
+  useLayoutEffect(() => {
+    recheckVisibilityRef.current = () => {
+      const pending = pendingVisibilityRef.current;
+      if (pending?.layout) handlePopupLayout(pending.request.id, pending.layout.width, pending.layout.height);
+    };
+  }, [handlePopupLayout]);
 
   useLayoutEffect(() => {
     if (!popupLayoutKey || !visibilityRequest || !selectedPointData ||
@@ -550,12 +585,14 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
       }
 
       return () => {
+        cancelVisibilityTimer();
+        pendingVisibilityRef.current = null;
         measuredLayoutRequestRef.current = null;
         cameraRevisionRef.current++;
         lastReportedCameraStateRef.current = null;
         cancelCameraChange();
       };
-    }, [cancelCameraChange, isPlanMode]),
+    }, [cancelCameraChange, cancelVisibilityTimer, isPlanMode]),
   );
 
   const handleMapReady = useCallback(() => {
@@ -569,10 +606,23 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
       // Invalidate corner reads as soon as another native camera event arrives.
       cameraRevisionRef.current++;
       if (state.gestures.isGestureActive) {
+        onCameraGestureStart?.();
+        cancelVisibilityTimer();
         measuredLayoutRequestRef.current = null;
         pendingVisibilityRef.current = null;
       } else if (!pendingVisibilityRef.current?.waitingForIdle) {
-        measuredLayoutRequestRef.current = null;
+        const pending = pendingVisibilityRef.current;
+        if (pending?.request.interruptCamera && pending.selectionRevision === browsePressRevisionRef.current) {
+          // Keep this request's provisional measurement so a different onLayout
+          // arriving after projection can still trigger a visibility recheck.
+          if (measuredLayoutRequestRef.current?.pending !== pending) measuredLayoutRequestRef.current = null;
+          pending.generation++;
+          pending.checking = false;
+          pending.cameraRevision = cameraRevisionRef.current;
+          waitForCameraEvents(pending);
+        } else {
+          measuredLayoutRequestRef.current = null;
+        }
       }
       // TabSlot restores the native map from display:none when this route regains
       // focus. Mapbox then emits one non-gesture event with the previous zoom but
@@ -598,7 +648,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
       onViewportChange?.(next);
       reportCameraChange(next);
     },
-    [navigation, onViewportChange, reportCameraChange, styleIndex, updateCameraState],
+    [cancelVisibilityTimer, navigation, onCameraGestureStart, onViewportChange, reportCameraChange, styleIndex, updateCameraState, waitForCameraEvents],
   );
 
   const getSelectedArtworkPress = useCallback(
