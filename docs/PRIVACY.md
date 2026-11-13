@@ -36,7 +36,7 @@
 
 ## 4. 官网访问统计
 
-项目官网使用 Umami Cloud 和 GoatCounter 统计网站访问。Umami 用于维护者在后台查看汇总数据；GoatCounter 用于展示累计和近 30 天的浏览量。官网会向这些服务发送页面路径、浏览器及设备等技术信息，统计的页面路径不包含查询参数和页面锚点。本项目不借此设置广告追踪。
+项目官网使用 Umami Cloud 和 GoatCounter 统计网站访问。Umami 用于维护者在后台查看汇总数据；GoatCounter 用于展示累计、近 30 天和今日的浏览量。官网会向这些服务发送页面路径、浏览器及设备等技术信息，统计的页面路径不包含查询参数和页面锚点。本项目不借此设置广告追踪。
 
 GoatCounter 的公开计数功能除全站汇总外，也可能让知道页面路径的人查询该页面的汇总浏览量；个别访客记录不公开。这些服务可能为处理请求而使用 IP 地址。有关各自的数据处理方式，请参阅 [Umami 隐私政策](https://umami.is/privacy)和 [GoatCounter 隐私政策](https://www.goatcounter.com/help/privacy)。
 
