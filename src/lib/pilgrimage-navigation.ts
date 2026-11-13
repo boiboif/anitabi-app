@@ -10,14 +10,15 @@ export function normalizeNavigationMap(value: unknown, platform: string): Naviga
   return getAvailableNavigationMaps(platform).find((map) => map === value) ?? 'googleMaps';
 }
 
-function isValidGeo(geo: readonly [number, number] | undefined): geo is readonly [number, number] {
+function isValidGeo(geo: readonly [number, number] | undefined, source: 'point' | 'map'): geo is readonly [number, number] {
   return (
     !!geo &&
     Number.isFinite(geo[0]) &&
     Number.isFinite(geo[1]) &&
     Math.abs(geo[0]) <= 90 &&
     Math.abs(geo[1]) <= 180 &&
-    (geo[0] !== 0 || geo[1] !== 0)
+    // Point data uses [0, 0] for missing coordinates; a map click is an actual location.
+    (source === 'map' || geo[0] !== 0 || geo[1] !== 0)
   );
 }
 
@@ -30,8 +31,9 @@ export function buildWalkingNavigationUrl(
   map: NavigationMap,
   geo: readonly [number, number],
   platform: string,
+  source: 'point' | 'map' = 'point',
 ): string {
-  if (!isValidGeo(geo)) throw new Error('Invalid navigation coordinates');
+  if (!isValidGeo(geo, source)) throw new Error('Invalid navigation coordinates');
   const [latitude, longitude] = geo;
   const destination = `${latitude},${longitude}`;
   switch (map) {

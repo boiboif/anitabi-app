@@ -1,6 +1,7 @@
 import type { TranslationKey } from './zh';
 
 const ja = {
+  copiedToClipboard: 'クリップボードにコピーしました',
   mapDataLoadPaused: 'スポットの読み込みを一時停止しました。再試行して続けてください。',
   mapDataReconnecting: '接続が一時的に切れました。再試行中…',
   pilgrimageRecordSaveFailed: '巡礼記録を保存できませんでした',
@@ -645,6 +646,7 @@ const ja = {
   pilgrimageSettings: '巡礼設定',
   pilgrimageSettingsDescription: '徒歩ルートに使用する地図アプリを選択',
   navigationMap: 'ナビアプリ',
+  navigationAction: 'ナビ',
   navigationMapDescription: 'スポットのナビボタンから、選択した地図アプリで徒歩ルートを開きます。',
   googleMaps: 'Google マップ',
   amap: '高徳地図',

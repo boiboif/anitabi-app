@@ -13,6 +13,7 @@ const LOCATION_TIMESTAMP_FUTURE_TOLERANCE_MS = 5_000;
 const PROVIDER_STALE_AFTER_MS = 60_000;
 const PROVIDER_RECOVERY_COOLDOWN_MS = 60_000;
 const PROVIDER_WATCHDOG_INTERVAL_MS = 15_000;
+const CAMERA_ANIMATION_DURATION_MS = 1000;
 
 type LocationSnapshot = {
   location: MapboxLocation;
@@ -56,11 +57,13 @@ function isFreshLocation(location: MapboxLocation, now = Date.now()) {
   return age >= -LOCATION_TIMESTAMP_FUTURE_TOLERANCE_MS && age <= FRESH_LOCATION_MAX_AGE_MS;
 }
 
-export function useMapLocate(cameraRef: RefObject<Camera | null>) {
+export function useMapLocate(cameraRef: RefObject<Camera | null>, onCameraAnimationStart?: (duration: number) => void) {
   const { t } = useTranslation();
   const latestSnapshotRef = useRef<LocationSnapshot | null>(null);
   const pendingLocationResolversRef = useRef(new Set<(location: MapboxLocation) => void>());
   const followNextLocationUntilRef = useRef(0);
+  const locateRevisionRef = useRef(0);
+  const cancelLocationWaitRef = useRef<(() => void) | null>(null);
   const isSubscribedRef = useRef(false);
   const isFocusedRef = useRef(false);
   const isMountedRef = useRef(true);
@@ -72,6 +75,15 @@ export function useMapLocate(cameraRef: RefObject<Camera | null>) {
   const [isLocationPuckActive, setIsLocationPuckActive] = useState(false);
   const [locationPuckRevision, setLocationPuckRevision] = useState(0);
 
+  const cancelPendingCameraMovement = useCallback(() => {
+    locateRevisionRef.current++;
+    followNextLocationUntilRef.current = 0;
+    cancelLocationWaitRef.current?.();
+    cancelLocationWaitRef.current = null;
+    locatingRef.current = false;
+    if (isMountedRef.current) setIsLocating(false);
+  }, []);
+
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
@@ -81,14 +93,17 @@ export function useMapLocate(cameraRef: RefObject<Camera | null>) {
 
   const moveToLocation = useCallback(
     (location: MapboxLocation) => {
-      cameraRef.current?.setCamera({
+      const camera = cameraRef.current;
+      if (!camera) return;
+      onCameraAnimationStart?.(CAMERA_ANIMATION_DURATION_MS);
+      camera.setCamera({
         centerCoordinate: [location.coords.longitude, location.coords.latitude],
         zoomLevel: 15,
         animationMode: 'flyTo',
-        animationDuration: 1000,
+        animationDuration: CAMERA_ANIMATION_DURATION_MS,
       });
     },
-    [cameraRef],
+    [cameraRef, onCameraAnimationStart],
   );
 
   const handleLocationUpdate = useCallback(
@@ -249,23 +264,21 @@ export function useMapLocate(cameraRef: RefObject<Camera | null>) {
         cancelled = true;
         stopWaitingForMapData?.();
         isFocusedRef.current = false;
-        followNextLocationUntilRef.current = 0;
+        cancelPendingCameraMovement();
         clearInterval(watchdogId);
         appStateSubscription.remove();
         stopLocationUpdates();
         pendingLocationResolversRef.current.clear();
-        locatingRef.current = false;
         if (isMountedRef.current) {
-          setIsLocating(false);
           setIsLocationPuckActive(false);
         }
       };
-    }, [cacheLastKnownLocation, recoverLocationProvider, startLocationUpdates, stopLocationUpdates]),
+    }, [cacheLastKnownLocation, cancelPendingCameraMovement, recoverLocationProvider, startLocationUpdates, stopLocationUpdates]),
   );
 
   const waitForFreshLocation = useCallback(() => {
-    let resolveNextLocation!: (location: MapboxLocation) => void;
-    const nextLocationPromise = new Promise<MapboxLocation>((resolve) => {
+    let resolveNextLocation!: (location: MapboxLocation | null) => void;
+    const nextLocationPromise = new Promise<MapboxLocation | null>((resolve) => {
       resolveNextLocation = resolve;
       pendingLocationResolversRef.current.add(resolve);
     });
@@ -280,18 +293,25 @@ export function useMapLocate(cameraRef: RefObject<Camera | null>) {
       promise: withTimeout(nextLocationPromise, CURRENT_LOCATION_TIMEOUT_MS),
       cancel: () => {
         pendingLocationResolversRef.current.delete(resolveNextLocation);
+        resolveNextLocation(null);
       },
     };
   }, []);
 
   const handleLocate = useCallback(async () => {
     if (locatingRef.current) return;
+    locatingRef.current = true;
+    const revision = ++locateRevisionRef.current;
+    followNextLocationUntilRef.current = 0;
+    const isCurrent = () => locateRevisionRef.current === revision;
 
     try {
       let { status } = await getForegroundPermissionsAsync();
+      if (!isCurrent()) return;
       if (status !== 'granted') {
         // Android permission requests can pause/resume the Activity even when already granted.
         ({ status } = await requestForegroundPermissionsAsync());
+        if (!isCurrent()) return;
       }
       hasLocationPermissionRef.current = status === 'granted';
       if (status !== 'granted') {
@@ -304,7 +324,9 @@ export function useMapLocate(cameraRef: RefObject<Camera | null>) {
         return;
       }
 
-      if (!(await hasServicesEnabledAsync())) {
+      const servicesEnabled = await hasServicesEnabledAsync();
+      if (!isCurrent()) return;
+      if (!servicesEnabled) {
         Alert.alert(
           t('locationServicesAreOff', { defaultValue: '定位服务未开启' }),
           t('turnOnLocationServicesAndTryAgain', { defaultValue: '请先开启手机定位服务后重试。' }),
@@ -330,6 +352,7 @@ export function useMapLocate(cameraRef: RefObject<Camera | null>) {
       }
 
       const cachedLocation = await locationManager.getLastKnownLocation();
+      if (!isCurrent()) return;
       if (isValidLocation(cachedLocation)) {
         handleLocationUpdate(cachedLocation);
         moveToLocation(cachedLocation);
@@ -341,37 +364,44 @@ export function useMapLocate(cameraRef: RefObject<Camera | null>) {
         return;
       }
 
-      locatingRef.current = true;
       if (isMountedRef.current) setIsLocating(true);
       recoverLocationProvider({ force: true });
 
       const pendingLocation = waitForFreshLocation();
+      cancelLocationWaitRef.current = pendingLocation.cancel;
       try {
-        moveToLocation(await pendingLocation.promise);
+        const location = await pendingLocation.promise;
+        if (location && isCurrent()) moveToLocation(location);
       } catch {
-        if (isFocusedRef.current) {
+        if (isCurrent() && isFocusedRef.current) {
           Toast.show(
             t('unableToGetYourLocationPleaseTryAgainLater', { defaultValue: '暂时无法获取当前位置，请稍后重试' }),
           );
         }
       } finally {
         pendingLocation.cancel();
+        if (cancelLocationWaitRef.current === pendingLocation.cancel) cancelLocationWaitRef.current = null;
       }
     } catch {
-      Alert.alert(
-        t('couldNotDetermineLocation', { defaultValue: '定位失败' }),
-        t('unableToGetYourLocationCheckThatLocationServicesAreAvailable', {
-          defaultValue: '无法获取当前位置，请检查位置服务是否可用。',
-        }),
-      );
+      if (isCurrent()) {
+        Alert.alert(
+          t('couldNotDetermineLocation', { defaultValue: '定位失败' }),
+          t('unableToGetYourLocationCheckThatLocationServicesAreAvailable', {
+            defaultValue: '无法获取当前位置，请检查位置服务是否可用。',
+          }),
+        );
+      }
     } finally {
-      locatingRef.current = false;
-      if (isMountedRef.current) setIsLocating(false);
+      if (isCurrent()) {
+        locatingRef.current = false;
+        if (isMountedRef.current) setIsLocating(false);
+      }
     }
   }, [handleLocationUpdate, moveToLocation, recoverLocationProvider, startLocationUpdates, t, waitForFreshLocation]);
 
   return {
     handleLocate,
+    cancelPendingCameraMovement,
     isLocating,
     isLocationPuckActive,
     locationPuckRevision,

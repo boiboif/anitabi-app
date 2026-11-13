@@ -5,6 +5,7 @@ import LoadingBadge from '@/components/map/loading-badge';
 import LocateButton from '@/components/map/locate-button';
 import MapContainer from '@/components/map/map-container';
 import MapTopBangumiIcons from '@/components/map/map-top-bangumi-icons';
+import MapViewportPhotos from '@/components/map/map-viewport-photos';
 import PointImageMarkerSwitch from '@/components/map/point-image-marker-switch';
 import SearchBox from '@/components/ui/search-box';
 import { useMapLocate } from '@/hooks/use-map-locate';
@@ -21,18 +22,20 @@ import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
 import { useMapBrowse } from '@/store/use-map-browse';
 import { useMapData } from '@/store/use-map-data';
 import type { MapViewportState } from '@/utils/map-viewport';
+import type { ViewportImagePoint } from '@/utils/map-viewport-points';
 import type { Camera } from '@rnmapbox/maps';
 import { Dices } from '@tamagui/lucide-icons-2';
 import { useIsFocused, useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Pressable, StyleSheet } from 'react-native';
+import { Alert, Pressable, StyleSheet, type LayoutRectangle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, View, YStack } from 'tamagui';
 
 type CameraState = MapViewportState;
 
 type RandomPointCandidate = { bangumiId: number; pointId: string };
+const PHOTO_FLY_DURATION_MS = 1000;
 
 function buildRandomPointCandidates(bangumis: Bangumi[]): RandomPointCandidate[] {
   return bangumis.flatMap((bangumi) =>
@@ -60,7 +63,17 @@ function RandomPointButton({ onPress }: { onPress: () => void }) {
 export default function HomeScreen() {
   const { t } = useTranslation();
   const cameraRef = useRef<Camera>(null);
-  const { handleLocate, isLocating, isLocationPuckActive, locationPuckRevision } = useMapLocate(cameraRef);
+  const cameraAnimationEndRef = useRef(0);
+  const cameraPitchTargetRef = useRef<number | null>(null);
+  const markCameraAnimationStart = useCallback((duration: number) => {
+    cameraAnimationEndRef.current = Date.now() + duration;
+    cameraPitchTargetRef.current = null;
+  }, []);
+  const clearCameraAnimation = useCallback(() => {
+    cameraAnimationEndRef.current = 0;
+    cameraPitchTargetRef.current = null;
+  }, []);
+  const { handleLocate, cancelPendingCameraMovement, isLocating, isLocationPuckActive, locationPuckRevision } = useMapLocate(cameraRef, markCameraAnimationStart);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const insets = useSafeAreaInsets();
   const data = useMapData((state) => state.data);
@@ -76,10 +89,26 @@ export default function HomeScreen() {
   });
   const [show3DBuildings, setShow3DBuildings] = useState(false);
   const [showPointImageMarkers, setShowPointImageMarkers] = useState(true);
+  const nextVisibilityRequestId = useRef(0);
+  const [visibilityRequest, setVisibilityRequest] = useState<{ id: number; bangumiId: number; pointId: string; interruptCamera?: boolean; cameraAnimationEndTime?: number } | null>(null);
+  const [searchContainerLayout, setSearchContainerLayout] = useState<LayoutRectangle | null>(null);
+  const [searchLayout, setSearchLayout] = useState<LayoutRectangle | null>(null);
+  const [photosLayout, setPhotosLayout] = useState<LayoutRectangle | null>();
+  const visibilityObstacles = useMemo(() => {
+    const obstacles: LayoutRectangle[] = [];
+    if (searchContainerLayout && searchLayout) obstacles.push({
+      ...searchLayout,
+      x: searchContainerLayout.x + searchLayout.x,
+      y: searchContainerLayout.y + searchLayout.y,
+    });
+    if (photosLayout) obstacles.push(photosLayout);
+    return obstacles;
+  }, [searchContainerLayout, searchLayout, photosLayout]);
   const setCameraRef = useCallback((camera: Camera | null) => {
     cameraRef.current = camera;
+    if (!camera) clearCameraAnimation();
     setIsCameraReady(camera !== null);
-  }, []);
+  }, [clearCameraAnimation]);
   const handleCameraChange = useCallback((nextCameraState: CameraState) => {
     setCameraState(nextCameraState);
   }, []);
@@ -90,6 +119,9 @@ export default function HomeScreen() {
   const focusPointFromMapControl = useMapBrowse((state) => state.focusPointFromMapControl);
   const completeMapCameraRequest = useMapBrowse((state) => state.completeMapCameraRequest);
   const clearMapBangumiFilter = useMapBangumiFilter((state) => state.clear);
+  useEffect(() => {
+    if (!isRouteFocused) clearCameraAnimation();
+  }, [clearCameraAnimation, isRouteFocused]);
   useEffect(() => {
     if (bangumis.length === 0) return;
     const buildWhenIdle = () => {
@@ -133,6 +165,7 @@ export default function HomeScreen() {
     if (request.kind === 'bangumi-overview') {
       const bounds = getBangumiOverviewBounds(bangumi.points);
       if (bounds) {
+        markCameraAnimationStart(500);
         if (bounds.ne[0] === bounds.sw[0] && bounds.ne[1] === bounds.sw[1]) {
           camera.setCamera({
             centerCoordinate: bounds.ne,
@@ -147,6 +180,7 @@ export default function HomeScreen() {
     } else {
       const point = bangumi.points.find((item) => item.id === request.pointId);
       if (point) {
+        markCameraAnimationStart(1500);
         camera.setCamera({
           centerCoordinate: [point.geo[1], point.geo[0]],
           zoomLevel: getPointFlyToZoom(point.density),
@@ -163,6 +197,7 @@ export default function HomeScreen() {
     isCameraReady,
     isPartial,
     isRouteFocused,
+    markCameraAnimationStart,
     mapCameraRequest,
     navigation,
   ]);
@@ -188,14 +223,41 @@ export default function HomeScreen() {
   }, [bangumis, clearMapBangumiFilter, focusPointFromMapControl, t]);
 
   const [styleIndex, setStyleIndex] = useThemedMapStyle();
+  const handleViewportPointSelect = ({ point, bangumi }: ViewportImagePoint) => {
+    cancelPendingCameraMovement();
+    const camera = cameraRef.current;
+    const isCameraAnimating = !!camera && Date.now() < cameraAnimationEndRef.current;
+    if (isCameraAnimating) {
+      const pitch = cameraPitchTargetRef.current;
+      markCameraAnimationStart(PHOTO_FLY_DURATION_MS);
+      cameraPitchTargetRef.current = pitch;
+      // Camera.flyTo omits the mode in this rnmapbox version; specify it so
+      // Android also starts a flight, and finish an interrupted 3D tilt.
+      camera.setCamera({
+        centerCoordinate: [point.geo[1], point.geo[0]],
+        zoomLevel: getPointFlyToZoom(point.density),
+        animationMode: 'flyTo',
+        animationDuration: PHOTO_FLY_DURATION_MS,
+        ...(pitch !== null ? { pitch } : {}),
+      });
+    }
+    useMapBrowse.getState().selectMapPoint({ bangumiId: bangumi.id, pointId: point.id });
+    setVisibilityRequest({ id: ++nextVisibilityRequestId.current, bangumiId: bangumi.id, pointId: point.id,
+      interruptCamera: isCameraAnimating, cameraAnimationEndTime: isCameraAnimating ? cameraAnimationEndRef.current : undefined });
+  };
   const handle3DBuildingsChange = useCallback((enabled: boolean) => {
+    setVisibilityRequest(null);
     setShow3DBuildings(enabled);
-    cameraRef.current?.setCamera({
+    const camera = cameraRef.current;
+    if (!camera) return;
+    markCameraAnimationStart(500);
+    cameraPitchTargetRef.current = enabled ? 45 : 0;
+    camera.setCamera({
       pitch: enabled ? 45 : 0,
       animationDuration: 500,
       animationMode: 'easeTo',
     });
-  }, []);
+  }, [markCameraAnimationStart]);
 
   return (
     <View style={styles.container}>
@@ -209,6 +271,11 @@ export default function HomeScreen() {
         locationPuckActive={isLocationPuckActive}
         locationPuckRevision={locationPuckRevision}
         onCameraChange={handleCameraChange}
+        onCameraAnimationStart={markCameraAnimationStart}
+        onCameraGestureStart={clearCameraAnimation}
+        visibilityRequest={visibilityRequest}
+        visibilityObstacles={visibilityObstacles}
+        visibilityObstaclesReady={!!searchContainerLayout && !!searchLayout && photosLayout !== undefined}
       />
 
       <View
@@ -219,8 +286,9 @@ export default function HomeScreen() {
         pt="$2"
         z={0}
         pointerEvents="box-none"
+        onLayout={({ nativeEvent: { layout } }) => setSearchContainerLayout(layout)}
       >
-        <View mx="$3">
+        <View mx="$3" onLayout={({ nativeEvent: { layout } }) => setSearchLayout(layout)}>
           <SearchBox
             onPress={() => {
               router.navigate('/search');
@@ -240,11 +308,13 @@ export default function HomeScreen() {
 
       {progress && <LoadingBadge progress={progress} insets={insets} onRetry={() => void initializeMapData()} />}
 
+      <MapViewportPhotos bangumis={bangumis} viewport={cameraState} onSelect={handleViewportPointSelect} onLayoutChange={setPhotosLayout} />
+
       {!selectedBangumi && (
         <>
           <YStack r="$2" p="$1.5" position="absolute" b="26%" z={20} gap="$3">
             <RandomPointButton onPress={handleRandomPoint} />
-            <LocateButton loading={isLocating} onPress={handleLocate} />
+            <LocateButton loading={isLocating} onPress={() => { setVisibilityRequest(null); void handleLocate(); }} />
           </YStack>
         </>
       )}

@@ -174,7 +174,7 @@ test('map preference hydrates synchronously and persists selection', () => {
   );
 });
 
-function navigationButton(platform, map, open = async () => {}) {
+function navigationButton(platform, map, open = async () => {}, props = { point: { id: 'point', geo: [35.7, 139.7] } }) {
   const opens = [];
   const alerts = [];
   const jsx = (type, props) => ({ type, props });
@@ -200,7 +200,7 @@ function navigationButton(platform, map, open = async () => {}) {
     tamagui: { useTheme: () => ({ primary: { val: 'purple' } }), View: 'View' },
     'react/jsx-runtime': { jsx, jsxs: jsx },
   });
-  return { tree: Button({ point: { id: 'point', geo: [35.7, 139.7] } }), opens, alerts };
+  return { tree: Button(props), opens, alerts };
 }
 
 test('navigation buttons directly open the selected app URL without location or permission dependencies', async () => {
@@ -220,6 +220,35 @@ test('navigation buttons directly open the selected app URL without location or 
       assert.equal(opens[0], buildWalkingNavigationUrl(map, [35.7, 139.7], platform));
       assert.equal(alerts.length, 0);
     }
+  }
+});
+
+test('a map coordinate opens the selected navigation app at the clicked location', async () => {
+  const clickedGeo = [24.090879, 116.805819];
+  const { tree, opens, alerts } = navigationButton('android', 'amap', undefined, { mapCoordinate: clickedGeo });
+  await tree.props.onPress({ stopPropagation() {} });
+  assert.equal(opens[0], buildWalkingNavigationUrl('amap', clickedGeo, 'android'));
+  assert.equal(alerts.length, 0);
+});
+
+test('the geographic origin from a map click navigates, but a point placeholder does not', async () => {
+  const mapButton = navigationButton('android', 'googleMaps', undefined, { mapCoordinate: [0, 0] });
+  await mapButton.tree.props.onPress({ stopPropagation() {} });
+  assert.equal(mapButton.opens[0], 'google.navigation:q=0,0&mode=w');
+  assert.equal(mapButton.alerts.length, 0);
+
+  const pointButton = navigationButton('android', 'googleMaps', undefined, { point: { geo: [0, 0] } });
+  await pointButton.tree.props.onPress({ stopPropagation() {} });
+  assert.equal(pointButton.opens.length, 0);
+  assert.equal(pointButton.alerts[0][0], 'couldNotOpenNavigation');
+});
+
+test('map coordinates still reject nonfinite and out-of-range latitude or longitude', async () => {
+  for (const mapCoordinate of [[NaN, 0], [0, Infinity], [91, 0], [0, 181]]) {
+    const button = navigationButton('android', 'googleMaps', undefined, { mapCoordinate });
+    await button.tree.props.onPress({ stopPropagation() {} });
+    assert.equal(button.opens.length, 0);
+    assert.equal(button.alerts[0][0], 'couldNotOpenNavigation');
   }
 });
 

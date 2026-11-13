@@ -23,6 +23,54 @@ const workB = 20;
 const pointA = { bangumiId: workA, pointId: 'point-a' };
 const pointB = { bangumiId: workB, pointId: 'point-b' };
 
+test('nearby selection requests a camera move while retaining the current work context', () => {
+  const store = createStore();
+  openAtLowDetent(store);
+  store.getState().openNearbyMapLocation([35, 139]);
+  const nearby = store.getState().nearbyMapLocation;
+  assert.ok(nearby);
+  store.getState().focusPointFromNearby(pointA);
+  const state = store.getState();
+  assert.equal(state.openedBangumiDetailsId, workA);
+  assert.equal(state.filteredBangumiId, workA);
+  assert.equal(state.nearbyMapLocation, null);
+  assert.equal(state.selectedMapPoint, pointA);
+  assert.equal(state.mapCameraRequest.kind, 'point');
+  assert.equal(state.mapCameraRequest.source, 'nearby');
+});
+
+test('old location lookups cannot replace a newer popup or reopen a dismissed one', () => {
+  const store = createStore();
+  store.getState().openNearbyMapLocation([35, 139]);
+  const firstId = store.getState().nearbyMapLocation.id;
+  store.getState().clearSelectedMapPoint();
+  store.getState().openNearbyMapLocation([36, 140]);
+  const current = store.getState();
+  store.getState().setNearbyMapPlace(firstId, { name: 'old' });
+  assert.equal(store.getState(), current);
+  const secondId = current.nearbyMapLocation.id;
+  store.getState().setNearbyMapPlace(secondId, { name: 'new' });
+  assert.equal(store.getState().nearbyMapLocation.place.name, 'new');
+  store.getState().clearSelectedMapPoint();
+  const closed = store.getState();
+  store.getState().setNearbyMapPlace(secondId, { name: 'late' });
+  assert.equal(store.getState(), closed);
+});
+
+test('opening details or selecting a point dismisses a nearby card', () => {
+  for (const operation of [
+    (state) => state.openBangumiDetails(workA),
+    (state) => state.selectMapPoint(pointA),
+    (state) => state.focusPointFromList(pointA),
+    (state) => state.focusPointFromMapControl(pointA),
+  ]) {
+    const store = createStore();
+    store.getState().openNearbyMapLocation([35, 139]);
+    operation(store.getState());
+    assert.equal(store.getState().nearbyMapLocation, null);
+  }
+});
+
 function openAtLowDetent(store, bangumiId = workA) {
   store.getState().openBangumiDetails(bangumiId);
   store.getState().activateBangumiDetailsMap(bangumiId);
@@ -38,7 +86,6 @@ test('opening details leaves the map unfiltered and does not request a camera mo
   assert.equal(state.filteredBangumiId, null);
   assert.equal(state.selectedMapPoint, null);
   assert.equal(state.mapCameraRequest, null);
-  assert.equal(state.lastPopupMapPoint, pointB);
 });
 
 test('the first low detent applies the filter and requests exactly one overview', () => {
@@ -101,7 +148,6 @@ test('a detail point press applies its filter and point request in one update', 
   assert.equal(focused.openedBangumiDetailsId, workA);
   assert.equal(focused.filteredBangumiId, workA);
   assert.equal(focused.selectedMapPoint, pointA);
-  assert.equal(focused.lastPopupMapPoint, pointA);
   assert.deepEqual(
     { ...focused.mapCameraRequest },
     { ...pointA, id: focused.mapCameraRequest.id, kind: 'point', source: 'bangumi-detail-sheet' },
@@ -142,7 +188,6 @@ test('closing details clears the filter and cancels its pending overview', () =>
   assert.equal(store.getState().openedBangumiDetailsId, null);
   assert.equal(store.getState().filteredBangumiId, null);
   assert.equal(store.getState().mapCameraRequest, null);
-  assert.equal(store.getState().lastPopupMapPoint, pointB);
 });
 
 test('closing details preserves its selected popup and pending point request', () => {
@@ -155,7 +200,6 @@ test('closing details preserves its selected popup and pending point request', (
   assert.equal(store.getState().openedBangumiDetailsId, null);
   assert.equal(store.getState().filteredBangumiId, null);
   assert.equal(store.getState().selectedMapPoint, pointA);
-  assert.equal(store.getState().lastPopupMapPoint, pointA);
   assert.equal(store.getState().mapCameraRequest, pointRequest);
 });
 
@@ -201,7 +245,6 @@ for (const [action, source] of [
     assert.equal(state.openedBangumiDetailsId, null);
     assert.equal(state.filteredBangumiId, null);
     assert.equal(state.selectedMapPoint, pointB);
-    assert.equal(state.lastPopupMapPoint, pointB);
     assert.deepEqual(
       { ...state.mapCameraRequest },
       { ...pointB, id: state.mapCameraRequest.id, kind: 'point', source },

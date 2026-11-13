@@ -83,6 +83,7 @@ function harness() {
     '@/store/use-map-browse': { useMapBrowse: (select) => select({ openedBangumiDetailsId: null }) },
     '@/store/use-map-data': { useMapData: (select) => select({ data: mapData, isPartial: false }) },
     '@/lib/localized-data': { getPointTitle: (point) => point.cn, getBangumiTitle: (work) => work.title },
+    '@/lib/copy-to-clipboard': { copyToClipboard: async () => {} },
     '@/lib/formatDuration': { formatDuration: String },
     '@/components/point/point-image': host('PointImage'),
     '@/components/point/point-card-actions': host('PointCardActions'),

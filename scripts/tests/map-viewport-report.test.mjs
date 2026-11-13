@@ -54,6 +54,8 @@ function createHarness() {
     '@/i18n': { resolveLanguageTag: () => 'zh-CN' },
     '@/lib/map-styles': { MAP_STYLES: [{ url: 'fixture', key: 'streets' }] },
     '@/store/use-map-browse': { useMapBrowse: (selector) => selector({ filteredBangumiId: null }) },
+    '@/store/use-map-bangumi-filter': { useMapBangumiFilter: (selector) => selector({ selectedBangumiIds: [] }) },
+    tamagui: { YStack: 'YStack', useTheme: () => ({ primary: { val: '#000' } }) },
     '@/components/map/map-marker-selection': { MapMarkerSelectionContext: { Provider: 'Provider' } },
     '@rnmapbox/maps': { MapView: 'MapView', Camera: 'Camera' },
   };
@@ -149,6 +151,7 @@ test('moving the camera center still reports a viewport when enclosing bounds re
   app.move(45, 0, [139.1, 35]);
   await app.flush();
   assert.equal(app.reports.length, 2);
+  assert.deepEqual([...app.reports[1].center], [139.1, 35], 'reports the native center for viewport photo ordering');
 });
 
 test('leaving the map discards native reads still in flight', async () => {

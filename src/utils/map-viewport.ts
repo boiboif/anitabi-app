@@ -2,6 +2,8 @@ export type MapCoordinate = [longitude: number, latitude: number];
 export type MapViewportFootprint = MapCoordinate[];
 export type MapViewportState = {
   zoom: number;
+  /** The native camera center, not the midpoint of a tilted viewport's bounds. */
+  center?: MapCoordinate;
   bounds: { ne: MapCoordinate; sw: MapCoordinate } | null;
   footprint?: MapViewportFootprint;
 };

@@ -5,6 +5,7 @@ import PointImage from '@/components/point/point-image';
 import PointSequenceBadge from '@/components/point/point-sequence-badge';
 import SwipeableCardCarousel, { type SwipeableCardCarouselHandle } from '@/components/ui/swipeable-card-carousel';
 import { formatDuration } from '@/lib/formatDuration';
+import { copyToClipboard } from '@/lib/copy-to-clipboard';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { CheckCircle2, ChevronLeft, ChevronRight, Flag } from '@tamagui/lucide-icons-2';
 import { memo, useCallback, useRef } from 'react';
@@ -64,7 +65,19 @@ const PlanMapPointCardPage = memo(function PlanMapPointCardPage({
           <Text fontSize="$caption" color="$color10" style={{ fontVariant: ['tabular-nums'] }}>
             {planIndex + 1} / {total}
           </Text>
-          <Text selectable fontSize="$body" lineHeight={20} fontWeight="700" color="$color12" numberOfLines={1}>
+          <Text
+            selectable
+            fontSize="$body"
+            lineHeight={20}
+            fontWeight="700"
+            color="$color12"
+            numberOfLines={1}
+            accessibilityRole="button"
+            onPress={(event) => {
+              event.stopPropagation();
+              void copyToClipboard(pointTitle, t('copiedToClipboard'));
+            }}
+          >
             {pointTitle}
           </Text>
         </YStack>

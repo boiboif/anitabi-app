@@ -2,6 +2,7 @@ import FavoritePointButton from '@/components/point/favorite-point-button';
 import PointCardActions from '@/components/point/point-card-actions';
 import PointImage from '@/components/point/point-image';
 import { formatDuration } from '@/lib/formatDuration';
+import { copyToClipboard } from '@/lib/copy-to-clipboard';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
@@ -89,7 +90,18 @@ export default function PopupCard({ point, bangumi, bangumiTitlePressEnabled = t
 
       {/* 文字内容 */}
       <View px="$2" py="$1.5">
-        <Text fontWeight="600" fontSize="$footnote" color="$color12" numberOfLines={1} mt="$1">
+        <Text
+          fontWeight="600"
+          fontSize="$footnote"
+          color="$color12"
+          numberOfLines={1}
+          mt="$1"
+          accessibilityRole="button"
+          onPress={(event) => {
+            event.stopPropagation();
+            void copyToClipboard(pointTitle, t('copiedToClipboard'));
+          }}
+        >
           {pointTitle}
         </Text>
         {point.mark ? (
