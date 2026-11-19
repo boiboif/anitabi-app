@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { GestureDetector, useCompetingGestures, usePanGesture, useTapGesture } from 'react-native-gesture-handler';
-import { Slider, View } from 'tamagui';
+import { View } from 'tamagui';
+import { Slider } from 'tamagui/slider';
 
 type Props = {
   min: number;
@@ -68,7 +69,7 @@ export function ScrollAwareSlider({ min, max, step, value, disabled, accessibili
   return (
     <GestureDetector gesture={gesture}>
       <View
-        my="$2.5"
+        my="2-5"
         minH={36}
         justify="center"
         accessible
@@ -87,11 +88,21 @@ export function ScrollAwareSlider({ min, max, step, value, disabled, accessibili
         }}
       >
         <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-          <Slider size="$2" min={min} max={max} step={step} value={[value]} disabled={disabled}>
-            <Slider.Track height={6} bg="$color5">
-              <Slider.TrackActive bg="$primary" />
+          <Slider size="xs" h={5} min={min} max={max} step={step} value={[value]} disabled={disabled}>
+            <Slider.Track h={6} bg="color-5">
+              <Slider.TrackActive bg="primary" />
             </Slider.Track>
-            <Slider.Thumb circular size={16} index={0} borderWidth={0} bg="$primary" />
+            <Slider.Thumb
+              circular
+              size="xs"
+              w={16}
+              h={16}
+              minWidth={16}
+              minHeight={16}
+              borderWidth={0}
+              bg="primary"
+              index={0}
+            />
           </Slider>
         </View>
       </View>

@@ -1,7 +1,7 @@
 import { getPilgrimagePhotoUri } from '@/lib/pilgrimage-record-files';
 import { getPilgrimageDayLatestTime, type PilgrimagePoint } from '@/lib/pilgrimage-records';
 import { buildImageUrl } from '@/services/handlers';
-import { CalendarDays, ChevronRight } from '@tamagui/lucide-icons-2';
+import { CalendarDays, ChevronRight } from '@/components/icons';
 import dayjs from 'dayjs';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
@@ -28,10 +28,10 @@ export function RecordPointCard({ point, onPress }: Props) {
       : undefined;
 
   return (
-    <View bg="$background" rounded="$4" overflow="hidden">
+    <View bg="background" rounded={9} overflow="hidden">
       <Pressable accessibilityRole="button" accessibilityLabel={point.snapshot.pointName} onPress={onPress}>
-        <XStack gap="$2" minH={96}>
-          <View width={120} shrink={0} bg="$color4" rounded="$4" justify="center" items="center" overflow="hidden">
+        <XStack gap="7px" minH={96}>
+          <View w={120} shrink={0} bg="color-4" rounded={9} justify="center" items="center" overflow="hidden">
             {coverUri ? (
               <Image
                 source={{ uri: coverUri }}
@@ -41,29 +41,29 @@ export function RecordPointCard({ point, onPress }: Props) {
                 accessible={false}
               />
             ) : (
-              <CalendarDays size={26} color="$color10" />
+              <CalendarDays size={26} color="color-10" />
             )}
           </View>
-          <YStack flex={1} minW={0} gap="$1" py="$1.5" justify="space-between">
-            <YStack gap="$0.5" minW={0}>
-              <Text fontSize="$body" color="$color12" fontWeight="600" numberOfLines={2}>
+          <YStack flex={1} minW={0} gap="0-5" py="1" justify="space-between">
+            <YStack gap="px" minW={0}>
+              <Text fontSize="body" color="color-12" fontWeight="600" numberOfLines={2}>
                 {point.snapshot.pointName}
               </Text>
-              <Text fontSize="$caption" color="$color11" numberOfLines={1}>
+              <Text fontSize="caption" color="color-11" numberOfLines={1}>
                 {point.snapshot.bangumiName}
               </Text>
             </YStack>
-            <YStack gap="$1">
-              <Text fontSize="$caption" lineHeight={13} color="$color10">
+            <YStack gap="0-5">
+              <Text fontSize="caption" lineHeight="13px" color="color-10">
                 {t('pilgrimageRecordsCounts', { days: point.days.length, photos: photos.length })}
               </Text>
-              <Text fontSize={9} lineHeight={12} color="$color11" numberOfLines={1}>
+              <Text fontSize={9} lineHeight="12px" color="color-11" numberOfLines={1}>
                 {t('pilgrimageRecordsLastVisit', { date: latestVisit })}
               </Text>
             </YStack>
           </YStack>
-          <View self="center" shrink={0} pr="$2">
-            <ChevronRight size={16} color="$color10" />
+          <View self="center" shrink={0} pr="7px">
+            <ChevronRight size={16} color="color-10" />
           </View>
         </XStack>
       </Pressable>

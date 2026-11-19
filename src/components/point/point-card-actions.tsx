@@ -26,7 +26,7 @@ export default function PointCardActions({
   if (!showAddToPlan && !showCamera && !showNavigation) return null;
 
   return (
-    <XStack justify="flex-end" items="center" gap="$0.5">
+    <XStack justify="flex-end" items="center" gap="px">
       {showAddToPlan ? <AddToPlanButton bare point={point} bangumi={bangumi} size={size} /> : null}
       {showCamera ? (
         <ComparisonCameraButton

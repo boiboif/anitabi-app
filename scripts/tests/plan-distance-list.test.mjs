@@ -224,7 +224,7 @@ function createHarness() {
   };
   const theme = {
     primary: { val: '#123' },
-    color8: { val: '#456' },
+    'color-8': { val: '#456' },
     background: { val: '#fff' },
     pageBackground: { val: '#fff' },
   };
@@ -235,7 +235,7 @@ function createHarness() {
   };
   const i18n = { useTranslation: () => ({ t: (key) => key, i18n: { resolvedLanguage: 'zh' } }) };
   const tamagui = { Text: 'Text', View: 'View', XStack: 'XStack', YStack: 'YStack', useTheme: () => theme };
-  theme.color2 = { val: '#eee' };
+  theme['color-2'] = { val: '#eee' };
   const SettingsSheet = loadSource('../../src/components/plan/plan-list-settings-sheet.tsx', {
     react: { forwardRef: (render) => render },
     'react/jsx-runtime': jsx,
@@ -258,7 +258,7 @@ function createHarness() {
       useRouter: () => router,
     },
     '@boiboif/react-native-toast': { Toast: { show: (message) => calls.toasts.push(message) } },
-    '@tamagui/lucide-icons-2': { Square: 'Square', SquareCheckBig: 'SquareCheckBig' },
+    '@/components/icons': { Square: 'Square', SquareCheckBig: 'SquareCheckBig' },
     '@/components/ui/action-sheet': { ActionSheet: 'ActionSheet' },
     '@/components/point/point-list-card': {
       __esModule: true,

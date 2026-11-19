@@ -220,7 +220,7 @@ function createHarness() {
     observe('Calendar', { ...props, mount: mount.current });
     return null;
   }
-  const theme = Object.fromEntries(['primary', 'color2', 'pageBackground'].map((key) => [key, { val: '#fff' }]));
+  const theme = Object.fromEntries(['primary', 'color-2', 'pageBackground'].map((key) => [key, { val: '#fff' }]));
   const navigation = {
     addListener: () => () => {},
     dispatch() {
@@ -265,7 +265,7 @@ function createHarness() {
     'react-native-gesture-handler': { GestureHandlerRootView: ui('GestureRoot'), ScrollView: ui('ScrollView') },
     '@lodev09/react-native-true-sheet': { TrueSheet, TrueSheetPeek },
     '@shopify/flash-list': { FlashList: nativeList('FlashList') },
-    '@tamagui/lucide-icons-2': Object.fromEntries(
+    '@/components/icons': Object.fromEntries(
       ['Check', 'ChevronDown', 'Square', 'SquareCheckBig', 'X', 'CalendarDays'].map((key) => [key, ui(key)]),
     ),
     tamagui: { Text: ui('Text'), XStack: ui('XStack'), YStack: ui('YStack'), View: ui('View'), useTheme: () => theme },

@@ -42,10 +42,10 @@ export default function NearbyPointPopupCard({ geo, nearbyPoints, place, region,
   const title = place?.name || `${geo[1].toFixed(6)}, ${geo[0].toFixed(6)}`;
 
   return (
-    <YStack width={220} items="center">
-      <YStack bg="$background" rounded="$3" boxShadow="0 2px 8px rgba(0,0,0,0.4)" width="100%">
+    <YStack w={220} items="center">
+      <YStack bg="background" rounded={7} boxShadow="0 2px 8px rgba(0,0,0,0.4)" w="100%">
         {nearbyPoints.length > 0 ? (
-          <XStack overflow="hidden" rounded="$2">
+          <XStack overflow="hidden" rounded={5}>
             {nearbyPoints.map(({ point, bangumi, distanceMeters }) => {
               const pointTitle = getPointTitle(point, i18n.resolvedLanguage) || t('unnamedLocation');
               const bangumiTitle = getBangumiTitle(bangumi, i18n.resolvedLanguage) || t('unknown');
@@ -67,11 +67,11 @@ export default function NearbyPointPopupCard({ geo, nearbyPoints, place, region,
                     title={pointTitle}
                     thumbnailSize="h160"
                     previewEnabled={false}
-                    height={64}
-                    width="100%"
+                    h={64}
+                    w="100%"
                   >
-                    <View position="absolute" l={0} b={0} bg="rgba(0,0,0,0.65)" px="$1" py="$0.5">
-                      <Text fontSize="$caption" fontWeight="700" color="white">
+                    <View position="absolute" l={0} b={0} bg="rgba(0,0,0,0.65)" px="0-5" py="px">
+                      <Text fontSize="caption" fontWeight="700" color="white">
                         {distance}
                       </Text>
                     </View>
@@ -81,8 +81,8 @@ export default function NearbyPointPopupCard({ geo, nearbyPoints, place, region,
             })}
           </XStack>
         ) : null}
-        <YStack px="$2" py="$1.5" gap="$1">
-          <XStack items="center" gap="$2" minH={22}>
+        <YStack px="7px" py="1" gap="0-5">
+          <XStack items="center" gap="7px" minH={22}>
             <YStack flex={1} minW={0}>
               <Pressable
                 accessibilityRole="button"
@@ -94,8 +94,8 @@ export default function NearbyPointPopupCard({ geo, nearbyPoints, place, region,
               >
                 <Text
                   fontWeight="600"
-                  fontSize="$footnote"
-                  color="$color12"
+                  fontSize="footnote"
+                  color="color-12"
                   style={placeColor ? { color: placeColor } : undefined}
                   numberOfLines={1}
                 >
@@ -112,8 +112,8 @@ export default function NearbyPointPopupCard({ geo, nearbyPoints, place, region,
                   }}
                 >
                   <Text
-                    fontSize="$caption"
-                    color="$color10"
+                    fontSize="caption"
+                    color="color-10"
                     style={placeColor ? { color: placeColor } : undefined}
                     numberOfLines={1}
                   >
@@ -123,18 +123,18 @@ export default function NearbyPointPopupCard({ geo, nearbyPoints, place, region,
               ) : null}
             </YStack>
             {place?.icon || place?.fallbackIcon ? (
-              <View width={22} height={22} items="center" justify="center" pointerEvents="none">
+              <View w={22} h={22} items="center" justify="center" pointerEvents="none">
                 <NearbyPlaceIcon
                   name={place.icon}
                   fallbackName={place.fallbackIcon}
                   asset={place.iconAsset}
-                  color={placeColor || theme.color12.val}
+                  color={placeColor || theme['color-12'].val}
                 />
               </View>
             ) : null}
           </XStack>
-          <XStack items="center" justify="space-between" gap="$1">
-            <Text flex={1} minW={0} fontWeight="600" fontSize="$caption" color="$color12" numberOfLines={2} selectable>
+          <XStack items="center" justify="space-between" gap="0-5">
+            <Text flex={1} minW={0} fontWeight="600" fontSize="caption" color="color-12" numberOfLines={2} select="text">
               {region}
             </Text>
             <PointNavigationButton mapCoordinate={geo} compact showLabel />
@@ -143,14 +143,14 @@ export default function NearbyPointPopupCard({ geo, nearbyPoints, place, region,
       </YStack>
       {/* The tip is included in the marker bounds, so anchor y=1 points at the tap. */}
       <View
-        width={0}
-        height={0}
+        w={0}
+        h={0}
         borderLeftWidth={7}
         borderRightWidth={7}
         borderTopWidth={7}
         borderLeftColor="transparent"
         borderRightColor="transparent"
-        borderTopColor="$background"
+        borderTopColor="background"
         pointerEvents="none"
       />
     </YStack>

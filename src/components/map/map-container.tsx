@@ -910,7 +910,7 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
         />
         <Images>
           <MapboxImage name={LOCATION_PUCK_BEARING_IMAGE}>
-            <YStack width={44} height={44} items="center" collapsable={false}>
+            <YStack w={44} h={44} items="center" collapsable={false}>
               <Svg width={44} height={44} viewBox="0 0 44 44">
                 <Path
                   d="M22 3 L30.97 15.63 L13.03 15.63 Z"

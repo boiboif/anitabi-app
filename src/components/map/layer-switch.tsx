@@ -1,6 +1,6 @@
 import { MAP_CONTROL_SIZE } from '@/lib/constants';
 import { MAP_STYLES } from '@/lib/map-styles';
-import { Layers } from '@tamagui/lucide-icons-2';
+import { Layers } from '@/components/icons';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet } from 'react-native';
 import { Text, useTheme, YStack } from 'tamagui';
@@ -18,14 +18,14 @@ export default function LayerSwitch({ styleIndex, onChange }: Props) {
       style={({ pressed }) => [styles.button, { backgroundColor: theme.background.val, opacity: pressed ? 0.7 : 1 }]}
       onPress={() => onChange((styleIndex + 1) % MAP_STYLES.length)}
     >
-      <YStack width="100%" items="center" justify="center" gap={0} pointerEvents="none">
-        <Layers size={18} color="$color11" />
+      <YStack w="100%" items="center" justify="center" gap={0} pointerEvents="none">
+        <Layers size={18} color="color-11" />
         <Text
           maxW="100%"
           fontSize={9}
-          lineHeight={11}
+          lineHeight="11px"
           fontWeight="600"
-          color="$color11"
+          color="color-11"
           text="center"
           numberOfLines={1}
           adjustsFontSizeToFit

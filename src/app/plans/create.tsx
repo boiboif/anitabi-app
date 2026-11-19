@@ -34,8 +34,8 @@ export default function CreatePlanScreen() {
           contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={{ paddingHorizontal: PageHorizontalInset, paddingVertical: 20, gap: 18 }}
         >
-          <YStack gap="$2">
-            <Text fontSize="$body" fontWeight="600" color="$color12">
+          <YStack gap="7px">
+            <Text fontSize="body" fontWeight="600" color="color-12">
               {t('planName', { defaultValue: '计划名称' })}
             </Text>
             <ThemeInput
@@ -46,8 +46,8 @@ export default function CreatePlanScreen() {
               maxLength={60}
             />
           </YStack>
-          <YStack gap="$2">
-            <Text fontSize="$body" fontWeight="600" color="$color12">
+          <YStack gap="7px">
+            <Text fontSize="body" fontWeight="600" color="color-12">
               {t('notesOptional', { defaultValue: '备注（可选）' })}
             </Text>
             <ThemeInput
@@ -59,9 +59,9 @@ export default function CreatePlanScreen() {
               textAlignVertical="top"
             />
           </YStack>
-          <YStack gap="$2">
+          <YStack gap="7px">
             <Button
-              bg="$primary"
+              bg="primary"
               color="white"
               disabled={!title.trim()}
               opacity={!title.trim() ? 0.5 : 1}
@@ -69,7 +69,7 @@ export default function CreatePlanScreen() {
             >
               {t('createPlan', { defaultValue: '创建计划' })}
             </Button>
-            <Button bg="$color3" color="$color11" onPress={() => router.back()}>
+            <Button bg="color-3" color="color-11" onPress={() => router.back()}>
               {t('cancel', { defaultValue: '取消' })}
             </Button>
           </YStack>

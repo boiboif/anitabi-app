@@ -32,7 +32,7 @@ import {
   Square,
   SquareCheckBig,
   Trash2,
-} from '@tamagui/lucide-icons-2';
+} from '@/components/icons';
 import { Stack, useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
 import {
   createContext,
@@ -81,15 +81,15 @@ function ReorderHandle() {
   const { t } = useTranslation();
   return (
     <View
-      width={44}
-      height="100%"
+      w={44}
+      h="100%"
       items="center"
       justify="center"
       accessibilityRole="button"
       accessibilityLabel={t('dragToReorder', { defaultValue: '拖动调整顺序' })}
       accessibilityHint={t('pressAndHoldThenDragUpOrDown', { defaultValue: '长按后上下拖动' })}
     >
-      <GripVertical size={18} color="$color10" />
+      <GripVertical size={18} color="color-10" />
     </View>
   );
 }
@@ -122,8 +122,8 @@ function SelectPointButton({
       }}
       style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
     >
-      <View width={44} height="100%" items="center" justify="center">
-        {selected ? <SquareCheckBig size={20} color="$primary" /> : <Square size={20} color="$color11" />}
+      <View w={44} h="100%" items="center" justify="center">
+        {selected ? <SquareCheckBig size={20} color="primary" /> : <Square size={20} color="color-11" />}
       </View>
     </Pressable>
   );
@@ -193,10 +193,10 @@ function DraggablePointRow({
               }}
               style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
             >
-              <View width={30} height={30} rounded="$9" items="center" justify="center">
+              <View w={30} h={30} rounded={26} items="center" justify="center">
                 <Check
                   size={20}
-                  color={item.completed ? theme.primary.val : theme.color8.val}
+                  color={item.completed ? theme.primary.val : theme['color-8'].val}
                   strokeWidth={item.completed ? 3.5 : 3}
                 />
               </View>
@@ -420,7 +420,7 @@ export default function PlanDetailScreen() {
             disabled
             height={DRAG_PREVIEW_CARD_HEIGHT}
             imageWidth={72}
-            boxShadow="0 2px 4px $shadowColor"
+            boxShadow="0 2px 4px shadow-color"
           />
         </CardListItem>
       );
@@ -430,8 +430,8 @@ export default function PlanDetailScreen() {
 
   if (!plan) {
     return (
-      <View flex={1} items="center" justify="center" bg="$pageBackground">
-        <Text color="$color11">
+      <View flex={1} items="center" justify="center" bg="pageBackground">
+        <Text color="color-11">
           {t('thePlanDoesNotExistOrHasBeenDeleted', { defaultValue: '计划不存在或已被删除' })}
         </Text>
       </View>
@@ -524,38 +524,38 @@ export default function PlanDetailScreen() {
           title: '',
           headerShadowVisible: false,
           headerStyle: { backgroundColor: theme.pageBackground?.val },
-          headerTintColor: theme.color12?.val,
+          headerTintColor: theme['color-12']?.val,
           headerBackButtonDisplayMode: 'minimal',
           headerRight: () => (
-            <XStack items="center" gap="$1.5">
+            <XStack items="center" gap="1">
               <Button
-                chromeless
+                variant="quiet"
                 circular
-                size="$3"
+                size="md"
                 icon={<MapPinned size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />}
-                color={!hasPlanPoints ? '$color8' : '$color12'}
+                color={!hasPlanPoints ? 'color-8' : 'color-12'}
                 disabled={!hasPlanPoints}
                 onPress={openPlanMap}
                 aria-label={t('mapMode', { defaultValue: '地图模式' })}
               />
               <Button
-                chromeless
+                variant="quiet"
                 circular
-                size="$3"
+                size="md"
                 icon={<SlidersHorizontal size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />}
                 color={
-                  !hasPlanPoints || sorting ? '$color8' : showIncompleteOnly || sortByDistance ? '$primary' : '$color12'
+                  !hasPlanPoints || sorting ? 'color-8' : showIncompleteOnly || sortByDistance ? 'primary' : 'color-12'
                 }
                 disabled={!hasPlanPoints || sorting}
                 onPress={() => listSettingsSheetRef.current?.present()}
                 aria-label={t('planListSettings', { defaultValue: '列表设置' })}
               />
               <Button
-                chromeless
+                variant="quiet"
                 circular
-                size="$3"
+                size="md"
                 icon={<ArrowDownUp size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />}
-                color={!hasPlanPoints ? '$color8' : sorting ? '$primary' : '$color12'}
+                color={!hasPlanPoints ? 'color-8' : sorting ? 'primary' : 'color-12'}
                 disabled={!hasPlanPoints}
                 onPress={toggleSorting}
                 aria-label={
@@ -565,10 +565,10 @@ export default function PlanDetailScreen() {
                 }
               />
               <Button
-                chromeless
+                variant="quiet"
                 circular
-                size="$3"
-                color="$color12"
+                size="md"
+                color="color-12"
                 icon={<Plus size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />}
                 onPress={() =>
                   router.navigate({ pathname: '/plans/[planId]/add', params: { planId: plan.id } } as never)
@@ -576,10 +576,10 @@ export default function PlanDetailScreen() {
                 aria-label={t('addLocations', { defaultValue: '添加巡礼点' })}
               />
               <Button
-                chromeless
+                variant="quiet"
                 circular
-                size="$3"
-                color="$color12"
+                size="md"
+                color="color-12"
                 icon={<MoreHorizontal size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />}
                 onPress={() => menuSheetRef.current?.present()}
                 aria-label={t('moreActions', { defaultValue: '更多操作' })}
@@ -588,20 +588,20 @@ export default function PlanDetailScreen() {
           ),
         }}
       />
-      <YStack flex={1} bg="$pageBackground">
+      <YStack flex={1} bg="pageBackground">
         <XStack>
-          <YStack flex={3} px="$pageHorizontalInset" pb="$1" gap="$1">
-            <YStack gap="$1">
-              <Text fontSize="$heading" fontWeight="700" color="$color12">
+          <YStack flex={3} px="pageHorizontalInset" pb="0-5" gap="0-5">
+            <YStack gap="0-5">
+              <Text fontSize="heading" fontWeight="700" color="color-12">
                 {plan.title}
               </Text>
               {plan.description ? (
-                <Text fontSize="$footnote" color="$color11">
+                <Text fontSize="footnote" color="color-11">
                   {plan.description}
                 </Text>
               ) : null}
             </YStack>
-            <Text fontSize="$footnote" color="$color11">
+            <Text fontSize="footnote" color="color-11">
               {t('completedLocationCount', {
                 defaultValue: '{{completed}} / {{count}} 个点位',
                 completed,
@@ -613,11 +613,11 @@ export default function PlanDetailScreen() {
           {/* <XStack flex={1}></XStack> */}
         </XStack>
         {sorting ? (
-          <XStack px="$pageHorizontalInset" pb="$2" items="center" gap="$2">
+          <XStack px="pageHorizontalInset" pb="7px" items="center" gap="7px">
             <Button
-              size="$2"
-              chromeless
-              color="$primary"
+              size="sm"
+              variant="quiet"
+              color="primary"
               onPress={() =>
                 setSelection({
                   planId,
@@ -634,16 +634,16 @@ export default function PlanDetailScreen() {
                 ? t('planDeselectAllLocations', { defaultValue: '取消全选' })
                 : t('planSelectAllLocations', { defaultValue: '全选' })}
             </Button>
-            <Text flex={1} fontSize="$caption" color="$color11">
+            <Text flex={1} fontSize="caption" color="color-11">
               {t('planSelectedLocations', { defaultValue: '已选择 {{count}} 个点位', count: selectedItems.length })}
             </Text>
             <Button
-              size="$2"
-              fontSize="$caption"
-              color={selectedItems.length === 0 ? '$color6' : '$red9'}
-              bg="$color2"
+              size="sm"
+              fontSize="caption"
+              color={selectedItems.length === 0 ? 'color-6' : 'red-9'}
+              bg="color-2"
               variant="outlined"
-              borderColor={selectedItems.length === 0 ? '$color4' : '$red9'}
+              borderColor={selectedItems.length === 0 ? 'color-4' : 'red-9'}
               disabled={selectedItems.length === 0}
               onPress={confirmRemoveSelected}
               accessibilityLabel={t('planDeleteSelectedLocations', { defaultValue: '删除所选点位' })}
@@ -654,7 +654,7 @@ export default function PlanDetailScreen() {
         ) : null}
         {visibleItems.length === 0 ? (
           <YStack flex={1} minH={220} items="center" justify="center">
-            <Text color="$color11">
+            <Text color="color-11">
               {showIncompleteOnly && resolvedItems.length > 0
                 ? t('noIncompleteLocations', { defaultValue: '没有未完成点位' })
                 : t('noLocationsInThisPlanYet', { defaultValue: '计划里还没有点位' })}

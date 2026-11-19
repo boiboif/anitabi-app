@@ -14,7 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Keyboard, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getTokens, Text, View } from 'tamagui';
+import { Text, View } from 'tamagui';
 
 // ---------------------------------------------------------------------------
 // 列表项联合类型 — 后续增加巡礼点列表时添加 { type: 'point' } 分支
@@ -217,20 +217,20 @@ const Search = () => {
 
   return (
     <Pressable disabled={!Keyboard.isVisible()} style={{ flex: 1 }} onPress={Keyboard.dismiss}>
-      <View flex={1} pt={insets.top === 0 ? '$2' : insets.top} mt="$2" bg="$pageBackground">
-        <View px="$pageHorizontalInset">
+      <View flex={1} pt={insets.top === 0 ? '7px' : insets.top} mt="7px" bg="pageBackground">
+        <View px="pageHorizontalInset">
           <SearchBox
             focusOnRoute
             value={inputText}
             onChangeText={handleInputTextChange}
             allowClear
-            placeholderTextColor="$color10"
+            placeholderTextColor="color-10"
           />
         </View>
 
         {/* Tab 切换栏 — 搜索时隐藏 */}
         {!searchMode && (
-          <View flexDirection="row" mx="$pageHorizontalInset" mt="$3" gap="$1">
+          <View flexDirection="row" mx="pageHorizontalInset" mt="13px" gap="0-5">
             {TABS.map((tabItem) => (
               <Pressable
                 key={tabItem.key}
@@ -245,15 +245,15 @@ const Search = () => {
                 }}
               >
                 <View
-                  bg={tab === tabItem.key ? '$color3' : 'transparent'}
-                  p="$2"
-                  px="$3.5"
-                  rounded={tab === tabItem.key ? '$9' : undefined}
+                  bg={tab === tabItem.key ? 'color-3' : 'transparent'}
+                  p="7px"
+                  px="4"
+                  rounded={tab === tabItem.key ? 26 : undefined}
                 >
                   <Text
                     fontWeight={tab === tabItem.key ? '600' : '400'}
-                    color={tab === tabItem.key ? '$primary' : '$color11'}
-                    fontSize="$body"
+                    color={tab === tabItem.key ? 'primary' : 'color-11'}
+                    fontSize="body"
                   >
                     {translateMessage(t, tabItem.label)}
                   </Text>
@@ -266,7 +266,7 @@ const Search = () => {
         {/* 列表 */}
         {searchMode && listItems.length === 0 ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <Text fontSize="$body" color="$color11">
+            <Text fontSize="body" color="color-11">
               {isPartial || !data
                 ? t('noMatchingLoadedLocations')
                 : t('noMatchingLocationsFound', { defaultValue: '未找到相关地标' })}
@@ -280,7 +280,7 @@ const Search = () => {
             keyExtractor={keyExtractor}
             contentContainerStyle={{
               paddingHorizontal: PageHorizontalInset,
-              paddingTop: getCardListBoundarySpacing(getTokens().space['3'].val),
+              paddingTop: getCardListBoundarySpacing(13),
               paddingBottom: insets.bottom + 16,
             }}
             maintainVisibleContentPosition={{

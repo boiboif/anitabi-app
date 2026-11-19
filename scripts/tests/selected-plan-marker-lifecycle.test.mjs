@@ -144,8 +144,8 @@ function assertSameRegistration(previous, next) {
 function assertPlaceholder(artwork) {
   assert.equal(artwork.type, 'View');
   assert.equal(artwork.props.collapsable, false);
-  assert.equal(artwork.props.width, 1);
-  assert.equal(artwork.props.height, 1);
+  assert.equal(artwork.props.w, 1);
+  assert.equal(artwork.props.h, 1);
   assert.equal(artwork.props.children, undefined);
 }
 

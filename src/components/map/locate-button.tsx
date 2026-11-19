@@ -1,5 +1,5 @@
 import { MAP_CONTROL_ICON_SIZE, MAP_CONTROL_SIZE } from '@/lib/constants';
-import { Locate } from '@tamagui/lucide-icons-2';
+import { Locate } from '@/components/icons';
 import { Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Spinner, useTheme } from 'tamagui';
@@ -24,7 +24,7 @@ export default function LocateButton({ onPress, loading = false }: Props) {
       accessibilityLabel={t('goToCurrentLocation', { defaultValue: '定位到当前位置' })}
       accessibilityState={{ busy: loading, disabled: loading }}
     >
-      {loading ? <Spinner size="small" color="$color11" /> : <Locate size={MAP_CONTROL_ICON_SIZE} color="$color11" />}
+      {loading ? <Spinner size="small" color="color-11" /> : <Locate size={MAP_CONTROL_ICON_SIZE} color="color-11" />}
     </Pressable>
   );
 }

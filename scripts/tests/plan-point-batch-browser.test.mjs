@@ -33,7 +33,7 @@ const theme = {
   primary: { val: 'blue' },
   background: { val: 'white' },
   pageBackground: { val: 'white' },
-  color9: { val: 'gray' },
+  'color-9': { val: 'gray' },
 };
 const tokens = { radius: { 4: { val: 12 } }, space: { 3: { val: 12 } } };
 const t = (key, options) => options?.defaultValue ?? key;
@@ -155,7 +155,7 @@ function createHarness(screen = 'browser') {
     },
     '@/utils/plan-point-batches': groups,
     '@shopify/flash-list': { FlashList: 'FlashList' },
-    '@tamagui/lucide-icons-2': { ChevronLeft: 'ChevronLeft' },
+    '@/components/icons': { ChevronLeft: 'ChevronLeft' },
     'expo-router': {
       useIsFocused: () => focused,
       useFocusEffect: (effect) => {

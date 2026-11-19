@@ -142,7 +142,7 @@ export default function FavoriteBangumiScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, headerTitleAlign: 'center', title }} />
-      <View bg="$pageBackground" width="100%" maxW={MaxContentWidth} flex={1}>
+      <View bg="pageBackground" w="100%" maxW={MaxContentWidth} flex={1}>
         <FlashList
           data={loading ? [] : favorites}
           renderItem={renderFavorite}
@@ -152,7 +152,7 @@ export default function FavoriteBangumiScreen() {
           contentContainerStyle={contentPlatformStyle}
           ListEmptyComponent={
             <View minH={240} items="center" justify="center">
-              <Text color="$color11">
+              <Text color="color-11">
                 {loading
                   ? t('loadingFavorites', { defaultValue: '加载收藏数据...' })
                   : t('thisWorkHasNoFavoriteLocations', { defaultValue: '该番剧没有收藏的巡礼点' })}

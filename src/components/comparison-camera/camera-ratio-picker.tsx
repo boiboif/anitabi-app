@@ -1,8 +1,15 @@
 import { CAMERA_RATIO_OPTIONS, formatCameraRatio, type CameraRatioPreference } from '@/lib/comparison-camera-geometry';
 import { getOutsidePressRegions, type WindowRect } from '@/lib/outside-press-regions';
-import { ChevronLeft } from '@tamagui/lucide-icons-2';
+import { ChevronLeft } from '@/components/icons';
 import { type ComponentRef, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
-import { BackHandler, Pressable, StyleSheet, useWindowDimensions, type TextLayoutEvent } from 'react-native';
+import {
+  BackHandler,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  type TextLayoutEvent,
+} from 'react-native';
 import { useTranslation } from 'react-i18next';
 import Animated, {
   Easing,
@@ -11,7 +18,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { Portal, ScrollView, Text, View, XStack } from 'tamagui';
+import { Portal, Text, View, XStack } from 'tamagui';
 
 type Props = {
   value: CameraRatioPreference;
@@ -27,13 +34,16 @@ type Props = {
 const TRANSITION_DURATION = 220;
 const PICKER_HEIGHT = 32;
 const LABEL_HORIZONTAL_PADDING = 10;
+// This module loads lazily during navigation; native static styles need no style() registration.
+const scrollContentStyle = { flexGrow: 1, alignItems: 'center', justifyContent: 'center' } as const;
+const scrollFrameStyle = { flex: 1, minWidth: 0 };
 
 type MeasurableView =
   | { measureInWindow: (callback: (x: number, y: number, width: number, height: number) => void) => void }
   | { getBoundingClientRect: () => { left: number; top: number; width: number; height: number } };
 
 function measureView(element: ComponentRef<typeof View> | null, onMeasure: (rect: WindowRect) => void) {
-  // Tamagui 2 still types native refs as View components; the runtime ref exposes these instance methods.
+  // Tamagui's cross-platform ref type names View; narrow to the runtime measurement methods.
   const view = element as MeasurableView | null;
   if (!view) return;
   if ('measureInWindow' in view) {
@@ -170,7 +180,7 @@ export default function CameraRatioPicker({
       collapsable={false}
       flex={1}
       minW={0}
-      height={44}
+      h={44}
       items="center"
       justify="center"
       onLayout={({ nativeEvent: { layout } }) => {
@@ -189,7 +199,7 @@ export default function CameraRatioPicker({
         l={0}
         r={0}
         t={0}
-        height={PICKER_HEIGHT}
+        h={PICKER_HEIGHT}
         opacity={0}
         pointerEvents="none"
         accessible={false}
@@ -198,10 +208,10 @@ export default function CameraRatioPicker({
       >
         <Text
           color="white"
-          fontSize="$caption"
+          fontSize="caption"
           fontWeight="600"
           numberOfLines={compactAutomatic ? 2 : 1}
-          lineHeight={compactAutomatic ? 12 : undefined}
+          lineHeight={compactAutomatic ? '12px' : undefined}
           text="center"
           onTextLayout={({ nativeEvent: { lines } }: TextLayoutEvent) => {
             const textWidth = Math.max(0, ...lines.map((line) => line.width));
@@ -219,7 +229,7 @@ export default function CameraRatioPicker({
         </Text>
       </View>
       <Animated.View style={containerStyle}>
-        <View height={PICKER_HEIGHT} bg="#242426" rounded="$9" overflow="hidden">
+        <View h={PICKER_HEIGHT} bg="#242426" rounded={26} overflow="hidden">
           <Animated.View
             style={[StyleSheet.absoluteFill, collapsedStyle]}
             pointerEvents={expanded ? 'none' : 'auto'}
@@ -242,10 +252,10 @@ export default function CameraRatioPicker({
                 >
                   <Text
                     color="white"
-                    fontSize="$caption"
+                    fontSize="caption"
                     fontWeight="600"
                     numberOfLines={compactAutomatic ? 2 : 1}
-                    lineHeight={compactAutomatic ? 12 : undefined}
+                    lineHeight={compactAutomatic ? '12px' : undefined}
                     text="center"
                     shrink={0}
                   >
@@ -261,14 +271,14 @@ export default function CameraRatioPicker({
             accessibilityElementsHidden={!expanded}
             importantForAccessibility={expanded ? 'auto' : 'no-hide-descendants'}
           >
-            <XStack height={PICKER_HEIGHT} px={4} gap={2} items="center">
+            <XStack h={PICKER_HEIGHT} px={4} gap={2} items="center">
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={t('collapseCameraAspectRatios', { defaultValue: '收起比例选项' })}
                 disabled={disabled}
                 onPress={() => setOpen(false)}
               >
-                <View width={28} height={PICKER_HEIGHT} items="center" justify="center">
+                <View w={28} h={PICKER_HEIGHT} items="center" justify="center">
                   <RotatingContent rotation={rotation}>
                     <ChevronLeft size={14} color="#c7c7cc" />
                   </RotatingContent>
@@ -276,13 +286,12 @@ export default function CameraRatioPicker({
               </Pressable>
               <ScrollView
                 horizontal
-                flex={1}
-                minW={0}
+                style={scrollFrameStyle}
                 showsHorizontalScrollIndicator={false}
                 scrollEnabled={expanded && !disabled}
-                contentContainerStyle={{ grow: 1, items: 'center', justify: 'center' }}
+                contentContainerStyle={scrollContentStyle}
               >
-                <XStack height={PICKER_HEIGHT} gap={2} items="center">
+                <XStack h={PICKER_HEIGHT} gap={2} items="center">
                   {CAMERA_RATIO_OPTIONS.map((option) => {
                     const selected = option === value;
                     return (
@@ -298,17 +307,17 @@ export default function CameraRatioPicker({
                       >
                         <View
                           minW={36}
-                          height={PICKER_HEIGHT}
+                          h={PICKER_HEIGHT}
                           px={4}
-                          rounded="$9"
+                          rounded={26}
                           items="center"
                           justify="center"
                           bg={selected ? '#343438' : 'transparent'}
                         >
                           <RotatingContent rotation={rotation}>
                             <Text
-                              color={selected ? '$primary' : '#c7c7cc'}
-                              fontSize="$caption"
+                              color={selected ? 'primary' : '#c7c7cc'}
+                              fontSize="caption"
                               fontWeight={selected ? '700' : '500'}
                             >
                               {option === 'auto' ? t('cameraRatioAutomatic', { defaultValue: '自动' }) : option}
@@ -350,8 +359,8 @@ export default function CameraRatioPicker({
                 position="absolute"
                 l={region.x}
                 t={region.y}
-                width={region.width}
-                height={region.height}
+                w={region.width}
+                h={region.height}
                 bg="transparent"
               >
                 <Pressable accessible={false} onPress={close} style={StyleSheet.absoluteFill} />

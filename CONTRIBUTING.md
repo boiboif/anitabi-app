@@ -26,12 +26,12 @@
 | 框架 | Expo SDK 58 / React Native 0.88 / React 19.3 |
 | 路由 | expo-router（文件路由） |
 | 地图 | @rnmapbox/maps |
-| UI | Tamagui（styled-components 设计系统） |
+| UI | Tamagui 3 / Config v6 |
 | 状态 | Zustand + React Context |
 | 网络 | Axios + 请求处理器工厂 |
 | 存储 | react-native-mmkv 4（配置、地图缓存和收藏） |
 | 动画 | react-native-reanimated |
-| 图标 | @tamagui/lucide-icons-2 |
+| 图标 | 本地 Lucide 图形、@tamagui/helpers-icon 与 react-native-svg |
 | 构建 | EAS Build（dev / preview / production） |
 
 ### 前置要求

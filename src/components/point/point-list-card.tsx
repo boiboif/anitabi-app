@@ -9,7 +9,7 @@ import type { ImageSource } from 'expo-image';
 import { useMemo, type ComponentProps, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, type AccessibilityState } from 'react-native';
-import { getTokens, Text, useTheme, View, XStack, YStack } from 'tamagui';
+import { Text, useTheme, View, XStack, YStack } from 'tamagui';
 
 export const POINT_LIST_CARD_HEIGHT = 110;
 
@@ -131,14 +131,15 @@ export default function PointListCard({
   const screenshotPath = image || point?.image;
   const coverPath = cover || bangumi?.cover;
   const imagePath = screenshotPath || coverPath;
+  const imageBackgroundColor = imageColor || bangumi?.color || theme['color-9'].val;
   const imageStyle = useMemo(
     () => ({
       width: imageWidth,
       height,
-      backgroundColor: imageColor || bangumi?.color || theme.color9.val,
-      borderRadius: getTokens().radius['4'].val,
+      backgroundColor: imageBackgroundColor,
+      borderRadius: 9,
     }),
-    [bangumi?.color, height, imageColor, imageWidth, theme.color9.val],
+    [height, imageBackgroundColor, imageWidth],
   );
   const resolvedSubtitle =
     (subtitle ?? (bangumi ? getBangumiTitle(bangumi, i18n.resolvedLanguage) : '')) ||
@@ -152,10 +153,10 @@ export default function PointListCard({
   const timeLabel = typeof point?.s === 'number' && point.s >= 0 ? formatDuration(point.s) : undefined;
 
   return (
-    <View bg="$background" rounded="$4" overflow="hidden" position="relative" opacity={opacity} boxShadow={boxShadow}>
-      <XStack height={height}>
+    <View bg="background" rounded={9} overflow="hidden" position="relative" opacity={opacity} boxShadow={boxShadow}>
+      <XStack h={height}>
         {leading}
-        <XStack flex={1} height={height} gap="$2">
+        <XStack flex={1} h={height} gap="7px">
           <PointImage
             image={screenshotPath}
             cover={coverPath}
@@ -164,14 +165,14 @@ export default function PointListCard({
             thumbnailSource={imageSource}
             recyclingKey={imageRecyclingKey ?? imagePath}
             imageStyle={imageStyle}
-            width={imageWidth}
-            height={height}
-            rounded="$4"
-            previewBorderRadius={getTokens().radius['4'].val}
+            w={imageWidth}
+            h={height}
+            rounded={9}
+            previewBorderRadius={9}
             previewEnabled={previewEnabled}
           >
             {typeof sequenceNumber === 'number' ? (
-              <YStack fullscreen pointerEvents="none">
+              <YStack position="absolute" inset={0} pointerEvents="none">
                 <PointSequenceBadge sequenceNumber={sequenceNumber} />
               </YStack>
             ) : null}
@@ -182,11 +183,11 @@ export default function PointListCard({
                 l={0}
                 b={0}
                 bg="rgba(0,0,0,0.55)"
-                px="$1.5"
-                py="$0.5"
-                style={{ borderTopRightRadius: getTokens().radius['2'].val }}
+                px="1"
+                py="px"
+                style={{ borderTopRightRadius: 5 }}
               >
-                <Text fontSize="$caption" fontWeight="700" color="white">
+                <Text fontSize="caption" fontWeight="700" color="white">
                   {epLabel}
                 </Text>
               </View>
@@ -198,11 +199,11 @@ export default function PointListCard({
                 r={0}
                 b={0}
                 bg="rgba(0,0,0,0.55)"
-                px="$1.5"
-                py="$0.5"
-                style={{ borderTopLeftRadius: getTokens().radius['2'].val }}
+                px="1"
+                py="px"
+                style={{ borderTopLeftRadius: 5 }}
               >
-                <Text fontSize="$caption" color="white">
+                <Text fontSize="caption" color="white">
                   {timeLabel}
                 </Text>
               </View>
@@ -216,37 +217,37 @@ export default function PointListCard({
             onPress={onPress}
             style={{ flex: 1 }}
           >
-            <YStack flex={1} px="$2" py="$1" pl="$0" pr={topRightAction ? 44 : '$2'} justify="space-between">
+            <YStack flex={1} px="7px" py="0-5" pl="0" pr={topRightAction ? 44 : '7px'} justify="space-between">
               <YStack>
-                <XStack height={30} items="center" gap="$1">
+                <XStack h={30} items="center" gap="0-5">
                   <Text
                     flex={1}
-                    fontSize="$body"
+                    fontSize="body"
                     fontWeight="600"
-                    color="$color12"
+                    color="color-12"
                     numberOfLines={1}
-                    pr={showFavorite ? '$5' : undefined}
+                    pr={showFavorite ? '6' : undefined}
                   >
                     {resolvedTitle}
                   </Text>
                   {statusAction}
                   {showFavorite && point && bangumi ? (
-                    <View position="absolute" t="$1.5" r="$0">
+                    <View position="absolute" t="1" r="0">
                       <FavoritePointButton point={point} bangumi={bangumi} buttonSize={28} size={16} />
                     </View>
                   ) : null}
                 </XStack>
                 {showSubtitle && resolvedSubtitle ? (
-                  <Text fontSize="$footnote" color="$primary" mt="$0.5" numberOfLines={1}>
+                  <Text fontSize="footnote" color="primary" mt="px" numberOfLines={1}>
                     {resolvedSubtitle}
                   </Text>
                 ) : null}
                 {description ? (
                   <Text
-                    fontSize="$caption"
-                    lineHeight={12}
-                    color="$color11"
-                    mt="$0.5"
+                    fontSize="caption"
+                    lineHeight="12px"
+                    color="color-11"
+                    mt="px"
                     numberOfLines={descriptionNumberOfLines}
                   >
                     {description}
@@ -254,8 +255,8 @@ export default function PointListCard({
                 ) : null}
               </YStack>
 
-              <XStack height={meta ? actionSize : undefined} items="center" gap="$1">
-                <Text flex={1} fontSize="$caption" color="$color10" numberOfLines={1} pt="$1.5">
+              <XStack h={meta ? actionSize : undefined} items="center" gap="0-5">
+                <Text flex={1} fontSize="caption" color="color-10" numberOfLines={1} pt="1">
                   {meta || ' '}
                 </Text>
                 {point && bangumi && (showAddToPlan || showCamera || showNavigation) ? (
@@ -275,7 +276,7 @@ export default function PointListCard({
         {trailing}
       </XStack>
       {topRightAction ? (
-        <View position="absolute" t={topRightActionCentered ? (height - 30) / 2 : '$2'} r="$2">
+        <View position="absolute" t={topRightActionCentered ? (height - 30) / 2 : '7px'} r="7px">
           {topRightAction}
         </View>
       ) : null}
@@ -287,9 +288,9 @@ export default function PointListCard({
           r={0}
           b={0}
           l={0}
-          rounded="$4"
+          rounded={9}
           borderWidth={2}
-          borderColor="$primary"
+          borderColor="primary"
           z={3}
         />
       ) : null}

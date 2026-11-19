@@ -54,8 +54,8 @@ export default function PointImage({
   const label = t(image ? 'previewLocationImage' : 'previewWorkCover', { title });
   const style = imageStyle ?? { width: '100%', height: '100%' };
   const missingScreenshot = !image ? (
-    <YStack fullscreen pointerEvents="none" bg="rgba(0,0,0,0.7)" items="center" justify="center">
-      <Text fontSize="$footnote" color="white">
+    <YStack position="absolute" inset={0} pointerEvents="none" bg="rgba(0,0,0,0.7)" items="center" justify="center">
+      <Text fontSize="footnote" color="white">
         {t('noImage', { defaultValue: '暂无截图' })}
       </Text>
     </YStack>
@@ -66,7 +66,7 @@ export default function PointImage({
     <View
       position="relative"
       overflow="hidden"
-      bg="$color5"
+      bg="color-5"
       {...viewProps}
       pointerEvents={previewEnabled ? 'auto' : 'none'}
       accessibilityElementsHidden={!previewEnabled}

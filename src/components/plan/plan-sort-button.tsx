@@ -1,7 +1,7 @@
 import { StrictButton as Button } from '@/components/ui/strict-button';
 import type { PlanListSortOrder } from '@/lib/plan-storage';
 import { ICON_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';
-import { ArrowDownWideNarrow, ArrowUpNarrowWide } from '@tamagui/lucide-icons-2';
+import { ArrowDownWideNarrow, ArrowUpNarrowWide } from '@/components/icons';
 import { useTranslation } from 'react-i18next';
 
 type Props = {
@@ -14,10 +14,10 @@ export default function PlanSortButton({ sortOrder, onPress }: Props) {
 
   return (
     <Button
-      chromeless
+      variant="quiet"
       circular
-      size="$3"
-      color="$color12"
+      size="md"
+      color="color-12"
       icon={
         sortOrder === 'desc' ? (
           <ArrowDownWideNarrow size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />

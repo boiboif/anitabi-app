@@ -2,7 +2,7 @@ import { ActionSheet, type ActionSheetRef } from '@/components/ui/action-sheet';
 import type { PreviewImage } from '@/components/image-preview/image-preview';
 import { deletePreviewFile, preparePreviewImage, PreviewImageFileError } from '@/lib/image-preview-files';
 import { Toast } from '@boiboif/react-native-toast';
-import { Download, Share2 } from '@tamagui/lucide-icons-2';
+import { Download, Share2 } from '@/components/icons';
 import * as MediaLibrary from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
 import { useEffect, useRef, useState } from 'react';

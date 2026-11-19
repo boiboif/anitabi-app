@@ -14,13 +14,13 @@ import { PageHorizontalInset } from '@/tamagui.config';
 import { groupFavoriteItemsByDate } from '@/utils/favorite-date-groups';
 import { resolveFavoritePoints } from '@/utils/resolve-favorite-points';
 import { FlashList } from '@shopify/flash-list';
-import { Check, MapPin, Plus } from '@tamagui/lucide-icons-2';
+import { Check, MapPin, Plus } from '@/components/icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Text, View, XStack, YStack, getTokens, useTheme } from 'tamagui';
+import { Text, View, XStack, YStack, useTheme } from 'tamagui';
 
 type AvailableFavorite = {
   favorite: FavoritePoint;
@@ -91,12 +91,12 @@ export default function AddPlanPointsScreen() {
       if (item.type === 'date') {
         return (
           <View
-            bg="$pageBackground"
-            px="$pageHorizontalInset"
-            pt="$2"
-            pb={getCardListBoundarySpacing(getTokens().space['2'].val)}
+            bg="pageBackground"
+            px="pageHorizontalInset"
+            pt="7px"
+            pb={getCardListBoundarySpacing(7)}
           >
-            <Text fontSize="$body" lineHeight={20} fontWeight="700" color="$color11">
+            <Text fontSize="body" lineHeight="20px" fontWeight="700" color="color-11">
               {item.label}
             </Text>
           </View>
@@ -153,7 +153,7 @@ export default function AddPlanPointsScreen() {
                 }}
                 style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
               >
-                <View width={36} height={36} rounded="$9" bg="$color2" items="center" justify="center">
+                <View w={36} h={36} rounded={26} bg="color-2" items="center" justify="center">
                   {added ? <Check size={17} color={theme.primary.val} /> : <Plus size={18} color={theme.primary.val} />}
                 </View>
               </Pressable>
@@ -168,7 +168,7 @@ export default function AddPlanPointsScreen() {
   return (
     <>
       <Stack.Screen options={{ title: t('addLocations', { defaultValue: '添加巡礼点' }) }} />
-      <XStack bg="$pageBackground" px="$pageHorizontalInset" pt="$3" gap="$2">
+      <XStack bg="pageBackground" px="pageHorizontalInset" pt="13px" gap="7px">
         {(
           [
             { key: 'favorites', label: t('fromFavoriteLocations', { defaultValue: '从收藏添加' }) },
@@ -181,16 +181,16 @@ export default function AddPlanPointsScreen() {
             accessibilityRole="tab"
             accessibilityState={{ selected: source === option.key }}
             onPress={() => setSource(option.key)}
-            pressStyle={{ opacity: 0.65 }}
+            opacity="1 press:0.65"
           >
             <View
-              bg={source === option.key ? '$color3' : 'transparent'}
-              px="$3"
-              py="$2"
-              rounded={source === option.key ? '$9' : undefined}
+              bg={source === option.key ? 'color-3' : 'transparent'}
+              px="13px"
+              py="7px"
+              rounded={source === option.key ? 26 : undefined}
               items="center"
             >
-              <Text fontSize="$footnote" fontWeight="600" color={source === option.key ? '$primary' : '$color11'}>
+              <Text fontSize="footnote" fontWeight="600" color={source === option.key ? 'primary' : 'color-11'}>
                 {option.label}
               </Text>
             </View>
@@ -205,18 +205,18 @@ export default function AddPlanPointsScreen() {
           minH={260}
           items="center"
           justify="center"
-          gap="$3"
-          bg="$pageBackground"
-          px="$pageHorizontalInset"
+          gap="13px"
+          bg="pageBackground"
+          px="pageHorizontalInset"
           pb={insets.bottom + 24}
         >
-          <Text fontSize="$body" color="$color11">
+          <Text fontSize="body" color="color-11">
             {t('noFavoriteLocationsAvailableToAdd', { defaultValue: '暂无可添加的收藏点位' })}
           </Text>
           <Button
-            icon={<MapPin size={BLOCK_BUTTON_ICON_SIZE} color="$primary" />}
-            chromeless
-            color="$primary"
+            icon={<MapPin size={BLOCK_BUTTON_ICON_SIZE} color="primary" />}
+            variant="quiet"
+            color="primary"
             onPress={() => router.dismissTo('/')}
           >
             {t('explorePilgrimageMap', { defaultValue: '前往巡礼地图探索' })}

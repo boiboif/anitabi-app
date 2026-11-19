@@ -82,7 +82,7 @@ function createHarness(
     'react/jsx-runtime': { jsx, jsxs: jsx },
     'react-i18next': { useTranslation: () => ({ t: (_, options) => options?.defaultValue }) },
     tamagui: {
-      useTheme: () => ({ color2: { val: '#fff' }, primary: { val: '#000' }, color12: { val: '#000' } }),
+      useTheme: () => ({ 'color-2': { val: '#fff' }, primary: { val: '#000' }, 'color-12': { val: '#000' } }),
       useThemeName: () => 'light',
     },
     'zustand/vanilla': { createStore: () => (initialize) => ({ setState() {}, getState: initialize }) },

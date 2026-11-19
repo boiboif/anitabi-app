@@ -26,7 +26,7 @@ import type { MapViewportState } from '@/utils/map-viewport';
 import { getPlanPointMembership } from '@/utils/plan-point-membership';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import type { Camera } from '@rnmapbox/maps';
-import { ArrowLeft, List } from '@tamagui/lucide-icons-2';
+import { ArrowLeft, List } from '@/components/icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -393,15 +393,15 @@ export default function PlanMapScreen() {
             }}
           />
 
-          <YStack position="absolute" l="$0" r="$0" t={insets.top} z={20} pointerEvents="box-none">
-            <View height={40} l="$3" justify="center" pointerEvents="box-none">
+          <YStack position="absolute" l="0" r="0" t={insets.top} z={20} pointerEvents="box-none">
+            <View h={40} l="13px" justify="center" pointerEvents="box-none">
               <Button
-                chromeless
+                variant="quiet"
                 circular
-                width={40}
-                height={40}
-                p="$0"
-                icon={<ArrowLeft size={ICON_BUTTON_ICON_SIZE} strokeWidth={2.25} color="$primary" />}
+                w={40}
+                h={40}
+                p="0"
+                icon={<ArrowLeft size={ICON_BUTTON_ICON_SIZE} strokeWidth={2.25} color="primary" />}
                 onPress={() => router.back()}
                 aria-label={t('backToPilgrimagePlans', { defaultValue: '返回巡礼计划' })}
               />
@@ -421,19 +421,19 @@ export default function PlanMapScreen() {
             />
           </YStack>
 
-          <YStack r="$2" p="$1.5" position="absolute" t={insets.top + MAP_TOP_CONTROLS_TOP_OFFSET} z={20} gap="$3">
+          <YStack r="7px" p="1" position="absolute" t={insets.top + MAP_TOP_CONTROLS_TOP_OFFSET} z={20} gap="13px">
             <LayerSwitch styleIndex={styleIndex} onChange={setStyleIndex} />
             <Building3DSwitch enabled={show3DBuildings} onChange={handle3DBuildingsChange} />
             <PointImageMarkerSwitch visible={showPointImageMarkers} onChange={setShowPointImageMarkers} />
           </YStack>
 
           <YStack
-            r="$2"
-            p="$1.5"
+            r="7px"
+            p="1"
             position="absolute"
             b={bottomOverlayHeight > 0 ? bottomOverlayHeight + 20 : insets.bottom + 24}
             z={20}
-            gap="$3"
+            gap="13px"
           >
             <Pressable
               style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
@@ -442,16 +442,16 @@ export default function PlanMapScreen() {
               accessibilityLabel={t('viewPlanLocations', { defaultValue: '查看计划点位' })}
             >
               <YStack
-                width={MAP_CONTROL_SIZE}
-                height={MAP_CONTROL_SIZE}
+                w={MAP_CONTROL_SIZE}
+                h={MAP_CONTROL_SIZE}
                 rounded={MAP_CONTROL_SIZE / 2}
-                bg="$background"
+                bg="background"
                 boxShadow="0 0 4px rgba(0,0,0,0.2)"
                 items="center"
                 justify="center"
                 pointerEvents="none"
               >
-                <List size={MAP_CONTROL_ICON_SIZE} strokeWidth={2.1} color="$color11" />
+                <List size={MAP_CONTROL_ICON_SIZE} strokeWidth={2.1} color="color-11" />
               </YStack>
             </Pressable>
             <LocateButton loading={isLocating} onPress={handleLocate} />
@@ -483,17 +483,17 @@ export default function PlanMapScreen() {
           {progress && <LoadingBadge progress={progress} insets={insets} />}
         </>
       ) : (
-        <YStack flex={1} bg="$pageBackground" items="center" justify="center">
-          <Text color="$color11">
+        <YStack flex={1} bg="pageBackground" items="center" justify="center">
+          <Text color="color-11">
             {t('thePlanDoesNotExistOrHasBeenDeleted', { defaultValue: '计划不存在或已被删除' })}
           </Text>
-          <View position="absolute" l="$1" t={insets.top}>
+          <View position="absolute" l="0-5" t={insets.top}>
             <Button
-              chromeless
-              width={44}
-              height={44}
-              p="$0"
-              icon={<ArrowLeft size={ICON_BUTTON_ICON_SIZE} strokeWidth={2.25} color="$color12" />}
+              variant="quiet"
+              w={44}
+              h={44}
+              p="0"
+              icon={<ArrowLeft size={ICON_BUTTON_ICON_SIZE} strokeWidth={2.25} color="color-12" />}
               onPress={() => router.back()}
               aria-label={t('backToPilgrimagePlans', { defaultValue: '返回巡礼计划' })}
             />

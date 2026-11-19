@@ -165,9 +165,9 @@ test('border changes reuse the text measurement and render the correct image siz
       const contentWidth = 2160 - (showOuterBorder ? borderWidth * 2 : 0);
       const expected = exporter.getComparisonExportLayout(16 / 9, 3 / 4, next, Math.ceil((72 * contentWidth) / 360));
       const fitted = geometry.fitImageSize({ width: 400, height: 800 }, expected.width / expected.height);
-      assert.equal(app.preview().props.width, fitted.width, 'first render includes the scaled footer height');
+      assert.equal(app.preview().props.w, fitted.width, 'first render includes the scaled footer height');
       const panels = app.preview().props.children[0].props.children;
-      assert.ok(Math.abs(panels[0].props.height - (expected.reference.height * fitted.width) / 2160) < 1e-9);
+      assert.ok(Math.abs(panels[0].props.h - (expected.reference.height * fitted.width) / 2160) < 1e-9);
     }
   }
 });
@@ -187,14 +187,14 @@ test('name and content toggles retain the image layout until the new footer is m
     const app = createHarness(settings);
     app.measureFooter(72);
     for (const field of ['showName', 'showLocation', 'showWork', 'showScene', 'showCoordinates', 'showCapturedAt']) {
-      const previousWidth = app.preview().props.width;
-      const previousPanelHeight = app.preview().props.children[0].props.children[0].props.height;
+      const previousWidth = app.preview().props.w;
+      const previousPanelHeight = app.preview().props.children[0].props.children[0].props.h;
       const previousKey = app.footer().key;
       settings = { ...settings, [field]: !settings[field] };
       app.configure(settings);
       assert.notEqual(app.footer().key, previousKey, 'changed metadata still needs a fresh measurement');
-      assert.equal(app.preview().props.width, previousWidth, `${field} must not temporarily remove footer space`);
-      assert.equal(app.preview().props.children[0].props.children[0].props.height, previousPanelHeight);
+      assert.equal(app.preview().props.w, previousWidth, `${field} must not temporarily remove footer space`);
+      assert.equal(app.preview().props.children[0].props.children[0].props.h, previousPanelHeight);
 
       app.measureFooter(48);
       const contentWidth = 2160 - settings.borderWidth * 2;
@@ -205,7 +205,7 @@ test('name and content toggles retain the image layout until the new footer is m
         Math.ceil((48 * contentWidth) / 360),
       );
       const fitted = geometry.fitImageSize({ width: 400, height: 800 }, expected.width / expected.height);
-      assert.equal(app.preview().props.width, fitted.width, 'new measured height must still update the layout');
+      assert.equal(app.preview().props.w, fitted.width, 'new measured height must still update the layout');
     }
   }
 });
@@ -214,7 +214,7 @@ test('disabling all metadata removes its space and re-enabling it reuses the las
   const settings = { ...exporter.DEFAULT_COMPARISON_EXPORT_SETTINGS, name: '巡礼者' };
   const app = createHarness(settings);
   app.measureFooter(72);
-  const previousWidth = app.preview().props.width;
+  const previousWidth = app.preview().props.w;
   const empty = {
     ...settings,
     showName: false,
@@ -228,9 +228,9 @@ test('disabling all metadata removes its space and re-enabling it reuses the las
   assert.equal(app.footer(), undefined);
   const layout = exporter.getComparisonExportLayout(16 / 9, 3 / 4, empty, 0);
   const fitted = geometry.fitImageSize({ width: 400, height: 800 }, layout.width / layout.height);
-  assert.equal(app.preview().props.width, fitted.width);
+  assert.equal(app.preview().props.w, fitted.width);
   app.configure(settings);
-  assert.equal(app.preview().props.width, previousWidth);
+  assert.equal(app.preview().props.w, previousWidth);
 });
 
 test('export and save remain enabled while applied metadata awaits its next measurement', () => {

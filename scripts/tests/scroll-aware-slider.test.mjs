@@ -33,7 +33,8 @@ function createHarness(overrides = {}) {
       useTapGesture: (config) => (tap = config),
       useCompetingGestures: (...gestures) => gestures,
     },
-    tamagui: { View: 'View', Slider: { Track: 'Track', TrackActive: 'TrackActive', Thumb: 'Thumb' } },
+    tamagui: { View: 'View' },
+    'tamagui/slider': { Slider: { Track: 'Track', TrackActive: 'TrackActive', Thumb: 'Thumb' } },
   };
   const module = { exports: {} };
   vm.runInNewContext(compiled, { module, exports: module.exports, require: (name) => modules[name] });

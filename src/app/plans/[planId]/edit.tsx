@@ -3,7 +3,7 @@ import { ThemeInput } from '@/components/ui/theme-input';
 import { BLOCK_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';
 import { usePlans } from '@/store/use-plans';
 import { PageHorizontalInset } from '@/tamagui.config';
-import { Check } from '@tamagui/lucide-icons-2';
+import { Check } from '@/components/icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
@@ -22,8 +22,8 @@ export default function EditPlanScreen() {
 
   if (!plan) {
     return (
-      <View flex={1} items="center" justify="center" bg="$pageBackground">
-        <Text color="$color11">
+      <View flex={1} items="center" justify="center" bg="pageBackground">
+        <Text color="color-11">
           {t('thePlanDoesNotExistOrHasBeenDeleted', { defaultValue: '计划不存在或已被删除' })}
         </Text>
       </View>
@@ -48,8 +48,8 @@ export default function EditPlanScreen() {
           contentInsetAdjustmentBehavior="automatic"
           contentContainerStyle={{ paddingHorizontal: PageHorizontalInset, paddingVertical: 20, gap: 18 }}
         >
-          <YStack gap="$2">
-            <Text fontSize="$body" fontWeight="600" color="$color12">
+          <YStack gap="7px">
+            <Text fontSize="body" fontWeight="600" color="color-12">
               {t('planName', { defaultValue: '计划名称' })}
             </Text>
             <ThemeInput
@@ -61,8 +61,8 @@ export default function EditPlanScreen() {
               maxLength={60}
             />
           </YStack>
-          <YStack gap="$2">
-            <Text fontSize="$body" fontWeight="600" color="$color12">
+          <YStack gap="7px">
+            <Text fontSize="body" fontWeight="600" color="color-12">
               {t('notesOptional', { defaultValue: '备注（可选）' })}
             </Text>
             <ThemeInput
@@ -75,7 +75,7 @@ export default function EditPlanScreen() {
             />
           </YStack>
           <Button
-            bg="$primary"
+            bg="primary"
             color="white"
             icon={<Check size={BLOCK_BUTTON_ICON_SIZE} />}
             disabled={!title.trim()}

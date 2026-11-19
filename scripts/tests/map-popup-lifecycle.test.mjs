@@ -110,7 +110,7 @@ function createHarness() {
       SelectedMapPointLayer: 'SelectedMapPointLayer',
     },
     '@rnmapbox/maps': { MapView: 'MapView', Camera: 'Camera', Images: 'Images', Image: 'Image', MarkerView: 'MarkerView' },
-    '@tamagui/lucide-icons-2': {},
+    '@/components/icons': {},
     'react-native-svg': { __esModule: true, default: 'Svg', Circle: 'Circle', Path: 'Path' },
     tamagui: { YStack: 'YStack', useTheme: () => ({ primary: { val: '#000' } }) },
   };

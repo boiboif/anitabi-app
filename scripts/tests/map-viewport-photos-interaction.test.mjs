@@ -72,7 +72,7 @@ function createInteraction({ bangumis = null } = {}) {
     'react-native-safe-area-context': { useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) },
     'react-i18next': { useTranslation: () => ({ t: (key) => key }) },
     'expo-router': { useIsFocused: () => true, useNavigation: () => ({ isFocused: () => true }), useRouter: () => ({}) },
-    '@tamagui/lucide-icons-2': { Dices: 'Dices' },
+    '@/components/icons': { Dices: 'Dices' },
     tamagui: { View: 'View', YStack: 'YStack', useTheme: () => ({}) },
     '@/hooks/use-map-locate': { useMapLocate: () => ({ cancelPendingCameraMovement: () => events.push('cancel-locate') }) },
     '@/hooks/use-themed-map-style': { useThemedMapStyle: () => [0, () => {}] },

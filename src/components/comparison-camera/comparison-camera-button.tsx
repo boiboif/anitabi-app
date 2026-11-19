@@ -1,5 +1,5 @@
+import { Camera } from '@/components/icons';
 import type { Bangumi, Point } from '@/services/types';
-import { Camera } from '@tamagui/lucide-icons-2';
 import { type Href, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import type { GestureResponderEvent } from 'react-native';
@@ -44,13 +44,13 @@ export default function ComparisonCameraButton({
       style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
     >
       {compact ? (
-        <View width={compactSize} height={compactSize} rounded="$9" items="center" justify="center">
+        <View w={compactSize} h={compactSize} rounded={26} items="center" justify="center">
           <Camera size={compactSize * (bare ? 0.58 : 0.5)} color={theme.primary.val} />
         </View>
       ) : (
-        <XStack height={38} rounded="$2" bg="$primary" items="center" justify="center" gap="$1.5" px="$3">
+        <XStack h={38} rounded={5} bg="primary" items="center" justify="center" gap="1" px="13px">
           <Camera size={17} color="white" />
-          <Text color="white" fontSize="$footnote" fontWeight="700">
+          <Text color="white" fontSize="footnote" fontWeight="700">
             {t('compareShot', { defaultValue: '对比拍摄' })}
           </Text>
         </XStack>

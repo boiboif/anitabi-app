@@ -1,8 +1,8 @@
+import { RefreshCw } from '@/components/icons';
 import ImagePreview, { type ImagePreviewBounds, type PreviewImage } from '@/components/image-preview/image-preview';
 import { StrictButton } from '@/components/ui/strict-button';
 import { useImageLoading } from '@/hooks/use-image-loading';
 import { getPreviewContainerOrigin, type PreviewTouchCoordinates } from '@/utils/image-preview-source';
-import { RefreshCw } from '@tamagui/lucide-icons-2';
 import { Image, type ImageProps, type ImageSource } from 'expo-image';
 import { memo, type ComponentProps, type ComponentRef, type ReactNode, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -147,7 +147,7 @@ function PreviewableImageContent({
 
   const triggerProps = {
     ref: (node: ViewInstance | ComponentRef<typeof View> | null) => {
-      // Both trigger variants expose native measurement; Tamagui 2's ref type still names the View component.
+      // Both trigger variants expose native measurement; narrow Tamagui's cross-platform ref at this boundary.
       containerRef.current = node as Pick<ViewInstance, 'measureInWindow'> | null;
     },
     onLayout: (event) => {
@@ -197,7 +197,7 @@ function PreviewableImageContent({
       <View
         position="relative"
         self={containerStyle ? undefined : 'flex-start'}
-        // Tamagui 2's style declarations do not include all of RN 0.88's StyleProp values.
+        // Preserve the shared RN style at Tamagui's narrower cross-platform style boundary.
         style={containerStyle as ComponentProps<typeof View>['style']}
       >
         {maxPressDistance === undefined ? (
@@ -216,13 +216,13 @@ function PreviewableImageContent({
         )}
         {phase !== 'error' ? overlay : null}
         {phase === 'error' ? (
-          <YStack fullscreen items="center" justify="center" pointerEvents="box-none">
+          <YStack position="absolute" inset={0} items="center" justify="center" pointerEvents="box-none">
             <StrictButton
-              size="$2"
-              fontSize="$caption"
-              px="$2"
-              bg="$background"
-              rounded="$2"
+              size="sm"
+              fontSize="caption"
+              px="7px"
+              bg="background"
+              rounded={5}
               icon={<RefreshCw size={14} />}
               accessibilityLabel={`${t('imagePreviewLoadFailed')}. ${t('retry')}`}
               accessibilityHint={accessibilityLabel}

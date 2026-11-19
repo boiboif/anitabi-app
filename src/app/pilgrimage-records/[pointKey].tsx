@@ -1,3 +1,4 @@
+import { Pencil, Square, SquareCheckBig, SquareMinus } from '@/components/icons';
 import ImagePreview, { type ImagePreviewBounds, type PreviewImage } from '@/components/image-preview/image-preview';
 import { StrictButton as Button } from '@/components/ui/strict-button';
 import { getPilgrimagePhotoUri, PilgrimagePhotoCleanupError } from '@/lib/pilgrimage-record-files';
@@ -8,7 +9,6 @@ import { deletePilgrimageSelection, type PilgrimageDeleteSelection } from '@/ser
 import { usePilgrimageRecords } from '@/store/use-pilgrimage-records';
 import { MaxContentWidth, PageHorizontalInset } from '@/tamagui.config';
 import { FlashList } from '@shopify/flash-list';
-import { Pencil, Square, SquareCheckBig, SquareMinus } from '@tamagui/lucide-icons-2';
 import { Image } from 'expo-image';
 import { Stack, useFocusEffect, useIsFocused, useLocalSearchParams, usePreventRemove, useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
@@ -196,17 +196,17 @@ export default function PilgrimagePointRecordsScreen() {
   };
 
   const filterNotice = hasDateFilter ? (
-    <XStack mx="$pageHorizontalInset" mt="$2" gap="$2" items="center" bg="$background" px="$2" py="$1" rounded="$3">
-      <Text flex={1} minW={0} color="$color11" fontSize="$footnote">
+    <XStack mx="pageHorizontalInset" mt="7px" gap="7px" items="center" bg="background" px="7px" py="0-5" rounded={7}>
+      <Text flex={1} minW={0} color="color-11" fontSize="footnote">
         {t('pilgrimageRecordsShowingDateRange', { start: range.startDate || '…', end: range.endDate || '…' })}
       </Text>
       <Button
-        chromeless
-        size="$2"
-        fontSize="$footnote"
-        px="$2"
+        variant="quiet"
+        size="sm"
+        fontSize="footnote"
+        px="7px"
         shrink={0}
-        color="$primary"
+        color="primary"
         disabled={deleting}
         onPress={() => {
           if (deleting) return;
@@ -227,19 +227,19 @@ export default function PilgrimagePointRecordsScreen() {
           title: point ? '' : t('pilgrimageRecords'),
           headerShadowVisible: false,
           headerStyle: { backgroundColor: theme.pageBackground.val },
-          headerTintColor: theme.color12.val,
+          headerTintColor: theme['color-12'].val,
           headerBackButtonDisplayMode: 'minimal',
           headerRight: () =>
             selecting ? (
-              <Button chromeless size="$3" disabled={deleting} onPress={exitDeleteMode} aria-label={t('cancel')}>
+              <Button variant="quiet" size="md" disabled={deleting} onPress={exitDeleteMode} aria-label={t('cancel')}>
                 {t('cancel')}
               </Button>
             ) : (
               <Button
-                chromeless
+                variant="quiet"
                 circular
-                size="$3"
-                color={!days.length || deleting ? '$color8' : '$color12'}
+                size="md"
+                color={!days.length || deleting ? 'color-8' : 'color-12'}
                 disabled={!days.length || deleting}
                 icon={<Pencil size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />}
                 onPress={enterDeleteMode}
@@ -248,17 +248,17 @@ export default function PilgrimagePointRecordsScreen() {
             ),
         }}
       />
-      <View flex={1} bg="$pageBackground" items="center">
-        <View flex={1} width="100%" maxW={MaxContentWidth}>
+      <View flex={1} bg="pageBackground" items="center">
+        <View flex={1} w="100%" maxW={MaxContentWidth}>
           {point ? (
-            <YStack px="$pageHorizontalInset" pb="$1" gap="$1">
-              <Text fontSize="$heading" fontWeight="700" color="$color12" selectable>
+            <YStack px="pageHorizontalInset" pb="0-5" gap="0-5">
+              <Text fontSize="heading" fontWeight="700" color="color-12" select="text">
                 {point.snapshot.pointName}
               </Text>
-              <Text fontSize="$footnote" color="$color11" selectable>
+              <Text fontSize="footnote" color="color-11" select="text">
                 {point.snapshot.bangumiName}
               </Text>
-              <Text fontSize="$footnote" color="$color11">
+              <Text fontSize="footnote" color="color-11">
                 {t('pilgrimageRecordsCounts', { days: days.length, photos: photos.length })}
               </Text>
             </YStack>
@@ -297,26 +297,26 @@ export default function PilgrimagePointRecordsScreen() {
                   >
                     <XStack
                       items="center"
-                      gap="$2"
-                      bg="$pageBackground"
-                      px={target === 'StickyHeader' ? '$pageHorizontalInset' : 0}
-                      pt="$3"
-                      pb="$2"
+                      gap="7px"
+                      bg="pageBackground"
+                      px={target === 'StickyHeader' ? 'pageHorizontalInset' : 0}
+                      pt="13px"
+                      pb="7px"
                     >
                       {selecting ? (
                         selected ? (
-                          <SquareCheckBig size={23} color="$primary" strokeWidth={2.5} />
+                          <SquareCheckBig size={23} color="primary" strokeWidth={2.5} />
                         ) : partial ? (
-                          <SquareMinus size={23} color="$primary" />
+                          <SquareMinus size={23} color="primary" />
                         ) : (
-                          <Square size={23} color="$color8" />
+                          <Square size={23} color="color-8" />
                         )
                       ) : null}
-                      <YStack flex={1} gap="$1">
-                        <Text fontSize="$body" fontWeight="600" color="$color12" selectable={!selecting}>
+                      <YStack flex={1} gap="0-5">
+                        <Text fontSize="body" fontWeight="600" color="color-12" select={selecting ? 'none' : 'text'}>
                           {item.day.dateKey}
                         </Text>
-                        <Text fontSize="$caption" color="$color11">
+                        <Text fontSize="caption" color="color-11">
                           {t('pilgrimageRecordsPhotoCount', { count: item.day.photos.length })}
                         </Text>
                       </YStack>
@@ -326,21 +326,21 @@ export default function PilgrimagePointRecordsScreen() {
               }
               if (item.type === 'empty') {
                 return (
-                  <YStack bg="$background" rounded="$3" p="$3" mb="$2">
-                    <Text fontSize="$footnote" color="$color11">
+                  <YStack bg="background" rounded={7} p="13px" mb="7px">
+                    <Text fontSize="footnote" color="color-11">
                       {t('pilgrimageRecordsNoPhotos')}
                     </Text>
                   </YStack>
                 );
               }
               return (
-                <XStack gap="$2" pb="$2">
+                <XStack gap="7px" pb="7px">
                   {[0, 1, 2].map((index) => {
                     const photo = item.photos[index];
                     if (!photo) return <View key={`empty:${index}`} flex={1} />;
                     const selected = checkedPhotoIds.has(photo.id);
                     return (
-                      <View key={photo.id} flex={1} aspectRatio={1} rounded="$2" overflow="hidden" bg="$color4">
+                      <View key={photo.id} flex={1} aspectRatio={1} rounded={5} overflow="hidden" bg="color-4">
                         <Pressable
                           testID={`pilgrimage-record-photo-${photo.id}`}
                           ref={(node) => {
@@ -373,16 +373,16 @@ export default function PilgrimagePointRecordsScreen() {
                                   r={0}
                                   b={0}
                                   l={0}
-                                  rounded="$2"
+                                  rounded={5}
                                   borderWidth={2}
-                                  borderColor="$primary"
+                                  borderColor="primary"
                                 />
                               ) : null}
-                              <View pointerEvents="none" position="absolute" t="$1" r="$1">
+                              <View pointerEvents="none" position="absolute" t="0-5" r="0-5">
                                 {selected ? (
-                                  <SquareCheckBig size={23} color="$primary" strokeWidth={2.5} />
+                                  <SquareCheckBig size={23} color="primary" strokeWidth={2.5} />
                                 ) : (
-                                  <Square size={23} color="$color8" />
+                                  <Square size={23} color="color-8" />
                                 )}
                               </View>
                             </>
@@ -395,10 +395,10 @@ export default function PilgrimagePointRecordsScreen() {
               );
             }}
             ListEmptyComponent={
-              <YStack minH={220} justify="center" items="center" gap="$3" px="$3">
+              <YStack minH={220} justify="center" items="center" gap="13px" px="13px">
                 <Text
-                  fontSize="$body"
-                  color="$color11"
+                  fontSize="body"
+                  color="color-11"
                   text="center"
                   accessibilityRole={loadError ? 'alert' : undefined}
                 >
@@ -411,11 +411,15 @@ export default function PilgrimagePointRecordsScreen() {
                   )}
                 </Text>
                 {loadError ? (
-                  <Text fontSize="$footnote" color="$color11" text="center">
+                  <Text fontSize="footnote" color="color-11" text="center">
                     {t('pilgrimageRecordsLoadFailedHint')}
                   </Text>
                 ) : null}
-                <Button bg="$color3" color="$color12" onPress={() => router.back()}>
+                <Button
+                  bg="color-3 hover:background-hover press:background-press"
+                  color="color-12"
+                  onPress={() => router.back()}
+                >
                   {t('pilgrimageRecordsBackToList')}
                 </Button>
               </YStack>
@@ -425,34 +429,34 @@ export default function PilgrimagePointRecordsScreen() {
             <XStack
               shrink={0}
               items="center"
-              gap="$2"
-              px="$pageHorizontalInset"
-              pt="$2"
+              gap="7px"
+              px="pageHorizontalInset"
+              pt="7px"
               pb={Math.max(insets.bottom, 12)}
-              bg="$pageBackground"
+              bg="pageBackground"
               borderTopWidth={1}
-              borderTopColor="$color5"
+              borderTopColor="color-5"
             >
               <Button
-                chromeless
-                size="$3"
-                color="$primary"
+                variant="quiet"
+                size="md"
+                color="primary"
                 disabled={deleting}
                 onPress={toggleAll}
                 aria-label={t(allSelected ? 'pilgrimageRecordsDeselectAll' : 'pilgrimageRecordsSelectAll')}
               >
                 {t(allSelected ? 'pilgrimageRecordsDeselectAll' : 'pilgrimageRecordsSelectAll')}
               </Button>
-              <Text flex={1} minW={0} fontSize="$caption" color="$color11">
+              <Text flex={1} minW={0} fontSize="caption" color="color-11">
                 {t('pilgrimageRecordsSelectionCount', { days: selectedDays.length, photos: selectedPhotos.length })}
               </Text>
               <Button
-                size="$3"
-                fontSize="$footnote"
-                color={hasSelection ? '$red9' : '$color8'}
-                bg="$color2"
+                size="md"
+                fontSize="footnote"
+                color={hasSelection ? 'red-9' : 'color-8'}
+                bg="color-2 hover:background-hover press:background-press"
                 variant="outlined"
-                borderColor={hasSelection ? '$red9' : '$color5'}
+                borderColor={hasSelection ? 'red-9' : 'color-5'}
                 disabled={!hasSelection || deleting}
                 onPress={confirmDelete}
                 aria-label={t('pilgrimageRecordsDeleteSelected')}

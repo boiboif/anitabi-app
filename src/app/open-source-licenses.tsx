@@ -1,8 +1,8 @@
+import { ChevronRight } from '@/components/icons';
 import { StrictButton as Button } from '@/components/ui/strict-button';
 import { useOpenSourceLibraries } from '@/hooks/use-open-source-libraries';
 import { getCurrentAppDisplayVersion } from '@/services/app-update';
 import { MaxContentWidth } from '@/tamagui.config';
-import { ChevronRight } from '@tamagui/lucide-icons-2';
 import * as Linking from 'expo-linking';
 import { Link, Stack, type Href, useLocalSearchParams } from 'expo-router';
 import { Alert, FlatList, Pressable } from 'react-native';
@@ -24,18 +24,18 @@ function LicenseListItem({ item }: { item: Library }) {
   const licenseCount = item.licenses.length;
 
   return (
-    <YStack width="100%" maxW={MaxContentWidth} self="center">
+    <YStack w="100%" maxW={MaxContentWidth} self="center">
       <Link href={{ pathname: '/open-source-license', params: { libraryId: item.id } } as unknown as Href} asChild>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`${item.name}，${t('licenseCount', { defaultValue: '{{count}} 份许可证', count: licenseCount })}`}
           style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}
         >
-          <YStack minH={76} justify="center" items="flex-start" px="$pageHorizontalInset" py="$3" gap="$0.5">
-            <Text selectable width="100%" fontSize="$subtitle" lineHeight={22} fontWeight="500" color="$color12">
+          <YStack minH={76} justify="center" items="flex-start" px="pageHorizontalInset" py="13px" gap="px">
+            <Text select="text" w="100%" fontSize="subtitle" lineHeight="22px" fontWeight="500" color="color-12">
               {item.name}
             </Text>
-            <Text width="100%" fontSize="$body" lineHeight={20} color="$color11">
+            <Text w="100%" fontSize="body" lineHeight="20px" color="color-11">
               {t('licenseCount', { defaultValue: '{{count}} 份许可证', count: licenseCount })}
             </Text>
           </YStack>
@@ -77,8 +77,8 @@ export default function OpenSourceLicensesScreen() {
         }}
         ListHeaderComponent={
           isAdditionalList ? (
-            <YStack width="100%" maxW={MaxContentWidth} self="center" px="$pageHorizontalInset" pt="$5" pb="$3">
-              <Text selectable fontSize="$body" lineHeight={22} color="$color11">
+            <YStack w="100%" maxW={MaxContentWidth} self="center" px="pageHorizontalInset" pt="6" pb="13px">
+              <Text select="text" fontSize="body" lineHeight="22px" color="color-11">
                 {t(
                   'theFollowingComponentsAreIndirectDependenciesAndRemainInTheFullListToMeetOpenSourceLicenseNoticeRequirements',
                   { defaultValue: '以下组件由项目依赖间接引入，保留在完整清单中以满足开源许可证声明要求。' },
@@ -86,11 +86,11 @@ export default function OpenSourceLicensesScreen() {
               </Text>
             </YStack>
           ) : (
-            <YStack width="100%" maxW={MaxContentWidth} self="center" items="center" pt="$8" pb="$6">
-              <Text selectable fontSize="$heading" lineHeight={30} fontWeight="500" color="$color12">
+            <YStack w="100%" maxW={MaxContentWidth} self="center" items="center" pt="46px" pb="8">
+              <Text select="text" fontSize="heading" lineHeight="30px" fontWeight="500" color="color-12">
                 Anitabi
               </Text>
-              <Text selectable mt="$0.5" fontSize="$body" lineHeight={20} color="$color12">
+              <Text select="text" mt="px" fontSize="body" lineHeight="20px" color="color-12">
                 {getCurrentAppDisplayVersion()}
               </Text>
 
@@ -106,12 +106,12 @@ export default function OpenSourceLicensesScreen() {
                 }
                 style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}
               >
-                <Text mt="$5" fontSize="$body" lineHeight={22} fontWeight="500" color="$color12">
+                <Text mt="6" fontSize="body" lineHeight="22px" fontWeight="500" color="color-12">
                   {t('openSourceLicenses', { defaultValue: '开源许可证' })}
                 </Text>
               </Pressable>
 
-              <Text mt="$5" fontSize="$body" lineHeight={22} color="$color12">
+              <Text mt="6" fontSize="body" lineHeight="22px" color="color-12">
                 {t('poweredByExpo', { defaultValue: '由 Expo 提供支持' })}
               </Text>
             </YStack>
@@ -129,27 +129,27 @@ export default function OpenSourceLicensesScreen() {
                 style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}
               >
                 <XStack
-                  width="100%"
+                  w="100%"
                   maxW={MaxContentWidth}
                   minH={76}
                   self="center"
                   items="center"
-                  px="$pageHorizontalInset"
-                  py="$3"
-                  gap="$3"
+                  px="pageHorizontalInset"
+                  py="13px"
+                  gap="13px"
                 >
-                  <YStack flex={1} gap="$0.5">
-                    <Text fontSize="$subtitle" lineHeight={22} fontWeight="500" color="$color12">
+                  <YStack flex={1} gap="px">
+                    <Text fontSize="subtitle" lineHeight="22px" fontWeight="500" color="color-12">
                       {t('otherThirdPartyDependencies', { defaultValue: '其他第三方依赖' })}
                     </Text>
-                    <Text fontSize="$body" lineHeight={20} color="$color11">
+                    <Text fontSize="body" lineHeight="20px" color="color-11">
                       {t('countComponentsViewFullNotices', {
                         defaultValue: '{{count}} 个组件，查看完整声明',
                         count: additionalLibraries.length,
                       })}
                     </Text>
                   </YStack>
-                  <ChevronRight size={20} color="$color10" />
+                  <ChevronRight size={20} color="color-10" />
                 </XStack>
               </Pressable>
             </Link>
@@ -157,23 +157,23 @@ export default function OpenSourceLicensesScreen() {
         }
         ListEmptyComponent={
           <YStack
-            width="100%"
+            w="100%"
             maxW={MaxContentWidth}
             self="center"
             items="center"
-            px="$pageHorizontalInset"
-            py="$8"
-            gap="$3"
+            px="pageHorizontalInset"
+            py="46px"
+            gap="13px"
           >
-            {isLoading ? <Spinner size="large" color="$primary" /> : null}
-            <Text text="center" fontSize="$body" lineHeight={22} color="$color11">
+            {isLoading ? <Spinner size="large" color="primary" /> : null}
+            <Text text="center" fontSize="body" lineHeight="22px" color="color-11">
               {isLoading
                 ? t('preparingOpenSourceLicenses', { defaultValue: '正在整理开源许可证…' })
                 : (error ??
                   t('noLicenseDataIsAvailableInThisBuild', { defaultValue: '当前构建中没有可显示的许可证数据。' }))}
             </Text>
             {error ? (
-              <Button bg="$primary" color="white" onPress={retry}>
+              <Button bg="primary" color="white" onPress={retry}>
                 {t('retry', { defaultValue: '重试' })}
               </Button>
             ) : null}

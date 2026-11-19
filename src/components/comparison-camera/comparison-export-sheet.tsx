@@ -44,7 +44,7 @@ function ToggleRow({
 }) {
   return (
     <XStack minH={46} items="center" gap={12}>
-      <Text flex={1} fontSize="$body" color="$color12">
+      <Text flex={1} fontSize="body" color="color-12">
         {label}
       </Text>
       <ThemeSwitch checked={checked} onCheckedChange={onChange} accessibilityLabel={label} hitSlop={8} />
@@ -91,14 +91,14 @@ export default function ComparisonExportSheet({ sheetRef, onExport, onDismiss, r
       // sits above it. Include the footer's measured height in the input clearance.
       scrollableOptions={{ keyboardScrollOffset: footerHeight + 24 }}
       cornerRadius={20}
-      backgroundColor={theme.color2.val}
+      backgroundColor={theme['color-2'].val}
       grabberOptions={{ color: theme.primary.val, adaptive: false, topMargin: 8, width: 42, height: 5 }}
       dismissible={!saving}
       draggable={!saving}
       onDidDismiss={() => onDismiss(latestSettings.current)}
       header={
         <YStack px={16} pt={24} pb={10}>
-          <Text fontSize="$subtitle" fontWeight="700" color="$color12">
+          <Text fontSize="subtitle" fontWeight="700" color="color-12">
             {t('comparisonExportConfiguration', { defaultValue: '导出配置' })}
           </Text>
         </YStack>
@@ -109,12 +109,12 @@ export default function ComparisonExportSheet({ sheetRef, onExport, onDismiss, r
           pt={12}
           pb={Math.max(insets.bottom, 12)}
           gap={12}
-          bg="$color2"
+          bg="color-2"
           onLayout={(event) => setFooterHeight(event.nativeEvent.layout.height)}
         >
           <Button
             flex={1}
-            bg="$color4"
+            bg="color-4 hover:background-hover press:background-press"
             disabled={saving}
             onPress={() => {
               void nativeSheet.current?.dismiss();
@@ -124,10 +124,10 @@ export default function ComparisonExportSheet({ sheetRef, onExport, onDismiss, r
           </Button>
           <Button
             flex={1}
-            bg="$primary"
+            bg="primary"
             color="white"
             disabled={!ready || saving}
-            disabledStyle={{ opacity: 0.42 }}
+            opacity="1 disabled:0.42"
             onPress={() => onExport(latestSettings.current)}
           >
             {saving ? <ActivityIndicator color="white" /> : t('comparisonExportAction', { defaultValue: '导出' })}
@@ -143,10 +143,10 @@ export default function ComparisonExportSheet({ sheetRef, onExport, onDismiss, r
         >
           <View gap={10}>
             <View gap={10}>
-              <Text color="$color10" fontSize="$caption" fontWeight="600">
+              <Text color="color-10" fontSize="caption" fontWeight="600">
                 {t('comparisonExportAppearance', { defaultValue: '外观' })}
               </Text>
-              <View bg="$background" rounded={10} px={12} py={8} gap={4}>
+              <View bg="background" rounded={10} px={12} py={8} gap={4}>
                 <ThemeChoiceChip.Group
                   inline
                   label={t('comparisonExportLayout')}
@@ -175,10 +175,10 @@ export default function ComparisonExportSheet({ sheetRef, onExport, onDismiss, r
                   />
                 ) : null}
                 <XStack items="center" justify="space-between">
-                  <Text color="$color12" fontSize="$body">
+                  <Text color="color-12" fontSize="body">
                     {t('comparisonExportBorderWidth', { defaultValue: '边框宽度' })}
                   </Text>
-                  <Text color="$color10" fontSize="$footnote">
+                  <Text color="color-10" fontSize="footnote">
                     {settings.borderWidth} px
                   </Text>
                 </XStack>
@@ -207,12 +207,12 @@ export default function ComparisonExportSheet({ sheetRef, onExport, onDismiss, r
                       label,
                       leading: (
                         <View
-                          width={14}
-                          height={14}
+                          w={14}
+                          h={14}
                           rounded={7}
                           bg={resolveComparisonBorderColor(color, theme.primary.val)}
                           borderWidth={1}
-                          borderColor="$color6"
+                          borderColor="color-6"
                         />
                       ),
                     };
@@ -240,10 +240,10 @@ export default function ComparisonExportSheet({ sheetRef, onExport, onDismiss, r
               </View>
             </View>
             <View gap={10}>
-              <Text color="$color10" fontSize="$caption" fontWeight="600">
+              <Text color="color-10" fontSize="caption" fontWeight="600">
                 {t('comparisonExportMetadata', { defaultValue: '元数据' })}
               </Text>
-              <View bg="$background" rounded={10} px={12} pb={12}>
+              <View bg="background" rounded={10} px={12} pb={12}>
                 <ToggleRow
                   label={t('comparisonExportShowName', { defaultValue: '显示巡礼者名字' })}
                   checked={settings.showName}
@@ -265,10 +265,10 @@ export default function ComparisonExportSheet({ sheetRef, onExport, onDismiss, r
               </View>
             </View>
             <View gap={10}>
-              <Text color="$color10" fontSize="$caption" fontWeight="600">
+              <Text color="color-10" fontSize="caption" fontWeight="600">
                 {t('comparisonExportContent', { defaultValue: '显示内容' })}
               </Text>
-              <View bg="$background" rounded={10} px={12}>
+              <View bg="background" rounded={10} px={12}>
                 {options.map((option) => (
                   <ToggleRow
                     key={option.field}

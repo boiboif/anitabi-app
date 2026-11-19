@@ -22,13 +22,13 @@ import {
   ScanLine,
   Share2,
   Trash2,
-} from '@tamagui/lucide-icons-2';
+} from '@/components/icons';
 import { useRouter } from 'expo-router';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Text, View, XStack, YStack, getTokens, useTheme } from 'tamagui';
+import { Text, View, XStack, YStack, useTheme } from 'tamagui';
 
 const emptyListStyle = { flex: 1 } as const;
 
@@ -51,22 +51,22 @@ const PlanHeaderActions = memo(function PlanHeaderActions({ onImport, onCreate }
   const toggleSortOrder = usePlans((state) => state.togglePlanListSortOrder);
 
   return (
-    <XStack items="center" gap="$1.5">
+    <XStack items="center" gap="1">
       <PlanSortButton sortOrder={sortOrder} onPress={toggleSortOrder} />
       <Button
-        chromeless
+        variant="quiet"
         circular
-        size="$3"
-        color="$color12"
+        size="md"
+        color="color-12"
         icon={<ScanLine size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />}
         aria-label={t('importPilgrimagePlan', { defaultValue: '导入巡礼计划' })}
         onPress={onImport}
       />
       <Button
-        chromeless
+        variant="quiet"
         circular
-        size="$3"
-        color="$color12"
+        size="md"
+        color="color-12"
         icon={<Plus size={ICON_BUTTON_ICON_SIZE} strokeWidth={2} />}
         aria-label={t('newPlan', { defaultValue: '新建计划' })}
         onPress={onCreate}
@@ -83,9 +83,9 @@ const PlanListHeader = memo(function PlanListHeader({ onImport, onCreate }: Plan
       minH={36}
       items="flex-start"
       justify="space-between"
-      mb={getCardListBoundarySpacing(getTokens().space['3'].val)}
+      mb={getCardListBoundarySpacing(13)}
     >
-      <Text fontSize="$heading" lineHeight={30} fontWeight="700" color="$color12" px="$1">
+      <Text fontSize="heading" lineHeight="30px" fontWeight="700" color="color-12" px="0-5">
         {t('pilgrimagePlans', { defaultValue: '巡礼计划' })}
       </Text>
       <PlanHeaderActions onImport={onImport} onCreate={onCreate} />
@@ -96,11 +96,11 @@ const PlanListHeader = memo(function PlanListHeader({ onImport, onCreate }: Plan
 const EmptyPlans = memo(function EmptyPlans({ onCreate }: EmptyPlansProps) {
   const { t } = useTranslation();
   return (
-    <YStack flex={1} minH={360} items="center" justify="center" gap="$3">
-      <Text fontSize="$body" color="$color11">
+    <YStack flex={1} minH={360} items="center" justify="center" gap="13px">
+      <Text fontSize="body" color="color-11">
         {t('noPilgrimagePlansYet', { defaultValue: '还没有巡礼计划' })}
       </Text>
-      <Button bg="$color3" color="$color12" icon={<Plus size={BLOCK_BUTTON_ICON_SIZE} />} onPress={onCreate}>
+      <Button bg="color-3" color="color-12" icon={<Plus size={BLOCK_BUTTON_ICON_SIZE} />} onPress={onCreate}>
         {t('createAPilgrimagePlan', { defaultValue: '创建巡礼计划' })}
       </Button>
     </YStack>
@@ -236,8 +236,8 @@ export default function PlansScreen() {
 
   return (
     <>
-      <YStack flex={1} bg="$pageBackground" pt={pagePaddingTop}>
-        <View mx="$pageHorizontalInset">
+      <YStack flex={1} bg="pageBackground" pt={pagePaddingTop}>
+        <View mx="pageHorizontalInset">
           <PlanListHeader onImport={openImportSheet} onCreate={openCreatePlan} />
         </View>
         <FlashList

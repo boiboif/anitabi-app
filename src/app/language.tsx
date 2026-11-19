@@ -1,10 +1,10 @@
+import { Check } from '@/components/icons';
 import { SettingCell } from '@/components/ui/settings/setting-cell';
 import { SettingsSection } from '@/components/ui/settings/settings-section';
 import { translateMessage, type TranslationMessage } from '@/i18n/messages';
 import type { LanguagePreference } from '@/lib/storage';
 import { useLanguagePreference } from '@/store/use-language-preference';
 import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
-import { Check } from '@tamagui/lucide-icons-2';
 import { useTranslation } from 'react-i18next';
 import { ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -34,13 +34,13 @@ export default function LanguageScreen() {
       contentInset={insets}
       contentContainerStyle={{ flexDirection: 'row', justifyContent: 'center' }}
     >
-      <View bg="$pageBackground" width="100%" maxW={MaxContentWidth} flex={1} px="$pageHorizontalInset" pt="$3">
+      <View bg="pageBackground" w="100%" maxW={MaxContentWidth} flex={1} px="pageHorizontalInset" pt="13px">
         <SettingsSection title={t('language', { defaultValue: '语言' })} hideTitleWhenSingle>
           {LANGUAGE_OPTIONS.map((option, index) => (
             <SettingCell
               key={option.preference}
               title={translateMessage(t, option.label)}
-              rightAccessory={preference === option.preference && <Check size={20} color="$primary" />}
+              rightAccessory={preference === option.preference && <Check size={20} color="primary" />}
               showDivider={index < LANGUAGE_OPTIONS.length - 1}
               accessibilityRole="radio"
               accessibilityState={{ checked: preference === option.preference }}

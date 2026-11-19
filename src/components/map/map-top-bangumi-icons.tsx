@@ -6,7 +6,7 @@ import type { Bangumi } from '@/services/types';
 import { useMapBangumiFilter } from '@/store/use-map-bangumi-filter';
 import { useMapBrowse } from '@/store/use-map-browse';
 import { createMapViewportContainsPoint, type MapViewportState } from '@/utils/map-viewport';
-import { X } from '@tamagui/lucide-icons-2';
+import { X } from '@/components/icons';
 import { Image } from 'expo-image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -126,11 +126,11 @@ export default function MapTopBangumiIcons({
   // 筛选模式：只显示选中的番剧 + X 取消按钮
   if (selectedBangumi) {
     const b = selectedBangumi;
-    const borderColor = b.color || theme.color12.val;
+    const borderColor = b.color || theme['color-12'].val;
     const visibleCount = bounds ? countVisiblePoints(b.points, containsPoint) : 0;
 
     return (
-      <View py="$3" pointerEvents="box-none">
+      <View py="13px" pointerEvents="box-none">
         <View
           pointerEvents="box-none"
           style={{
@@ -142,9 +142,9 @@ export default function MapTopBangumiIcons({
           }}
         >
           <View
-            bg="$color2"
-            gap="$2"
-            rounded="$10"
+            bg="color-2"
+            gap="7px"
+            rounded={34}
             flexDirection="row"
             items="center"
             boxShadow="0 2px 6px rgba(0,0,0,0.15)"
@@ -160,8 +160,8 @@ export default function MapTopBangumiIcons({
 
             <Text
               maxW={80}
-              color="$color11"
-              fontSize="$footnote"
+              color="color-11"
+              fontSize="footnote"
               fontWeight="500"
               numberOfLines={1}
               style={{ flexShrink: 1 }}
@@ -171,8 +171,8 @@ export default function MapTopBangumiIcons({
 
             <View
               rounded={999}
-              mr="$1.5"
-              height={22}
+              mr="1"
+              h={22}
               items="center"
               justify="center"
               style={{
@@ -182,7 +182,7 @@ export default function MapTopBangumiIcons({
                 borderRadius: 999,
               }}
             >
-              <Text fontSize="$footnote" fontWeight="600" numberOfLines={1} style={{ color: borderColor }}>
+              <Text fontSize="footnote" fontWeight="600" numberOfLines={1} style={{ color: borderColor }}>
                 {visibleCount}
               </Text>
             </View>
@@ -197,14 +197,14 @@ export default function MapTopBangumiIcons({
             })}
           >
             <View
-              bg="$color4"
-              rounded="$10"
+              bg="color-4"
+              rounded={34}
               items="center"
               justify="center"
               boxShadow="0 2px 6px rgba(0,0,0,0.15)"
               style={{ width: 40, height: 40 }}
             >
-              <ChevronUp size={20} color={theme.color11.val as GetThemeValueForKey<'color'>} />
+              <ChevronUp size={20} color={theme['color-11'].val as GetThemeValueForKey<'color'>} />
             </View>
           </Pressable> */}
 
@@ -217,14 +217,14 @@ export default function MapTopBangumiIcons({
             })}
           >
             <View
-              bg="$color2"
-              rounded="$10"
+              bg="color-2"
+              rounded={34}
               items="center"
               justify="center"
               boxShadow="0 2px 6px rgba(0,0,0,0.15)"
               style={{ width: 32, height: 32 }}
             >
-              <X size={18} color={theme.color11.val as GetThemeValueForKey<'color'>} />
+              <X size={18} color={theme['color-11'].val as GetThemeValueForKey<'color'>} />
             </View>
           </Pressable>
         </View>
@@ -235,7 +235,7 @@ export default function MapTopBangumiIcons({
   if (displayedBangumis.length === 0) return null;
 
   return (
-    <View py="$3" pointerEvents="box-none">
+    <View py="13px" pointerEvents="box-none">
       <ScrollView
         ref={scrollViewRef}
         horizontal
@@ -252,7 +252,7 @@ export default function MapTopBangumiIcons({
                 ? countVisiblePoints(b.points, containsPoint)
                 : 0))
             : 0;
-          const borderColor = b.color || theme.color12.val;
+          const borderColor = b.color || theme['color-12'].val;
 
           if (visibleCount === 0 && !isSelected) return null;
 
@@ -263,9 +263,9 @@ export default function MapTopBangumiIcons({
               style={({ pressed }) => ({ opacity: pressed ? 0.3 : !hasMapBangumiFilter || isSelected ? 1 : 0.5 })}
             >
               <View
-                bg="$color2"
-                gap="$2"
-                rounded="$10"
+                bg="color-2"
+                gap="7px"
+                rounded={34}
                 flexDirection="row"
                 items="center"
                 boxShadow="0 2px 4px rgba(0,0,0,0.05)"
@@ -281,8 +281,8 @@ export default function MapTopBangumiIcons({
 
                 <Text
                   maxW={80}
-                  color="$color11"
-                  fontSize="$footnote"
+                  color="color-11"
+                  fontSize="footnote"
                   fontWeight="500"
                   numberOfLines={1}
                   style={{ flexShrink: 1 }}
@@ -292,8 +292,8 @@ export default function MapTopBangumiIcons({
 
                 <View
                   rounded={999}
-                  mr="$1.5"
-                  height="70%"
+                  mr="1"
+                  h="70%"
                   items="center"
                   justify="center"
                   style={{
@@ -303,7 +303,7 @@ export default function MapTopBangumiIcons({
                     borderRadius: 999,
                   }}
                 >
-                  <Text fontSize="$footnote" fontWeight="600" numberOfLines={1} style={{ color: borderColor }}>
+                  <Text fontSize="footnote" fontWeight="600" numberOfLines={1} style={{ color: borderColor }}>
                     {visibleCount}
                   </Text>
                 </View>
@@ -322,8 +322,8 @@ export default function MapTopBangumiIcons({
             opacity: pressed ? 0.6 : 1,
           })}
         >
-          <View bg="$color2" px="$3" py="$1.5" rounded="$10" boxShadow="0 2px 4px rgba(0,0,0,0.05)">
-            <Text color="$color11" fontSize="$footnote" fontWeight="500">
+          <View bg="color-2" px="13px" py="1" rounded={34} boxShadow="0 2px 4px rgba(0,0,0,0.05)">
+            <Text color="color-11" fontSize="footnote" fontWeight="500">
               {t('clearFilters', { defaultValue: '清除筛选' })}
             </Text>
           </View>

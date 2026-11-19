@@ -11,14 +11,14 @@ export function SettingsSection({ title, children, hideTitleWhenSingle = false }
   const showTitle = title && (!hideTitleWhenSingle || Children.count(children) !== 1);
 
   return (
-    <View gap="$2.5">
+    <View gap="2-5">
       {showTitle ? (
-        <Text fontSize="$footnote" lineHeight={18} fontWeight="600" color="$color11" px="$1">
+        <Text fontSize="footnote" lineHeight="18px" fontWeight="600" color="color-11" px="0-5">
           {title}
         </Text>
       ) : null}
-      <View bg="$background" rounded="$4" overflow="hidden" style={{ borderCurve: 'continuous' }}>
-        <View px="$3">{children}</View>
+      <View bg="background" rounded={9} overflow="hidden" style={{ borderCurve: 'continuous' }}>
+        <View px="13px">{children}</View>
       </View>
     </View>
   );

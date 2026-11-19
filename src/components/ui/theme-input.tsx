@@ -1,29 +1,18 @@
-import { Input, styled } from 'tamagui';
+import { styled } from 'tamagui';
+import { Input } from 'tamagui/input';
 
-const ThemeInputFrame = styled(Input, {
+export const ThemeInput = styled(Input, {
   name: 'ThemeInput',
-  fontSize: '$body',
-  bg: '$color1',
-  color: '$color12',
+  size: false,
+  rounded: 9,
+  px: 16,
+  height: 44,
+  fontSize: 'body',
+  bg: 'color-1 disabled:color-3',
+  color: 'color-12 disabled:color-8',
   borderWidth: 1,
-  borderColor: '$color7',
-  cursorColor: '$primary',
-  hoverStyle: {
-    borderColor: '$color8',
-  },
-  focusStyle: {
-    borderColor: '$primary',
-  },
-  disabledStyle: {
-    bg: '$color3',
-    color: '$color8',
-    borderColor: '$color5',
-    opacity: 0.6,
-  },
-  placeholderTextColor: '$color8',
-});
-
-export const ThemeInput = ThemeInputFrame.styleable((props, ref) => {
-  // Native Input consumes disabled when deriving editable; preserve it for disabledStyle.
-  return <ThemeInputFrame {...props} ref={ref} aria-disabled={props.disabled || props['aria-disabled']} />;
-});
+  borderColor: 'color-7 hover:color-8 focus:primary disabled:color-5',
+  cursorColor: 'primary',
+  opacity: 'disabled:0.6',
+  placeholderTextColor: 'color-8',
+}).resolve((props) => (props.multiline ? { height: 'auto', py: 13 } : undefined));

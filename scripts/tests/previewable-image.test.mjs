@@ -54,7 +54,7 @@ function createHarness(initialProps = {}, reload = async () => {}) {
     '@/components/image-preview/image-preview': { default: 'ImagePreview' },
     '@/components/ui/strict-button': { StrictButton: 'StrictButton' },
     '@/utils/image-preview-source': { getPreviewContainerOrigin },
-    '@tamagui/lucide-icons-2': { RefreshCw: 'RefreshCw' },
+    '@/components/icons': { RefreshCw: 'RefreshCw' },
     'expo-image': { Image: 'Image' },
     'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'Fragment' },
     'react-i18next': { useTranslation: () => ({ t: (key) => key }) },

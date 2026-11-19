@@ -1,7 +1,7 @@
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi, Point } from '@/services/types';
-import { MapPinned } from '@tamagui/lucide-icons-2';
+import { MapPinned } from '@/components/icons';
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import QRCode from 'react-native-qrcode-svg';
@@ -38,8 +38,8 @@ export function PlanShareCard({ title, points, totalCount, shareUrl, displayOnly
   const qrValue = displayOnly ? APP_DOWNLOAD_URL : shareUrl;
 
   return (
-    <YStack width={360} height={480} bg="white" overflow="hidden" rounded={24}>
-      <View height={200} bg="#FCE8EE" position="relative">
+    <YStack w={360} h={480} bg="white" overflow="hidden" rounded={24}>
+      <View h={200} bg="#FCE8EE" position="relative">
         {imageUrl ? (
           <Image
             source={{ uri: imageUrl }}
@@ -52,12 +52,12 @@ export function PlanShareCard({ title, points, totalCount, shareUrl, displayOnly
             <MapPinned size={54} color="#FB7299" strokeWidth={1.6} />
           </YStack>
         )}
-        <View position="absolute" l={0} r={0} b={0} height={72} bg="rgba(0,0,0,0.36)" />
+        <View position="absolute" l={0} r={0} b={0} h={72} bg="rgba(0,0,0,0.36)" />
         <YStack position="absolute" l={18} r={18} b={14} gap={4}>
-          <Text color="white" fontSize={22} lineHeight={27} fontWeight="800" numberOfLines={2}>
+          <Text color="white" fontSize={22} lineHeight="27px" fontWeight="800" numberOfLines={2}>
             {title}
           </Text>
-          <Text color="rgba(255,255,255,0.92)" fontSize={12} lineHeight={16} fontWeight="600">
+          <Text color="rgba(255,255,255,0.92)" fontSize={12} lineHeight="16px" fontWeight="600">
             {t('locationCount', { defaultValue: '{{count}} 个点位', count: totalCount })} ·{' '}
             {t('workCount', { defaultValue: '{{count}} 部作品', count: bangumis.length })}
           </Text>
@@ -66,10 +66,10 @@ export function PlanShareCard({ title, points, totalCount, shareUrl, displayOnly
 
       <YStack flex={1} p={18} gap={12}>
         <YStack gap={4}>
-          <Text color="#9A5A6D" fontSize={10} lineHeight={14} fontWeight="700">
+          <Text color="#9A5A6D" fontSize={10} lineHeight="14px" fontWeight="700">
             {t('works', { defaultValue: '作品' })}
           </Text>
-          <Text color="#292126" fontSize={13} lineHeight={18} fontWeight="600" numberOfLines={2}>
+          <Text color="#292126" fontSize={13} lineHeight="18px" fontWeight="600" numberOfLines={2}>
             {visibleWorkNames.length > 0
               ? visibleWorkNames.join(' · ')
               : t('noWorksCanBeDisplayedInThisVersion', { defaultValue: '当前版本暂无可显示作品' })}
@@ -81,23 +81,23 @@ export function PlanShareCard({ title, points, totalCount, shareUrl, displayOnly
 
         <XStack flex={1} gap={14}>
           <YStack flex={1} minW={0} gap={7}>
-            <Text color="#9A5A6D" fontSize={10} lineHeight={14} fontWeight="700">
+            <Text color="#9A5A6D" fontSize={10} lineHeight="14px" fontWeight="700">
               {t('locations', { defaultValue: '巡礼点' })}
             </Text>
             {points.slice(0, VISIBLE_POINT_COUNT).map(({ bangumi, point }, index) => (
               <XStack key={`${bangumi.id}:${point.id}`} gap={7} items="flex-start">
-                <View width={17} height={17} rounded={9} bg="#FCE8EE" items="center" justify="center">
-                  <Text color="#D9537D" fontSize={9} lineHeight={12} fontWeight="800">
+                <View w={17} h={17} rounded={9} bg="#FCE8EE" items="center" justify="center">
+                  <Text color="#D9537D" fontSize={9} lineHeight="12px" fontWeight="800">
                     {index + 1}
                   </Text>
                 </View>
-                <Text flex={1} color="#4C4147" fontSize={11} lineHeight={16} numberOfLines={1}>
+                <Text flex={1} color="#4C4147" fontSize={11} lineHeight="16px" numberOfLines={1}>
                   {getPointTitle(point, i18n.resolvedLanguage) || t('unnamedLocation', { defaultValue: '未命名点位' })}
                 </Text>
               </XStack>
             ))}
             {totalCount > VISIBLE_POINT_COUNT ? (
-              <Text color="#9A8D93" fontSize={10} lineHeight={14}>
+              <Text color="#9A8D93" fontSize={10} lineHeight="14px">
                 {t('countMoreLocations', {
                   defaultValue: '还有 {{count}} 个点位',
                   count: totalCount - VISIBLE_POINT_COUNT,
@@ -107,7 +107,7 @@ export function PlanShareCard({ title, points, totalCount, shareUrl, displayOnly
           </YStack>
 
           {qrValue ? (
-            <YStack width={156} items="center" justify="center" gap={displayOnly ? 10 : 7}>
+            <YStack w={156} items="center" justify="center" gap={displayOnly ? 10 : 7}>
               <View
                 p={displayOnly ? 2 : 6}
                 bg="white"
@@ -117,8 +117,8 @@ export function PlanShareCard({ title, points, totalCount, shareUrl, displayOnly
                 overflow={displayOnly ? 'hidden' : undefined}
               >
                 <View
-                  width={140}
-                  height={140}
+                  w={140}
+                  h={140}
                   rounded={displayOnly ? 12 : undefined}
                   overflow={displayOnly ? 'hidden' : undefined}
                 >
@@ -135,16 +135,16 @@ export function PlanShareCard({ title, points, totalCount, shareUrl, displayOnly
                   />
                 </View>
               </View>
-              <Text color="#6C5E65" fontSize={9} lineHeight={12} text="center">
+              <Text color="#6C5E65" fontSize={9} lineHeight="12px" text="center">
                 {displayOnly
                   ? t('scanToDownloadAnitabi', { defaultValue: '扫码下载 Anitabi' })
                   : t('scanToImportPilgrimagePlan', { defaultValue: '扫码导入巡礼计划' })}
               </Text>
             </YStack>
           ) : (
-            <YStack width={156} items="center" justify="center" gap={7} p={12} rounded={16} bg="#FFF3F6">
+            <YStack w={156} items="center" justify="center" gap={7} p={12} rounded={16} bg="#FFF3F6">
               <MapPinned size={34} color="#FB7299" strokeWidth={1.8} />
-              <Text color="#9A5A6D" fontSize={10} lineHeight={14} fontWeight="700" text="center">
+              <Text color="#9A5A6D" fontSize={10} lineHeight="14px" fontWeight="700" text="center">
                 {t('planYourPilgrimageWithAnitabi', { defaultValue: '使用 Anitabi\n规划巡礼路线' })}
               </Text>
             </YStack>
@@ -152,10 +152,10 @@ export function PlanShareCard({ title, points, totalCount, shareUrl, displayOnly
         </XStack>
 
         <XStack items="center" justify="space-between">
-          <Text color="#FB7299" fontSize={12} lineHeight={16} fontWeight="800">
+          <Text color="#FB7299" fontSize={12} lineHeight="16px" fontWeight="800">
             Anitabi
           </Text>
-          <Text color="#A79BA1" fontSize={9} lineHeight={12}>
+          <Text color="#A79BA1" fontSize={9} lineHeight="12px">
             {t('animePilgrimageMap', { defaultValue: '动画巡礼地图' })}
           </Text>
         </XStack>

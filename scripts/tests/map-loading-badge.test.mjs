@@ -44,15 +44,15 @@ function render(progress, onRetry) {
 test('the compact track has a definite containing width and visible fill before any native layout event', () => {
   const { tree, track, fill } = render({ phase: 'downloading', batch: 3, total: 7 });
   const badge = nodes(tree).find((node) => node.type === 'YStack');
-  assert.equal(badge.props.width, 220);
+  assert.equal(badge.props.w, 220);
   assert.equal(badge.props.maxW, '85%', 'narrow screens still constrain the badge');
-  assert.equal(track.props.width, '100%');
-  assert.ok(Number.isFinite(track.props.height) && track.props.height > 0, 'the track has a definite visible height');
+  assert.equal(track.props.w, '100%');
+  assert.ok(Number.isFinite(track.props.h) && track.props.h > 0, 'the track has a definite visible height');
   assert.equal(track.props.overflow, 'hidden');
   assert.equal(track.props.accessible, true);
   assert.equal(track.props.accessibilityLabel, 'Loading locations');
-  assert.equal(fill.props.height, '100%');
-  assert.equal(fill.props.width, '41%');
+  assert.equal(fill.props.h, '100%');
+  assert.equal(fill.props.w, '41%');
   assert.ok(nodes(tree).every((node) => !node.props.onLayout && !node.props.transform && node.props.x === undefined));
   assert.equal(tree.props.t, 84);
   assert.equal(tree.props.pointerEvents, 'box-none');
@@ -68,7 +68,7 @@ test('fill and accessibility progress follow completed counts for the actual sha
     [6, 13, 44],
   ]) {
     const { track, fill } = render({ phase: 'downloading', batch, total });
-    assert.equal(fill.props.width, `${expected}%`);
+    assert.equal(fill.props.w, `${expected}%`);
     assert.equal(track.props.accessibilityValue.now, expected);
     assert.equal(track.props.accessibilityValue.min, 0);
     assert.equal(track.props.accessibilityValue.max, 100);
@@ -87,7 +87,7 @@ test('invalid or out-of-range counts cannot produce NaN, a negative fill or over
     [100, 7, 90],
   ]) {
     const { track, fill } = render({ phase: 'downloading', batch, total });
-    assert.equal(fill.props.width, `${expected}%`);
+    assert.equal(fill.props.w, `${expected}%`);
     assert.ok(Number.isFinite(track.props.accessibilityValue.now));
   }
 });
@@ -108,15 +108,15 @@ test('out-of-order shard completions advance the same seven-shard track by the c
     const now = track.props.accessibilityValue.now;
     assert.equal(now, expected[completed - 1]);
     assert.ok(now > previous);
-    assert.equal(fill.props.width, `${now}%`);
+    assert.equal(fill.props.w, `${now}%`);
     previous = now;
   }
 });
 
 test('checking and assembly occupy their own stages and completion removes the badge', () => {
-  assert.equal(render({ phase: 'checking' }).fill.props.width, '5%');
+  assert.equal(render({ phase: 'checking' }).fill.props.w, '5%');
   assert.equal(render({ phase: 'checking', message: undefined }).track.props.accessibilityLabel, '加载番剧列表…');
-  assert.equal(render({ phase: 'assembling' }).fill.props.width, '95%');
+  assert.equal(render({ phase: 'assembling' }).fill.props.w, '95%');
   assert.equal(render({ phase: 'done' }).tree, null);
 });
 

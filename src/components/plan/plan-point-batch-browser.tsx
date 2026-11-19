@@ -10,13 +10,13 @@ import { usePlans } from '@/store/use-plans';
 import { PageHorizontalInset } from '@/tamagui.config';
 import { groupPointsForDetails } from '@/utils/plan-point-batches';
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
-import { ChevronLeft } from '@tamagui/lucide-icons-2';
+import { ChevronLeft } from '@/components/icons';
 import { useFocusEffect, useIsFocused, usePreventRemove } from 'expo-router';
 import { type ReactNode, useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BackHandler, Keyboard, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { getTokens, Spinner, Text, useTheme, View, XStack, YStack } from 'tamagui';
+import { Spinner, Text, useTheme, View, XStack, YStack } from 'tamagui';
 import SearchBox from '../ui/search-box';
 
 export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
@@ -71,20 +71,20 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
 
   if (!data) {
     return (
-      <YStack flex={1} minH={220} items="center" justify="center" gap="$3" px="$pageHorizontalInset">
+      <YStack flex={1} minH={220} items="center" justify="center" gap="13px" px="pageHorizontalInset">
         {status === 'error' ? (
           <>
-            <Text fontSize="$body" color="$color11" text="center">
+            <Text fontSize="body" color="color-11" text="center">
               {error?.message || t('mapDataFailedToLoad', { defaultValue: '地图数据加载失败' })}
             </Text>
-            <Button color="$primary" onPress={() => void initialize()}>
+            <Button color="primary" onPress={() => void initialize()}>
               {t('retry', { defaultValue: '重试' })}
             </Button>
           </>
         ) : (
           <>
-            <Spinner color="$primary" />
-            <Text fontSize="$body" color="$color11">
+            <Spinner color="primary" />
+            <Text fontSize="body" color="color-11">
               {t('loadingWorkList', { defaultValue: '加载番剧列表…' })}
             </Text>
           </>
@@ -114,35 +114,35 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
         contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         ListHeaderComponent={
           <YStack
-            px="$pageHorizontalInset"
-            pt="$2"
-            pb={getCardListBoundarySpacing(getTokens().space['3'].val)}
-            gap="$2"
+            px="pageHorizontalInset"
+            pt="7px"
+            pb={getCardListBoundarySpacing(13)}
+            gap="7px"
           >
             <Pressable accessibilityRole="button" onPress={() => setBangumiId(undefined)} hitSlop={8}>
-              <XStack minH={40} items="center" gap="$1">
+              <XStack minH={40} items="center" gap="0-5">
                 <ChevronLeft size={18} color={theme.primary.val} />
-                <Text color="$primary" fontSize="$body">
+                <Text color="primary" fontSize="body">
                   {t('chooseAnotherWork', { defaultValue: '重新选择作品' })}
                 </Text>
               </XStack>
             </Pressable>
-            <Text fontSize="$subtitle" fontWeight="600" color="$color12">
+            <Text fontSize="subtitle" fontWeight="600" color="color-12">
               {selectedTitle}
             </Text>
-            <Text fontSize="$caption" color="$color10">
+            <Text fontSize="caption" color="color-10">
               {t('existingPointGroupsHint', { defaultValue: '沿用作品详情中的分组，已加入的点位会自动跳过。' })}
             </Text>
           </YStack>
         }
         renderItem={({ item }) => (
           <CardListItem horizontalInset={PageHorizontalInset}>
-            <XStack p="$3" gap="$2" items="center" rounded="$3" bg="$background">
-              <YStack flex={1} gap="$1">
-                <Text fontSize="$body" color="$color12" fontWeight={item.key === 'all' ? '600' : '400'}>
+            <XStack p="13px" gap="7px" items="center" rounded={7} bg="background">
+              <YStack flex={1} gap="0-5">
+                <Text fontSize="body" color="color-12" fontWeight={item.key === 'all' ? '600' : '400'}>
                   {item.title}
                 </Text>
-                <Text fontSize="$caption" color="$color10">
+                <Text fontSize="caption" color="color-10">
                   {t('locationCount', { defaultValue: '{{count}} 个点位', count: item.data.length })}
                 </Text>
               </YStack>
@@ -161,7 +161,7 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
   }
 
   return (
-    <View flex={1} position="relative" bg="$pageBackground">
+    <View flex={1} position="relative" bg="pageBackground">
       {/* Keep the work list mounted at its original size to retain its scroll position. */}
       <View
         flex={1}
@@ -171,10 +171,10 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
         importantForAccessibility={isBrowsingGroups ? 'no-hide-descendants' : 'auto'}
       >
         <YStack
-          px="$pageHorizontalInset"
-          pt="$2.5"
-          pb={getCardListBoundarySpacing(getTokens().space['3'].val)}
-          gap="$2"
+          px="pageHorizontalInset"
+          pt="2-5"
+          pb={getCardListBoundarySpacing(13)}
+          gap="7px"
         >
           <SearchBox
             value={query}
@@ -183,9 +183,9 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
             accessibilityLabel={t('searchWorksForPlan', { defaultValue: '搜索作品名称或城市' })}
             autoCorrect={false}
             returnKeyType="search"
-            placeholderTextColor="$color10"
+            placeholderTextColor="color-10"
           />
-          <Text fontSize="$caption" color="$color10">
+          <Text fontSize="caption" color="color-10">
             {t('chooseWorkForBatchPlan', { defaultValue: '选择作品，将全部点位或某个已有分组加入当前计划。' })}
           </Text>
         </YStack>
@@ -211,14 +211,14 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
             </CardListItem>
           )}
           ListEmptyComponent={
-            <YStack minH={180} px="$pageHorizontalInset" gap="$3" items="center" justify="center">
-              <Text fontSize="$body" color="$color11">
+            <YStack minH={180} px="pageHorizontalInset" gap="13px" items="center" justify="center">
+              <Text fontSize="body" color="color-11">
                 {isPartial
                   ? t('noMatchingLoadedLocations')
                   : t('noWorksAvailableForPlan', { defaultValue: '没有可添加的作品' })}
               </Text>
               {query ? (
-                <Button color="$primary" onPress={() => handleQueryChange('')}>
+                <Button color="primary" onPress={() => handleQueryChange('')}>
                   {t('clearWorkSearch', { defaultValue: '清除搜索' })}
                 </Button>
               ) : null}
@@ -227,7 +227,7 @@ export default function PlanPointBatchBrowser({ planId }: { planId: string }) {
         />
       </View>
       {groupList && (
-        <View position="absolute" t={0} r={0} b={0} l={0} bg="$pageBackground">
+        <View position="absolute" t={0} r={0} b={0} l={0} bg="pageBackground">
           {groupList}
         </View>
       )}

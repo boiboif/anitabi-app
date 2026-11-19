@@ -5,7 +5,7 @@ import { getCardListItemHeight } from '@/lib/card-list-layout';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
-import { Check, ListTodo } from '@tamagui/lucide-icons-2';
+import { Check, ListTodo } from '@/components/icons';
 import { forwardRef, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type NativeScrollEvent, type NativeSyntheticEvent, Pressable, type ScrollViewInstance } from 'react-native';
@@ -92,11 +92,11 @@ const PlanMapPointRow = memo(function PlanMapPointRow({
             }}
             style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
           >
-            <View width={30} height={30} items="center" justify="center">
+            <View w={30} h={30} items="center" justify="center">
               <Check
                 size={20}
                 strokeWidth={item.completed ? 3.5 : 3}
-                color={item.completed ? theme.primary.val : theme.color8.val}
+                color={item.completed ? theme.primary.val : theme['color-8'].val}
               />
             </View>
           </Pressable>
@@ -373,7 +373,7 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
       scrollable
       scrollableOptions={{ scrollingExpandsSheet: false }}
       cornerRadius={22}
-      backgroundColor={theme.color2.val}
+      backgroundColor={theme['color-2'].val}
       grabberOptions={{ color: theme.primary.val, adaptive: false, topMargin: 8, width: 42, height: 5 }}
       onWillPresent={() => {
         pendingScrollRef.current = true;
@@ -400,13 +400,13 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
         resetLocateButton();
       }}
       header={
-        <YStack bg="$color2" px="$4" pt="$5" pb="$2" gap="$0.5">
+        <YStack bg="color-2" px="18px" pt="6" pb="7px" gap="px">
           <XStack items="center" justify="space-between">
-            <Text fontSize="$subtitle" fontWeight="700" color="$color12">
+            <Text fontSize="subtitle" fontWeight="700" color="color-12">
               {t('planLocations', { defaultValue: '计划点位' })}
             </Text>
-            <XStack items="center" gap="$1">
-              <Text fontSize="$footnote" color="$color10" style={{ fontVariant: ['tabular-nums'] }}>
+            <XStack items="center" gap="0-5">
+              <Text fontSize="footnote" color="color-10" style={{ fontVariant: ['tabular-nums'] }}>
                 {completed} / {points.length}
               </Text>
               <Pressable
@@ -421,23 +421,23 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
                 onPress={toggleIncompleteFilter}
                 style={({ pressed }) => ({ opacity: pressed ? 0.58 : 1 })}
               >
-                <View width={36} height={32} items="center" justify="center">
+                <View w={36} h={32} items="center" justify="center">
                   {showIncompleteOnly ? (
-                    <ListTodo size={20} strokeWidth={2.2} color="$primary" />
+                    <ListTodo size={20} strokeWidth={2.2} color="primary" />
                   ) : (
-                    <ListTodo size={20} strokeWidth={2.2} color="$color10" />
+                    <ListTodo size={20} strokeWidth={2.2} color="color-10" />
                   )}
                 </View>
               </Pressable>
             </XStack>
           </XStack>
-          <Text fontSize="$caption" color="$color10">
+          <Text fontSize="caption" color="color-10">
             {t('tapALocationToShowItOnTheMap', { defaultValue: '点击点位即可在地图中定位' })}
           </Text>
         </YStack>
       }
       footer={
-        <View height={60} pr={40} pb={80} items="flex-end" justify="center" pointerEvents="box-none">
+        <View h={60} pr={40} pb={80} items="flex-end" justify="center" pointerEvents="box-none">
           {showLocateButton && selectedIndex >= 0 && (
             <Pressable
               accessibilityRole="button"
@@ -449,17 +449,17 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
               style={({ pressed }) => ({ opacity: isScrolling ? 0.4 : pressed ? 0.6 : 0.8 })}
             >
               <View
-                width={30}
-                height={30}
+                w={30}
+                h={30}
                 rounded={18}
-                bg={isDark ? '$color5' : '$color2'}
+                bg={isDark ? 'color-5' : 'color-2'}
                 borderWidth={1}
-                borderColor={isDark ? '$color8' : '$color5'}
-                boxShadow={isDark ? '0 3px 12px rgba(0,0,0,0.55)' : '0 2px 8px $shadowColor'}
+                borderColor={isDark ? 'color-8' : 'color-5'}
+                boxShadow={isDark ? '0 3px 12px rgba(0,0,0,0.55)' : '0 2px 8px shadow-color'}
                 items="center"
                 justify="center"
               >
-                <ScrollToSelectedIcon color={theme.color12.val} />
+                <ScrollToSelectedIcon color={theme['color-12'].val} />
               </View>
             </Pressable>
           )}
@@ -489,8 +489,8 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
           onMomentumScrollEnd={handleMomentumScrollEnd}
           scrollEventThrottle={16}
           ListEmptyComponent={
-            <YStack minH={180} items="center" justify="center" px="$4">
-              <Text color="$color11">
+            <YStack minH={180} items="center" justify="center" px="18px">
+              <Text color="color-11">
                 {showIncompleteOnly
                   ? t('noIncompleteLocations', { defaultValue: '没有未完成点位' })
                   : t('noLocationsInThisPlanYet', { defaultValue: '计划里还没有点位' })}

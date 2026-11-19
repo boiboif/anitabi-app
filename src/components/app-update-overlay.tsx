@@ -63,39 +63,39 @@ export function AppUpdateOverlay({ manager }: Props) {
       visible
       onRequestClose={binaryMandatory ? undefined : isBinary ? manager.dismissBinaryUpdate : manager.dismissHotUpdate}
     >
-      <View flex={1} bg="rgba(0,0,0,0.42)" items="center" justify="center" px="$5">
-        <YStack width="100%" bg="$background" style={{ maxWidth: 420, borderRadius: 24 }} p="$5" gap="$4">
-          <YStack gap="$1">
-            <Text fontSize="$title" fontWeight="700" color="$color12">
+      <View flex={1} bg="rgba(0,0,0,0.42)" items="center" justify="center" px="6">
+        <YStack w="100%" bg="background" p="6" gap="18px" style={{ maxWidth: 420, borderRadius: 24 }}>
+          <YStack gap="0-5">
+            <Text fontSize="title" fontWeight="700" color="color-12">
               {title}
             </Text>
             {isBinary ? (
-              <YStack gap="$1">
-                <Text fontSize="$footnote" color="$color11">
+              <YStack gap="0-5">
+                <Text fontSize="footnote" color="color-11">
                   {t('newVersionVVersion', { defaultValue: '新版本：v{{version}}', version: newVersion })}
                 </Text>
-                <Text fontSize="$footnote" color="$color11">
+                <Text fontSize="footnote" color="color-11">
                   {t('currentVersionVVersion', { defaultValue: '当前版本：v{{version}}', version: currentVersion })}
                 </Text>
               </YStack>
             ) : null}
           </YStack>
 
-          <YStack gap="$2">
+          <YStack gap="7px">
             {isBinary ? (
-              <Text fontSize="$footnote" fontWeight="600" color="$color12">
+              <Text fontSize="footnote" fontWeight="600" color="color-12">
                 {t('releaseNotes', { defaultValue: '更新信息' })}
               </Text>
             ) : null}
             <ScrollView style={{ maxHeight: 250 }}>
               {isBinary && applicableReleaseNotes.length > 0 ? (
-                <YStack gap="$3">
+                <YStack gap="13px">
                   {applicableReleaseNotes.map((entry) => (
-                    <YStack key={`${entry.displayVersion}-${entry.buildNumber ?? ''}`} gap="$1">
+                    <YStack key={`${entry.displayVersion}-${entry.buildNumber ?? ''}`} gap="0-5">
                       <Text
-                        fontSize="$footnote"
+                        fontSize="footnote"
                         fontWeight="600"
-                        color={entry.importance === 'major' ? '$primary' : '$color12'}
+                        color={entry.importance === 'major' ? 'primary' : 'color-12'}
                       >
                         {entry.importance === 'major'
                           ? t('majorReleaseVersion', {
@@ -104,14 +104,14 @@ export function AppUpdateOverlay({ manager }: Props) {
                             })
                           : t('releaseVersion', { defaultValue: 'v{{version}}', version: entry.displayVersion })}
                       </Text>
-                      <Text fontSize="$footnote" lineHeight={20} color="$color11">
+                      <Text fontSize="footnote" lineHeight="20px" color="color-11">
                         {entry.notes}
                       </Text>
                     </YStack>
                   ))}
                 </YStack>
               ) : (
-                <Text fontSize="$footnote" lineHeight={20} color="$color11">
+                <Text fontSize="footnote" lineHeight="20px" color="color-11">
                   {description}
                 </Text>
               )}
@@ -119,7 +119,7 @@ export function AppUpdateOverlay({ manager }: Props) {
           </YStack>
 
           {isIosBinary ? (
-            <Text fontSize="$footnote" lineHeight={20} color="$color11">
+            <Text fontSize="footnote" lineHeight="20px" color="color-11">
               {t('iosUpdateRequiresSigningAndSideloading', {
                 defaultValue: 'iOS 整包更新需要下载新版 IPA，并重新签名侧载安装，无法在应用内直接安装。',
               })}
@@ -127,27 +127,27 @@ export function AppUpdateOverlay({ manager }: Props) {
           ) : null}
 
           {showBinaryProgress ? (
-            <YStack gap="$2">
+            <YStack gap="7px">
               <XStack justify="space-between">
-                <Text fontSize="$footnote" color="$color11">
+                <Text fontSize="footnote" color="color-11">
                   {isDownloadingBinary
                     ? t('downloadingInstaller', { defaultValue: '正在下载安装包' })
                     : hasPartialDownload
                       ? t('downloadPaused', { defaultValue: '下载已暂停' })
                       : t('waitingToDownload', { defaultValue: '等待下载' })}
                 </Text>
-                <Text fontSize="$footnote" color="$color12">
+                <Text fontSize="footnote" color="color-12">
                   {progress}%
                 </Text>
               </XStack>
-              <Progress value={progress} bg="$color4" size="$3">
-                <Progress.Indicator bg="$primary" />
+              <Progress value={progress} bg="color-4" size="md">
+                <Progress.Indicator bg="primary" />
               </Progress>
             </YStack>
           ) : null}
 
           {isBinary && binaryDownloadError ? (
-            <Text fontSize="$footnote" color="$red10">
+            <Text fontSize="footnote" color="red-10">
               {binaryDownloadError}
             </Text>
           ) : null}
@@ -155,7 +155,7 @@ export function AppUpdateOverlay({ manager }: Props) {
           <XStack justify="space-between" flexWrap="wrap">
             {isBinary && isDownloadingBinary ? (
               <Button
-                chromeless
+                variant="quiet"
                 onPress={manager.cancelBinaryUpdate}
                 accessibilityRole="button"
                 accessibilityLabel={t('cancelInstallerDownload', { defaultValue: '取消下载安装包' })}
@@ -164,7 +164,7 @@ export function AppUpdateOverlay({ manager }: Props) {
               </Button>
             ) : !binaryMandatory ? (
               <Button
-                chromeless
+                variant="quiet"
                 onPress={isBinary ? manager.dismissBinaryUpdate : manager.dismissHotUpdate}
                 accessibilityRole="button"
               >
@@ -174,7 +174,7 @@ export function AppUpdateOverlay({ manager }: Props) {
             <XStack>
               {isBinary && !isIosBinary && !isBinaryDownloaded && !isDownloadingBinary ? (
                 <Button
-                  chromeless
+                  variant="quiet"
                   onPress={() => void manager.downloadBinaryUpdateInBrowser()}
                   accessibilityRole="button"
                   accessibilityLabel={t('downloadInstallerInBrowser', { defaultValue: '使用浏览器下载安装包' })}
@@ -183,8 +183,8 @@ export function AppUpdateOverlay({ manager }: Props) {
                 </Button>
               ) : null}
               <Button
-                chromeless
-                color="$primary"
+                variant="quiet"
+                color="primary"
                 disabled={isDownloadingBinary}
                 accessibilityState={{ disabled: isDownloadingBinary }}
                 opacity={isDownloadingBinary ? 0.5 : 1}

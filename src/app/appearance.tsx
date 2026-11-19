@@ -1,8 +1,8 @@
+import { Check, Moon } from '@/components/icons';
 import { SettingCell } from '@/components/ui/settings/setting-cell';
 import { SettingsSection } from '@/components/ui/settings/settings-section';
 import { useTabBarStyle } from '@/store/use-tab-bar-style';
 import { MaxContentWidth } from '@/tamagui.config';
-import { Check, Moon } from '@tamagui/lucide-icons-2';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ScrollView } from 'react-native';
@@ -28,7 +28,7 @@ export default function AppearanceScreen() {
       style={{ flex: 1, backgroundColor: theme.pageBackground?.val }}
       contentContainerStyle={{ alignItems: 'center', paddingBottom: insets.bottom + 24 }}
     >
-      <YStack width="100%" maxW={MaxContentWidth} px="$pageHorizontalInset" pt="$4" gap="$5">
+      <YStack w="100%" maxW={MaxContentWidth} px="pageHorizontalInset" pt="18px" gap="6">
         <SettingsSection>
           <SettingCell icon={Moon} title={t('darkMode')} onPress={() => router.navigate('/dark-mode')} />
         </SettingsSection>
@@ -37,7 +37,7 @@ export default function AppearanceScreen() {
             <SettingCell
               key={option.style}
               title={t(option.label)}
-              rightAccessory={style === option.style && <Check size={20} color="$primary" />}
+              rightAccessory={style === option.style && <Check size={20} color="primary" />}
               showDivider={index < TAB_BAR_OPTIONS.length - 1}
               accessibilityRole="radio"
               accessibilityState={{ checked: style === option.style }}

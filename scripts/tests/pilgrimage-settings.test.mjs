@@ -56,7 +56,7 @@ function settingsHarness(platform) {
       '@/lib/pilgrimage-navigation': navigation,
       '@/store/use-pilgrimage-preferences': { usePilgrimagePreferences },
       '@/tamagui.config': { MaxContentWidth: 800 },
-      '@tamagui/lucide-icons-2': { Check: 'Check' },
+      '@/components/icons': { Check: 'Check' },
       'react/jsx-runtime': { jsx, jsxs: jsx },
       'react-i18next': { useTranslation: () => ({ t: (key) => key }) },
       'react-native': { Platform: { OS: platform }, ScrollView: 'ScrollView' },

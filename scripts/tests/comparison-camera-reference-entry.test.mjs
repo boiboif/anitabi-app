@@ -75,7 +75,7 @@ function harness() {
       useTheme: () => theme,
       getTokens: () => ({ radius: new Proxy({}, { get: () => ({ val: 8 }) }) }),
     },
-    '@tamagui/lucide-icons-2': { Camera: 'Camera' },
+    '@/components/icons': { Camera: 'Camera' },
     'expo-router': {
       useRouter: () => ({ navigate: (navigation) => navigations.push(navigation), back() {} }),
       useLocalSearchParams: () => params,

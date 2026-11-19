@@ -272,7 +272,7 @@ function renderScreens(versionInfo, language = 'zh', updateManager = {}) {
     },
     '@/tamagui.config': { BottomTabInset: 0, MaxContentWidth: 600, TopLevelPageTopPadding: 12 },
     'expo-router/react-navigation': { HeaderTitle: 'HeaderTitle' },
-    '@tamagui/lucide-icons-2': new Proxy({}, { get: (_target, name) => name }),
+    '@/components/icons': new Proxy({}, { get: (_target, name) => name }),
     'expo-linking': { openURL: async () => {} },
     'expo-router': { router: { navigate() {} }, Stack: { Screen: 'Stack.Screen' } },
     react: { useState: (initial) => [initial, () => {}], useRef: (initial) => ({ current: initial }) },

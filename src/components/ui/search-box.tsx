@@ -1,11 +1,13 @@
+import { Search, X } from '@/components/icons';
 import { ThemeInput } from '@/components/ui/theme-input';
-import { Search, X } from '@tamagui/lucide-icons-2';
 import { BlurView } from 'expo-blur';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useRef, type ComponentProps, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Keyboard, Pressable, TouchableWithoutFeedback, type TextInputInstance } from 'react-native';
-import { getTokens, TamaguiElement, useThemeName, View } from 'tamagui';
+import { type TamaguiElement, useThemeName, View } from 'tamagui';
+
+const SEARCH_BOX_RADIUS = 26;
 
 type Props = {
   placeholder?: string;
@@ -45,7 +47,7 @@ export default function SearchBox({
     useCallback(() => {
       if (!focusOnRoute) return;
       const timer = setTimeout(() => {
-        // Tamagui 2's native ref type still names View; StyledInput supplies the focusable instance.
+        // Tamagui's cross-platform ref type names View; ThemeInput supplies the focusable native instance.
         const input = ref.current as Pick<TextInputInstance, 'focus'> | null;
         input?.focus();
       }, 300);
@@ -55,12 +57,12 @@ export default function SearchBox({
 
   return (
     <TouchableWithoutFeedback onPress={onPress}>
-      <View rounded="$9">
+      <View rounded={SEARCH_BOX_RADIUS}>
         <BlurView
           intensity={100}
           tint={theme}
           style={{
-            borderRadius: getTokens().radius['9'].val,
+            borderRadius: SEARCH_BOX_RADIUS,
             overflow: 'hidden',
             boxShadow: '0 0 2px 0 rgba(0, 0, 0, 0.1)',
           }}
@@ -74,19 +76,20 @@ export default function SearchBox({
               zIndex: 999,
             }}
           >
-            {left ?? <Search size={18} color="$primary" strokeWidth={3} />}
+            {left ?? <Search size={18} color="primary" strokeWidth={3} />}
           </View>
 
           <ThemeInput
+            theme={themeName}
             placeholder={placeholder ?? t('cityWorkOrLocation', { defaultValue: '城市、作品、地标' })}
             readOnly={readOnly}
             ref={ref}
             style={right || showClear ? { paddingRight: 40 } : undefined}
             rounded={28}
             paddingInlineStart={40}
-            height={44}
-            fontSize="$subtitle"
-            borderColor="$color4"
+            h={44}
+            fontSize="subtitle"
+            borderColor="color-4 hover:color-8 focus:primary disabled:color-5"
             bg="transparent"
             {...props}
           />

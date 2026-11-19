@@ -66,7 +66,7 @@ function createHarness(params = {}) {
     'react-native-safe-area-context': { useSafeAreaInsets: () => ({ top: 20, bottom: 10, left: 0, right: 0 }) },
     tamagui: { View: 'View', YStack: 'YStack', Text: 'Text' },
     'expo-router': { Stack: { Screen: 'Screen' }, useRouter: () => ({ back() {} }), useLocalSearchParams: () => ({ planId: 'plan', ...params }) },
-    '@tamagui/lucide-icons-2': { ArrowLeft: 'ArrowLeft', List: 'List' },
+    '@/components/icons': { ArrowLeft: 'ArrowLeft', List: 'List' },
     '@/hooks/use-map-locate': { useMapLocate: () => ({ handleLocate() {}, isLocating: false, isLocationPuckActive: true }) },
     '@/hooks/use-themed-map-style': { useThemedMapStyle: () => react.useState(0) },
     '@/lib/constants': { MAP_CONTROL_ICON_SIZE: 24, MAP_CONTROL_SIZE: 40, MAP_TOP_CONTROLS_TOP_OFFSET: 60 },

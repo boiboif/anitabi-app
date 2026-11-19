@@ -1,8 +1,15 @@
-import { Children, useRef } from 'react';
+import { useRef } from 'react';
 import type { GestureResponderEvent, LayoutChangeEvent, LayoutRectangle, PressableProps } from 'react-native';
-import { Button as TamaguiButton, type ButtonProps } from 'tamagui';
+import { Button as TamaguiButton, type ButtonProps } from 'tamagui/button';
 
 const strictPressRetentionOffset = { top: 0, right: 0, bottom: 0, left: 0 };
+
+// Preserve the app's v2 button geometry while v3 uses named control sizes.
+const buttonSizes = {
+  sm: { height: 28, padding: 7, radius: 5 },
+  md: { height: 36, padding: 13, radius: 7 },
+  lg: { height: 44, padding: 18, radius: 9 },
+} as const;
 
 type PressCoordinates = {
   x: number;
@@ -39,40 +46,55 @@ type StrictButtonProps = ButtonProps & Pick<PressableProps, 'onLayout' | 'onResp
 
 export function StrictButton({
   children,
-  size = '$4',
-  fontSize = '$body',
+  size = 'lg',
+  // The classic pack retains this relative theme; v3 types omit its component aliases.
+  theme = 'Button' as ButtonProps['theme'],
+  fontSize = 'body',
+  fontWeight = '400',
   onLayout,
   onPress,
-  onPressIn,
-  onResponderMove,
   pressRetentionOffset,
   ...props
 }: StrictButtonProps) {
   const layoutRef = useRef<LayoutRectangle | null>(null);
-  const pressInsideRef = useRef(true);
+  const dimensions =
+    size === true
+      ? buttonSizes.lg
+      : typeof size === 'string' && size in buttonSizes
+        ? buttonSizes[size as keyof typeof buttonSizes]
+        : undefined;
+  const circularSize = props.w ?? props.h ?? dimensions?.height;
 
   const handleLayout = (event: LayoutChangeEvent) => {
     layoutRef.current = event.nativeEvent.layout;
     onLayout?.(event);
   };
 
-  const handlePressIn = (event: GestureResponderEvent) => {
-    pressInsideRef.current = true;
-    onPressIn?.(event);
-  };
-
-  const handleResponderMove = (event: GestureResponderEvent) => {
-    pressInsideRef.current = isInsideLayout(getPressCoordinates(event), layoutRef.current);
-    onResponderMove?.(event);
-  };
-
   const handlePress = (event: GestureResponderEvent) => {
-    if (pressInsideRef.current && isInsideLayout(getPressCoordinates(event), layoutRef.current)) {
+    // V3 delegates move cancellation to RN Pressability. Check release coordinates
+    // as well: Pressability can miss the final position when no move arrives first.
+    if (isInsideLayout(getPressCoordinates(event), layoutRef.current)) {
       onPress?.(event);
     }
   };
 
   const buttonProps = {
+    opacity: 1,
+    ...(dimensions && {
+      h: dimensions.height,
+      minH: 0,
+      px: props.circular ? 0 : dimensions.padding,
+      py: 0,
+      rounded: props.circular ? 100_000 : dimensions.radius,
+      ...(props.circular && {
+        w: circularSize,
+        h: circularSize,
+        minW: circularSize,
+        maxW: circularSize,
+        minH: circularSize,
+        maxH: circularSize,
+      }),
+    }),
     ...props,
     // Keep false explicit so native buttons clear a previous disabled state.
     accessibilityState: {
@@ -80,22 +102,13 @@ export function StrictButton({
       disabled: props.disabled ?? props.accessibilityState?.disabled ?? false,
     },
     size,
+    theme,
+    fontSize,
+    fontWeight,
     onLayout: handleLayout,
-    onPressIn: handlePressIn,
-    onResponderMove: handleResponderMove,
     onPress: handlePress,
     pressRetentionOffset: pressRetentionOffset ?? strictPressRetentionOffset,
-  } as ButtonProps;
+  } satisfies StrictButtonProps;
 
-  return (
-    <TamaguiButton {...buttonProps}>
-      {Children.map(children, (child) =>
-        typeof child === 'string' || typeof child === 'number' ? (
-          <TamaguiButton.Text fontSize={fontSize}>{child}</TamaguiButton.Text>
-        ) : (
-          child
-        ),
-      )}
-    </TamaguiButton>
-  );
+  return <TamaguiButton {...buttonProps}>{children}</TamaguiButton>;
 }

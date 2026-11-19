@@ -23,15 +23,15 @@ const PlanListSettingsSheet = forwardRef<TrueSheet, Props>(function PlanListSett
       ref={ref}
       detents={['auto']}
       cornerRadius={18}
-      backgroundColor={theme.color2.val}
+      backgroundColor={theme['color-2'].val}
       grabberOptions={{ color: theme.primary.val, adaptive: false, topMargin: 8, width: 42, height: 5 }}
     >
-      <YStack px="$4" pt="$5" pb="$4" gap="$2">
-        <Text fontSize="$subtitle" fontWeight="700" color="$color12">
+      <YStack px="18px" pt="6" pb="18px" gap="7px">
+        <Text fontSize="subtitle" fontWeight="700" color="color-12">
           {t('planListSettings', { defaultValue: '列表设置' })}
         </Text>
-        <XStack minH={48} gap="$3" items="center" justify="space-between">
-          <Text flex={1} fontSize="$body" color="$color12">
+        <XStack minH={48} gap="13px" items="center" justify="space-between">
+          <Text flex={1} fontSize="body" color="color-12">
             {t('showIncompleteLocationsOnly', { defaultValue: '仅显示未完成点位' })}
           </Text>
           <ThemeSwitch
@@ -41,12 +41,12 @@ const PlanListSettingsSheet = forwardRef<TrueSheet, Props>(function PlanListSett
             accessibilityLabel={t('showIncompleteLocationsOnly', { defaultValue: '仅显示未完成点位' })}
           />
         </XStack>
-        <XStack minH={48} gap="$3" items="center" justify="space-between">
+        <XStack minH={48} gap="13px" items="center" justify="space-between">
           <YStack justify="center">
-            <Text fontSize="$body" color="$color12">
+            <Text fontSize="body" color="color-12">
               {t('planSortByDistance', { defaultValue: '距离由近到远' })}
             </Text>
-            <Text fontSize="$caption" color="$color10">
+            <Text fontSize="caption" color="color-10">
               {t('planDistanceStraightLine', { defaultValue: '显示直线距离，不改变计划顺序' })}
             </Text>
           </YStack>

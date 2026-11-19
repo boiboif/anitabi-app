@@ -133,7 +133,7 @@ function shareScreenHarness(sharing) {
     '@/tamagui.config': { PageHorizontalInset: 12 },
     '@/utils/bangumi-point-lookup': {},
     '@boiboif/react-native-toast': {},
-    '@tamagui/lucide-icons-2': { FileJson: 'FileJson', Share2: 'Share2' },
+    '@/components/icons': { FileJson: 'FileJson', Share2: 'Share2' },
     'expo-router': {
       Stack: { Screen: 'Stack.Screen' },
       useLocalSearchParams: () => ({ planId: 'plan', displayOnly }),

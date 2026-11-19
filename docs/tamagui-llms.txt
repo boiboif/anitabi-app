@@ -1,5 +1,26 @@
 # Tamagui Complete Documentation
 
+## Anitabi App · Tamagui 3.3.3 and Config v6
+
+This reference snapshot includes older APIs. Check the v3 upgrade guide and
+Config v6 documentation for changed APIs.
+
+- The app uses `createV6Config` with the classic theme pack. Apply its classic
+  adaptive colors as `color-12`, `red-10`, and similar bare keys. The root themes
+  provide `pageBackground`, `background`, and `tabBarIndicator` for shared app
+  surfaces and native navigation.
+- Write conditional styles on the affected property, such as
+  `borderColor="border-color hover:border-color-hover focus:primary"`.
+  When overriding a property's value, also carry forward the conditions you need.
+- Config v6 uses a 4px spacing grid. Translate old v5 scale entries by their
+  resolved size. An exact pixel length can be written as a number for spacing
+  or a `px` string for absolute `lineHeight` on Tamagui components.
+- Use `tamagui/button`, `tamagui/input`, `tamagui/slider`, and `tamagui/switch`
+  for the app's shared controls. App icons are available at `@/components/icons`.
+
+https://tamagui.dev/docs/guides/how-to-upgrade
+https://tamagui.dev/docs/core/config-v6
+
 > Tamagui is a complete UI solution for React Native and Web, with a fully-featured UI kit, styling engine, and optimizing compiler.
 
 

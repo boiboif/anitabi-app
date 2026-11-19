@@ -108,7 +108,7 @@ function createHarness({ startDate = '', endDate = '' } = {}) {
       View: 'View',
       XStack: 'XStack',
       YStack: 'YStack',
-      useTheme: () => ({ pageBackground: { val: '#fff' }, color12: { val: '#111' }, primary: { val: '#e00' } }),
+      useTheme: () => ({ pageBackground: { val: '#fff' }, 'color-12': { val: '#111' }, primary: { val: '#e00' } }),
     },
     'expo-router': {
       ...navigation,
@@ -119,7 +119,7 @@ function createHarness({ startDate = '', endDate = '' } = {}) {
     '@react-navigation/native': navigation,
     'expo-image': { Image: 'Image' },
     '@shopify/flash-list': { FlashList: 'FlashList' },
-    '@tamagui/lucide-icons-2': new Proxy({}, { get: (_, name) => name }),
+    '@/components/icons': new Proxy({}, { get: (_, name) => name }),
     '@/components/image-preview/image-preview': { __esModule: true, default: 'ImagePreview' },
     '@/components/ui/strict-button': { StrictButton: 'Button' },
     '@/lib/pilgrimage-record-files': {

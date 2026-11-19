@@ -1,0 +1,30 @@
+import type { JSX } from 'react';
+import { Svg, Path, type SvgProps } from 'react-native-svg';
+import { themed, type IconProps } from '@tamagui/helpers-icon';
+
+export const Undo2: (props: IconProps) => JSX.Element = themed(function Undo2(props: IconProps) {
+  const {
+    color = 'black',
+    size = 24,
+    ...otherProps
+  } = props as SvgProps & {
+    color?: string;
+    size?: number;
+  };
+  return (
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...otherProps}
+    >
+      <Path d="M9 14 4 9l5-5" stroke={color} />
+      <Path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11" stroke={color} />
+    </Svg>
+  );
+});

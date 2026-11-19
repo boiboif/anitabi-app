@@ -1,4 +1,4 @@
-import { Heart } from '@tamagui/lucide-icons-2';
+import { Heart } from '@/components/icons';
 import { Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme, View } from 'tamagui';
@@ -15,7 +15,7 @@ export default function RemoveFavoriteButton({ onPress }: { onPress: () => void 
       onPress={onPress}
       style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
     >
-      <View width={36} height={36} rounded="$9" bg="$color2" items="center" justify="center">
+      <View w={36} h={36} rounded={26} bg="color-2" items="center" justify="center">
         <Heart size={18} color={theme.primary.val} fill={theme.primary.val} />
       </View>
     </Pressable>

@@ -129,7 +129,7 @@ function createHarness({ platform = 'android', permission = true, failAt, record
     },
     'react-native-safe-area-context': { useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) },
     tamagui: { View: 'View', XStack: 'XStack', YStack: 'YStack', useTheme: () => ({ primary: { val: '#123456' } }) },
-    '@tamagui/lucide-icons-2': {},
+    '@/components/icons': {},
     '@boiboif/react-native-toast': { Toast: { show: (message) => toasts.push(message) } },
     'expo-image': { Image: 'Image' },
     'expo-file-system': {

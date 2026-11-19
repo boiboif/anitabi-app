@@ -25,12 +25,12 @@ export default function ComparisonCameraRoute() {
 
   if (!bangumi || !point) {
     return (
-      <View flex={1} bg="black" items="center" justify="center" gap="$3" p="$4">
+      <View flex={1} bg="black" items="center" justify="center" gap="13px" p="18px">
         <StatusBar hidden />
-        <Text color="white" fontSize="$subtitle" fontWeight="700">
+        <Text color="white" fontSize="subtitle" fontWeight="700">
           {t('couldNotLoadLocation', { defaultValue: '无法加载巡礼点' })}
         </Text>
-        <Text color="$gray10" fontSize="$footnote" text="center">
+        <Text color="gray-10" fontSize="footnote" text="center">
           {!data || isPartial
             ? t('locationDetailsNotLoaded')
             : t('theLocationMayStillBeLoadingOrMayNoLongerBeAvailable', {
@@ -42,7 +42,7 @@ export default function ComparisonCameraRoute() {
           onPress={() => router.back()}
           style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
         >
-          <XStack mt="$4" px="$8" py="$2" rounded={999} bg="$primary" items="center">
+          <XStack mt="18px" px="46px" py="7px" rounded={999} bg="primary" items="center">
             <Text color="white" fontWeight="700">
               {t('back', { defaultValue: '返回' })}
             </Text>

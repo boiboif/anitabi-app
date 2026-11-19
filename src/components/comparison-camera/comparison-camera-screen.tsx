@@ -5,6 +5,7 @@ import {
 } from '@/components/comparison-camera/comparison-camera-layout';
 import { ComparisonImagePressable } from '@/components/comparison-camera/comparison-image-pressable';
 import ComparisonResultModal from '@/components/comparison-camera/comparison-result-modal';
+import { Blend, Columns2, Images, Layers2, SwitchCamera, Undo2, X, Zap, ZapOff } from '@/components/icons';
 import { ThemeSlider } from '@/components/ui/theme-slider';
 import { useComparisonReferenceImage } from '@/hooks/use-comparison-reference-image';
 import { useImageLoading } from '@/hooks/use-image-loading';
@@ -24,14 +25,13 @@ import { type CameraZoomState, restoreCameraZoom } from '@/lib/comparison-camera
 import { readPhotoCaptureTime } from '@/lib/comparison-export';
 import { getCameraRatioPreference, setCameraRatioPreference } from '@/lib/storage';
 import type { Bangumi, Point } from '@/services/types';
-import { Blend, Columns2, Images, Layers2, SwitchCamera, Undo2, X, Zap, ZapOff } from '@tamagui/lucide-icons-2';
 import { File } from 'expo-file-system';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useIsFocused, useRouter } from 'expo-router';
 import { type ComponentProps, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Alert, Linking, Pressable, StatusBar, StyleSheet } from 'react-native';
+import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StatusBar, StyleSheet } from 'react-native';
 import Animated, {
   Easing,
   type SharedValue,
@@ -53,7 +53,7 @@ import {
   useOrientation,
   usePhotoOutput,
 } from 'react-native-vision-camera';
-import { ScrollView, Text, View, XStack, YStack } from 'tamagui';
+import { Text, View, XStack, YStack } from 'tamagui';
 
 export type CameraAssistMode = 'split' | 'overlay';
 
@@ -85,6 +85,7 @@ const ORIENTATION_ANIMATION_DURATION_MS = 280;
 const STARTUP_LOADING_DELAY_MS = 200;
 const CAMERA_CONTROL_BACKGROUND = '#1c1c1e';
 const CAMERA_CONTROL_FOREGROUND = '#c7c7cc';
+const quickZoomScrollContentStyle = { flexGrow: 1, alignItems: 'center', justifyContent: 'center' } as const;
 const AnimatedImage = Animated.createAnimatedComponent(Image);
 
 function getReferenceImageLayout(orientationRotation: string, viewport?: ReferenceViewport) {
@@ -183,9 +184,9 @@ function IconButton({
       style={({ pressed }) => ({ opacity: disabled ? 0.38 : pressed ? 0.68 : 1 })}
     >
       <View
-        width={size}
-        height={size}
-        rounded="$9"
+        w={size}
+        h={size}
+        rounded={26}
         items="center"
         justify="center"
         bg={backgroundColor ?? (showBackground ? 'rgba(0,0,0,0.5)' : 'transparent')}
@@ -199,10 +200,10 @@ function IconButton({
 function GridOverlay() {
   return (
     <View pointerEvents="none" position="absolute" t={0} r={0} b={0} l={0}>
-      <View position="absolute" t={0} b={0} l="33.333%" width={StyleSheet.hairlineWidth} bg="rgba(255,255,255,0.42)" />
-      <View position="absolute" t={0} b={0} l="66.666%" width={StyleSheet.hairlineWidth} bg="rgba(255,255,255,0.42)" />
-      <View position="absolute" l={0} r={0} t="33.333%" height={StyleSheet.hairlineWidth} bg="rgba(255,255,255,0.42)" />
-      <View position="absolute" l={0} r={0} t="66.666%" height={StyleSheet.hairlineWidth} bg="rgba(255,255,255,0.42)" />
+      <View position="absolute" t={0} b={0} l="33.333%" w={StyleSheet.hairlineWidth} bg="rgba(255,255,255,0.42)" />
+      <View position="absolute" t={0} b={0} l="66.666%" w={StyleSheet.hairlineWidth} bg="rgba(255,255,255,0.42)" />
+      <View position="absolute" l={0} r={0} t="33.333%" h={StyleSheet.hairlineWidth} bg="rgba(255,255,255,0.42)" />
+      <View position="absolute" l={0} r={0} t="66.666%" h={StyleSheet.hairlineWidth} bg="rgba(255,255,255,0.42)" />
     </View>
   );
 }
@@ -690,7 +691,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
   );
   const quickZoomControl =
     quickZoomValues.length > 1 ? (
-      <XStack height={36} items="center" justify="center" gap={6}>
+      <XStack h={36} items="center" justify="center" gap={6}>
         {quickZoomValues.map((value, index) => {
           const selected = index === selectedQuickZoomIndex;
           const targetLabel = `${Number(value.toFixed(1))}x`;
@@ -719,17 +720,10 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
                 onPress={() => selectQuickZoom(value)}
                 style={({ pressed }) => ({ opacity: !cameraReady || capturing ? 0.38 : pressed ? 0.68 : 1 })}
               >
-                <View
-                  width={32}
-                  height={32}
-                  rounded="$9"
-                  items="center"
-                  justify="center"
-                  bg={CAMERA_CONTROL_BACKGROUND}
-                >
+                <View w={32} h={32} rounded={26} items="center" justify="center" bg={CAMERA_CONTROL_BACKGROUND}>
                   <Text
-                    color={selected ? '$primary' : CAMERA_CONTROL_FOREGROUND}
-                    fontSize="$caption"
+                    color={selected ? 'primary' : CAMERA_CONTROL_FOREGROUND}
+                    fontSize="caption"
                     fontWeight={selected ? '700' : '500'}
                   >
                     {label}
@@ -823,10 +817,10 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
     return (
       <YStack flex={1} bg="black" items="center" justify="center" p={24}>
         <StatusBar hidden />
-        <Text color="white" fontSize="$heading" fontWeight="700">
+        <Text color="white" fontSize="heading" fontWeight="700">
           {t('cameraPermissionRequired', { defaultValue: '需要相机权限' })}
         </Text>
-        <Text mt={10} color="#a1a1a6" fontSize="$body" text="center">
+        <Text mt={10} color="#a1a1a6" fontSize="body" text="center">
           {t('allowCameraAccessToTakePilgrimageComparisonPhotos', {
             defaultValue: '允许访问相机后才能拍摄巡礼对比图。',
           })}
@@ -839,14 +833,14 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
           }}
           style={({ pressed }) => ({ marginTop: 24, opacity: pressed ? 0.68 : 1 })}
         >
-          <View minW={160} height={46} rounded={6} items="center" justify="center" bg="white">
-            <Text color="#111111" fontSize="$body" fontWeight="700">
+          <View minW={160} h={46} rounded={6} items="center" justify="center" bg="white">
+            <Text color="#111111" fontSize="body" fontWeight="700">
               {t('allowCamera', { defaultValue: '授权相机' })}
             </Text>
           </View>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={() => router.back()} style={{ marginTop: 12, padding: 12 }}>
-          <Text color="#a1a1a6" fontSize="$body">
+          <Text color="#a1a1a6" fontSize="body">
             {t('back', { defaultValue: '返回' })}
           </Text>
         </Pressable>
@@ -884,7 +878,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
   ) : null;
 
   const referencePane = (
-    <View width={referenceFrame.width} height={referenceFrame.height} overflow="hidden" bg="#090909">
+    <View w={referenceFrame.width} h={referenceFrame.height} overflow="hidden" bg="#090909">
       <ComparisonImagePressable
         accessibilityRole="button"
         accessibilityLabel={t('chooseReferenceImage', { defaultValue: '选择参考图' })}
@@ -924,15 +918,15 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
         pointerEvents={showStage ? 'auto' : 'none'}
       >
         {referencePane}
-        <View width={cameraFrame.width} height={cameraFrame.height} overflow="hidden" bg="#090909">
+        <View w={cameraFrame.width} h={cameraFrame.height} overflow="hidden" bg="#090909">
           {cameraView}
           <GridOverlay />
         </View>
       </YStack>
     ) : (
       <View
-        width={cameraFrame.width}
-        height={cameraFrame.height}
+        w={cameraFrame.width}
+        h={cameraFrame.height}
         overflow="hidden"
         bg="#090909"
         opacity={showStage ? 1 : 0}
@@ -960,7 +954,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
             disabled={capturing || pickerVisible}
             style={{ position: 'absolute', alignSelf: 'center', top: '40%' }}
           >
-            <View width={44} height={44} rounded="$9" items="center" justify="center" bg="rgba(0,0,0,0.58)">
+            <View w={44} h={44} rounded={26} items="center" justify="center" bg="rgba(0,0,0,0.58)">
               <OrientationRotation rotation={orientationRotationValue}>
                 <Images size={20} color="#ffffff" />
               </OrientationRotation>
@@ -984,10 +978,10 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
       items="stretch"
       justify="center"
     >
-      <View height={44} shrink={0} justify="center">
+      <View h={44} shrink={0} justify="center">
         {assistMode === 'overlay' ? (
-          <XStack width="100%" height={44} gap={8} items="center">
-            <View width={36} height={44} shrink={0} items="center" justify="center">
+          <XStack w="100%" h={44} gap={8} items="center">
+            <View w={36} h={44} shrink={0} items="center" justify="center">
               <OrientationRotation rotation={orientationRotationValue}>
                 <Blend size={16} color="#c7c7cc" />
               </OrientationRotation>
@@ -1006,7 +1000,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
           </XStack>
         ) : null}
       </View>
-      <View flexDirection="row" items="center" justify="space-around" gap={28} width="100%">
+      <View flexDirection="row" items="center" justify="space-around" gap={28} w="100%">
         <IconButton
           showBackground
           accessibilityLabel={t('chooseReferenceImageFromPhotos', { defaultValue: '从相册选择参考图' })}
@@ -1027,20 +1021,8 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
             transform: [{ scale: pressed ? 0.94 : 1 }],
           })}
         >
-          <View
-            width={64}
-            height={64}
-            rounded={999}
-            borderWidth={3}
-            borderColor="white"
-            items="center"
-            justify="center"
-          >
-            {capturing ? (
-              <ActivityIndicator color="#111111" />
-            ) : (
-              <View width={50} height={50} rounded="$9" bg="white" />
-            )}
+          <View w={64} h={64} rounded={999} borderWidth={3} borderColor="white" items="center" justify="center">
+            {capturing ? <ActivityIndicator color="#111111" /> : <View w={50} h={50} rounded={26} bg="white" />}
           </View>
         </Pressable>
         <IconButton
@@ -1073,7 +1055,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
         justify="space-between"
         px={12}
         pt={insets.top}
-        height={insets.top + COMPARISON_CAMERA_TOP_REGION_HEIGHT}
+        h={insets.top + COMPARISON_CAMERA_TOP_REGION_HEIGHT}
         bg="black"
       >
         <IconButton
@@ -1110,7 +1092,7 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
             </OrientationRotation>
           )}
           {flashMode !== 'off' ? (
-            <Text position="absolute" r={3} b={2} color="white" fontSize="$caption" fontWeight="800">
+            <Text position="absolute" r={3} b={2} color="white" fontSize="caption" fontWeight="800">
               {flashMode === 'auto' ? 'A' : 'ON'}
             </Text>
           ) : null}
@@ -1133,18 +1115,18 @@ export default function ComparisonCameraScreen({ bangumi, point, initialReferenc
           ) : null}
         </View>
         {/* Reserve a fixed-height row between the preview and shutter panel. Only icons and labels rotate. */}
-        <XStack height={48} shrink={0} px={12} py={12} gap={16} items="center" bg="black">
-          <View width={36} height={36} shrink={0} pointerEvents="none" />
-          <View flex={1} minW={0} height={36}>
+        <XStack h={48} shrink={0} px={12} py={12} gap={16} items="center" bg="black">
+          <View w={36} h={36} shrink={0} pointerEvents="none" />
+          <View flex={1} minW={0} h={36}>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ grow: 1, items: 'center', justify: 'center' }}
+              contentContainerStyle={quickZoomScrollContentStyle}
             >
               {quickZoomControl}
             </ScrollView>
           </View>
-          <View width={36} height={36} shrink={0}>
+          <View w={36} h={36} shrink={0}>
             {assistModeControl}
           </View>
         </XStack>

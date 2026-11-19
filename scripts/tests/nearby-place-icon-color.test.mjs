@@ -12,7 +12,7 @@ const modules = {
   'react/jsx-runtime': { jsx, jsxs: jsx },
   tamagui: { View: 'View' },
   'expo-image': { Image: 'Image' },
-  '@tamagui/lucide-icons-2': { Shield: 'Shield', Fuel: 'Fuel' },
+  '@/components/icons': { Shield: 'Shield', Fuel: 'Fuel' },
 };
 const module = { exports: {} };
 vm.runInNewContext(compiled, { module, exports: module.exports, require(name) {
@@ -31,7 +31,7 @@ test('the initial icon frame contains the decoded source without a temporary fal
   assert.equal(image.props.transition, 0);
   assert.equal(image.props.onLoad, undefined);
   assert.equal(image.props.tintColor, undefined, 'white artwork remains intact');
-  assert.equal(icon.props.width, 16);
+  assert.equal(icon.props.w, 16);
 });
 
 test('switching icons renders only the new decoded source; a failed preparation uses the final fallback immediately', () => {

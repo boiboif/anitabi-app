@@ -1,5 +1,5 @@
 import { MAP_CONTROL_SIZE } from '@/lib/constants';
-import { Building2 } from '@tamagui/lucide-icons-2';
+import { Building2 } from '@/components/icons';
 import { useTranslation } from 'react-i18next';
 import { Pressable } from 'react-native';
 import { Text, YStack } from 'tamagui';
@@ -24,23 +24,23 @@ export default function Building3DSwitch({ enabled, onChange }: Props) {
       accessibilityState={{ checked: enabled }}
     >
       <YStack
-        width={MAP_CONTROL_SIZE}
-        height={MAP_CONTROL_SIZE}
+        w={MAP_CONTROL_SIZE}
+        h={MAP_CONTROL_SIZE}
         rounded={MAP_CONTROL_SIZE / 2}
-        bg={enabled ? '$primary' : '$background'}
+        bg={enabled ? 'primary' : 'background'}
         boxShadow="0 0 4px rgba(0,0,0,0.2)"
         items="center"
         justify="center"
         gap={0}
         pointerEvents="none"
       >
-        <Building2 size={18} color={enabled ? 'white' : '$color11'} />
+        <Building2 size={18} color={enabled ? 'white' : 'color-11'} />
         <Text
           maxW="100%"
           fontSize={9}
-          lineHeight={11}
+          lineHeight="11px"
           fontWeight="600"
-          color={enabled ? 'white' : '$color11'}
+          color={enabled ? 'white' : 'color-11'}
           text="center"
           numberOfLines={1}
           adjustsFontSizeToFit

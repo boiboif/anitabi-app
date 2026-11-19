@@ -46,7 +46,7 @@ function cardFor(point, language) {
     'react-i18next': { useTranslation: () => ({ t: i18n.t.bind(i18n) }) },
     'react-native': { Pressable: 'Pressable' },
     tamagui: { Text: 'Text', View: 'View', XStack: 'XStack', YStack: 'YStack' },
-    '@tamagui/lucide-icons-2': { CalendarDays: 'CalendarDays', ChevronRight: 'ChevronRight' },
+    '@/components/icons': { CalendarDays: 'CalendarDays', ChevronRight: 'ChevronRight' },
     'expo-image': { Image: 'Image' },
     dayjs: { default: dayjs },
     '@/lib/pilgrimage-record-files': { getPilgrimagePhotoUri: (photo) => `file:///records/${photo.fileName}` },

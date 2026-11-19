@@ -2,7 +2,7 @@ import { StrictButton as Button } from '@/components/ui/strict-button';
 import PreviewGallery, { type PreviewGalleryRef } from '@/components/image-preview/image-preview-gallery';
 import { useImagePreviewActions } from '@/components/image-preview/use-image-preview-actions';
 import { getPreviewSourceGeometry, type ImagePreviewBounds } from '@/utils/image-preview-source';
-import { X } from '@tamagui/lucide-icons-2';
+import { X } from '@/components/icons';
 import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -427,13 +427,13 @@ function PreviewSession({
           </Animated.View>
         </Animated.View>
         <Animated.View pointerEvents={closing ? 'none' : 'box-none'} style={chromeStyle}>
-          <XStack items="center" justify="space-between" gap="$3">
+          <XStack items="center" justify="space-between" gap="13px">
             <Button
               circular
-              width={44}
-              height={44}
+              w={44}
+              h={44}
               bg="rgba(40,40,40,0.7)"
-              p="$0"
+              p="0"
               accessibilityLabel={t('closeImagePreview')}
               onPress={() => close()}
             >
@@ -442,7 +442,7 @@ function PreviewSession({
             {images.length > 1 ? (
               <Text
                 color="white"
-                fontSize="$footnote"
+                fontSize="footnote"
                 accessibilityLabel={t('imagePreviewPage', { current: index + 1, total: images.length })}
               >
                 {index + 1} / {images.length}
@@ -451,9 +451,17 @@ function PreviewSession({
           </XStack>
         </Animated.View>
         {!closing && actions.busy ? (
-          <YStack position="absolute" b={insets.bottom + 28} l={20} r={20} items="center" gap="$2" pointerEvents="none">
+          <YStack
+            position="absolute"
+            b={insets.bottom + 28}
+            l={20}
+            r={20}
+            items="center"
+            gap="7px"
+            pointerEvents="none"
+          >
             <Spinner color="white" />
-            <Text color="white" fontSize="$footnote" accessibilityLiveRegion="polite">
+            <Text color="white" fontSize="footnote" accessibilityLiveRegion="polite">
               {t(actions.busy === 'save' ? 'saving' : 'imagePreviewPreparingShare')}
             </Text>
           </YStack>
@@ -462,12 +470,12 @@ function PreviewSession({
             <PreviewLoadingIndicator key={`${activeImage.id}:${retries[activeImage.id] ?? 0}`} />
           </YStack>
         ) : !closing && status === 'error' ? (
-          <YStack position="absolute" b={insets.bottom + 28} l={20} r={20} items="center" gap="$2">
-            <Text color="white" fontSize="$footnote">
+          <YStack position="absolute" b={insets.bottom + 28} l={20} r={20} items="center" gap="7px">
+            <Text color="white" fontSize="footnote">
               {t('imagePreviewLoadFailed')}
             </Text>
             <Button
-              bg="$color3"
+              bg="color-3"
               onPress={() => {
                 setStatuses((previous) => ({ ...previous, [activeImage.id]: 'loading' }));
                 setRetries((previous) => ({ ...previous, [activeImage.id]: (previous[activeImage.id] ?? 0) + 1 }));

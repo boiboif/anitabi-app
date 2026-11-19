@@ -1,3 +1,4 @@
+import { CircleUserRound, Github, Globe2, Guitar, Palette, RefreshCw, Scale } from '@/components/icons';
 import { SettingCell } from '@/components/ui/settings/setting-cell';
 import { SettingsSection } from '@/components/ui/settings/settings-section';
 import { useAppUpdateManager } from '@/hooks/use-app-update-manager';
@@ -9,7 +10,6 @@ import {
   getCurrentAppVersionInfo,
 } from '@/services/app-update';
 import { MaxContentWidth } from '@/tamagui.config';
-import { CircleUserRound, Github, Globe2, Guitar, Palette, RefreshCw, Scale } from '@tamagui/lucide-icons-2';
 import * as Linking from 'expo-linking';
 import { router, Stack } from 'expo-router';
 import { HeaderTitle } from 'expo-router/react-navigation';
@@ -190,7 +190,7 @@ export default function AboutScreen() {
           ...contentPlatformStyle,
         }}
       >
-        <View bg="$pageBackground" width="100%" maxW={MaxContentWidth} flex={1} px="$pageHorizontalInset" gap="$5">
+        <View bg="pageBackground" w="100%" maxW={MaxContentWidth} flex={1} px="pageHorizontalInset" gap="6">
           <SettingsSection title={t('openSource', { defaultValue: '开源' })} hideTitleWhenSingle>
             <SettingCell
               icon={Scale}

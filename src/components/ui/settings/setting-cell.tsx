@@ -1,5 +1,5 @@
 import type { IconProps } from '@tamagui/helpers-icon';
-import { ChevronRight } from '@tamagui/lucide-icons-2';
+import { ChevronRight } from '@/components/icons';
 import type { ComponentType, ReactNode } from 'react';
 import { Pressable, StyleSheet, type AccessibilityRole, type AccessibilityState } from 'react-native';
 import { Text, View, XStack, YStack } from 'tamagui';
@@ -35,32 +35,32 @@ export function SettingCell({
 }: SettingCellProps) {
   const minHeight = compact ? 56 : 62;
   const content = (
-    <XStack items="center" gap="$4">
+    <XStack items="center" gap="18px">
       {Icon ? (
         <View minH={minHeight} items="center" justify="center">
-          <Icon size={20} color="$color12" />
+          <Icon size={20} color="color-12" />
         </View>
       ) : null}
       <YStack flex={1}>
-        <XStack minH={minHeight} items="center" gap="$3">
-          <YStack flex={1} gap="$0.5" justify="center">
-            <Text fontSize="$body" lineHeight={20} fontWeight="600" color="$color12">
+        <XStack minH={minHeight} items="center" gap="13px">
+          <YStack flex={1} gap="px" justify="center">
+            <Text fontSize="body" lineHeight="20px" fontWeight="600" color="color-12">
               {title}
             </Text>
             {description ? (
-              <Text fontSize="$caption" lineHeight={16} color="$color11">
+              <Text fontSize="caption" lineHeight="16px" color="color-11">
                 {description}
               </Text>
             ) : null}
           </YStack>
           {value ? (
-            <Text fontSize="$caption" color="$color10">
+            <Text fontSize="caption" color="color-10">
               {value}
             </Text>
           ) : null}
-          {rightAccessory ?? (onPress ? <ChevronRight size={20} color="$color10" /> : null)}
+          {rightAccessory ?? (onPress ? <ChevronRight size={20} color="color-10" /> : null)}
         </XStack>
-        {showDivider ? <View bg="$color4" height={StyleSheet.hairlineWidth} /> : null}
+        {showDivider ? <View bg="color-4" h={StyleSheet.hairlineWidth} /> : null}
       </YStack>
     </XStack>
   );

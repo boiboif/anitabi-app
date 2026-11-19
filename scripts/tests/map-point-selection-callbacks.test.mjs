@@ -200,7 +200,7 @@ function createHarness(mode = 'plan') {
       SelectedMapPointLayer: 'SelectedMapPointLayer',
     },
     '@rnmapbox/maps': { MapView: 'MapView', Camera: 'Camera', Images: 'Images', Image: 'Image', MarkerView: 'MarkerView' },
-    '@tamagui/lucide-icons-2': { Bus: 'Bus', Fuel: 'Fuel', Hospital: 'Hospital', School: 'School', Shield: 'Shield', Train: 'Train', Utensils: 'Utensils' },
+    '@/components/icons': { Bus: 'Bus', Fuel: 'Fuel', Hospital: 'Hospital', School: 'School', Shield: 'Shield', Train: 'Train', Utensils: 'Utensils' },
     'react-native-svg': { __esModule: true, default: 'Svg', Circle: 'Circle', Path: 'Path' },
     tamagui: { YStack: 'YStack', useTheme: () => ({ primary: { val: '#000' } }) },
   };

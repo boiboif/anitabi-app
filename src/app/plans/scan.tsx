@@ -3,7 +3,7 @@ import i18n from '@/i18n';
 import { decodeSharedPlanValue } from '@/lib/plan-sharing';
 import { BLOCK_BUTTON_ICON_SIZE, ICON_BUTTON_ICON_SIZE } from '@/lib/ui-sizes';
 import { usePlanImport } from '@/store/use-plan-import';
-import { Images, ScanLine, X } from '@tamagui/lucide-icons-2';
+import { Images, ScanLine, X } from '@/components/icons';
 import { CameraView, scanFromURLAsync, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { Stack, useRouter } from 'expo-router';
@@ -142,21 +142,21 @@ export default function ScanPlanScreen() {
 
   if (!permission.granted) {
     return (
-      <YStack flex={1} bg="$pageBackground" px="$6" items="center" justify="center" gap="$3">
+      <YStack flex={1} bg="pageBackground" px="8" items="center" justify="center" gap="13px">
         <Stack.Screen options={{ headerShown: false }} />
-        <ScanLine size={36} color="$primary" strokeWidth={1.8} />
-        <Text color="$color12" fontSize="$subtitle" fontWeight="700" text="center">
+        <ScanLine size={36} color="primary" strokeWidth={1.8} />
+        <Text color="color-12" fontSize="subtitle" fontWeight="700" text="center">
           {t('cameraPermissionRequired', { defaultValue: '需要相机权限' })}
         </Text>
-        <Text color="$color11" fontSize="$footnote" lineHeight={19} text="center">
+        <Text color="color-11" fontSize="footnote" lineHeight="19px" text="center">
           {t('theCameraIsOnlyUsedToReadPilgrimagePlanQrCodesItWillNotTakeOrSavePhotos', {
             defaultValue: '相机只用于识别巡礼计划二维码，不会拍摄或保存照片。',
           })}
         </Text>
         {permission.canAskAgain ? (
           <Button
-            mt="$2"
-            bg="$primary"
+            mt="7px"
+            bg="primary"
             color="white"
             icon={<ScanLine size={BLOCK_BUTTON_ICON_SIZE} color="white" />}
             disabled={requestingPermission}
@@ -167,11 +167,11 @@ export default function ScanPlanScreen() {
               : t('allowCameraAccess', { defaultValue: '允许使用相机' })}
           </Button>
         ) : (
-          <Button mt="$2" bg="$primary" color="white" onPress={() => void Linking.openSettings()}>
+          <Button mt="7px" bg="primary" color="white" onPress={() => void Linking.openSettings()}>
             {t('openSystemSettings', { defaultValue: '前往系统设置' })}
           </Button>
         )}
-        <Button chromeless color="$color11" onPress={close}>
+        <Button variant="quiet" color="color-11" onPress={close}>
           {t('cancel', { defaultValue: '取消' })}
         </Button>
       </YStack>
@@ -180,15 +180,15 @@ export default function ScanPlanScreen() {
 
   if (cameraError) {
     return (
-      <YStack flex={1} bg="$pageBackground" px="$6" items="center" justify="center" gap="$3">
+      <YStack flex={1} bg="pageBackground" px="8" items="center" justify="center" gap="13px">
         <Stack.Screen options={{ headerShown: false }} />
-        <Text color="$color12" fontSize="$subtitle" fontWeight="700" text="center">
+        <Text color="color-12" fontSize="subtitle" fontWeight="700" text="center">
           {t('couldNotOpenCamera', { defaultValue: '无法打开相机' })}
         </Text>
-        <Text color="$color11" fontSize="$footnote" lineHeight={19} text="center" selectable>
+        <Text color="color-11" fontSize="footnote" lineHeight="19px" text="center" select="text">
           {cameraError}
         </Text>
-        <Button bg="$color3" color="$color12" onPress={close}>
+        <Button bg="color-3" color="color-12" onPress={close}>
           {t('back', { defaultValue: '返回' })}
         </Button>
       </YStack>
@@ -207,15 +207,15 @@ export default function ScanPlanScreen() {
       />
 
       <View position="absolute" t={0} r={0} b={0} l={0} pointerEvents="none" items="center" justify="center">
-        <View width={248} height={248} rounded={24} borderWidth={3} borderColor="white" />
+        <View w={248} h={248} rounded={24} borderWidth={3} borderColor="white" />
       </View>
 
       <View position="absolute" t={insets.top + 8} l={12}>
         <Button
           circular
-          width={42}
-          height={42}
-          p="$0"
+          w={42}
+          h={42}
+          p="0"
           bg="rgba(0,0,0,0.48)"
           icon={<X size={ICON_BUTTON_ICON_SIZE} color="white" />}
           onPress={close}
@@ -223,18 +223,18 @@ export default function ScanPlanScreen() {
         />
       </View>
 
-      <XStack position="absolute" l={24} r={24} b={insets.bottom + 24} items="center" justify="center" gap="$2">
-        <XStack minH={44} px="$3" rounded="$4" bg="rgba(0,0,0,0.58)" items="center" gap="$2">
+      <XStack position="absolute" l={24} r={24} b={insets.bottom + 24} items="center" justify="center" gap="7px">
+        <XStack minH={44} px="13px" rounded={9} bg="rgba(0,0,0,0.58)" items="center" gap="7px">
           <ScanLine size={ICON_BUTTON_ICON_SIZE} color="white" />
-          <Text color="white" fontSize="$footnote" fontWeight="600" numberOfLines={1}>
+          <Text color="white" fontSize="footnote" fontWeight="600" numberOfLines={1}>
             {t('positionTheQrCodeFromTheSharedImageInsideTheFrame', { defaultValue: '将分享图片中的二维码放入框内' })}
           </Text>
         </XStack>
         <Button
           circular
-          width={44}
-          height={44}
-          p="$0"
+          w={44}
+          h={44}
+          p="0"
           bg="rgba(0,0,0,0.64)"
           icon={
             pickingImage ? (

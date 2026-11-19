@@ -1,5 +1,5 @@
 import { MAP_CONTROL_ICON_SIZE, MAP_CONTROL_SIZE } from '@/lib/constants';
-import { Image, ImageOff } from '@tamagui/lucide-icons-2';
+import { Image, ImageOff } from '@/components/icons';
 import { Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from 'tamagui';
@@ -25,7 +25,7 @@ export default function PointImageMarkerSwitch({ visible, onChange }: Props) {
       accessibilityLabel={label}
       accessibilityState={{ checked: visible }}
     >
-      <Icon size={MAP_CONTROL_ICON_SIZE} color="$color11" />
+      <Icon size={MAP_CONTROL_ICON_SIZE} color="color-11" />
     </Pressable>
   );
 }

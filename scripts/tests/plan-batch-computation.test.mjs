@@ -22,7 +22,7 @@ function loadSource(path, modules) {
 const jsx = (type, props, key) => ({ type, props, key });
 const t = (key, options) =>
   (options?.defaultValue ?? key).replace(/\{\{(\w+)\}\}/gu, (_, name) => String(options[name]));
-const theme = { primary: { val: 'pink' }, color2: { val: '#eee' }, color8: { val: '#888' } };
+const theme = { primary: { val: 'pink' }, 'color-2': { val: '#eee' }, 'color-8': { val: '#888' } };
 const commonModules = {
   'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'Fragment' },
   'react-i18next': { useTranslation: () => ({ t }) },
@@ -35,7 +35,7 @@ const commonModules = {
     useTheme: () => theme,
     getTokens: () => ({ radius: { 4: { val: 12 } } }),
   },
-  '@tamagui/lucide-icons-2': {
+  '@/components/icons': {
     Check: 'Check',
     ListPlus: 'ListPlus',
     Square: 'Square',

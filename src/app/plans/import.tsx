@@ -7,7 +7,7 @@ import { useMapData } from '@/store/use-map-data';
 import { usePlanImport } from '@/store/use-plan-import';
 import { usePlans } from '@/store/use-plans';
 import { PageHorizontalInset } from '@/tamagui.config';
-import { AlertCircle, Check, FileDown, MapPinned, Square, SquareCheckBig } from '@tamagui/lucide-icons-2';
+import { AlertCircle, Check, FileDown, MapPinned, Square, SquareCheckBig } from '@/components/icons';
 import { Stack, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -101,60 +101,60 @@ export default function ImportPlanScreen() {
         }}
       >
         {error ? (
-          <YStack minH={300} items="center" justify="center" gap="$3" p="$4">
-            <AlertCircle size={38} color="$red10" />
-            <Text fontSize="$subtitle" fontWeight="700" color="$color12" text="center">
+          <YStack minH={300} items="center" justify="center" gap="13px" p="18px">
+            <AlertCircle size={38} color="red-10" />
+            <Text fontSize="subtitle" fontWeight="700" color="color-12" text="center">
               {t('couldNotImportPilgrimagePlan', { defaultValue: '无法导入巡礼计划' })}
             </Text>
-            <Text fontSize="$footnote" lineHeight={19} color="$color11" text="center" selectable>
+            <Text fontSize="footnote" lineHeight="19px" color="color-11" text="center" select="text">
               {error}
             </Text>
-            <Button mt="$3" bg="$color3" color="$color12" px="$7" onPress={close}>
+            <Button mt="13px" bg="color-3" color="color-12" px="39px" onPress={close}>
               {t('backToPilgrimagePlans', { defaultValue: '返回巡礼计划' })}
             </Button>
           </YStack>
         ) : !mapData || !resolved ? (
-          <YStack minH={300} items="center" justify="center" gap="$3">
-            <Spinner size="large" color="$primary" />
-            <Text color="$color11" fontSize="$footnote">
+          <YStack minH={300} items="center" justify="center" gap="13px">
+            <Spinner size="large" color="primary" />
+            <Text color="color-11" fontSize="footnote">
               {progress?.message || t('matchingLocalLocations', { defaultValue: '正在匹配本地点位…' })}
             </Text>
           </YStack>
         ) : (
-          <YStack gap="$4">
-            <YStack gap="$2">
-              <Text fontSize="$caption" color="$color10">
+          <YStack gap="18px">
+            <YStack gap="7px">
+              <Text fontSize="caption" color="color-10">
                 {t('fromSource', { defaultValue: '来自{{source}}', source: sourceLabel })}
               </Text>
-              <Text fontSize="$heading" lineHeight={30} fontWeight="800" color="$color12" selectable>
+              <Text fontSize="heading" lineHeight="30px" fontWeight="800" color="color-12" select="text">
                 {sharedPlan?.t}
               </Text>
-              <Text fontSize="$body" lineHeight={21} color="$color11">
+              <Text fontSize="body" lineHeight="21px" color="color-11">
                 {t('saveThisPilgrimagePlanAsAnIndependentCopyItWillNotStaySyncedWithTheSender', {
                   defaultValue: '是否将这个巡礼计划保存为一份独立副本？导入后不会与分享者同步。',
                 })}
               </Text>
             </YStack>
 
-            <YStack rounded="$4" bg="$background" overflow="hidden">
-              <XStack minH={62} px="$3" items="center" gap="$3">
-                <YStack width={34} height={34} rounded="$9" bg="$color3" items="center" justify="center">
-                  <MapPinned size={18} color="$primary" />
+            <YStack rounded={9} bg="background" overflow="hidden">
+              <XStack minH={62} px="13px" items="center" gap="13px">
+                <YStack w={34} h={34} rounded={26} bg="color-3" items="center" justify="center">
+                  <MapPinned size={18} color="primary" />
                 </YStack>
                 <YStack flex={1}>
-                  <Text color="$color12" fontSize="$body" fontWeight="700">
+                  <Text color="color-12" fontSize="body" fontWeight="700">
                     {t('locationCount', { defaultValue: '{{count}} 个点位', count: resolved.points.length })}
                   </Text>
-                  <Text color="$color10" fontSize="$footnote">
+                  <Text color="color-10" fontSize="footnote">
                     {t('fromCountWorks', { defaultValue: '来自 {{count}} 部作品', count: resolved.bangumiCount })}
                   </Text>
                 </YStack>
-                <Check size={20} color="$green10" />
+                <Check size={20} color="green-10" />
               </XStack>
               {resolved.missingCount > 0 ? (
-                <XStack px="$3" py="$2.5" bg="$yellow2" gap="$2" items="center">
-                  <AlertCircle size={16} color="$yellow10" />
-                  <Text flex={1} color="$yellow11" fontSize="$footnote" lineHeight={17}>
+                <XStack px="13px" py="2-5" bg="yellow-2" gap="7px" items="center">
+                  <AlertCircle size={16} color="yellow-10" />
+                  <Text flex={1} color="yellow-11" fontSize="footnote" lineHeight="17px">
                     {t('countMoreLocationsAreMissingFromCurrentDataAndWillBeIgnored', {
                       defaultValue: '另有 {{count}} 个点位在当前数据中不存在，将被忽略。',
                       count: resolved.missingCount,
@@ -165,14 +165,14 @@ export default function ImportPlanScreen() {
             </YStack>
 
             {resolved.points.length === 0 ? (
-              <Text color="$red10" fontSize="$footnote" lineHeight={18} text="center">
+              <Text color="red-10" fontSize="footnote" lineHeight="18px" text="center">
                 {t('noLocationsCouldBeMatchedSoThePlanCannotBeCreated', {
                   defaultValue: '当前没有能够匹配的点位，无法创建计划。',
                 })}
               </Text>
             ) : null}
 
-            <YStack gap="$2" pt="$2">
+            <YStack gap="7px" pt="7px">
               <Pressable
                 accessibilityRole="checkbox"
                 accessibilityLabel={t('favoriteImportedLocations', { defaultValue: '导入同时收藏' })}
@@ -180,19 +180,19 @@ export default function ImportPlanScreen() {
                 onPress={() => setAlsoFavorite((current) => !current)}
                 style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
               >
-                <XStack minH={44} px="$3" items="center" justify="space-between" rounded="$3" bg="$background">
-                  <Text fontSize="$body" color="$color12">
+                <XStack minH={44} px="13px" items="center" justify="space-between" rounded={7} bg="background">
+                  <Text fontSize="body" color="color-12">
                     {t('favoriteImportedLocations', { defaultValue: '导入同时收藏' })}
                   </Text>
                   {alsoFavorite ? (
                     <SquareCheckBig size={23} strokeWidth={2.5} color={theme.primary.val} />
                   ) : (
-                    <Square size={23} color="$color8" />
+                    <Square size={23} color="color-8" />
                   )}
                 </XStack>
               </Pressable>
               <Button
-                bg="$primary"
+                bg="primary"
                 color="white"
                 icon={<FileDown size={BLOCK_BUTTON_ICON_SIZE} color="white" />}
                 disabled={resolved.points.length === 0}
@@ -201,7 +201,7 @@ export default function ImportPlanScreen() {
               >
                 {t('importPlan', { defaultValue: '导入计划' })}
               </Button>
-              <Button bg="$color3" color="$color11" onPress={close}>
+              <Button bg="color-3" color="color-11" onPress={close}>
                 {t('cancel', { defaultValue: '取消' })}
               </Button>
             </YStack>

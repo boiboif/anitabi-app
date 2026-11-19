@@ -7,11 +7,11 @@ import SwipeableCardCarousel, { type SwipeableCardCarouselHandle } from '@/compo
 import { formatDuration } from '@/lib/formatDuration';
 import { copyToClipboard } from '@/lib/copy-to-clipboard';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
-import { CheckCircle2, ChevronLeft, ChevronRight, Flag } from '@tamagui/lucide-icons-2';
+import { CheckCircle2, ChevronLeft, ChevronRight, Flag } from '@/components/icons';
 import { memo, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, type LayoutChangeEvent } from 'react-native';
-import { getTokens, Text, useTheme, useThemeName, View, XStack, YStack } from 'tamagui';
+import { Text, useTheme, useThemeName, View, XStack, YStack } from 'tamagui';
 
 export const PLAN_MAP_POINT_CARD_FALLBACK_HEIGHT = 231;
 export const PLAN_MAP_POINT_CARD_BOTTOM_OFFSET = 24;
@@ -56,21 +56,21 @@ const PlanMapPointCardPage = memo(function PlanMapPointCardPage({
         ? point.ep
         : undefined;
   const timeLabel = typeof point.s === 'number' && point.s >= 0 ? formatDuration(point.s) : undefined;
-  const innerRadius = getTokens().radius['3'].val;
+  const innerRadius = 7;
 
   return (
-    <YStack gap="$1.5" px="$2.5">
+    <YStack gap="1" px="2-5">
       <XStack minH={44} items="center" justify="center" px={40}>
         <YStack flex={1} items="center" justify="center" minW={0}>
-          <Text fontSize="$caption" color="$color10" style={{ fontVariant: ['tabular-nums'] }}>
+          <Text fontSize="caption" color="color-10" style={{ fontVariant: ['tabular-nums'] }}>
             {planIndex + 1} / {total}
           </Text>
           <Text
-            selectable
-            fontSize="$body"
-            lineHeight={20}
+            select="text"
+            fontSize="body"
+            lineHeight="20px"
             fontWeight="700"
-            color="$color12"
+            color="color-12"
             numberOfLines={1}
             accessibilityRole="button"
             onPress={(event) => {
@@ -83,17 +83,17 @@ const PlanMapPointCardPage = memo(function PlanMapPointCardPage({
         </YStack>
       </XStack>
 
-      <XStack gap="$2" items="center">
+      <XStack gap="7px" items="center">
         <PointImage
           image={point.image}
           cover={bangumi.cover}
           title={pointTitle}
           previewBorderRadius={innerRadius}
-          width={190}
+          w={190}
           aspectRatio={16 / 10}
-          rounded="$3"
+          rounded={7}
         >
-          <YStack fullscreen pointerEvents="none">
+          <YStack position="absolute" inset={0} pointerEvents="none">
             <PointSequenceBadge sequenceNumber={planIndex + 1} />
           </YStack>
           {epLabel ? (
@@ -103,11 +103,11 @@ const PlanMapPointCardPage = memo(function PlanMapPointCardPage({
               l={0}
               b={0}
               bg="rgba(0,0,0,0.58)"
-              px="$1.5"
-              py="$0.5"
+              px="1"
+              py="px"
               style={{ borderTopRightRadius: innerRadius }}
             >
-              <Text fontSize="$caption" fontWeight="700" color="white">
+              <Text fontSize="caption" fontWeight="700" color="white">
                 {epLabel}
               </Text>
             </View>
@@ -119,24 +119,24 @@ const PlanMapPointCardPage = memo(function PlanMapPointCardPage({
               r={0}
               b={0}
               bg="rgba(0,0,0,0.58)"
-              px="$1.5"
-              py="$0.5"
+              px="1"
+              py="px"
               style={{ borderTopLeftRadius: innerRadius }}
             >
-              <Text fontSize="$caption" color="white">
+              <Text fontSize="caption" color="white">
                 {timeLabel}
               </Text>
             </View>
           ) : null}
         </PointImage>
 
-        <YStack flex={1} minW={0} self="stretch" justify="flex-start" gap="$1">
-          <Text fontSize="$footnote" fontWeight="600" color="$primary" numberOfLines={1}>
+        <YStack flex={1} minW={0} self="stretch" justify="flex-start" gap="0-5">
+          <Text fontSize="footnote" fontWeight="600" color="primary" numberOfLines={1}>
             {bangumiTitle}
           </Text>
           <ScrollView>
             {point.mark ? (
-              <Text selectable fontSize="$caption" lineHeight={14} color="$color11" numberOfLines={7}>
+              <Text select="text" fontSize="caption" lineHeight="14px" color="color-11" numberOfLines={7}>
                 {point.mark}
               </Text>
             ) : null}
@@ -158,7 +158,7 @@ function IconButton({ label, disabled = false, onPress, children }: IconButtonPr
       onPress={onPress}
       style={({ pressed }) => ({ opacity: disabled ? 0.28 : pressed ? 0.58 : 1 })}
     >
-      <View width={40} height={40} items="center" justify="center">
+      <View w={40} h={40} items="center" justify="center">
         {children}
       </View>
     </Pressable>
@@ -190,19 +190,19 @@ function PlanMapPointCard({
   return (
     <YStack
       position="absolute"
-      l="$3"
-      r="$3"
+      l="13px"
+      r="13px"
       b={bottomInset + PLAN_MAP_POINT_CARD_BOTTOM_OFFSET}
       z={30}
-      bg="$background"
-      rounded="$4"
+      bg="background"
+      rounded={9}
       boxShadow={
         themeName === 'dark'
           ? '0 6px 24px rgba(0,0,0,0.58), 0 0 0 1px rgba(255,255,255,0.08)'
           : '0 6px 24px rgba(0,0,0,0.3)'
       }
-      py="$1.5"
-      gap="$1.5"
+      py="1"
+      gap="1"
       onLayout={handleLayout}
     >
       <View position="relative">
@@ -221,9 +221,9 @@ function PlanMapPointCard({
         <XStack
           position="absolute"
           t={0}
-          l="$2.5"
-          r="$2.5"
-          height={44}
+          l="2-5"
+          r="2-5"
+          h={44}
           items="center"
           justify="space-between"
           pointerEvents="box-none"
@@ -245,21 +245,21 @@ function PlanMapPointCard({
         </XStack>
       </View>
 
-      <XStack height={38} items="center" px="$2.5">
+      <XStack h={38} items="center" px="2-5">
         <XStack flex={1} items="center" justify="center">
           <IconButton label={t('refocusSelectedLocation', { defaultValue: '回到当前点位' })} onPress={onRefocus}>
-            <Flag size={22} strokeWidth={2.15} color="$primary" />
+            <Flag size={22} strokeWidth={2.15} color="primary" />
           </IconButton>
         </XStack>
-        <View width="$0.25" height={16} bg="$color5" opacity={0.3} />
+        <View w="0-5" h={16} bg="color-5" opacity={0.3} />
         <XStack flex={1} items="center" justify="center">
           <ComparisonCameraButton point={point} bangumi={bangumi} compact compactSize={42} bare />
         </XStack>
-        <View width="$0.25" height={16} bg="$color5" opacity={0.3} />
+        <View w="0-5" h={16} bg="color-5" opacity={0.3} />
         <XStack flex={1} items="center" justify="center">
           <PointNavigationButton point={point} compact compactSize={42} bare />
         </XStack>
-        <View width="$0.25" height={16} bg="$color5" opacity={0.3} />
+        <View w="0-5" h={16} bg="color-5" opacity={0.3} />
         <XStack flex={1} items="center" justify="center">
           <Pressable
             accessibilityRole="button"
@@ -272,11 +272,11 @@ function PlanMapPointCard({
             onPress={onToggleCompleted}
             style={({ pressed }) => ({ opacity: pressed ? 0.58 : 1 })}
           >
-            <View width={42} height={42} items="center" justify="center">
+            <View w={42} h={42} items="center" justify="center">
               <CheckCircle2
                 size={25}
                 strokeWidth={item.completed ? 2.7 : 2.15}
-                color={item.completed ? theme.primary.val : theme.color10.val}
+                color={item.completed ? theme.primary.val : theme['color-10'].val}
               />
             </View>
           </Pressable>

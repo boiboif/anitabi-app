@@ -8,7 +8,7 @@ import { usePlans } from '@/store/use-plans';
 import { PageHorizontalInset } from '@/tamagui.config';
 import { createBangumiPointLookup } from '@/utils/bangumi-point-lookup';
 import { Toast } from '@boiboif/react-native-toast';
-import { FileJson, Share2 } from '@tamagui/lucide-icons-2';
+import { FileJson, Share2 } from '@/components/icons';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -83,8 +83,8 @@ export default function PlanShareScreen() {
 
   if (!plan || (!showDisplayOnly && !bundle)) {
     return (
-      <YStack flex={1} items="center" justify="center" bg="$pageBackground">
-        <Text color="$color11">
+      <YStack flex={1} items="center" justify="center" bg="pageBackground">
+        <Text color="color-11">
           {t('thePlanDoesNotExistOrHasBeenDeleted', { defaultValue: '计划不存在或已被删除' })}
         </Text>
       </YStack>
@@ -105,7 +105,7 @@ export default function PlanShareScreen() {
           gap: 16,
         }}
       >
-        <View width={360 * scale} height={480 * scale} rounded={24 * scale}>
+        <View w={360 * scale} h={480 * scale} rounded={24 * scale}>
           <NativeView style={{ width: 360, height: 480, transform: [{ scale }], transformOrigin: 'top left' }}>
             <NativeView ref={cardRef} collapsable={false}>
               <PlanShareCard
@@ -121,11 +121,11 @@ export default function PlanShareScreen() {
         </View>
 
         {showDisplayOnly ? (
-          <YStack width="100%" maxW={520} p="$3" rounded="$4" bg="$background" gap="$1">
-            <Text color="$color12" fontSize="$body" fontWeight="700">
+          <YStack w="100%" maxW={520} p="13px" rounded={9} bg="background" gap="0-5">
+            <Text color="color-12" fontSize="body" fontWeight="700">
               {t('thisImageIsForDisplayOnly', { defaultValue: '这张图片仅供展示' })}
             </Text>
-            <Text color="$color11" fontSize="$footnote" lineHeight={18}>
+            <Text color="color-11" fontSize="footnote" lineHeight="18px">
               {t('thisPlanIsTooLargeToIncludeAnImportableQrCodeShareThePlanFileIfTheRecipientNeedsToImportIt', {
                 defaultValue: '图片中的二维码用于下载 Anitabi。如需让对方导入巡礼计划，请另行分享计划文件。',
               })}
@@ -133,9 +133,9 @@ export default function PlanShareScreen() {
           </YStack>
         ) : null}
 
-        <YStack width="100%" maxW={520} gap="$2">
+        <YStack w="100%" maxW={520} gap="7px">
           <Button
-            bg="$primary"
+            bg="primary"
             color="white"
             icon={
               sharing === 'image' ? <Spinner color="white" /> : <Share2 size={BLOCK_BUTTON_ICON_SIZE} color="white" />
@@ -150,9 +150,9 @@ export default function PlanShareScreen() {
               : t('loadingImage', { defaultValue: '正在加载图片…' })}
           </Button>
           <Button
-            bg="$color3"
-            color="$color12"
-            icon={sharing === 'file' ? <Spinner color="$color11" /> : <FileJson size={BLOCK_BUTTON_ICON_SIZE} />}
+            bg="color-3"
+            color="color-12"
+            icon={sharing === 'file' ? <Spinner color="color-11" /> : <FileJson size={BLOCK_BUTTON_ICON_SIZE} />}
             disabled={sharing !== null}
             accessibilityState={{ disabled: sharing !== null }}
             opacity={sharing !== null ? 0.55 : 1}

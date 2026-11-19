@@ -1,3 +1,4 @@
+import { Dices } from '@/components/icons';
 import BangumiDetailSheet from '@/components/map/bangumi-detail-sheet';
 import Building3DSwitch from '@/components/map/building-3d-switch';
 import LayerSwitch from '@/components/map/layer-switch';
@@ -24,7 +25,6 @@ import { useMapData } from '@/store/use-map-data';
 import type { MapViewportState } from '@/utils/map-viewport';
 import type { ViewportImagePoint } from '@/utils/map-viewport-points';
 import type { Camera } from '@rnmapbox/maps';
-import { Dices } from '@tamagui/lucide-icons-2';
 import { useIsFocused, useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -55,7 +55,7 @@ function RandomPointButton({ onPress }: { onPress: () => void }) {
       ]}
       onPress={onPress}
     >
-      <Dices size={MAP_CONTROL_ICON_SIZE} color="$color11" />
+      <Dices size={MAP_CONTROL_ICON_SIZE} color="color-11" />
     </Pressable>
   );
 }
@@ -280,21 +280,21 @@ export default function HomeScreen() {
 
       <View
         position="absolute"
-        l="$0"
-        r="$0"
-        t={insets.top === 0 ? '$2' : insets.top}
-        pt="$2"
+        l="0"
+        r="0"
+        t={insets.top === 0 ? '7px' : insets.top}
+        pt="7px"
         z={0}
         pointerEvents="box-none"
         onLayout={({ nativeEvent: { layout } }) => setSearchContainerLayout(layout)}
       >
-        <View mx="$3" onLayout={({ nativeEvent: { layout } }) => setSearchLayout(layout)}>
+        <View mx="13px" onLayout={({ nativeEvent: { layout } }) => setSearchLayout(layout)}>
           <SearchBox
             onPress={() => {
               router.navigate('/search');
             }}
             readOnly
-            placeholderTextColor="$color10"
+            placeholderTextColor="color-10"
           />
         </View>
 
@@ -312,14 +312,14 @@ export default function HomeScreen() {
 
       {!selectedBangumi && (
         <>
-          <YStack r="$2" p="$1.5" position="absolute" b="26%" z={20} gap="$3">
+          <YStack r="7px" p="1" position="absolute" b="26%" z={20} gap="13px">
             <RandomPointButton onPress={handleRandomPoint} />
             <LocateButton loading={isLocating} onPress={() => { setVisibilityRequest(null); void handleLocate(); }} />
           </YStack>
         </>
       )}
 
-      <YStack r="$2" p="$1.5" position="absolute" t={insets.top + MAP_TOP_CONTROLS_TOP_OFFSET} z={20} gap="$3">
+      <YStack r="7px" p="1" position="absolute" t={insets.top + MAP_TOP_CONTROLS_TOP_OFFSET} z={20} gap="13px">
         {!selectedBangumi && <LayerSwitch styleIndex={styleIndex} onChange={setStyleIndex} />}
         <Building3DSwitch enabled={show3DBuildings} onChange={handle3DBuildingsChange} />
         {cameraState.zoom >= FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE && (

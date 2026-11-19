@@ -1,5 +1,5 @@
 import type { PreparedPlaceIcon } from '@/services/nearby-place-sprite';
-import { Bus, Fuel, Hospital, School, Shield, Train, Utensils } from '@tamagui/lucide-icons-2';
+import { Bus, Fuel, Hospital, School, Shield, Train, Utensils } from '@/components/icons';
 import { Image } from 'expo-image';
 import type { ComponentProps } from 'react';
 import { View } from 'tamagui';
@@ -34,7 +34,7 @@ function fallbackIcon(name: string | undefined, color: string) {
 export default function NearbyPlaceIcon({ name, fallbackName, color, asset }: Props) {
   if (asset) {
     return (
-      <View width={asset.width} height={asset.height} pointerEvents="none">
+      <View w={asset.width} h={asset.height} pointerEvents="none">
         <Image source={asset.source} contentFit="contain" transition={0} style={{ width: asset.width, height: asset.height }} />
       </View>
     );

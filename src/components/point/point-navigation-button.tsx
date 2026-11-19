@@ -1,7 +1,7 @@
 import { buildWalkingNavigationUrl } from '@/lib/pilgrimage-navigation';
 import type { Point } from '@/services/types';
 import { usePilgrimagePreferences } from '@/store/use-pilgrimage-preferences';
-import { Navigation } from '@tamagui/lucide-icons-2';
+import { Navigation } from '@/components/icons';
 import { useRef } from 'react';
 import type { GestureResponderEvent } from 'react-native';
 import { Alert, Linking, Platform, Pressable } from 'react-native';
@@ -45,17 +45,17 @@ export default function PointNavigationButton({ point, mapCoordinate, compact = 
       style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
     >
       <View
-        width={showLabel ? undefined : compact ? compactSize : 36}
-        height={compact ? compactSize - (showLabel ? 4 : 0) : 36}
-        px={showLabel ? '$2.5' : undefined}
-        rounded="$9"
-        bg={bare ? 'transparent' : '$color2'}
+        w={showLabel ? undefined : compact ? compactSize : 36}
+        h={compact ? compactSize - (showLabel ? 4 : 0) : 36}
+        px={showLabel ? '2-5' : undefined}
+        rounded={26}
+        bg={bare ? 'transparent' : 'color-2'}
         flexDirection="row"
-        gap="$1"
+        gap="0-5"
         items="center"
         justify="center"
       >
-        {showLabel ? <Text fontSize="$caption" color="$primary">{t('navigationAction')}</Text> : null}
+        {showLabel ? <Text fontSize="caption" color="primary">{t('navigationAction')}</Text> : null}
         <Navigation size={compact ? compactSize * (bare ? 0.58 : 0.5) : 18} color={theme.primary.val} />
       </View>
     </Pressable>

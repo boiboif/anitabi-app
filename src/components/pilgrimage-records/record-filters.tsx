@@ -5,7 +5,7 @@ import { ThemeInput } from '@/components/ui/theme-input';
 import { getPilgrimagePresetRange, type PilgrimageTimePreset } from '@/lib/pilgrimage-record-filter';
 import { isPilgrimageDateRangeValid, type PilgrimageDateRange } from '@/lib/pilgrimage-record-query';
 import { TrueSheet, TrueSheetPeek } from '@lodev09/react-native-true-sheet';
-import { ChevronDown, Square, SquareCheckBig, X } from '@tamagui/lucide-icons-2';
+import { ChevronDown, Square, SquareCheckBig, X } from '@/components/icons';
 import { useIsFocused, useNavigation, usePreventRemove } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, type ReactElement, type ReactNode, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -50,14 +50,14 @@ function BangumiRow({ label, selected, onPress }: { label: string; selected: boo
       onPress={onPress}
       style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
     >
-      <XStack minH={52} px="$4" py="$2" gap="$3" items="center">
-        <Text flex={1} minW={0} fontSize="$body" color="$color12" numberOfLines={2}>
+      <XStack minH={52} px="18px" py="7px" gap="13px" items="center">
+        <Text flex={1} minW={0} fontSize="body" color="color-12" numberOfLines={2}>
           {label}
         </Text>
         {selected ? (
           <SquareCheckBig size={23} strokeWidth={2.5} color={theme.primary.val} />
         ) : (
-          <Square size={23} color="$color8" />
+          <Square size={23} color="color-8" />
         )}
       </XStack>
     </Pressable>
@@ -118,20 +118,20 @@ function FilterPanel({
 
   const actions = (
     <XStack
-      px="$4"
-      pt="$3"
+      px="18px"
+      pt="13px"
       pb={Math.max(insets.bottom, 12)}
-      gap="$3"
+      gap="13px"
       shrink={0}
-      bg="$color2"
+      bg="color-2"
       borderTopWidth={1}
-      borderColor="$color5"
+      borderColor="color-5"
       onLayout={(event) => setFooterHeight(event.nativeEvent.layout.height)}
     >
       <Button
         flex={1}
         minH={44}
-        bg="$color4"
+        bg="color-4"
         onPress={() => {
           if (mode === 'bangumi') setDraftBangumi([]);
           else {
@@ -141,16 +141,16 @@ function FilterPanel({
           }
         }}
       >
-        <Text fontSize="$body" color="$color12">
+        <Text fontSize="body" color="color-12">
           {t('pilgrimageRecordsFilterReset')}
         </Text>
       </Button>
       <Button
         flex={1}
         minH={44}
-        bg="$primary"
+        bg="primary"
         disabled={!canConfirm}
-        disabledStyle={{ opacity: 0.4 }}
+        opacity="1 disabled:0.4"
         onPress={() => {
           if (!canConfirm) return;
           if (mode === 'bangumi') onBangumiChange(draftBangumi);
@@ -162,7 +162,7 @@ function FilterPanel({
           onClose();
         }}
       >
-        <Text fontSize="$body" color="white">
+        <Text fontSize="body" color="white">
           {t('pilgrimageRecordsFilterConfirm')}
         </Text>
       </Button>
@@ -181,7 +181,7 @@ function FilterPanel({
         mode === 'bangumi' ? { scrollingExpandsSheet: false, keyboardScrollOffset: footerHeight + 24 } : undefined
       }
       cornerRadius={20}
-      backgroundColor={theme.color2.val}
+      backgroundColor={theme['color-2'].val}
       grabberOptions={{ color: theme.primary.val, adaptive: false, topMargin: 8, width: 42, height: 5 }}
       onDidPresent={(event) => {
         if (mode === 'date') setCalendarExpanded(event.nativeEvent.index === 1);
@@ -193,23 +193,23 @@ function FilterPanel({
         onDismiss();
       }}
       header={
-        <YStack bg="$color2">
-          <XStack px="$4" pt="$3" pb="$2" gap="$3" items="center">
-            <Text flex={1} fontSize="$subtitle" fontWeight="600" color="$color12" accessibilityRole="header">
+        <YStack bg="color-2">
+          <XStack px="18px" pt="13px" pb="7px" gap="13px" items="center">
+            <Text flex={1} fontSize="subtitle" fontWeight="600" color="color-12" accessibilityRole="header">
               {t(mode === 'bangumi' ? 'pilgrimageRecordsBangumiFilter' : 'pilgrimageRecordsDateFilter')}
             </Text>
             <Button
-              width={44}
-              height={44}
+              w={44}
+              h={44}
               p={0}
-              chromeless
+              variant="quiet"
               accessibilityLabel={t('pilgrimageRecordsFilterClose')}
               onPress={onClose}
-              icon={<X size={20} color="$color11" />}
+              icon={<X size={20} color="color-11" />}
             />
           </XStack>
           {mode === 'bangumi' ? (
-            <YStack px="$4" pb="$3">
+            <YStack px="18px" pb="13px">
               <ThemeInput
                 value={search}
                 onChangeText={setSearch}
@@ -256,7 +256,7 @@ function FilterPanel({
               />
             )}
             ListEmptyComponent={
-              <Text p="$4" text="center" fontSize="$footnote" color="$color11">
+              <Text p="18px" text="center" fontSize="footnote" color="color-11">
                 {t('pilgrimageRecordsFilterNoBangumiMatches')}
               </Text>
             }
@@ -268,11 +268,11 @@ function FilterPanel({
         <YStack pb={footerHeight}>
           <TrueSheetPeek>
             <XStack
-              px="$4"
-              pt="$1"
+              px="18px"
+              pt="0-5"
               pb={16}
               flexWrap="wrap"
-              gap="$2"
+              gap="7px"
               accessibilityRole="radiogroup"
               accessibilityLabel={t('pilgrimageRecordsDateFilter')}
             >
@@ -291,7 +291,7 @@ function FilterPanel({
             </XStack>
           </TrueSheetPeek>
           <YStack
-            px="$4"
+            px="18px"
             pb={16}
             pointerEvents={calendarExpanded ? 'auto' : 'none'}
             accessibilityElementsHidden={!calendarExpanded}
@@ -369,7 +369,7 @@ export function RecordFilters(props: Props) {
   return (
     <>
       {props.children(
-        <XStack gap="$2" items="center">
+        <XStack gap="7px" items="center">
           {(
             [
               {
@@ -390,9 +390,9 @@ export function RecordFilters(props: Props) {
               key={filter.mode}
               shrink={1}
               minW={0}
-              size="$3"
-              px="$2"
-              chromeless
+              size="md"
+              px="7px"
+              variant="quiet"
               bg="transparent"
               borderWidth={0}
               accessibilityLabel={`${filter.name}: ${filter.label}`}
@@ -403,17 +403,17 @@ export function RecordFilters(props: Props) {
                 shrink={1}
                 minW={0}
                 numberOfLines={1}
-                fontSize="$footnote"
-                color={filter.active ? '$primary' : '$color12'}
+                fontSize="footnote"
+                color={filter.active ? 'primary' : 'color-12'}
               >
                 {filter.label}
               </Text>
-              <ChevronDown size={14} color={filter.active ? '$primary' : '$color11'} />
+              <ChevronDown size={14} color={filter.active ? 'primary' : 'color-11'} />
             </Button>
           ))}
           {hasFilters ? (
-            <Button size="$3" shrink={0} ml="auto" chromeless px="$2" onPress={props.onClear}>
-              <Text fontSize="$footnote" color="$primary">
+            <Button size="md" shrink={0} ml="auto" variant="quiet" px="7px" onPress={props.onClear}>
+              <Text fontSize="footnote" color="primary">
                 {t('pilgrimageRecordsClearFilters')}
               </Text>
             </Button>

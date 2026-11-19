@@ -10,7 +10,7 @@ import { useMapBrowse } from '@/store/use-map-browse';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Linking, Pressable } from 'react-native';
-import { getTokens, Text, useTheme, View } from 'tamagui';
+import { Text, useTheme, View } from 'tamagui';
 
 type Props = {
   point: Point;
@@ -37,10 +37,10 @@ export default function PopupCard({ point, bangumi, bangumiTitlePressEnabled = t
         : undefined;
   const timeLabel = typeof point.s === 'number' && point.s >= 0 ? formatDuration(point.s) : undefined;
 
-  const innerRadius = getTokens().radius['2'].val;
+  const innerRadius = 5;
 
   return (
-    <View bg="$background" rounded="$3" boxShadow="0 2px 8px rgba(0,0,0,0.4)" width={220}>
+    <View bg="background" rounded={7} boxShadow="0 2px 8px rgba(0,0,0,0.4)" w={220}>
       {/* 图片 + EP / 时间覆盖层 */}
       <PointImage
         image={point.image}
@@ -49,9 +49,9 @@ export default function PopupCard({ point, bangumi, bangumiTitlePressEnabled = t
         onThumbnailLoad={setLoadedThumbnailUri}
         previewBorderRadius={innerRadius}
         maxPressDistance={8}
-        rounded="$2"
-        height={((point.image ? 250 : 220) * 9) / 16}
-        imageStyle={{ width: point.image ? 250 : '100%', height: '100%', backgroundColor: theme.color9.val }}
+        rounded={5}
+        h={((point.image ? 250 : 220) * 9) / 16}
+        imageStyle={{ width: point.image ? 250 : '100%', height: '100%', backgroundColor: theme['color-9'].val }}
       >
         {epLabel && (
           <View
@@ -60,11 +60,11 @@ export default function PopupCard({ point, bangumi, bangumiTitlePressEnabled = t
             l={0}
             b={0}
             bg="rgba(0,0,0,0.55)"
-            px="$1.5"
-            py="$0.5"
+            px="1"
+            py="px"
             style={{ borderTopRightRadius: innerRadius }}
           >
-            <Text fontSize="$caption" fontWeight="700" color="white">
+            <Text fontSize="caption" fontWeight="700" color="white">
               {epLabel}
             </Text>
           </View>
@@ -76,11 +76,11 @@ export default function PopupCard({ point, bangumi, bangumiTitlePressEnabled = t
             r={0}
             b={0}
             bg="rgba(0,0,0,0.55)"
-            px="$1.5"
-            py="$0.5"
+            px="1"
+            py="px"
             style={{ borderTopLeftRadius: innerRadius }}
           >
-            <Text fontSize="$caption" color="white">
+            <Text fontSize="caption" color="white">
               {timeLabel}
             </Text>
           </View>
@@ -89,13 +89,13 @@ export default function PopupCard({ point, bangumi, bangumiTitlePressEnabled = t
       </PointImage>
 
       {/* 文字内容 */}
-      <View px="$2" py="$1.5">
+      <View px="7px" py="1">
         <Text
           fontWeight="600"
-          fontSize="$footnote"
-          color="$color12"
+          fontSize="footnote"
+          color="color-12"
           numberOfLines={1}
-          mt="$1"
+          mt="0-5"
           accessibilityRole="button"
           onPress={(event) => {
             event.stopPropagation();
@@ -105,7 +105,7 @@ export default function PopupCard({ point, bangumi, bangumiTitlePressEnabled = t
           {pointTitle}
         </Text>
         {point.mark ? (
-          <Text fontSize="$caption" color="$color11" numberOfLines={3} mt="$0.5" mb="$1.5">
+          <Text fontSize="caption" color="color-11" numberOfLines={3} mt="px" mb="1">
             {point.mark}
           </Text>
         ) : null}
@@ -118,27 +118,27 @@ export default function PopupCard({ point, bangumi, bangumiTitlePressEnabled = t
             onPress={() => openBangumiDetails(bangumi.id)}
             style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
           >
-            <Text fontSize="$footnote" color="$primary" numberOfLines={2}>
+            <Text fontSize="footnote" color="primary" numberOfLines={2}>
               {animeTitle}
             </Text>
           </Pressable>
         ) : (
-          <Text fontSize="$footnote" color="$primary" numberOfLines={2}>
+          <Text fontSize="footnote" color="primary" numberOfLines={2}>
             {animeTitle}
           </Text>
         )}
         {point.origin ? (
           <Text
             onPress={() => point.originLink && Linking.openURL(point.originLink)}
-            fontSize="$caption"
-            color={point.originLink ? '$blue9' : '$color11'}
+            fontSize="caption"
+            color={point.originLink ? 'blue-9' : 'color-11'}
             style={{ textAlign: 'right', textDecorationLine: 'underline' }}
-            mt="$1.5"
+            mt="1"
           >
             @{point.origin}
           </Text>
         ) : null}
-        <View pt="$2">
+        <View pt="7px">
           <PointCardActions
             point={point}
             bangumi={bangumi}

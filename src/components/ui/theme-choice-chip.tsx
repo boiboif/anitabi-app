@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Pressable } from 'react-native';
-import { Text, useThemeName, View, XStack } from 'tamagui';
+import { Text, View, XStack } from 'tamagui';
 
 type Props = {
   label: string;
@@ -20,9 +20,6 @@ type GroupProps<T extends string> = {
 );
 
 export function ThemeChoiceChip({ label, selected, onPress, accessibilityRole = 'radio', leading }: Props) {
-  const isDark = useThemeName() === 'dark';
-  const unselectedBackground = isDark ? '$color4' : '$color3';
-
   return (
     <Pressable
       accessibilityRole={accessibilityRole}
@@ -31,9 +28,9 @@ export function ThemeChoiceChip({ label, selected, onPress, accessibilityRole = 
       hitSlop={{ top: 6, bottom: 6, left: 0, right: 0 }}
       onPress={onPress}
     >
-      <XStack px={10} gap={6} items="center" rounded={8} bg={selected ? '$primary' : unselectedBackground}>
+      <XStack px={10} gap={6} items="center" rounded={8} bg={selected ? 'primary' : 'color-3 dark:color-4'}>
         {leading}
-        <Text color={selected ? 'white' : '$color11'} fontSize="$footnote" lineHeight={32}>
+        <Text color={selected ? 'white' : 'color-11'} fontSize="footnote" lineHeight="32px">
           {label}
         </Text>
       </XStack>
@@ -51,7 +48,7 @@ function ThemeChoiceChipGroup<T extends string>(props: GroupProps<T>) {
       minH={inline ? 46 : undefined}
       gap={inline ? 8 : 4}
     >
-      <Text flex={inline ? 1 : undefined} minW={0} color="$color12" fontSize="$body">
+      <Text flex={inline ? 1 : undefined} minW={0} color="color-12" fontSize="body">
         {label}
       </Text>
       <XStack

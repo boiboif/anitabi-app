@@ -1,3 +1,4 @@
+import { MapPin } from '@/components/icons';
 import { useAppTabBarInset } from '@/components/app-tab-bar-inset';
 import PointListCard from '@/components/point/point-list-card';
 import RemoveFavoriteButton from '@/components/point/remove-favorite-button';
@@ -13,14 +14,13 @@ import { useMapData } from '@/store/use-map-data';
 import { BottomTabInset, MaxContentWidth, PageHorizontalInset } from '@/tamagui.config';
 import { resolveFavoritePoints, type ResolvedFavoritePoint } from '@/utils/resolve-favorite-points';
 import { FlashList } from '@shopify/flash-list';
-import { MapPin } from '@tamagui/lucide-icons-2';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Text, View, XStack, YStack, getTokens, useTheme } from 'tamagui';
+import { Text, View, XStack, YStack, useTheme } from 'tamagui';
 
 type FavoriteView = 'bangumi' | 'history';
 
@@ -118,17 +118,17 @@ function BangumiGridCard({ group, onPress }: { group: BangumiGroup; onPress: () 
   return (
     <CardListItem grid>
       <Pressable onPress={onPress}>
-        <YStack bg="$background" rounded="$4" overflow="hidden">
+        <YStack bg="background" rounded={9} overflow="hidden">
           <Image
             source={group.cover ? { uri: buildImageUrl(group.cover, 'plan=h360') } : undefined}
-            style={{ width: '100%', height: 150, backgroundColor: group.color || theme.color9.val }}
+            style={{ width: '100%', height: 150, backgroundColor: group.color || theme['color-9'].val }}
             contentFit="cover"
           />
-          <View px="$1.5" pt="$1.5" pb="$1.5">
-            <Text height={30} fontSize="$caption" fontWeight="600" color="$color12" numberOfLines={2} lineHeight={15}>
+          <View px="1" pt="1" pb="1">
+            <Text h={30} fontSize="caption" fontWeight="600" color="color-12" numberOfLines={2} lineHeight="15px">
               {group.name}
             </Text>
-            <Text fontSize="$caption" color="$color11" mt="$0.5">
+            <Text fontSize="caption" color="color-11" mt="px">
               {t('locationCount', { defaultValue: '{{count}} 个点位', count: group.items.length })}
             </Text>
           </View>
@@ -240,12 +240,8 @@ export default function FavoritesScreen() {
           );
         case 'date':
           return (
-            <View
-              bg="$pageBackground"
-              px="$pageHorizontalInset"
-              py={getCardListBoundarySpacing(getTokens().space['2'].val)}
-            >
-              <Text fontSize="$body" lineHeight={20} fontWeight="700" color="$color11">
+            <View bg="pageBackground" px="pageHorizontalInset" py={getCardListBoundarySpacing(7)}>
+              <Text fontSize="body" lineHeight="20px" fontWeight="700" color="color-11">
                 {item.label}
               </Text>
             </View>
@@ -264,9 +260,9 @@ export default function FavoritesScreen() {
   const keyExtractor = useCallback((item: FavoriteListItem) => item.id, []);
 
   return (
-    <View flex={1} bg="$pageBackground" pt={safeAreaInsets.top} pl={safeAreaInsets.left} pr={safeAreaInsets.right}>
-      <View bg="$pageBackground" width="100%" maxW={MaxContentWidth} flex={1}>
-        <XStack mx="$pageHorizontalInset" mb="$2.5" gap="$1">
+    <View flex={1} bg="pageBackground" pt={safeAreaInsets.top} pl={safeAreaInsets.left} pr={safeAreaInsets.right}>
+      <View bg="pageBackground" w="100%" maxW={MaxContentWidth} flex={1}>
+        <XStack mx="pageHorizontalInset" mb="2-5" gap="0-5">
           {(
             [
               ['bangumi', 'byWork', '按番剧'],
@@ -276,16 +272,16 @@ export default function FavoritesScreen() {
             <View key={key} flex={1}>
               <Pressable onPress={() => setView(key)}>
                 <View
-                  bg={view === key ? '$color3' : 'transparent'}
-                  px="$3"
-                  py="$2"
-                  rounded={view === key ? '$9' : undefined}
+                  bg={view === key ? 'color-3' : 'transparent'}
+                  px="13px"
+                  py="7px"
+                  rounded={view === key ? 26 : undefined}
                   items="center"
                 >
                   <Text
-                    fontSize="$body"
+                    fontSize="body"
                     fontWeight={view === key ? '600' : '400'}
-                    color={view === key ? '$primary' : '$color11'}
+                    color={view === key ? 'primary' : 'color-11'}
                   >
                     {t(labelKey, { defaultValue: labelDefaultValue })}
                   </Text>
@@ -296,18 +292,18 @@ export default function FavoritesScreen() {
         </XStack>
 
         {loading ? (
-          <View minH={240} items="center" justify="center" px="$6">
-            <Text color="$color11">{t('loadingFavorites', { defaultValue: '加载收藏数据...' })}</Text>
+          <View minH={240} items="center" justify="center" px="8">
+            <Text color="color-11">{t('loadingFavorites', { defaultValue: '加载收藏数据...' })}</Text>
           </View>
         ) : resolvedFavorites.length === 0 ? (
-          <YStack flex={1} pb="$20" items="center" justify="center" gap="$3" px="$6">
-            <Text fontSize="$body" color="$color11">
+          <YStack flex={1} pb="186px" items="center" justify="center" gap="13px" px="8">
+            <Text fontSize="body" color="color-11">
               {t('noFavoriteLocationsYet', { defaultValue: '还没有收藏的巡礼点' })}
             </Text>
             <Button
-              icon={<MapPin size={BLOCK_BUTTON_ICON_SIZE} color="$primary" />}
-              chromeless
-              color="$primary"
+              icon={<MapPin size={BLOCK_BUTTON_ICON_SIZE} color="primary" />}
+              variant="quiet"
+              color="primary"
               onPress={() => router.navigate('/')}
             >
               {t('explorePilgrimageMap', { defaultValue: '前往巡礼地图探索' })}
@@ -328,8 +324,8 @@ export default function FavoritesScreen() {
             }}
             ListFooterComponent={
               loadFailed ? (
-                <View items="center" px="$6" pb="$4">
-                  <Text fontSize="$caption" color="$color10">
+                <View items="center" px="8" pb="18px">
+                  <Text fontSize="caption" color="color-10">
                     {t('mapDataFailedToLoadShowingSavedFavoriteDetails', {
                       defaultValue: '地图数据加载失败，正在显示已保存的收藏信息',
                     })}

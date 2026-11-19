@@ -117,7 +117,7 @@ function createHarness(initialRange = emptyRange(), language = 'en') {
         YStack: ui('YStack'),
         useTheme: () => new Proxy({}, { get: () => ({ val: '#fb7299' }) }),
       },
-      '@tamagui/lucide-icons-2': Object.fromEntries(
+      '@/components/icons': Object.fromEntries(
         ['ChevronDown', 'ChevronUp', 'ChevronLeft', 'ChevronRight', 'CalendarDays', 'ArrowRight', 'Check'].map(
           (name) => [name, ui(name)],
         ),

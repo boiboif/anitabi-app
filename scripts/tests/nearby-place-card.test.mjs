@@ -38,7 +38,7 @@ function renderCard(place, scheme = 'light', options = {}) {
     'react-i18next': { useTranslation: () => ({ t: (key) => key, i18n: { resolvedLanguage: 'zh-CN' } }) },
     '@/lib/copy-to-clipboard': copyHelper,
     tamagui: { Text: 'Text', View: 'View', XStack: 'XStack', YStack: 'YStack',
-      useTheme: () => ({ color12: { val: scheme === 'dark' ? '#EEEEEE' : '#111111' }, background: { val: scheme === 'dark' ? '#111111' : '#FFFFFF' } }) },
+      useTheme: () => ({ 'color-12': { val: scheme === 'dark' ? '#EEEEEE' : '#111111' }, background: { val: scheme === 'dark' ? '#111111' : '#FFFFFF' } }) },
     '@/components/point/point-image': { __esModule: true, default: 'PointImage' },
     '@/components/point/point-navigation-button': { __esModule: true, default: 'PointNavigationButton' },
     '@/components/map/nearby-place-icon': { __esModule: true, default: 'NearbyPlaceIcon' },
@@ -96,9 +96,9 @@ test('the first render uses the prepared sprite color and source together withou
 
 test('unknown types use the card theme; an absent name uses coordinates without an icon', () => {
   const tree = renderCard({ name: '地点', englishName: 'Place', icon: 'unknown' });
-  assert.equal(text(tree, '地点').props.color, '$color12');
+  assert.equal(text(tree, '地点').props.color, 'color-12');
   assert.equal(text(tree, '地点').props.style, undefined);
-  assert.equal(text(tree, 'Place').props.color, '$color10');
+  assert.equal(text(tree, 'Place').props.color, 'color-10');
   assert.equal(text(tree, 'Place').props.opacity, undefined);
   assert.equal(findAll(tree, (node) => node.type === 'NearbyPlaceIcon')[0].props.color, '#111111');
 
@@ -131,7 +131,7 @@ test('a recognized region remains independently selectable beside navigation', (
   const tree = renderCard(null, 'light', { region: '日本 三重県' });
   const region = text(tree, '日本 三重県');
   assert.ok(region);
-  assert.equal(region.props.selectable, true);
+  assert.equal(region.props.select, 'text');
   assert.ok(text(tree, '139.000000, 35.000000'));
 });
 
@@ -177,7 +177,7 @@ function renderIcon(name, fallbackName, asset) {
     'react/jsx-runtime': jsxRuntime,
     tamagui: { View: 'View' },
     'expo-image': { Image: 'Image' },
-    '@tamagui/lucide-icons-2': { Bus: 'Bus', Fuel: 'Fuel', Hospital: 'Hospital', School: 'School', Shield: 'Shield', Train: 'Train', Utensils: 'Utensils' },
+    '@/components/icons': { Bus: 'Bus', Fuel: 'Fuel', Hospital: 'Hospital', School: 'School', Shield: 'Shield', Train: 'Train', Utensils: 'Utensils' },
   });
   return Icon({ name, fallbackName, color: '#123456', asset });
 }

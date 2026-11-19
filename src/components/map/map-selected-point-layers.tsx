@@ -94,10 +94,10 @@ function SelectedMapPointArtwork({ point, bangumi, showImage, onRendered, onHitR
     >
       {point.image && showImage ? (
         <View
-          rounded="$3"
+          rounded={7}
           overflow="hidden"
           borderWidth={3}
-          borderColor="$primary"
+          borderColor="primary"
           onLayout={(event) => {
             imageLayoutRef.current = event.nativeEvent.layout;
             reportHitRects();
@@ -124,10 +124,10 @@ function SelectedMapPointArtwork({ point, bangumi, showImage, onRendered, onHitR
         }}
       >
         <View
-          bg="$primary"
-          rounded="$9"
-          px="$2"
-          py="$0.5"
+          bg="primary"
+          rounded={26}
+          px="7px"
+          py="px"
           mt={hasImage ? -3 : 0}
           z={2}
           onLayout={(event) => {
@@ -135,14 +135,14 @@ function SelectedMapPointArtwork({ point, bangumi, showImage, onRendered, onHitR
             reportHitRects();
           }}
         >
-          <Text fontSize="$caption" lineHeight={16} fontWeight="700" color="white">
+          <Text fontSize="caption" lineHeight="16px" fontWeight="700" color="white">
             {t('currentLocation', { defaultValue: '当前点位' })}
           </Text>
         </View>
         <View
-          width={SELECTED_MAP_POINT_DOT_DIAMETER}
-          height={SELECTED_MAP_POINT_DOT_DIAMETER}
-          rounded="$9"
+          w={SELECTED_MAP_POINT_DOT_DIAMETER}
+          h={SELECTED_MAP_POINT_DOT_DIAMETER}
+          rounded={26}
           borderWidth={3}
           borderColor="white"
           mt={-2}
@@ -215,7 +215,7 @@ export function SelectedPlanMapPointLayer({ selected, mapReady, showImage, onHit
               onHitRectsChange={(rects) => onHitRectsChange(artworkKey, rects)}
             />
           ) : (
-            <View key="pending-artwork" collapsable={false} width={1} height={1} />
+            <View key="pending-artwork" collapsable={false} w={1} h={1} />
           )}
         </MapboxImage>
       </Images>

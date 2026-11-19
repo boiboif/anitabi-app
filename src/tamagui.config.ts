@@ -1,5 +1,6 @@
-import { createV5Theme, defaultChildrenThemes, defaultConfig } from '@tamagui/config/v5';
-import { animations } from '@tamagui/config/v5-reanimated';
+import { animations } from '@tamagui/config/animations-reanimated';
+import { colors, createV6Config, toV6Themes } from '@tamagui/config/v6';
+import { themes as classicThemes } from '@tamagui/themes/v5';
 import { Platform } from 'react-native';
 import { createFont, createTamagui } from 'tamagui';
 
@@ -7,11 +8,35 @@ export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const TopLevelPageTopPadding = Platform.select({ ios: 36, default: 8 }) ?? 8;
 export const MaxContentWidth = 800;
 export const PageHorizontalInset = 12;
+export const PrimaryColor = '#FB7299';
 // Shared with native navigation so headers and scene backgrounds match the page canvas.
 export const PageBackground = {
   light: '#F7F7F7',
   dark: '#101010',
 } as const;
+
+const convertedThemes = toV6Themes(classicThemes);
+const defaultConfig = createV6Config({
+  themes: {
+    ...convertedThemes,
+    light: {
+      ...convertedThemes.light,
+      pageBackground: PageBackground.light,
+      background: '#FFFFFF',
+      tabBarIndicator: '#FCE8EE',
+    },
+    dark: {
+      ...convertedThemes.dark,
+      pageBackground: PageBackground.dark,
+      background: '#1C1C1C',
+      'background-hover': '#242424',
+      'background-press': '#2A2A2A',
+      'background-focus': '#242424',
+      tabBarIndicator: '#492834',
+    },
+  },
+  colorTokens: { ...colors.colorTokens, primary: PrimaryColor },
+});
 
 // Keep this scale intentionally small; reuse a semantic role before adding another size.
 const semanticFontSizes = {
@@ -65,35 +90,9 @@ const headingFont = createFont({
   },
 });
 
-const generatedThemes = createV5Theme({
-  childrenThemes: {
-    ...defaultChildrenThemes,
-  },
-});
-
-const themes = {
-  ...generatedThemes,
-  light: {
-    ...generatedThemes.light,
-    pageBackground: PageBackground.light,
-    background: '#FFFFFF',
-    tabBarIndicator: '#FCE8EE',
-  },
-  dark: {
-    ...generatedThemes.dark,
-    pageBackground: PageBackground.dark,
-    background: '#1C1C1C',
-    backgroundHover: '#242424',
-    backgroundPress: '#2A2A2A',
-    backgroundFocus: '#242424',
-    tabBarIndicator: '#492834',
-  },
-};
-
 const config = createTamagui({
   ...defaultConfig,
   animations,
-  themes,
   fonts: {
     ...defaultConfig.fonts,
     body: bodyFont,
@@ -104,9 +103,6 @@ const config = createTamagui({
     space: {
       ...defaultConfig.tokens.space,
       pageHorizontalInset: PageHorizontalInset,
-    },
-    color: {
-      primary: '#FB7299',
     },
   },
 });

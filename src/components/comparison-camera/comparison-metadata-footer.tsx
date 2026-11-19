@@ -1,5 +1,5 @@
 import type { ComparisonMetadata } from '@/lib/comparison-export';
-import { MapPin } from '@tamagui/lucide-icons-2';
+import { MapPin } from '@/components/icons';
 import { Text, XStack, YStack } from 'tamagui';
 
 export default function ComparisonMetadataFooter({ metadata, width }: { metadata: ComparisonMetadata; width: number }) {
@@ -12,7 +12,7 @@ export default function ComparisonMetadataFooter({ metadata, width }: { metadata
   const coordinates = metadata.rows.find((row) => row.field === 'coordinates')?.value;
   const capturedAt = metadata.rows.find((row) => row.field === 'capturedAt')?.value;
   return (
-    <YStack width={width} bg="white" px={6 * scale} py={5 * scale} gap={1 * scale}>
+    <YStack w={width} bg="white" px={6 * scale} py={5 * scale} gap={1 * scale}>
       {pointName || metadata.name ? (
         <XStack items="baseline" justify={pointName ? 'space-between' : 'flex-end'} gap={8 * scale}>
           {pointName ? (
@@ -21,7 +21,7 @@ export default function ComparisonMetadataFooter({ metadata, width }: { metadata
               minW={0}
               allowFontScaling={false}
               fontSize={12 * scale}
-              lineHeight={16 * scale}
+              lineHeight={`${16 * scale}px`}
               fontWeight="600"
               color="#27272a"
             >
@@ -34,7 +34,7 @@ export default function ComparisonMetadataFooter({ metadata, width }: { metadata
               maxW={pointName ? '40%' : '100%'}
               allowFontScaling={false}
               fontSize={10 * scale}
-              lineHeight={13 * scale}
+              lineHeight={`${13 * scale}px`}
               color="#71717a"
               text="right"
             >
@@ -44,7 +44,7 @@ export default function ComparisonMetadataFooter({ metadata, width }: { metadata
         </XStack>
       ) : null}
       {workAndScene ? (
-        <Text allowFontScaling={false} fontSize={8 * scale} lineHeight={12 * scale} color="#71717a">
+        <Text allowFontScaling={false} fontSize={8 * scale} lineHeight={`${12 * scale}px`} color="#71717a">
           {workAndScene}
         </Text>
       ) : null}
@@ -60,7 +60,7 @@ export default function ComparisonMetadataFooter({ metadata, width }: { metadata
                 shrink={1}
                 allowFontScaling={false}
                 fontSize={7 * scale}
-                lineHeight={11 * scale}
+                lineHeight={`${11 * scale}px`}
                 color="#8a8a94"
               >
                 {coordinates}
@@ -73,7 +73,7 @@ export default function ComparisonMetadataFooter({ metadata, width }: { metadata
               shrink={1}
               allowFontScaling={false}
               fontSize={7 * scale}
-              lineHeight={12 * scale}
+              lineHeight={`${12 * scale}px`}
               color="#8a8a94"
               text="right"
             >

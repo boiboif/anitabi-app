@@ -1,6 +1,6 @@
 import type { ItineraryPlan } from '@/lib/plan-storage';
 import { buildImageUrl } from '@/services/handlers';
-import { CalendarDays, MoreHorizontal } from '@tamagui/lucide-icons-2';
+import { CalendarDays, MoreHorizontal } from '@/components/icons';
 import { Image } from 'expo-image';
 import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -27,18 +27,18 @@ export default memo(function PlanListCard({ plan, onPress, onMorePress }: Props)
   }
 
   return (
-    <View bg="$background" rounded="$4" overflow="hidden">
+    <View bg="background" rounded={9} overflow="hidden">
       <Pressable accessibilityRole="button" accessibilityLabel={plan.title} onPress={() => onPress(plan.id)}>
-        <XStack height={CARD_HEIGHT} gap="$2">
+        <XStack h={CARD_HEIGHT} gap="7px">
           <View
-            width={IMAGE_WIDTH}
-            height={CARD_HEIGHT}
+            w={IMAGE_WIDTH}
+            h={CARD_HEIGHT}
             shrink={0}
             overflow="hidden"
             items="center"
             justify="center"
-            bg="$color4"
-            rounded="$4"
+            bg="color-4"
+            rounded={9}
             style={firstItem?.snapshot.bangumiColor ? { backgroundColor: firstItem.snapshot.bangumiColor } : undefined}
           >
             {imageUrl ? (
@@ -52,24 +52,24 @@ export default memo(function PlanListCard({ plan, onPress, onMorePress }: Props)
                 alt={plan.title}
               />
             ) : (
-              <CalendarDays size={28} color="$color9" />
+              <CalendarDays size={28} color="color-9" />
             )}
           </View>
 
-          <YStack flex={1} minW={0} pr="$2" py="$1.5" justify="space-between">
-            <YStack gap="$1" minW={0}>
-              <Text minW={0} fontSize="$body" fontWeight="600" color="$color12" numberOfLines={1}>
+          <YStack flex={1} minW={0} pr="7px" py="1" justify="space-between">
+            <YStack gap="0-5" minW={0}>
+              <Text minW={0} fontSize="body" fontWeight="600" color="color-12" numberOfLines={1}>
                 {plan.title}
               </Text>
               {plan.description ? (
-                <Text fontSize="$caption" lineHeight={17} color="$color11" numberOfLines={2}>
+                <Text fontSize="caption" lineHeight="17px" color="color-11" numberOfLines={2}>
                   {plan.description}
                 </Text>
               ) : null}
             </YStack>
 
-            <XStack items="center" gap="$1">
-              <Text flex={1} fontSize="$caption" color="$color10" numberOfLines={1}>
+            <XStack items="center" gap="0-5">
+              <Text flex={1} fontSize="caption" color="color-10" numberOfLines={1}>
                 {t('workCount', { defaultValue: '{{count}} 部作品', count: bangumiIds.size })}
                 {' · '}
                 {t('locationCount', { defaultValue: '{{count}} 个点位', count: plan.items.length })}
@@ -84,7 +84,7 @@ export default memo(function PlanListCard({ plan, onPress, onMorePress }: Props)
                 }}
                 style={({ pressed }) => ({ opacity: pressed ? 0.55 : 1 })}
               >
-                <MoreHorizontal size={20} color="$color11" />
+                <MoreHorizontal size={20} color="color-11" />
               </Pressable>
             </XStack>
           </YStack>

@@ -1,3 +1,4 @@
+import { CalendarDays } from '@/components/icons';
 import { RecordFilters, type RecordTimeFilter } from '@/components/pilgrimage-records/record-filters';
 import { RecordPointCard } from '@/components/pilgrimage-records/record-point-card';
 import CardListItem from '@/components/ui/card-list-item';
@@ -7,7 +8,6 @@ import { queryPilgrimagePoints } from '@/lib/pilgrimage-record-query';
 import { usePilgrimageRecords } from '@/store/use-pilgrimage-records';
 import { MaxContentWidth, PageHorizontalInset } from '@/tamagui.config';
 import { FlashList } from '@shopify/flash-list';
-import { CalendarDays } from '@tamagui/lucide-icons-2';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -42,8 +42,8 @@ export default function PilgrimageRecordsScreen() {
   };
 
   return (
-    <View flex={1} bg="$pageBackground" items="center">
-      <View flex={1} width="100%" maxW={MaxContentWidth}>
+    <View flex={1} bg="pageBackground" items="center">
+      <View flex={1} w="100%" maxW={MaxContentWidth}>
         <RecordFilters
           bangumi={bangumi}
           bangumiIds={bangumiIds}
@@ -66,9 +66,9 @@ export default function PilgrimageRecordsScreen() {
               }}
               ListHeaderComponent={
                 !loadError && (points.length || hasFilters) ? (
-                  <YStack gap="$2" pb="$3">
+                  <YStack gap="7px" pb="13px">
                     {filterBar}
-                    <Text pl="$2" fontSize="$caption" color="$color11">
+                    <Text pl="7px" fontSize="caption" color="color-11">
                       {t('pilgrimageRecordsPointCount', { count: filteredPoints.length })}
                       {range.startDate || range.endDate
                         ? ` · ${t('pilgrimageRecordsFilterDateRange', {
@@ -94,11 +94,11 @@ export default function PilgrimageRecordsScreen() {
                 </CardListItem>
               )}
               ListEmptyComponent={
-                <YStack minH={280} justify="center" items="center" gap="$3" px="$4">
-                  <CalendarDays size={32} color="$color9" />
+                <YStack minH={280} justify="center" items="center" gap="13px" px="18px">
+                  <CalendarDays size={32} color="color-9" />
                   <Text
-                    fontSize="$body"
-                    color="$color12"
+                    fontSize="body"
+                    color="color-12"
                     text="center"
                     accessibilityRole={loadError ? 'alert' : undefined}
                   >
@@ -110,7 +110,7 @@ export default function PilgrimageRecordsScreen() {
                           : 'pilgrimageRecordsEmpty',
                     )}
                   </Text>
-                  <Text fontSize="$footnote" color="$color11" text="center" lineHeight={20}>
+                  <Text fontSize="footnote" color="color-11" text="center" lineHeight="20px">
                     {t(
                       loadError
                         ? 'pilgrimageRecordsLoadFailedHint'
@@ -120,12 +120,16 @@ export default function PilgrimageRecordsScreen() {
                     )}
                   </Text>
                   {loadError ? (
-                    <Button bg="$color3" color="$color12" onPress={() => router.push('/data-backup' as never)}>
+                    <Button
+                      bg="color-3 hover:background-hover press:background-press"
+                      color="color-12"
+                      onPress={() => router.push('/data-backup' as never)}
+                    >
                       {t('pilgrimageRecordsOpenBackup')}
                     </Button>
                   ) : hasFilters ? (
-                    <Button bg="$color3" onPress={clearFilters}>
-                      <Text color="$primary" fontSize="$body">
+                    <Button bg="color-3 hover:background-hover press:background-press" onPress={clearFilters}>
+                      <Text color="primary" fontSize="body">
                         {t('pilgrimageRecordsClearFilters')}
                       </Text>
                     </Button>

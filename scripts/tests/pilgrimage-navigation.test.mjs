@@ -181,7 +181,7 @@ function navigationButton(platform, map, open = async () => {}, props = { point:
   const { default: Button } = loadModule('../../src/components/point/point-navigation-button.tsx', {
     '@/lib/pilgrimage-navigation': navigation,
     '@/store/use-pilgrimage-preferences': { usePilgrimagePreferences: (select) => select({ navigationMap: map }) },
-    '@tamagui/lucide-icons-2': { Navigation: 'Navigation' },
+    '@/components/icons': { Navigation: 'Navigation' },
     react: { useRef: (current) => ({ current }) },
     'react-native': {
       Platform: { OS: platform },

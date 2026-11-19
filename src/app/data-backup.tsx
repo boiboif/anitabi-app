@@ -1,3 +1,4 @@
+import { Check, FileDown, FileUp, Square, SquareCheckBig } from '@/components/icons';
 import { SettingCell } from '@/components/ui/settings/setting-cell';
 import { SettingsSection } from '@/components/ui/settings/settings-section';
 import { StrictButton as Button } from '@/components/ui/strict-button';
@@ -19,7 +20,6 @@ import { usePlans } from '@/store/use-plans';
 import { usePilgrimageRecords } from '@/store/use-pilgrimage-records';
 import { MaxContentWidth } from '@/tamagui.config';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
-import { Check, FileDown, FileUp, Square, SquareCheckBig } from '@tamagui/lucide-icons-2';
 import { usePreventRemove } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -186,16 +186,16 @@ export default function DataBackupScreen() {
         style={{ flex: 1, backgroundColor: theme.pageBackground?.val }}
         contentContainerStyle={{ alignItems: 'center', paddingBottom: insets.bottom + 24 }}
       >
-        <YStack width="100%" maxW={MaxContentWidth} px="$pageHorizontalInset" pt="$4" gap="$5">
+        <YStack w="100%" maxW={MaxContentWidth} px="pageHorizontalInset" pt="18px" gap="6">
           <SettingsSection title={t('backupCurrentData')}>
-            <YStack py="$3" gap="$2">
-              <Text fontSize="$body" lineHeight={21} fontWeight="600" color="$color12">
+            <YStack py="13px" gap="7px">
+              <Text fontSize="body" lineHeight="21px" fontWeight="600" color="color-12">
                 {t('backupDataCounts', currentSummary)}
               </Text>
-              <Text fontSize="$caption" lineHeight={18} color="$color11">
+              <Text fontSize="caption" lineHeight="18px" color="color-11">
                 {t('backupPlanPointCounts', currentSummary)}
               </Text>
-              <Text fontSize="$caption" lineHeight={18} color="$color11">
+              <Text fontSize="caption" lineHeight="18px" color="color-11">
                 {t('backupPilgrimageCounts', {
                   defaultValue: '{{recordPointCount}} 个点位 · {{recordDayCount}} 条记录 · {{photoCount}} 张照片',
                   ...currentSummary,
@@ -224,9 +224,9 @@ export default function DataBackupScreen() {
             />
           </SettingsSection>
 
-          {busy ? <Spinner color="$primary" accessibilityLabel={t('backupProcessing')} /> : null}
+          {busy ? <Spinner color="primary" accessibilityLabel={t('backupProcessing')} /> : null}
           {busy && progress ? (
-            <Text fontSize="$caption" lineHeight={18} color="$color11" accessibilityLiveRegion="polite">
+            <Text fontSize="caption" lineHeight="18px" color="color-11" accessibilityLiveRegion="polite">
               {progress.phase === 'export'
                 ? t('backupPhotoExportProgress', {
                     defaultValue: '正在打包照片，{{completed}} / {{total}}',
@@ -246,40 +246,40 @@ export default function DataBackupScreen() {
           {notice ? (
             <Text
               accessibilityRole="alert"
-              fontSize="$footnote"
-              lineHeight={20}
-              color={notice.error ? '$red10' : '$green10'}
-              px="$1"
+              fontSize="footnote"
+              lineHeight="20px"
+              color={notice.error ? 'red-10' : 'green-10'}
+              px="0-5"
             >
               {notice.text}
             </Text>
           ) : null}
 
           {selected && incomingSummary ? (
-            <YStack gap="$4">
+            <YStack gap="18px">
               <SettingsSection title={t('backupFileSummary')}>
-                <YStack py="$3" gap="$2">
-                  <Text fontSize="$body" lineHeight={20} fontWeight="600" color="$color12" selectable>
+                <YStack py="13px" gap="7px">
+                  <Text fontSize="body" lineHeight="20px" fontWeight="600" color="color-12" select="text">
                     {selected.name}
                   </Text>
-                  <Text fontSize="$caption" lineHeight={18} color="$color11">
+                  <Text fontSize="caption" lineHeight="18px" color="color-11">
                     {t('backupExportedAt', {
                       date: new Date(selected.backup.exportedAt).toLocaleString(i18n.resolvedLanguage),
                     })}
                   </Text>
-                  <Text fontSize="$body" lineHeight={21} color="$color12">
+                  <Text fontSize="body" lineHeight="21px" color="color-12">
                     {formatDataCounts(selected.backup.data, incomingSummary)}
                   </Text>
                   {selected.backup.data.plans !== undefined ? (
-                    <Text fontSize="$caption" lineHeight={18} color="$color11">
+                    <Text fontSize="caption" lineHeight="18px" color="color-11">
                       {t('backupPlanPointCounts', incomingSummary)}
                     </Text>
                   ) : null}
-                  <Text fontSize="$caption" lineHeight={18} color="$color11">
+                  <Text fontSize="caption" lineHeight="18px" color="color-11">
                     {t('backupRestoreScopeDescription')}
                   </Text>
                   {selected.backup.data.pilgrimageRecords !== undefined ? (
-                    <Text fontSize="$caption" lineHeight={18} color="$color11">
+                    <Text fontSize="caption" lineHeight="18px" color="color-11">
                       {t('backupPilgrimageRestoreDescription', {
                         defaultValue: '照片只恢复到应用内，不写入系统相册，也不改变计划完成状态。',
                       })}
@@ -292,7 +292,7 @@ export default function DataBackupScreen() {
                 <SettingCell
                   title={t('backupMerge')}
                   description={t('backupMergeDescription')}
-                  rightAccessory={mode === 'merge' ? <Check size={20} color="$primary" /> : <YStack width={20} />}
+                  rightAccessory={mode === 'merge' ? <Check size={20} color="primary" /> : <YStack w={20} />}
                   accessibilityRole="radio"
                   accessibilityState={{ checked: mode === 'merge', disabled: busy }}
                   disabled={busy}
@@ -305,7 +305,7 @@ export default function DataBackupScreen() {
                 <SettingCell
                   title={t('backupOverwrite')}
                   description={t('backupOverwriteDescription')}
-                  rightAccessory={mode === 'overwrite' ? <Check size={20} color="$primary" /> : <YStack width={20} />}
+                  rightAccessory={mode === 'overwrite' ? <Check size={20} color="primary" /> : <YStack w={20} />}
                   accessibilityRole="radio"
                   accessibilityState={{ checked: mode === 'overwrite', disabled: busy }}
                   disabled={busy}
@@ -317,24 +317,29 @@ export default function DataBackupScreen() {
               </SettingsSection>
 
               {confirmingOverwrite ? (
-                <YStack gap="$3" p="$3" rounded="$4" bg="$red2">
-                  <Text fontSize="$body" lineHeight={20} fontWeight="600" color="$red11">
+                <YStack gap="13px" p="13px" rounded={9} bg="red-2">
+                  <Text fontSize="body" lineHeight="20px" fontWeight="600" color="red-11">
                     {t('backupConfirmOverwrite')}
                   </Text>
-                  <Text fontSize="$caption" lineHeight={18} color="$red11">
+                  <Text fontSize="caption" lineHeight="18px" color="red-11">
                     {t('backupOverwriteWarning', {
                       dataCounts: formatDataCounts(selected.backup.data, currentSummary),
                     })}
                   </Text>
-                  <Button bg="$red10" color="white" disabled={busy} onPress={restore}>
+                  <Button bg="red-10" color="white" disabled={busy} onPress={restore}>
                     {t('backupConfirmOverwrite')}
                   </Button>
-                  <Button bg="$color3" color="$color12" disabled={busy} onPress={() => setConfirmingOverwrite(false)}>
+                  <Button
+                    bg="color-3 hover:background-hover press:background-press"
+                    color="color-12"
+                    disabled={busy}
+                    onPress={() => setConfirmingOverwrite(false)}
+                  >
                     {t('cancel')}
                   </Button>
                 </YStack>
               ) : (
-                <Button bg="$primary" color="white" disabled={busy} onPress={restore}>
+                <Button bg="primary" color="white" disabled={busy} onPress={restore}>
                   {t('backupStartRestore')}
                 </Button>
               )}
@@ -346,13 +351,13 @@ export default function DataBackupScreen() {
         ref={exportSheetRef}
         detents={['auto']}
         cornerRadius={18}
-        backgroundColor={theme.color2.val}
+        backgroundColor={theme['color-2'].val}
         grabberOptions={{ color: theme.primary.val, adaptive: false, topMargin: 8, width: 42, height: 5 }}
         dismissible={!busy}
         draggable={!busy}
       >
-        <YStack px="$4" pt="$5" pb="$4" gap="$4">
-          <Text fontSize="$subtitle" lineHeight={22} fontWeight="700" color="$color12">
+        <YStack px="18px" pt="6" pb="18px" gap="18px">
+          <Text fontSize="subtitle" lineHeight="22px" fontWeight="700" color="color-12">
             {t('exportDataBackup')}
           </Text>
           <SettingsSection title={t('backupExportScope')}>
@@ -361,9 +366,9 @@ export default function DataBackupScreen() {
               description={t('backupFavoriteCounts', currentSummary)}
               rightAccessory={
                 exportSelection.favoritePoints ? (
-                  <SquareCheckBig size={23} color="$primary" />
+                  <SquareCheckBig size={23} color="primary" />
                 ) : (
-                  <Square size={23} color="$color8" />
+                  <Square size={23} color="color-8" />
                 )
               }
               accessibilityRole="checkbox"
@@ -377,9 +382,9 @@ export default function DataBackupScreen() {
               description={t('backupPlanCounts', currentSummary)}
               rightAccessory={
                 exportSelection.plans ? (
-                  <SquareCheckBig size={23} color="$primary" />
+                  <SquareCheckBig size={23} color="primary" />
                 ) : (
-                  <Square size={23} color="$color8" />
+                  <Square size={23} color="color-8" />
                 )
               }
               accessibilityRole="checkbox"
@@ -393,9 +398,9 @@ export default function DataBackupScreen() {
               description={`${t('backupPilgrimageCounts', { defaultValue: '{{recordPointCount}} 个点位 · {{recordDayCount}} 条记录 · {{photoCount}} 张照片', ...currentSummary })}\n${t('backupEstimatedPhotoSize', { defaultValue: '照片约 {{size}}', size: `${(photoBytes / 1024 / 1024).toFixed(1)} MB` })}`}
               rightAccessory={
                 exportSelection.pilgrimageRecords ? (
-                  <SquareCheckBig size={23} color="$primary" />
+                  <SquareCheckBig size={23} color="primary" />
                 ) : (
-                  <Square size={23} color="$color8" />
+                  <Square size={23} color="color-8" />
                 )
               }
               accessibilityRole="checkbox"
@@ -406,19 +411,19 @@ export default function DataBackupScreen() {
               }
             />
           </SettingsSection>
-          <Text fontSize="$caption" lineHeight={18} color="$color11" px="$1">
+          <Text fontSize="caption" lineHeight="18px" color="color-11" px="0-5">
             {t('backupScopeDescription')}
           </Text>
           {notice?.error ? (
-            <Text accessibilityRole="alert" fontSize="$footnote" lineHeight={20} color="$red10" px="$1">
+            <Text accessibilityRole="alert" fontSize="footnote" lineHeight="20px" color="red-10" px="0-5">
               {notice.text}
             </Text>
           ) : null}
-          <XStack gap="$3">
+          <XStack gap="13px">
             <Button
               flex={1}
-              bg="$color4"
-              color="$color12"
+              bg="color-4 hover:background-hover press:background-press"
+              color="color-12"
               disabled={busy}
               onPress={() =>
                 void exportSheetRef.current?.dismiss().catch((error) => showError(error, 'backupExportFailed'))
@@ -428,7 +433,7 @@ export default function DataBackupScreen() {
             </Button>
             <Button
               flex={1}
-              bg="$primary"
+              bg="primary"
               color="white"
               disabled={busy || !hasExportSelection}
               accessibilityState={{ disabled: busy || !hasExportSelection }}

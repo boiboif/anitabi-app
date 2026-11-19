@@ -35,14 +35,14 @@ function renderCard(kind, copy, toast) {
   const useTranslation = () => ({ t: (key, opts) => opts?.defaultValue ?? key, i18n: { resolvedLanguage: 'zh-CN' } });
   const react = { memo: (value) => value, useState: (value) => [value, () => {}], useCallback: (value) => value, useRef: () => ({ current: null }) };
   const token = { radius: { 2: { val: 2 }, 3: { val: 3 } } };
-  const theme = { color9: { val: '#999' }, primary: { val: '#f00' }, color10: { val: '#aaa' } };
+  const theme = { 'color-9': { val: '#999' }, primary: { val: '#f00' }, 'color-10': { val: '#aaa' } };
   const modules = {
     'react/jsx-runtime': { jsx, jsxs: jsx },
     react,
     'react-i18next': { useTranslation },
     'react-native': { Pressable: 'Pressable', ScrollView: 'ScrollView', Linking: { openURL() {} } },
     tamagui: { Text: 'Text', View: 'View', XStack: 'XStack', YStack: 'YStack', getTokens: () => token, useTheme: () => theme, useThemeName: () => 'light' },
-    '@tamagui/lucide-icons-2': { CheckCircle2: 'CheckCircle2', ChevronLeft: 'ChevronLeft', ChevronRight: 'ChevronRight', Flag: 'Flag' },
+    '@/components/icons': { CheckCircle2: 'CheckCircle2', ChevronLeft: 'ChevronLeft', ChevronRight: 'ChevronRight', Flag: 'Flag' },
     '@/lib/copy-to-clipboard': helper,
     '@/lib/localized-data': { getPointTitle: (point) => point.localizedName, getBangumiTitle: () => '作品名称' },
     '@/lib/formatDuration': { formatDuration: () => '' },
@@ -90,7 +90,7 @@ for (const kind of ['popup', 'plan']) {
       copied.push(value);
     }, (value) => notices.push(value));
     const node = pressTitle(tree);
-    if (kind === 'plan') assert.equal(node.props.selectable, true, 'the plan title remains selectable');
+    if (kind === 'plan') assert.equal(node.props.select, 'text', 'the plan title remains selectable');
     assert.deepEqual(copied, [title]);
     // Clipboard.setString returns void; this only checks synchronous call order,
     // not whether the native clipboard actually persisted the value.

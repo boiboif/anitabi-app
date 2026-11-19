@@ -42,43 +42,43 @@ export default function LoadingBadge({ progress, insets, onRetry }: Props) {
     <View
       position="absolute"
       t={top}
-      l="$3"
-      r="$3"
+      l="13px"
+      r="13px"
       z={20}
       items="flex-start"
       pointerEvents="box-none"
       style={{ elevation: 4 }}
     >
       <YStack
-        bg={isError ? '$red2' : '$background'}
+        bg={isError ? 'red-2' : 'background'}
         borderWidth={1}
-        borderColor={isError ? '$red7' : '$primary'}
-        gap="$1"
-        px="$2.5"
-        py="$1.5"
-        rounded="$3"
-        width={isError ? undefined : 220}
+        borderColor={isError ? 'red-7' : 'primary'}
+        gap="0-5"
+        px="2-5"
+        py="1"
+        rounded={7}
+        w={isError ? undefined : 220}
         minW={120}
         maxW="85%"
         boxShadow="0 0 10px rgba(0, 0, 0, 0.1)"
       >
-        <Text fontSize="$caption" color={isError ? '$red10' : '$color'} fontWeight={isError ? '600' : '400'}>
+        <Text fontSize="caption" color={isError ? 'red-10' : 'color'} fontWeight={isError ? '600' : '400'}>
           {progress.message}
         </Text>
         {isError ? (
           onRetry && (
-            <Button size="$2" px="$2" bg="$red3" rounded="$2" self="flex-start" onPress={onRetry}>
-              <Text fontSize="$caption" color="$red10" fontWeight="600">
+            <Button size="sm" px="7px" bg="red-3" rounded={5} self="flex-start" onPress={onRetry}>
+              <Text fontSize="caption" color="red-10" fontWeight="600">
                 {t('retry', { defaultValue: '重试' })}
               </Text>
             </Button>
           )
         ) : (
           <View
-            width="100%"
-            height={5}
-            bg="$pink3"
-            rounded="$1"
+            w="100%"
+            h={5}
+            bg="pink-3"
+            rounded={3}
             overflow="hidden"
             accessible
             accessibilityRole="progressbar"
@@ -87,7 +87,7 @@ export default function LoadingBadge({ progress, insets, onRetry }: Props) {
             pointerEvents="none"
           >
             {/* A definite parent width lets native layout resolve the fill without measuring or translating it. */}
-            <View width={`${progressValue}%`} height="100%" bg="$primary" rounded="$1" />
+            <View w={`${progressValue}%`} h="100%" bg="primary" rounded={3} />
           </View>
         )}
       </YStack>

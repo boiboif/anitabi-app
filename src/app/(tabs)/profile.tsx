@@ -1,10 +1,10 @@
+import { BookImage, DatabaseBackup, HardDrive, Info, Languages, Palette, Settings2 } from '@/components/icons';
 import { useAppTabBarInset } from '@/components/app-tab-bar-inset';
 import { SettingCell } from '@/components/ui/settings/setting-cell';
 import { SettingsSection } from '@/components/ui/settings/settings-section';
 import { clearAppCache } from '@/lib/app-cache';
 import { getCurrentAppDisplayVersion } from '@/services/app-update';
 import { BottomTabInset, MaxContentWidth, TopLevelPageTopPadding } from '@/tamagui.config';
-import { BookImage, DatabaseBackup, HardDrive, Info, Languages, Palette, Settings2 } from '@tamagui/lucide-icons-2';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -62,9 +62,16 @@ export default function ProfileScreen() {
       : t('simplifiedChinese', { defaultValue: '简体中文' });
 
   return (
-    <View flex={1} bg="$pageBackground" pt={paddingTop} pl={safeAreaInsets.left} pr={safeAreaInsets.right}>
-      <View width="100%" maxW={MaxContentWidth} self="center" px="$pageHorizontalInset" minH={36} mb="$3">
-        <Text accessibilityRole="header" fontSize="$heading" lineHeight={30} fontWeight="700" color="$color12" px="$1">
+    <View flex={1} bg="pageBackground" pt={paddingTop} pl={safeAreaInsets.left} pr={safeAreaInsets.right}>
+      <View w="100%" maxW={MaxContentWidth} self="center" px="pageHorizontalInset" minH={36} mb="13px">
+        <Text
+          accessibilityRole="header"
+          fontSize="heading"
+          lineHeight="30px"
+          fontWeight="700"
+          color="color-12"
+          px="0-5"
+        >
           {t('me', { defaultValue: '我的' })}
         </Text>
       </View>
@@ -73,7 +80,7 @@ export default function ProfileScreen() {
         contentInsetAdjustmentBehavior="never"
         contentContainerStyle={{ alignItems: 'center', paddingBottom }}
       >
-        <View width="100%" maxW={MaxContentWidth} px="$pageHorizontalInset" gap="$5">
+        <View w="100%" maxW={MaxContentWidth} px="pageHorizontalInset" gap="6">
           <SettingsSection title={t('pilgrimage', { defaultValue: '巡礼' })}>
             {/* <SettingCell
             icon={CalendarDays}

@@ -1,10 +1,10 @@
+import { Check } from '@/components/icons';
 import { SettingCell } from '@/components/ui/settings/setting-cell';
 import { SettingsSection } from '@/components/ui/settings/settings-section';
 import { ThemeSwitch } from '@/components/ui/theme-switch';
 import { useMapStylePreference } from '@/store/use-map-style-preference';
 import { useThemePreference } from '@/store/use-theme-preference';
 import { MaxContentWidth } from '@/tamagui.config';
-import { Check } from '@tamagui/lucide-icons-2';
 import { useTranslation } from 'react-i18next';
 import { ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -31,13 +31,13 @@ export default function DarkModeScreen() {
       style={{ flex: 1, backgroundColor: theme.pageBackground?.val }}
       contentContainerStyle={{ alignItems: 'center', paddingBottom: insets.bottom + 24 }}
     >
-      <YStack width="100%" maxW={MaxContentWidth} px="$pageHorizontalInset" pt="$4" gap="$5">
+      <YStack w="100%" maxW={MaxContentWidth} px="pageHorizontalInset" pt="18px" gap="6">
         <SettingsSection>
           {THEME_OPTIONS.map((option, index) => (
             <SettingCell
               key={option.preference}
               title={t(option.label)}
-              rightAccessory={preference === option.preference && <Check size={20} color="$primary" />}
+              rightAccessory={preference === option.preference && <Check size={20} color="primary" />}
               showDivider={index < THEME_OPTIONS.length - 1}
               accessibilityRole="radio"
               accessibilityState={{ checked: preference === option.preference }}

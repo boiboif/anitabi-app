@@ -19,7 +19,7 @@ import { getComparisonExportSettings, setComparisonExportSettings } from '@/lib/
 import { savePilgrimagePhoto } from '@/services/pilgrimage-records';
 import type { Bangumi, Point } from '@/services/types';
 import { Toast } from '@boiboif/react-native-toast';
-import { Download, Images, RotateCcw, Settings2, Undo2, X } from '@tamagui/lucide-icons-2';
+import { Download, Images, RotateCcw, Settings2, Undo2, X } from '@/components/icons';
 import { File } from 'expo-file-system';
 import { Image, type ImageProps } from 'expo-image';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
@@ -205,12 +205,12 @@ function ActionButton({ label, icon, primary = false, disabled = false, onPress 
       hitSlop={12}
     >
       <View
-        width={size}
-        height={size}
+        w={size}
+        h={size}
         items="center"
         justify="center"
-        rounded={primary ? 999 : '$9'}
-        bg={primary ? '$primary' : '#242426'}
+        rounded={primary ? 999 : 26}
+        bg={primary ? 'primary' : '#242426'}
       >
         {icon}
       </View>
@@ -558,7 +558,7 @@ export default function ComparisonResultModal({
           justify="space-between"
           px={12}
           pt={insets.top}
-          height={insets.top + COMPARISON_CAMERA_TOP_REGION_HEIGHT}
+          h={insets.top + COMPARISON_CAMERA_TOP_REGION_HEIGHT}
         >
           <Pressable
             accessibilityRole="button"
@@ -570,7 +570,7 @@ export default function ComparisonResultModal({
             }}
             style={({ pressed }) => ({ opacity: pressed ? 0.68 : 1 })}
           >
-            <View width={36} height={36} rounded="$9" items="center" justify="center">
+            <View w={36} h={36} rounded={26} items="center" justify="center">
               <X size={20} color="white" />
             </View>
           </Pressable>
@@ -584,7 +584,7 @@ export default function ComparisonResultModal({
             }}
             style={({ pressed }) => ({ opacity: saving ? 0.38 : pressed ? 0.68 : 1 })}
           >
-            <View width={36} height={36} rounded="$9" items="center" justify="center">
+            <View w={36} h={36} rounded={26} items="center" justify="center">
               <Settings2 size={20} color="white" />
             </View>
           </Pressable>
@@ -606,7 +606,7 @@ export default function ComparisonResultModal({
               }}
             >
               <YStack
-                width={preview.width}
+                w={preview.width}
                 p={previewBorder}
                 bg={borderColor}
                 opacity={hasPresentedPreview ? 1 : 0}
@@ -614,8 +614,8 @@ export default function ComparisonResultModal({
               >
                 <View flexDirection={settings.layout === 'horizontal' ? 'row' : 'column'} gap={previewGap}>
                   <View
-                    width={exportLayout.reference.width * previewScale}
-                    height={exportLayout.reference.height * previewScale}
+                    w={exportLayout.reference.width * previewScale}
+                    h={exportLayout.reference.height * previewScale}
                     overflow="hidden"
                   >
                     <ComparisonImagePressable
@@ -671,8 +671,8 @@ export default function ComparisonResultModal({
                     disabled={saving}
                   >
                     <View
-                      width={exportLayout.photo.width * previewScale}
-                      height={exportLayout.photo.height * previewScale}
+                      w={exportLayout.photo.width * previewScale}
+                      h={exportLayout.photo.height * previewScale}
                       overflow="hidden"
                       bg={borderColor}
                     >
@@ -726,7 +726,7 @@ export default function ComparisonResultModal({
 
         <XStack
           shrink={0}
-          height={COMPARISON_CAMERA_BOTTOM_REGION_HEIGHT + insets.bottom}
+          h={COMPARISON_CAMERA_BOTTOM_REGION_HEIGHT + insets.bottom}
           px={12}
           pt={12}
           pb={Math.max(insets.bottom, 24)}

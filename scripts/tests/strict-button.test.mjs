@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import vm from 'node:vm';
-import { Children } from 'react';
 import { jsx, jsxs } from 'react/jsx-runtime';
 import ts from 'typescript';
 
@@ -18,14 +17,13 @@ function createHarness() {
   let cursor = 0;
   const modules = {
     react: {
-      Children,
       useRef(initial) {
         const index = cursor++;
         return (refs[index] ??= { current: initial });
       },
     },
     'react/jsx-runtime': { jsx, jsxs },
-    tamagui: { Button: Object.assign(() => null, { Text: 'ButtonText' }) },
+    'tamagui/button': { Button: () => null },
   };
   const context = vm.createContext({
     exports: {},
@@ -39,7 +37,7 @@ function createHarness() {
     render(props = {}) {
       cursor = 0;
       const element = context.exports.StrictButton({ children: 'Save', ...props });
-      assert.equal(element.type, modules.tamagui.Button);
+      assert.equal(element.type, modules['tamagui/button'].Button);
       return element.props;
     },
   };
@@ -117,42 +115,34 @@ test('a release outside the measured button does not press, including after a re
   const onPress = (event) => calls.push(event);
   let props = button.render({ onPress });
   props.onLayout(layout);
-  props.onPressIn(press());
   props.onPress(press(101, 20));
   assert.deepEqual(calls, []);
 
-  props.onPressIn(press());
-  props.onResponderMove(press(20, 45));
   props = button.render({ onPress, accessibilityState: { busy: false } });
-  props.onPress(press());
-  assert.deepEqual(calls, [], 'a re-render must not forget that the pointer last moved outside');
+  props.onPress(press(20, 45));
+  assert.deepEqual(calls, [], 'a re-render must retain the measured button bounds');
+
+  const inside = press();
+  props.onPress(inside);
+  assert.deepEqual(calls, [inside]);
 });
 
-test('moving back inside permits the press and a new gesture resets the previous outside state', () => {
+test('the wrapper passes move and press-in callbacks through and configures Tamagui press retention', () => {
   const button = createHarness();
-  const calls = { layout: [], pressIn: [], move: [], press: [] };
+  const layoutEvents = [];
+  const onPressIn = () => {};
+  const onResponderMove = () => {};
   const props = button.render({
-    onLayout: (event) => calls.layout.push(event),
-    onPressIn: (event) => calls.pressIn.push(event),
-    onResponderMove: (event) => calls.move.push(event),
-    onPress: (event) => calls.press.push(event),
+    onLayout: (event) => layoutEvents.push(event),
+    onPressIn,
+    onResponderMove,
   });
-  const inside = press();
-  const outside = press(-1, 20);
   props.onLayout(layout);
-  props.onPressIn(inside);
-  props.onResponderMove(outside);
-  props.onResponderMove(inside);
-  props.onPress(inside);
-  assert.deepEqual(calls.press, [inside]);
-  assert.deepEqual(calls.layout, [layout]);
-  assert.deepEqual(calls.pressIn, [inside]);
-  assert.deepEqual(calls.move, [outside, inside]);
+  assert.deepEqual(layoutEvents, [layout]);
+  assert.equal(props.onPressIn, onPressIn);
+  assert.equal(props.onResponderMove, onResponderMove);
+  assert.deepEqual(plain(props.pressRetentionOffset), { top: 0, right: 0, bottom: 0, left: 0 });
 
-  props.onResponderMove(outside);
-  props.onPress(inside);
-  assert.equal(calls.press.length, 1);
-  props.onPressIn(inside);
-  props.onPress(inside);
-  assert.deepEqual(calls.press, [inside, inside]);
+  const pressRetentionOffset = { top: 4, right: 4, bottom: 4, left: 4 };
+  assert.equal(button.render({ pressRetentionOffset }).pressRetentionOffset, pressRetentionOffset);
 });

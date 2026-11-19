@@ -8,7 +8,7 @@ import {
   selectPilgrimageDateRange,
 } from '@/lib/pilgrimage-record-filter';
 import type { PilgrimageDateRange } from '@/lib/pilgrimage-record-query';
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from '@tamagui/lucide-icons-2';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from '@/components/icons';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, type PressableProps } from 'react-native';
@@ -31,7 +31,7 @@ function CalendarHeaderButton({
       accessibilityRole="button"
       style={({ pressed }) => ({ minWidth: 0, flexShrink: 1, opacity: pressed && !disabled ? 0.65 : 1 })}
     >
-      <XStack px="$2" py="$2" gap="$1" minW={0} items="center" justify="center">
+      <XStack px="7px" py="7px" gap="0-5" minW={0} items="center" justify="center">
         {children}
       </XStack>
     </Pressable>
@@ -85,8 +85,8 @@ export function RecordDateCalendar({ range, onChange }: Props) {
   };
 
   return (
-    <YStack gap="$2" bg="$background" rounded="$3" p="$2">
-      <XStack items="center" justify="space-between" gap="$1">
+    <YStack gap="7px" bg="background" rounded={7} p="7px">
+      <XStack items="center" justify="space-between" gap="0-5">
         {/* Equal side regions keep the title centered despite the Today action. */}
         <XStack flex={1} minW={0} items="center">
           <CalendarHeaderButton
@@ -100,26 +100,26 @@ export function RecordDateCalendar({ range, onChange }: Props) {
             )}
             onPress={() => move(-1)}
           >
-            <ChevronLeft size={20} color={previousDisabled ? '$color7' : '$color12'} />
+            <ChevronLeft size={20} color={previousDisabled ? 'color-7' : 'color-12'} />
           </CalendarHeaderButton>
         </XStack>
-        <XStack flex={2} minW={0} justify="center" items="center" gap="$1">
+        <XStack flex={2} minW={0} justify="center" items="center" gap="0-5">
           <CalendarHeaderButton
             accessibilityLabel={t('pilgrimageRecordsFilterYear', { year: month.year })}
             accessibilityState={{ expanded: mode === 'years' }}
             onPress={() => setMode(mode === 'years' ? 'days' : 'years')}
           >
             <Text
-              color={mode === 'years' ? '$primary' : '$color12'}
+              color={mode === 'years' ? 'primary' : 'color-12'}
               shrink={1}
               minW={0}
-              fontSize="$footnote"
+              fontSize="footnote"
               fontWeight="600"
               numberOfLines={1}
             >
               {t('pilgrimageRecordsFilterYear', { year: month.year })}
             </Text>
-            {mode === 'years' ? <ChevronUp size={14} color="$primary" /> : <ChevronDown size={14} color="$color11" />}
+            {mode === 'years' ? <ChevronUp size={14} color="primary" /> : <ChevronDown size={14} color="color-11" />}
           </CalendarHeaderButton>
           <CalendarHeaderButton
             accessibilityLabel={t('pilgrimageRecordsFilterSelectMonth')}
@@ -127,16 +127,16 @@ export function RecordDateCalendar({ range, onChange }: Props) {
             onPress={() => setMode(mode === 'months' ? 'days' : 'months')}
           >
             <Text
-              color={mode === 'months' ? '$primary' : '$color12'}
+              color={mode === 'months' ? 'primary' : 'color-12'}
               shrink={1}
               minW={0}
-              fontSize="$footnote"
+              fontSize="footnote"
               fontWeight="600"
               numberOfLines={1}
             >
               {monthFormatter.format(new Date(2026, month.month - 1, 1))}
             </Text>
-            {mode === 'months' ? <ChevronUp size={14} color="$primary" /> : <ChevronDown size={14} color="$color11" />}
+            {mode === 'months' ? <ChevronUp size={14} color="primary" /> : <ChevronDown size={14} color="color-11" />}
           </CalendarHeaderButton>
         </XStack>
         <XStack flex={1} minW={0} justify="flex-end" items="center">
@@ -147,7 +147,7 @@ export function RecordDateCalendar({ range, onChange }: Props) {
               setMode('days');
             }}
           >
-            <Text fontSize="$footnote" color="$primary" shrink={1} minW={0} numberOfLines={1}>
+            <Text fontSize="footnote" color="primary" shrink={1} minW={0} numberOfLines={1}>
               {t('today')}
             </Text>
           </CalendarHeaderButton>
@@ -162,15 +162,15 @@ export function RecordDateCalendar({ range, onChange }: Props) {
             )}
             onPress={() => move(1)}
           >
-            <ChevronRight size={20} color={nextDisabled ? '$color7' : '$color12'} />
+            <ChevronRight size={20} color={nextDisabled ? 'color-7' : 'color-12'} />
           </CalendarHeaderButton>
         </XStack>
       </XStack>
       {mode === 'days' ? (
-        <YStack gap="$1">
+        <YStack gap="0-5">
           <XStack>
             {weekdays.map((weekday, index) => (
-              <Text key={index} flex={1} text="center" fontSize="$caption" color="$color10" py="$1">
+              <Text key={index} flex={1} text="center" fontSize="caption" color="color-10" py="0-5">
                 {weekday}
               </Text>
             ))}
@@ -207,7 +207,7 @@ export function RecordDateCalendar({ range, onChange }: Props) {
                     accessibilityRole="button"
                     accessibilityLabel={label}
                     accessibilityState={{ selected: endpoint || inRange }}
-                    pressStyle={{ opacity: 0.6 }}
+                    opacity="1 press:0.6"
                     onPress={() => {
                       onChange(selectPilgrimageDateRange(range, day.dateKey));
                       if (!day.isCurrentMonth) setMonth(getPilgrimageCalendarMonth(day.dateKey));
@@ -218,10 +218,10 @@ export function RecordDateCalendar({ range, onChange }: Props) {
                         pointerEvents="none"
                         position="absolute"
                         t={4}
-                        height={36}
+                        h={36}
                         l={start ? '50%' : 0}
                         r={end ? '50%' : 0}
-                        bg="$primary"
+                        bg="primary"
                         opacity={0.14}
                         borderTopLeftRadius={column === 0 ? 18 : 0}
                         borderBottomLeftRadius={column === 0 ? 18 : 0}
@@ -231,20 +231,20 @@ export function RecordDateCalendar({ range, onChange }: Props) {
                     ) : null}
                     <View
                       pointerEvents="none"
-                      width="90%"
+                      w="90%"
                       maxW={36}
-                      height={36}
+                      h={36}
                       rounded={18}
                       items="center"
                       justify="center"
-                      bg={endpoint ? '$primary' : 'transparent'}
+                      bg={endpoint ? 'primary' : 'transparent'}
                       borderWidth={isToday && !endpoint ? 1 : 0}
-                      borderColor="$primary"
+                      borderColor="primary"
                     >
                       <Text
-                        fontSize="$footnote"
+                        fontSize="footnote"
                         fontWeight={endpoint || isToday ? '600' : '400'}
-                        color={endpoint ? 'white' : isToday ? '$primary' : day.isCurrentMonth ? '$color12' : '$color9'}
+                        color={endpoint ? 'white' : isToday ? 'primary' : day.isCurrentMonth ? 'color-12' : 'color-9'}
                       >
                         {day.day}
                       </Text>
@@ -256,14 +256,14 @@ export function RecordDateCalendar({ range, onChange }: Props) {
           ))}
         </YStack>
       ) : (
-        <YStack gap="$2">
+        <YStack gap="7px">
           {mode === 'years' ? (
-            <Text text="center" fontSize="$caption" color="$color11" accessibilityLiveRegion="polite">
+            <Text text="center" fontSize="caption" color="color-11" accessibilityLiveRegion="polite">
               {yearPageStart} - {Math.min(yearPageStart + 11, 9999)}
             </Text>
           ) : null}
           {Array.from({ length: 4 }, (_, row) => (
-            <XStack key={row} gap="$2">
+            <XStack key={row} gap="7px">
               {Array.from({ length: 3 }, (_, column) => {
                 const value = row * 3 + column + (mode === 'years' ? yearPageStart : 1);
                 const selected = value === (mode === 'years' ? month.year : month.month);
@@ -275,18 +275,18 @@ export function RecordDateCalendar({ range, onChange }: Props) {
                     flex={1}
                     minW={0}
                     minH={44}
-                    px="$1"
-                    rounded="$3"
+                    px="0-5"
+                    rounded={7}
                     borderWidth={1}
-                    borderColor={selected ? '$primary' : '$color5'}
-                    bg={selected ? '$primary' : 'transparent'}
+                    borderColor={selected ? 'primary' : 'color-5'}
+                    bg={selected ? 'primary' : 'transparent'}
                     accessibilityState={{ selected }}
                     onPress={() => {
                       setMonth(mode === 'years' ? { ...month, year: value } : { ...month, month: value });
                       setMode(mode === 'years' ? 'months' : 'days');
                     }}
                   >
-                    <Text fontSize="$footnote" color={selected ? 'white' : '$color12'} numberOfLines={1}>
+                    <Text fontSize="footnote" color={selected ? 'white' : 'color-12'} numberOfLines={1}>
                       {mode === 'years' ? value : monthFormatter.format(new Date(2026, value - 1, 1))}
                     </Text>
                   </Button>

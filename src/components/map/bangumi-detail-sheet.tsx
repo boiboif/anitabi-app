@@ -23,7 +23,7 @@ import {
   Pressable,
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { getTokens, Text, useTheme, View } from 'tamagui';
+import { Text, useTheme, View } from 'tamagui';
 
 const SECTION_HEADER_HEIGHT = 32;
 const BANGUMI_DETAIL_SHEET_DETENTS = [0.25, 0.8];
@@ -102,27 +102,27 @@ function AccordionControls({
   const { t } = useTranslation();
   return (
     <View
-      bg="$color2"
+      bg="color-2"
       opacity={hidden ? 0 : 1}
       flexDirection="row"
       items="center"
-      px="$2"
-      pb="$2"
-      gap="$2"
+      px="7px"
+      pb="7px"
+      gap="7px"
       onLayout={onLayout}
     >
-      <View flexDirection="row" gap="$1" flex={1}>
+      <View flexDirection="row" gap="0-5" flex={1}>
         <Pressable onPress={() => onSelectMode('ep')}>
           <View
-            bg={accordionMode === 'ep' ? '$color3' : 'transparent'}
-            p="$2"
-            px="$3.5"
-            rounded={accordionMode === 'ep' ? '$9' : undefined}
+            bg={accordionMode === 'ep' ? 'color-3' : 'transparent'}
+            p="7px"
+            px="4"
+            rounded={accordionMode === 'ep' ? 26 : undefined}
           >
             <Text
               fontWeight={accordionMode === 'ep' ? '600' : '400'}
-              color={accordionMode === 'ep' ? '$primary' : '$color11'}
-              fontSize="$body"
+              color={accordionMode === 'ep' ? 'primary' : 'color-11'}
+              fontSize="body"
             >
               {t('episode', { defaultValue: '话数' })}
             </Text>
@@ -130,27 +130,27 @@ function AccordionControls({
         </Pressable>
         <Pressable onPress={() => onSelectMode('folder')}>
           <View
-            bg={accordionMode === 'folder' ? '$color3' : 'transparent'}
-            p="$2"
-            px="$3.5"
-            rounded={accordionMode === 'folder' ? '$9' : undefined}
+            bg={accordionMode === 'folder' ? 'color-3' : 'transparent'}
+            p="7px"
+            px="4"
+            rounded={accordionMode === 'folder' ? 26 : undefined}
           >
             <Text
               fontWeight={accordionMode === 'folder' ? '600' : '400'}
-              color={accordionMode === 'folder' ? '$primary' : '$color11'}
-              fontSize="$body"
+              color={accordionMode === 'folder' ? 'primary' : 'color-11'}
+              fontSize="body"
             >
               {t('group', { defaultValue: '分组' })}
             </Text>
           </View>
         </Pressable>
       </View>
-      <View flexDirection="row" gap="$2">
+      <View flexDirection="row" gap="7px">
         <Pressable
           onPress={onCollapseAll}
           style={({ pressed }: { pressed: boolean }) => ({ opacity: pressed ? 0.6 : 1 })}
         >
-          <Text fontSize="$footnote" color="$primary">
+          <Text fontSize="footnote" color="primary">
             {t('collapseAll', { defaultValue: '折叠全部' })}
           </Text>
         </Pressable>
@@ -158,7 +158,7 @@ function AccordionControls({
           onPress={onExpandAll}
           style={({ pressed }: { pressed: boolean }) => ({ opacity: pressed ? 0.6 : 1 })}
         >
-          <Text fontSize="$footnote" color="$primary">
+          <Text fontSize="footnote" color="primary">
             {t('expandAll', { defaultValue: '展开全部' })}
           </Text>
         </Pressable>
@@ -418,6 +418,8 @@ function BangumiDetailSheet() {
     sheetRef,
   } = useBangumiDetailSheet(requestedBangumi, closeBangumiDetails);
   const theme = useTheme();
+  const sectionHeaderBackground = theme['color-2'].val;
+  const sectionHeaderRippleColor = theme['color-5'].val;
   const localizedBangumiTitle = selectedBangumi
     ? getBangumiTitle(selectedBangumi, i18n.resolvedLanguage) || t('work', { defaultValue: '番剧' })
     : '';
@@ -607,16 +609,16 @@ function BangumiDetailSheet() {
       if (item.type === ITEM_TYPE_HEADER) {
         return (
           <Pressable
-            android_ripple={{ color: theme.color5.val }}
-            style={{ height: SECTION_HEADER_HEIGHT, backgroundColor: theme.color2.val }}
+            android_ripple={{ color: sectionHeaderRippleColor }}
+            style={{ height: SECTION_HEADER_HEIGHT, backgroundColor: sectionHeaderBackground }}
             onPress={() => toggleSection(item.sectionKey)}
           >
-            <View position="absolute" t={-1} l={0} r={0} height={2} bg="$color2" />
-            <View flexDirection="row" items="center" px="$2" height={SECTION_HEADER_HEIGHT} gap="$1">
-              <Text fontWeight="600" fontSize="$body" color="$color12" flex={1} numberOfLines={1}>
+            <View position="absolute" t={-1} l={0} r={0} h={2} bg="color-2" />
+            <View flexDirection="row" items="center" px="7px" h={SECTION_HEADER_HEIGHT} gap="0-5">
+              <Text fontWeight="600" fontSize="body" color="color-12" flex={1} numberOfLines={1}>
                 {item.title}
               </Text>
-              <Text fontSize="$caption" color="$color10" mr="$1">
+              <Text fontSize="caption" color="color-10" mr="0-5">
                 {item.count}
               </Text>
               {accordionMode === 'folder' && selectedBangumi ? (
@@ -626,7 +628,7 @@ function BangumiDetailSheet() {
                   title={`${localizedBangumiTitle} · ${item.title}`}
                 />
               ) : null}
-              <Text fontSize="$footnote" color="$color10">
+              <Text fontSize="footnote" color="color-10">
                 {item.expanded ? '▲' : '▼'}
               </Text>
             </View>
@@ -637,7 +639,7 @@ function BangumiDetailSheet() {
       if (!selectedBangumi) return null;
 
       return (
-        <CardListItem horizontalInset="$2">
+        <CardListItem horizontalInset="7px">
           <PointListCard
             point={item.point}
             bangumi={selectedBangumi}
@@ -660,8 +662,8 @@ function BangumiDetailSheet() {
       localizedBangumiTitle,
       selectedBangumi,
       sheetRef,
-      theme.color2.val,
-      theme.color5.val,
+      sectionHeaderBackground,
+      sectionHeaderRippleColor,
       toggleSection,
     ],
   );
@@ -680,8 +682,8 @@ function BangumiDetailSheet() {
       detents={BANGUMI_DETAIL_SHEET_DETENTS}
       scrollable
       dimmed={false}
-      backgroundColor={theme.color2.val}
-      cornerRadius={getTokens().radius['4'].val}
+      backgroundColor={theme['color-2'].val}
+      cornerRadius={9}
       grabberOptions={{ color: theme.primary.val, adaptive: false, topMargin: 12 }}
       onDidPresent={handleSheetPresent}
       onWillPresent={handleSheetWillPresent}
@@ -708,45 +710,45 @@ function BangumiDetailSheet() {
             onScroll={handleFlashListScroll}
             ListHeaderComponent={
               <>
-                <View px="$2" mb="$2" display="flex" flexDirection="row" rounded="$4" gap="$2.5">
+                <View px="7px" mb="7px" display="flex" flexDirection="row" rounded={9} gap="2-5">
                   <PreviewableImage
                     source={{ uri: thumbnailUri }}
                     previewUri={coverUri || undefined}
-                    previewBorderRadius={getTokens().radius['4'].val}
+                    previewBorderRadius={9}
                     accessibilityLabel={coverPreviewLabel}
                     style={{
                       width: 180,
                       height: 140,
-                      borderRadius: getTokens().radius['4'].val,
-                      backgroundColor: selectedBangumi?.color || theme.color9.val,
+                      borderRadius: 9,
+                      backgroundColor: selectedBangumi?.color || theme['color-9'].val,
                     }}
                     contentFit="cover"
                   />
                   <View flex={1}>
                     {localizedBangumiTitle ? (
-                      <Text fontWeight="600" fontSize="$subtitle" color="$color12" pr="$8" numberOfLines={2}>
+                      <Text fontWeight="600" fontSize="subtitle" color="color-12" pr="46px" numberOfLines={2}>
                         {localizedBangumiTitle}
                       </Text>
                     ) : null}
                     {originalBangumiTitle ? (
-                      <Text fontSize="$footnote" color="$color11" mt="$1" mb="$1" numberOfLines={1}>
+                      <Text fontSize="footnote" color="color-11" mt="0-5" mb="0-5" numberOfLines={1}>
                         {originalBangumiTitle}
                       </Text>
                     ) : null}
                     <View flexDirection="row">
                       {selectedBangumi?.city && (
-                        <Text fontSize="$footnote" color="$color11">
+                        <Text fontSize="footnote" color="color-11">
                           {selectedBangumi?.city} {'· '}
                         </Text>
                       )}
-                      <Text fontSize="$footnote" color="$color11">
-                        <Text color="$primary" fontWeight="bold">
+                      <Text fontSize="footnote" color="color-11">
+                        <Text color="primary" fontWeight="bold">
                           {selectedBangumi?.points.length}
                         </Text>
                         {t('locationSuffix', { defaultValue: '个巡礼点' })}
                       </Text>
                     </View>
-                    <Text fontSize="$caption" color="$color11" position="absolute" r="$0" b="$0">
+                    <Text fontSize="caption" color="color-11" position="absolute" r="0" b="0">
                       {t('updatedDate', {
                         defaultValue: '最近更新：{{date}}',
                         date: dayjs(selectedBangumi?.modified).format('YYYY-MM-DD HH:mm'),
@@ -756,20 +758,20 @@ function BangumiDetailSheet() {
                   {selectedBangumi?.cat?.trim() ? (
                     <View
                       position="absolute"
-                      t="$2"
-                      r="$2"
-                      px="$2"
-                      py="$1"
-                      rounded="$2"
-                      style={{ backgroundColor: selectedBangumi?.color || '$color9' }}
+                      t="7px"
+                      r="7px"
+                      px="7px"
+                      py="0-5"
+                      rounded={5}
+                      style={{ backgroundColor: selectedBangumi?.color || 'color-9' }}
                     >
-                      <Text fontSize="$caption" color="white" fontWeight="500">
+                      <Text fontSize="caption" color="white" fontWeight="500">
                         <BangumiCategoryLabel category={selectedBangumi.cat} />
                       </Text>
                     </View>
                   ) : null}
                 </View>
-                <View px="$2" pb="$2" self="flex-start">
+                <View px="7px" pb="7px" self="flex-start">
                   <AddPointBatchButton
                     entries={selectedBangumi?.points.map((point) => ({ point, bangumi: selectedBangumi })) ?? []}
                     title={localizedBangumiTitle}

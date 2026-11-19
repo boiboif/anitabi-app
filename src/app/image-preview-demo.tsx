@@ -62,12 +62,12 @@ export default function ImagePreviewDemo() {
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={{ padding: 20, gap: 20, paddingBottom: 40 }}
       >
-        <Text color="$color11" fontSize="$footnote" lineHeight={20}>
+        <Text color="color-11" fontSize="footnote" lineHeight="20px">
           {t('imagePreviewDemoInstructions')}
         </Text>
         {EXAMPLES.map((image, index) => (
-          <YStack key={image.id} gap="$2">
-            <Text color="$color12" fontSize="$body">
+          <YStack key={image.id} gap="7px">
+            <Text color="color-12" fontSize="body">
               {t('imagePreviewPage', { current: index + 1, total: EXAMPLES.length })}
             </Text>
             <Pressable
@@ -79,7 +79,7 @@ export default function ImagePreviewDemo() {
               accessibilityLabel={t('openImagePreview', { index: index + 1 })}
               onPress={() => open(index)}
             >
-              <YStack height={180} bg="$color3" rounded="$3" overflow="hidden">
+              <YStack h={180} bg="color-3" rounded={7} overflow="hidden">
                 <Image
                   source={{ uri: image.thumbnailUri }}
                   contentFit="contain"
@@ -90,11 +90,14 @@ export default function ImagePreviewDemo() {
             </Pressable>
           </YStack>
         ))}
-        <Button bg="$color3" onPress={() => setSession({ images: [EXAMPLES[0]], initialIndex: 0, transition: false })}>
+        <Button
+          bg="color-3 hover:background-hover press:background-press"
+          onPress={() => setSession({ images: [EXAMPLES[0]], initialIndex: 0, transition: false })}
+        >
           {t('imagePreviewDemoSingle')}
         </Button>
         <Button
-          bg="$color3"
+          bg="color-3 hover:background-hover press:background-press"
           onPress={() =>
             setSession({
               images: [{ ...EXAMPLES[0], id: 'error', uri: 'https://image-preview.invalid/missing.jpg' }],

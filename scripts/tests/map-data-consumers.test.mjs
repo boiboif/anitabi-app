@@ -178,7 +178,7 @@ function createHarness(initial = {}, path = '../../src/app/plans/import.tsx', op
     },
     'expo-image': { Image: 'Image' },
     '@shopify/flash-list': { FlashList: 'FlashList' },
-    '@tamagui/lucide-icons-2': {
+    '@/components/icons': {
       AlertCircle: 'AlertCircle',
       Check: 'Check',
       FileDown: 'FileDown',
