@@ -89,31 +89,32 @@ export default function ProfileScreen() {
             showDivider
           /> */}
           <SettingCell
+            compact
             icon={BookImage}
             title={t('pilgrimageRecords')}
-            description={t('pilgrimageRecordsEntryDescription')}
             onPress={() => router.navigate('/pilgrimage-records' as never)}
             showDivider
           />
           <SettingCell
+            compact
             icon={Settings2}
             title={t('pilgrimageSettings')}
-            description={t('pilgrimageSettingsDescription')}
             onPress={() => router.navigate('/pilgrimage-settings' as never)}
           />
         </SettingsSection>
 
         <SettingsSection title={t('appAndAppearance', { defaultValue: '应用与外观' })}>
           <SettingCell
+            compact
             icon={Palette}
             title={t('appearanceSettings')}
             onPress={() => router.navigate('/appearance' as never)}
             showDivider
           />
           <SettingCell
+            compact
             icon={Languages}
             title={t('language', { defaultValue: '语言' })}
-            description={t('setTheAppDisplayLanguage', { defaultValue: '设置应用显示语言' })}
             value={languageLabel}
             onPress={() => router.navigate('/language')}
           />
@@ -121,16 +122,16 @@ export default function ProfileScreen() {
 
         <SettingsSection title={t('dataAndStorage')}>
           <SettingCell
+            compact
             icon={DatabaseBackup}
             title={t('backupAndRestore')}
-            description={t('backupAndRestoreDescription')}
             onPress={() => router.navigate('/data-backup' as never)}
             showDivider
           />
           <SettingCell
+            compact
             icon={HardDrive}
             title={t('clearCache', { defaultValue: '清除缓存' })}
-            description={t('clearMapDataAndImageCache', { defaultValue: '清除地图数据和图片缓存' })}
             value={isClearingCache ? t('clearing', { defaultValue: '清除中...' }) : undefined}
             disabled={isClearingCache}
             accessibilityState={{ disabled: isClearingCache }}
@@ -140,6 +141,7 @@ export default function ProfileScreen() {
 
         <SettingsSection title={t('other', { defaultValue: '其他' })}>
           <SettingCell
+            compact
             icon={Info}
             title={t('about', { defaultValue: '关于' })}
             value={`v${getCurrentAppDisplayVersion()}`}

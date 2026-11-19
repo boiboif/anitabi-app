@@ -13,6 +13,7 @@ type SettingCellProps = {
   value?: string;
   rightAccessory?: ReactNode;
   onPress?: () => void;
+  compact?: boolean;
   showDivider?: boolean;
   accessibilityRole?: AccessibilityRole;
   accessibilityState?: AccessibilityState;
@@ -26,20 +27,22 @@ export function SettingCell({
   value,
   rightAccessory,
   onPress,
+  compact = false,
   showDivider = false,
   accessibilityRole = 'button',
   accessibilityState,
   disabled = false,
 }: SettingCellProps) {
+  const minHeight = compact ? 56 : 62;
   const content = (
     <XStack items="center" gap="$4">
       {Icon ? (
-        <View minH={62} items="center" justify="center">
+        <View minH={minHeight} items="center" justify="center">
           <Icon size={20} color="$color12" />
         </View>
       ) : null}
       <YStack flex={1}>
-        <XStack minH={62} items="center" gap="$3">
+        <XStack minH={minHeight} items="center" gap="$3">
           <YStack flex={1} gap="$0.5" justify="center">
             <Text fontSize="$body" lineHeight={20} fontWeight="600" color="$color12">
               {title}
