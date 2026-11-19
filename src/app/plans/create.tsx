@@ -25,7 +25,7 @@ export default function CreatePlanScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: t('newPlan', { defaultValue: '新建计划' }), presentation: 'modal' }} />
+      <Stack.Screen options={{ title: t('newPlan', { defaultValue: '新建计划' }) }} />
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: theme.pageBackground?.val }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
