@@ -2,7 +2,7 @@ import { Check, FileDown, FileUp, Square, SquareCheckBig } from '@/components/ic
 import { SettingCell } from '@/components/ui/settings/setting-cell';
 import { SettingsSection } from '@/components/ui/settings/settings-section';
 import { StrictButton as Button } from '@/components/ui/strict-button';
-import type { TranslationKey } from '@/i18n/translations/zh';
+import type { TranslationKeyWithoutVariables } from '@/i18n/messages';
 import {
   BackupError,
   getBackupSummary,
@@ -71,7 +71,7 @@ export default function DataBackupScreen() {
     ].join(' · ');
   };
   useEffect(() => () => selected?.archive?.cleanup(), [selected]);
-  const errorKeys: Record<BackupError['code'], TranslationKey> = {
+  const errorKeys: Record<BackupError['code'], TranslationKeyWithoutVariables> = {
     invalid: 'backupInvalidData',
     wrongType: 'backupWrongFileType',
     unsupportedVersion: 'backupUnsupportedVersion',
@@ -83,7 +83,7 @@ export default function DataBackupScreen() {
     nativeOnly: 'backupRecordsNativeOnly',
   };
 
-  const showError = (error: unknown, fallback: TranslationKey) => {
+  const showError = (error: unknown, fallback: TranslationKeyWithoutVariables) => {
     setNotice({ error: true, text: t(error instanceof BackupError ? errorKeys[error.code] : fallback) });
   };
 

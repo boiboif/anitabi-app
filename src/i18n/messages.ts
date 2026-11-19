@@ -1,14 +1,16 @@
-import type { TFunction } from 'i18next';
+import type { ParseKeysWithoutVariables, TFunction } from 'i18next';
 
 import type zh from './translations/zh';
 import type { TranslationKey } from './translations/zh';
 
+export type TranslationKeyWithoutVariables = Extract<TranslationKey, ParseKeysWithoutVariables<'translation'>>;
+
 export type TranslationMessage = {
-  [Key in TranslationKey]: {
+  [Key in TranslationKeyWithoutVariables]: {
     key: Key;
     defaultValue: (typeof zh)[Key];
   };
-}[TranslationKey];
+}[TranslationKeyWithoutVariables];
 
 const categoryMessages: Record<string, TranslationMessage> = {
   动画: { key: 'anime', defaultValue: '动画' },
@@ -23,5 +25,5 @@ export function getCategoryMessage(category?: string): TranslationMessage | unde
 }
 
 export function translateMessage(t: TFunction<'translation'>, message: TranslationMessage): string {
-  return t(message.key, { defaultValue: message.defaultValue } as never);
+  return t(message.key, { defaultValue: message.defaultValue });
 }

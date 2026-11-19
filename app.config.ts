@@ -121,12 +121,6 @@ const config: ExpoConfig = {
             // Match Firebase's fixed consumer rules: https://github.com/firebase/firebase-android-sdk/pull/6044
             '-keep class * implements com.google.firebase.components.ComponentRegistrar { void <init>(); }',
             '-keep,allowshrinking interface com.google.firebase.components.ComponentRegistrar',
-            // Background downloader persists task configuration through Gson.
-            '-keep class com.eko.RNBGDTaskConfig { *; }',
-            '-keepattributes Signature',
-            '-keep class com.google.gson.reflect.TypeToken { *; }',
-            '-keep class * extends com.google.gson.reflect.TypeToken',
-            '-keep class com.tencent.mmkv.** { *; }',
           ].join('\n'),
         },
       },
