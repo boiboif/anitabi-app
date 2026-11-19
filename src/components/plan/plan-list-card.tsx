@@ -21,7 +21,10 @@ export default memo(function PlanListCard({ plan, onPress, onMorePress }: Props)
   const firstItem = plan.items[0];
   const imagePath = firstItem?.snapshot.pointImage;
   const imageUrl = useMemo(() => (imagePath ? buildImageUrl(imagePath, 'plan=h160') : undefined), [imagePath]);
-  const completed = plan.items.filter((item) => item.completed).length;
+  const bangumiIds = new Set<number>();
+  for (const item of plan.items) {
+    bangumiIds.add(item.bangumiId);
+  }
 
   return (
     <View bg="$background" rounded="$4" overflow="hidden">
@@ -67,11 +70,9 @@ export default memo(function PlanListCard({ plan, onPress, onMorePress }: Props)
 
             <XStack items="center" gap="$1">
               <Text flex={1} fontSize="$caption" color="$color10" numberOfLines={1}>
-                {t('completedLocationCount', {
-                  defaultValue: '{{completed}} / {{count}} 个点位',
-                  completed,
-                  count: plan.items.length,
-                })}
+                {t('workCount', { defaultValue: '{{count}} 部作品', count: bangumiIds.size })}
+                {' · '}
+                {t('locationCount', { defaultValue: '{{count}} 个点位', count: plan.items.length })}
               </Text>
               <Pressable
                 accessibilityRole="button"
