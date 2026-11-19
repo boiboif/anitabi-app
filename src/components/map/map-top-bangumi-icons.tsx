@@ -11,7 +11,7 @@ import { Image } from 'expo-image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, type ScrollViewInstance } from 'react-native';
-import { GetThemeValueForKey, Text, useTheme, View } from 'tamagui';
+import { Text, useTheme, View } from 'tamagui';
 
 // ===========================================================================
 // Constants
@@ -133,13 +133,11 @@ export default function MapTopBangumiIcons({
       <View py="13px" pointerEvents="box-none">
         <View
           pointerEvents="box-none"
-          style={{
-            flexDirection: 'row',
-            height: 32,
-            alignItems: 'center',
-            gap: 8,
-            paddingHorizontal: 14,
-          }}
+          flexDirection="row"
+          h={32}
+          items="center"
+          gap={8}
+          px={14}
         >
           <View
             bg="color-2"
@@ -164,7 +162,7 @@ export default function MapTopBangumiIcons({
               fontSize="footnote"
               fontWeight="500"
               numberOfLines={1}
-              style={{ flexShrink: 1 }}
+              shrink={1}
             >
               {getBangumiMapLabel(b, i18n.resolvedLanguage)}
             </Text>
@@ -172,41 +170,17 @@ export default function MapTopBangumiIcons({
             <View
               rounded={999}
               mr="1"
+              w={34}
               h={22}
               items="center"
               justify="center"
-              style={{
-                width: 34,
-                textAlign: 'center',
-                backgroundColor: hexToRgba(borderColor, 0.2),
-                borderRadius: 999,
-              }}
+              style={{ backgroundColor: hexToRgba(borderColor, 0.2) }}
             >
               <Text fontSize="footnote" fontWeight="600" numberOfLines={1} style={{ color: borderColor }}>
                 {visibleCount}
               </Text>
             </View>
           </View>
-
-          {/* <Pressable
-            onPress={() => onOpenSheet?.()}
-            style={({ pressed }) => ({
-              opacity: pressed ? 0.6 : 1,
-              justifyContent: 'center',
-              alignItems: 'center',
-            })}
-          >
-            <View
-              bg="color-4"
-              rounded={34}
-              items="center"
-              justify="center"
-              boxShadow="0 2px 6px rgba(0,0,0,0.15)"
-              style={{ width: 40, height: 40 }}
-            >
-              <ChevronUp size={20} color={theme['color-11'].val as GetThemeValueForKey<'color'>} />
-            </View>
-          </Pressable> */}
 
           <Pressable
             onPress={closeBangumiDetails}
@@ -219,12 +193,13 @@ export default function MapTopBangumiIcons({
             <View
               bg="color-2"
               rounded={34}
+              w={32}
+              h={32}
               items="center"
               justify="center"
               boxShadow="0 2px 6px rgba(0,0,0,0.15)"
-              style={{ width: 32, height: 32 }}
             >
-              <X size={18} color={theme['color-11'].val as GetThemeValueForKey<'color'>} />
+              <X size={18} color="color-11" />
             </View>
           </Pressable>
         </View>
@@ -285,7 +260,7 @@ export default function MapTopBangumiIcons({
                   fontSize="footnote"
                   fontWeight="500"
                   numberOfLines={1}
-                  style={{ flexShrink: 1 }}
+                  shrink={1}
                 >
                   {getBangumiMapLabel(b, i18n.resolvedLanguage)}
                 </Text>
@@ -293,15 +268,11 @@ export default function MapTopBangumiIcons({
                 <View
                   rounded={999}
                   mr="1"
+                  w={34}
                   h="70%"
                   items="center"
                   justify="center"
-                  style={{
-                    width: 34,
-                    textAlign: 'center',
-                    backgroundColor: hexToRgba(borderColor, 0.2),
-                    borderRadius: 999,
-                  }}
+                  style={{ backgroundColor: hexToRgba(borderColor, 0.2) }}
                 >
                   <Text fontSize="footnote" fontWeight="600" numberOfLines={1} style={{ color: borderColor }}>
                     {visibleCount}

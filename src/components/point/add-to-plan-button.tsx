@@ -4,7 +4,7 @@ import { ListPlus } from '@/components/icons';
 import { useTranslation } from 'react-i18next';
 import type { GestureResponderEvent } from 'react-native';
 import { Pressable } from 'react-native';
-import { useTheme, View } from 'tamagui';
+import { View } from 'tamagui';
 
 type Props = {
   point: Point;
@@ -15,7 +15,6 @@ type Props = {
 
 export default function AddToPlanButton({ point, bangumi, size = 36, bare = false }: Props) {
   const { t } = useTranslation();
-  const theme = useTheme();
   const { open } = usePlanPicker();
 
   const handlePress = (event: GestureResponderEvent) => {
@@ -39,7 +38,7 @@ export default function AddToPlanButton({ point, bangumi, size = 36, bare = fals
         items="center"
         justify="center"
       >
-        <ListPlus size={size * 0.5} color={theme.primary.val} />
+        <ListPlus size={size * 0.5} color="primary" />
       </View>
     </Pressable>
   );

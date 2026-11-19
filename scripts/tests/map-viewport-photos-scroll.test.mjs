@@ -37,7 +37,7 @@ function renderPhotos(items, { selected = null, inset = 0, opened = null } = {})
     'react-i18next': { useTranslation: () => ({ i18n: { resolvedLanguage: 'zh-CN' } }) },
     'react-native': {},
     '@shopify/flash-list': { FlashList: 'FlashList' },
-    tamagui: { View: 'View', XStack: 'XStack', styled: () => 'Photo' },
+    tamagui: { View: 'View', XStack: 'XStack' },
     'expo-image': { Image: 'Image' },
     '@/components/app-tab-bar-inset': { useAppTabBarInset: () => inset },
     '@/lib/constants': { MAP_CONTROL_SIZE: 40 },
@@ -121,6 +121,17 @@ test('one to five images retain the same five slot layout without exposing place
       assert.equal(placeholder.props.accessibilityRole, undefined);
       assert.equal(placeholder.props.onPress, undefined);
     }
+    for (const [index, { props }] of result.photos.entries()) {
+      const image = props.children;
+      assert.equal(image.type, 'Image');
+      assert.equal(image.props.style.width, '100%');
+      assert.equal(image.props.style.height, '100%');
+      assert.equal(image.props.source, String(index));
+      assert.equal(image.props.recyclingKey, JSON.stringify([10, String(index)]));
+      assert.equal(image.props.contentFit, 'cover');
+      assert.equal(image.props.cachePolicy, 'memory-disk');
+      assert.equal(image.props.accessible, false);
+    }
   }
 });
 
@@ -128,11 +139,15 @@ test('selection does not change the photo border or advertise a selected state',
   const item = makeItem('a', '#123456');
   const before = renderPhotos([item]).photos[0];
   const after = renderPhotos([item], { selected: { bangumiId: 10, pointId: 'a' } }).photos[0];
-  assert.equal(before.props.borderColor, '#123456');
-  assert.equal(after.props.borderColor, before.props.borderColor);
+  assert.equal(before.props.style.borderColor, '#123456');
+  assert.equal(after.props.style.borderColor, before.props.style.borderColor);
   assert.equal(after.props.accessibilityState?.selected, undefined);
   assert.equal(after.props.accessibilityRole, 'button');
   assert.equal(after.props.accessibilityLabel, 'a · 10');
+
+  const noWorkColor = renderPhotos([makeItem('b', '')]).photos[0];
+  assert.equal(noWorkColor.props.borderColor, 'color-8');
+  assert.equal(noWorkColor.props.style, undefined);
 });
 
 test('the visible row reports its layout to the card-visibility calculation', () => {

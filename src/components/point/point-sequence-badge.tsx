@@ -25,7 +25,7 @@ export default function PointSequenceBadge({ sequenceNumber }: Props) {
         lineHeight="12px"
         fontWeight="800"
         color="white"
-        style={{ fontVariant: ['tabular-nums'] }}
+        fontVariant={['tabular-nums']}
       >
         {sequenceNumber}
       </Text>

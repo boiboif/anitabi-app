@@ -185,7 +185,7 @@ export default function PointListCard({
                 bg="rgba(0,0,0,0.55)"
                 px="1"
                 py="px"
-                style={{ borderTopRightRadius: 5 }}
+                borderTopRightRadius={5}
               >
                 <Text fontSize="caption" fontWeight="700" color="white">
                   {epLabel}
@@ -201,7 +201,7 @@ export default function PointListCard({
                 bg="rgba(0,0,0,0.55)"
                 px="1"
                 py="px"
-                style={{ borderTopLeftRadius: 5 }}
+                borderTopLeftRadius={5}
               >
                 <Text fontSize="caption" color="white">
                   {timeLabel}

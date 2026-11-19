@@ -4,13 +4,14 @@ import { StrictButton } from '@/components/ui/strict-button';
 import { useImageLoading } from '@/hooks/use-image-loading';
 import { getPreviewContainerOrigin, type PreviewTouchCoordinates } from '@/utils/image-preview-source';
 import { Image, type ImageProps, type ImageSource } from 'expo-image';
-import { memo, type ComponentProps, type ComponentRef, type ReactNode, useEffect, useRef, useState } from 'react';
+import { memo, type ComponentProps, type ReactNode, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { LayoutRectangle, StyleProp, ViewInstance, ViewStyle } from 'react-native';
+import { View, type LayoutRectangle, type StyleProp, type ViewInstance, type ViewStyle } from 'react-native';
 import { GestureDetector, Pressable, useTapGesture } from 'react-native-gesture-handler';
-import { View, YStack } from 'tamagui';
+import { YStack } from 'tamagui';
 
 const TRIGGER_STYLE = { flexGrow: 1 } as const;
+const DEFAULT_CONTAINER_STYLE = { alignSelf: 'flex-start' } as const;
 
 export type PreviewableImageProps = Omit<ImageProps, 'source' | 'contentFit' | 'contentPosition' | 'children'> & {
   source: ImageSource & { uri: string };
@@ -90,7 +91,7 @@ function PreviewableImageContent({
 }: PreviewableImageProps) {
   const { t } = useTranslation();
   const { phase, controller, imageRef } = useImageLoading();
-  const containerRef = useRef<Pick<ViewInstance, 'measureInWindow'> | null>(null);
+  const containerRef = useRef<ViewInstance>(null);
   const containerLayoutRef = useRef<LayoutRectangle | null>(null);
   const imageLayoutRef = useRef<LayoutRectangle | null>(null);
   const dimensionsRef = useRef<{ width: number; height: number } | null>(null);
@@ -146,10 +147,7 @@ function PreviewableImageContent({
   };
 
   const triggerProps = {
-    ref: (node: ViewInstance | ComponentRef<typeof View> | null) => {
-      // Both trigger variants expose native measurement; narrow Tamagui's cross-platform ref at this boundary.
-      containerRef.current = node as Pick<ViewInstance, 'measureInWindow'> | null;
-    },
+    ref: containerRef,
     onLayout: (event) => {
       containerLayoutRef.current = event.nativeEvent.layout;
     },
@@ -194,12 +192,7 @@ function PreviewableImageContent({
 
   return (
     <>
-      <View
-        position="relative"
-        self={containerStyle ? undefined : 'flex-start'}
-        // Preserve the shared RN style at Tamagui's narrower cross-platform style boundary.
-        style={containerStyle as ComponentProps<typeof View>['style']}
-      >
+      <View style={containerStyle || DEFAULT_CONTAINER_STYLE}>
         {maxPressDistance === undefined ? (
           <Pressable {...triggerProps} disabled={!previewUri} onPress={(event) => openPreview(event.nativeEvent)}>
             {image}

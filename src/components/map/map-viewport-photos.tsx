@@ -11,14 +11,14 @@ import { Image } from 'expo-image';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { LayoutRectangle } from 'react-native';
-import { type GetThemeValueForKey, styled, View, XStack } from 'tamagui';
+import { View, XStack } from 'tamagui';
 
 const PHOTO_COUNT = 5;
 const PHOTO_ASPECT_RATIO = 80 / 60;
 const PHOTO_GAP = 4;
 const PHOTO_BORDER_WIDTH = 1.5;
 const EDGE_INSET = 6;
-const Photo = styled(Image, { w: '100%', h: '100%' });
+const photoStyle = { width: '100%', height: '100%' } as const;
 
 function pointKey({ bangumi, point }: ViewportImagePoint) {
   return JSON.stringify([bangumi.id, point.id]);
@@ -35,7 +35,8 @@ function PhotoTile({ item, onSelect }: { item: ViewportImagePoint; onSelect: (it
       overflow="hidden"
       bg="color-3"
       borderWidth={PHOTO_BORDER_WIDTH}
-      borderColor={(bangumi.color || 'color-8') as GetThemeValueForKey<'borderColor'>}
+      borderColor="color-8"
+      style={bangumi.color ? { borderColor: bangumi.color } : undefined}
       opacity="1 press:0.7"
       onPress={() => onSelect(item)}
       accessible
@@ -43,12 +44,13 @@ function PhotoTile({ item, onSelect }: { item: ViewportImagePoint; onSelect: (it
       accessibilityLabel={`${getPointTitle(point, i18n.resolvedLanguage) || point.id} · ${getBangumiTitle(bangumi, i18n.resolvedLanguage)}`}
       testID={`viewport-photo-${bangumi.id}-${point.id}`}
     >
-      <Photo
+      <Image
         source={point.image ? buildImageUrl(point.image, 'plan=h160') : undefined}
         recyclingKey={pointKey(item)}
         contentFit="cover"
         cachePolicy="memory-disk"
         accessible={false}
+        style={photoStyle}
       />
     </View>
   );

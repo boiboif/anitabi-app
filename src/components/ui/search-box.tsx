@@ -30,8 +30,7 @@ export default function SearchBox({
   ...props
 }: Props) {
   const { t } = useTranslation();
-  const themeName = useThemeName();
-  const theme = themeName === 'dark' ? 'dark' : 'light';
+  const theme = useThemeName() === 'dark' ? 'dark' : 'light';
   const ref = useRef<TamaguiElement | null>(null);
   const { onChangeText, value } = props;
 
@@ -67,20 +66,11 @@ export default function SearchBox({
             boxShadow: '0 0 2px 0 rgba(0, 0, 0, 0.1)',
           }}
         >
-          <View
-            style={{
-              position: 'absolute',
-              left: 14,
-              top: '50%',
-              transform: [{ translateY: '-50%' }],
-              zIndex: 999,
-            }}
-          >
+          <View position="absolute" l={14} t="50%" y="-50%" z={999}>
             {left ?? <Search size={18} color="primary" strokeWidth={3} />}
           </View>
 
           <ThemeInput
-            theme={themeName}
             placeholder={placeholder ?? t('cityWorkOrLocation', { defaultValue: '城市、作品、地标' })}
             readOnly={readOnly}
             ref={ref}
@@ -90,46 +80,19 @@ export default function SearchBox({
             h={44}
             fontSize="subtitle"
             borderColor="color-4 hover:color-8 focus:primary disabled:color-5"
-            bg="transparent"
+            bg="transparent disabled:color-3"
             {...props}
           />
 
-          {right ? (
-            <View
-              style={{
-                position: 'absolute',
-                right: 16,
-                top: '50%',
-                transform: [{ translateY: '-50%' }],
-                zIndex: 999,
-              }}
-            >
-              {right}
-            </View>
-          ) : showClear ? (
-            <View
-              style={{
-                position: 'absolute',
-                right: 16,
-                top: '50%',
-                transform: [{ translateY: '-50%' }],
-                zIndex: 999,
-              }}
-            >
-              <Pressable onPress={handleClear} hitSlop={8}>
-                <View
-                  style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: 10,
-                    backgroundColor: 'rgba(128, 128, 128, 0.6)',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <X size={12} color="white" strokeWidth={3} />
-                </View>
-              </Pressable>
+          {right || showClear ? (
+            <View position="absolute" r={16} t="50%" y="-50%" z={999}>
+              {right || (
+                <Pressable onPress={handleClear} hitSlop={8}>
+                  <View w={20} h={20} rounded={10} bg="rgba(128, 128, 128, 0.6)" items="center" justify="center">
+                    <X size={12} color="white" strokeWidth={3} />
+                  </View>
+                </Pressable>
+              )}
             </View>
           ) : null}
         </BlurView>

@@ -17,7 +17,7 @@ export function SettingsSection({ title, children, hideTitleWhenSingle = false }
           {title}
         </Text>
       ) : null}
-      <View bg="background" rounded={9} overflow="hidden" style={{ borderCurve: 'continuous' }}>
+      <View bg="background" rounded={9} overflow="hidden" borderCurve="continuous">
         <View px="13px">{children}</View>
       </View>
     </View>

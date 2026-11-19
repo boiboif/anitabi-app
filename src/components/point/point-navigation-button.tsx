@@ -6,7 +6,7 @@ import { useRef } from 'react';
 import type { GestureResponderEvent } from 'react-native';
 import { Alert, Linking, Platform, Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Text, useTheme, View } from 'tamagui';
+import { Text, View } from 'tamagui';
 
 type Props = ({ point: Point; mapCoordinate?: never } | { point?: never; mapCoordinate: [number, number] }) & {
   compact?: boolean;
@@ -17,7 +17,6 @@ type Props = ({ point: Point; mapCoordinate?: never } | { point?: never; mapCoor
 
 export default function PointNavigationButton({ point, mapCoordinate, compact = false, compactSize = 30, bare = false, showLabel = false }: Props) {
   const { t } = useTranslation();
-  const theme = useTheme();
   const navigationMap = usePilgrimagePreferences((state) => state.navigationMap);
   const mapName = t(navigationMap);
   const opening = useRef(false);
@@ -56,7 +55,7 @@ export default function PointNavigationButton({ point, mapCoordinate, compact = 
         justify="center"
       >
         {showLabel ? <Text fontSize="caption" color="primary">{t('navigationAction')}</Text> : null}
-        <Navigation size={compact ? compactSize * (bare ? 0.58 : 0.5) : 18} color={theme.primary.val} />
+        <Navigation size={compact ? compactSize * (bare ? 0.58 : 0.5) : 18} color="primary" />
       </View>
     </Pressable>
   );

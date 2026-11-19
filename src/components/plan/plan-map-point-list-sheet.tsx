@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { type NativeScrollEvent, type NativeSyntheticEvent, Pressable, type ScrollViewInstance } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Svg, { Circle } from 'react-native-svg';
-import { Text, useTheme, useThemeName, View, XStack, YStack } from 'tamagui';
+import { Text, useTheme, View, XStack, YStack } from 'tamagui';
 import { useStore } from 'zustand';
 import { createStore, type StoreApi } from 'zustand/vanilla';
 
@@ -112,7 +112,6 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
 ) {
   const { t } = useTranslation();
   const theme = useTheme();
-  const isDark = useThemeName() === 'dark';
   const [selectionStore] = useState(() => createStore<{ key?: string }>()(() => ({ key: selectedKey })));
   const callbacksRef = useRef({ onSelect, onToggleCompleted });
   const listRef = useRef<FlashListRef<PlanMapResolvedPoint>>(null);
@@ -406,7 +405,7 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
               {t('planLocations', { defaultValue: '计划点位' })}
             </Text>
             <XStack items="center" gap="0-5">
-              <Text fontSize="footnote" color="color-10" style={{ fontVariant: ['tabular-nums'] }}>
+              <Text fontSize="footnote" color="color-10" fontVariant={['tabular-nums']}>
                 {completed} / {points.length}
               </Text>
               <Pressable
@@ -452,10 +451,10 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
                 w={30}
                 h={30}
                 rounded={18}
-                bg={isDark ? 'color-5' : 'color-2'}
+                bg="color-2 dark:color-5"
                 borderWidth={1}
-                borderColor={isDark ? 'color-8' : 'color-5'}
-                boxShadow={isDark ? '0 3px 12px rgba(0,0,0,0.55)' : '0 2px 8px shadow-color'}
+                borderColor="color-5 dark:color-8"
+                boxShadow={{ default: '0 2px 8px shadow-color', dark: '0 3px 12px rgba(0,0,0,0.55)' }}
                 items="center"
                 justify="center"
               >

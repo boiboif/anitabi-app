@@ -62,7 +62,7 @@ export default function PopupCard({ point, bangumi, bangumiTitlePressEnabled = t
             bg="rgba(0,0,0,0.55)"
             px="1"
             py="px"
-            style={{ borderTopRightRadius: innerRadius }}
+            borderTopRightRadius={innerRadius}
           >
             <Text fontSize="caption" fontWeight="700" color="white">
               {epLabel}
@@ -78,7 +78,7 @@ export default function PopupCard({ point, bangumi, bangumiTitlePressEnabled = t
             bg="rgba(0,0,0,0.55)"
             px="1"
             py="px"
-            style={{ borderTopLeftRadius: innerRadius }}
+            borderTopLeftRadius={innerRadius}
           >
             <Text fontSize="caption" color="white">
               {timeLabel}
@@ -132,7 +132,8 @@ export default function PopupCard({ point, bangumi, bangumiTitlePressEnabled = t
             onPress={() => point.originLink && Linking.openURL(point.originLink)}
             fontSize="caption"
             color={point.originLink ? 'blue-9' : 'color-11'}
-            style={{ textAlign: 'right', textDecorationLine: 'underline' }}
+            text="right"
+            textDecorationLine="underline"
             mt="1"
           >
             @{point.origin}

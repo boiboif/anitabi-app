@@ -1,14 +1,16 @@
 import { CAMERA_RATIO_OPTIONS, formatCameraRatio, type CameraRatioPreference } from '@/lib/comparison-camera-geometry';
 import { getOutsidePressRegions, type WindowRect } from '@/lib/outside-press-regions';
 import { ChevronLeft } from '@/components/icons';
-import { type ComponentRef, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import {
   BackHandler,
   Pressable,
   ScrollView,
   StyleSheet,
+  View as NativeView,
   useWindowDimensions,
   type TextLayoutEvent,
+  type ViewInstance,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import Animated, {
@@ -37,21 +39,10 @@ const LABEL_HORIZONTAL_PADDING = 10;
 // This module loads lazily during navigation; native static styles need no style() registration.
 const scrollContentStyle = { flexGrow: 1, alignItems: 'center', justifyContent: 'center' } as const;
 const scrollFrameStyle = { flex: 1, minWidth: 0 };
+const anchorStyle = { flex: 1, minWidth: 0, height: 44, alignItems: 'center', justifyContent: 'center' } as const;
 
-type MeasurableView =
-  | { measureInWindow: (callback: (x: number, y: number, width: number, height: number) => void) => void }
-  | { getBoundingClientRect: () => { left: number; top: number; width: number; height: number } };
-
-function measureView(element: ComponentRef<typeof View> | null, onMeasure: (rect: WindowRect) => void) {
-  // Tamagui's cross-platform ref type names View; narrow to the runtime measurement methods.
-  const view = element as MeasurableView | null;
-  if (!view) return;
-  if ('measureInWindow' in view) {
-    view.measureInWindow((x, y, width, height) => onMeasure({ x, y, width, height }));
-  } else if ('getBoundingClientRect' in view) {
-    const rect = view.getBoundingClientRect();
-    onMeasure({ x: rect.left, y: rect.top, width: rect.width, height: rect.height });
-  }
+function measureView(view: ViewInstance | null, onMeasure: (rect: WindowRect) => void) {
+  view?.measureInWindow((x, y, width, height) => onMeasure({ x, y, width, height }));
 }
 
 function RotatingContent({
@@ -84,8 +75,8 @@ export default function CameraRatioPicker({
   const [contentSize, setContentSize] = useState({ width: 0, height: 0 });
   const [anchorBounds, setAnchorBounds] = useState<WindowRect>();
   const [portalBounds, setPortalBounds] = useState<WindowRect>();
-  const anchorRef = useRef<ComponentRef<typeof View>>(null);
-  const portalRef = useRef<ComponentRef<typeof View>>(null);
+  const anchorRef = useRef<ViewInstance>(null);
+  const portalRef = useRef<ViewInstance>(null);
   const measurementRequest = useRef(0);
   const windowSize = useWindowDimensions();
   const progress = useSharedValue(0);
@@ -175,14 +166,10 @@ export default function CameraRatioPicker({
     : [];
 
   return (
-    <View
+    <NativeView
       ref={anchorRef}
       collapsable={false}
-      flex={1}
-      minW={0}
-      h={44}
-      items="center"
-      justify="center"
+      style={anchorStyle}
       onLayout={({ nativeEvent: { layout } }) => {
         setAvailableWidth(layout.width);
         if (expanded && dismissOnOutside) {
@@ -335,15 +322,10 @@ export default function CameraRatioPicker({
       </Animated.View>
       {expanded && dismissOnOutside && anchorBounds ? (
         <Portal>
-          <View
+          <NativeView
             ref={portalRef}
             collapsable={false}
-            position="absolute"
-            t={0}
-            r={0}
-            b={0}
-            l={0}
-            bg="transparent"
+            style={StyleSheet.absoluteFill}
             pointerEvents="box-none"
             onLayout={() => {
               const request = measurementRequest.current;
@@ -366,9 +348,9 @@ export default function CameraRatioPicker({
                 <Pressable accessible={false} onPress={close} style={StyleSheet.absoluteFill} />
               </View>
             ))}
-          </View>
+          </NativeView>
         </Portal>
       ) : null}
-    </View>
+    </NativeView>
   );
 }

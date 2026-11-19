@@ -5,7 +5,7 @@ import { Toast } from '@boiboif/react-native-toast';
 import { Check, ListPlus } from '@/components/icons';
 import { useTranslation } from 'react-i18next';
 import { Pressable } from 'react-native';
-import { Text, useTheme, XStack } from 'tamagui';
+import { Text, XStack } from 'tamagui';
 
 type Props = {
   entries: PlanPointEntry[];
@@ -18,7 +18,6 @@ type Props = {
 
 export default function AddPointBatchButton({ entries, title, label, planId, planPointKeys, compact = false }: Props) {
   const { t } = useTranslation();
-  const theme = useTheme();
   const { openBatch } = usePlanPicker();
   const plan = usePlans((state) => (planId ? state.plans.find((item) => item.id === planId) : undefined));
   const addPointsToPlans = usePlans((state) => state.addPointsToPlans);
@@ -63,7 +62,7 @@ export default function AddPointBatchButton({ entries, title, label, planId, pla
       style={({ pressed }) => ({ opacity: disabled ? 0.5 : pressed ? 0.65 : 1 })}
     >
       <XStack minH={compact ? 28 : 36} px={compact ? '1' : '2-5'} gap="0-5" items="center" rounded={5}>
-        {allAdded ? <Check size={16} color={theme.primary.val} /> : <ListPlus size={16} color={theme.primary.val} />}
+        {allAdded ? <Check size={16} color="primary" /> : <ListPlus size={16} color="primary" />}
         <Text color="primary" fontSize="footnote" fontWeight="600">
           {buttonLabel}
         </Text>

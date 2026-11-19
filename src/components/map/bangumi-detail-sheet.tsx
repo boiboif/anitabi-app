@@ -763,7 +763,8 @@ function BangumiDetailSheet() {
                       px="7px"
                       py="0-5"
                       rounded={5}
-                      style={{ backgroundColor: selectedBangumi?.color || 'color-9' }}
+                      bg="color-9"
+                      style={selectedBangumi.color ? { backgroundColor: selectedBangumi.color } : undefined}
                     >
                       <Text fontSize="caption" color="white" fontWeight="500">
                         <BangumiCategoryLabel category={selectedBangumi.cat} />
@@ -792,7 +793,7 @@ function BangumiDetailSheet() {
           />
         </View>
         {isControlsSticky ? (
-          <View position="absolute" t={0} l={0} r={0} style={{ zIndex: 3 }}>
+          <View position="absolute" t={0} l={0} r={0} z={3}>
             <AccordionControls
               accordionMode={accordionMode}
               onSelectMode={handleAccordionModeChange}

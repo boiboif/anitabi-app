@@ -154,7 +154,7 @@ export default function AddPlanPointsScreen() {
                 style={({ pressed }) => ({ opacity: pressed ? 0.65 : 1 })}
               >
                 <View w={36} h={36} rounded={26} bg="color-2" items="center" justify="center">
-                  {added ? <Check size={17} color={theme.primary.val} /> : <Plus size={18} color={theme.primary.val} />}
+                  {added ? <Check size={17} color="primary" /> : <Plus size={18} color="primary" />}
                 </View>
               </Pressable>
             }
@@ -162,7 +162,7 @@ export default function AddPlanPointsScreen() {
         </CardListItem>
       );
     },
-    [addPoint, existingKeys, i18n.language, i18n.resolvedLanguage, planId, removePoint, t, theme.primary.val],
+    [addPoint, existingKeys, i18n.language, i18n.resolvedLanguage, planId, removePoint, t],
   );
 
   return (

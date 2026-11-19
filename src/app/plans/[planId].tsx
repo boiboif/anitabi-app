@@ -66,7 +66,6 @@ type DraggablePointRowProps = {
   onPress?: () => void;
   onToggle: () => void;
   onSelect: () => void;
-  theme: ReturnType<typeof useTheme>;
   sorting: boolean;
   showDistance: boolean;
   distancePending: boolean;
@@ -135,7 +134,6 @@ function DraggablePointRow({
   onPress,
   onToggle,
   onSelect,
-  theme,
   sorting,
   showDistance,
   distancePending,
@@ -196,7 +194,7 @@ function DraggablePointRow({
               <View w={30} h={30} rounded={26} items="center" justify="center">
                 <Check
                   size={20}
-                  color={item.completed ? theme.primary.val : theme['color-8'].val}
+                  color={item.completed ? 'primary' : 'color-8'}
                   strokeWidth={item.completed ? 3.5 : 3}
                 />
               </View>
@@ -388,13 +386,12 @@ export default function PlanDetailScreen() {
         onToggle={() => togglePoint(planId, item.item.key)}
         onSelect={() => toggleSelectedPoint(item.item)}
         dragHandle={dragHandle}
-        theme={theme}
         sorting={sorting}
         showDistance={sortByDistance}
         distancePending={distancePending}
       />
     ),
-    [distancePending, planId, router, sortByDistance, sorting, theme, togglePoint, toggleSelectedPoint],
+    [distancePending, planId, router, sortByDistance, sorting, togglePoint, toggleSelectedPoint],
   );
 
   const keyExtractor = useCallback((item: ResolvedItem) => item.id, []);

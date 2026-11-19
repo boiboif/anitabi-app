@@ -4,7 +4,7 @@ import { type Href, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import type { GestureResponderEvent } from 'react-native';
 import { Pressable } from 'react-native';
-import { Text, useTheme, View, XStack } from 'tamagui';
+import { Text, View, XStack } from 'tamagui';
 
 type Props = {
   bangumi: Bangumi;
@@ -25,7 +25,6 @@ export default function ComparisonCameraButton({
 }: Props) {
   const { t } = useTranslation();
   const router = useRouter();
-  const theme = useTheme();
 
   const openCamera = (event: GestureResponderEvent) => {
     event.stopPropagation();
@@ -45,7 +44,7 @@ export default function ComparisonCameraButton({
     >
       {compact ? (
         <View w={compactSize} h={compactSize} rounded={26} items="center" justify="center">
-          <Camera size={compactSize * (bare ? 0.58 : 0.5)} color={theme.primary.val} />
+          <Camera size={compactSize * (bare ? 0.58 : 0.5)} color="primary" />
         </View>
       ) : (
         <XStack h={38} rounded={5} bg="primary" items="center" justify="center" gap="1" px="13px">

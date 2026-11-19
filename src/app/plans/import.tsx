@@ -185,7 +185,7 @@ export default function ImportPlanScreen() {
                     {t('favoriteImportedLocations', { defaultValue: '导入同时收藏' })}
                   </Text>
                   {alsoFavorite ? (
-                    <SquareCheckBig size={23} strokeWidth={2.5} color={theme.primary.val} />
+                    <SquareCheckBig size={23} strokeWidth={2.5} color="primary" />
                   ) : (
                     <Square size={23} color="color-8" />
                   )}

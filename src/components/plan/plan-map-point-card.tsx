@@ -11,7 +11,7 @@ import { CheckCircle2, ChevronLeft, ChevronRight, Flag } from '@/components/icon
 import { memo, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, type LayoutChangeEvent } from 'react-native';
-import { Text, useTheme, useThemeName, View, XStack, YStack } from 'tamagui';
+import { Text, View, XStack, YStack } from 'tamagui';
 
 export const PLAN_MAP_POINT_CARD_FALLBACK_HEIGHT = 231;
 export const PLAN_MAP_POINT_CARD_BOTTOM_OFFSET = 24;
@@ -62,7 +62,7 @@ const PlanMapPointCardPage = memo(function PlanMapPointCardPage({
     <YStack gap="1" px="2-5">
       <XStack minH={44} items="center" justify="center" px={40}>
         <YStack flex={1} items="center" justify="center" minW={0}>
-          <Text fontSize="caption" color="color-10" style={{ fontVariant: ['tabular-nums'] }}>
+          <Text fontSize="caption" color="color-10" fontVariant={['tabular-nums']}>
             {planIndex + 1} / {total}
           </Text>
           <Text
@@ -105,7 +105,7 @@ const PlanMapPointCardPage = memo(function PlanMapPointCardPage({
               bg="rgba(0,0,0,0.58)"
               px="1"
               py="px"
-              style={{ borderTopRightRadius: innerRadius }}
+              borderTopRightRadius={innerRadius}
             >
               <Text fontSize="caption" fontWeight="700" color="white">
                 {epLabel}
@@ -121,7 +121,7 @@ const PlanMapPointCardPage = memo(function PlanMapPointCardPage({
               bg="rgba(0,0,0,0.58)"
               px="1"
               py="px"
-              style={{ borderTopLeftRadius: innerRadius }}
+              borderTopLeftRadius={innerRadius}
             >
               <Text fontSize="caption" color="white">
                 {timeLabel}
@@ -178,8 +178,6 @@ function PlanMapPointCard({
   onHeightChange,
 }: Props) {
   const { t } = useTranslation();
-  const theme = useTheme();
-  const themeName = useThemeName();
   const carouselRef = useRef<SwipeableCardCarouselHandle>(null);
   const { point, bangumi, item } = resolved;
   const handleLayout = useCallback(
@@ -196,11 +194,10 @@ function PlanMapPointCard({
       z={30}
       bg="background"
       rounded={9}
-      boxShadow={
-        themeName === 'dark'
-          ? '0 6px 24px rgba(0,0,0,0.58), 0 0 0 1px rgba(255,255,255,0.08)'
-          : '0 6px 24px rgba(0,0,0,0.3)'
-      }
+      boxShadow={{
+        default: '0 6px 24px rgba(0,0,0,0.3)',
+        dark: '0 6px 24px rgba(0,0,0,0.58), 0 0 0 1px rgba(255,255,255,0.08)',
+      }}
       py="1"
       gap="1"
       onLayout={handleLayout}
@@ -233,14 +230,14 @@ function PlanMapPointCard({
             disabled={!previous}
             onPress={() => carouselRef.current?.previous()}
           >
-            <ChevronLeft size={24} strokeWidth={2.25} color={theme.primary.val} />
+            <ChevronLeft size={24} strokeWidth={2.25} color="primary" />
           </IconButton>
           <IconButton
             label={t('nextPlanLocation', { defaultValue: '下一个点位' })}
             disabled={!next}
             onPress={() => carouselRef.current?.next()}
           >
-            <ChevronRight size={24} strokeWidth={2.25} color={theme.primary.val} />
+            <ChevronRight size={24} strokeWidth={2.25} color="primary" />
           </IconButton>
         </XStack>
       </View>
@@ -276,7 +273,7 @@ function PlanMapPointCard({
               <CheckCircle2
                 size={25}
                 strokeWidth={item.completed ? 2.7 : 2.15}
-                color={item.completed ? theme.primary.val : theme['color-10'].val}
+                color={item.completed ? 'primary' : 'color-10'}
               />
             </View>
           </Pressable>

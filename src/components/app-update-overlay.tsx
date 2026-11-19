@@ -64,7 +64,7 @@ export function AppUpdateOverlay({ manager }: Props) {
       onRequestClose={binaryMandatory ? undefined : isBinary ? manager.dismissBinaryUpdate : manager.dismissHotUpdate}
     >
       <View flex={1} bg="rgba(0,0,0,0.42)" items="center" justify="center" px="6">
-        <YStack w="100%" bg="background" p="6" gap="18px" style={{ maxWidth: 420, borderRadius: 24 }}>
+        <YStack w="100%" maxW={420} bg="background" p="6" gap="18px" rounded={24}>
           <YStack gap="0-5">
             <Text fontSize="title" fontWeight="700" color="color-12">
               {title}

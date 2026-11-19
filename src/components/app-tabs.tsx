@@ -70,7 +70,7 @@ function TabItem({
       }}
     >
       <Icon size={24} color={color} />
-      <View style={{ overflow: 'hidden', borderRadius: 4 }}>
+      <View overflow="hidden" rounded={4}>
         <Text fontSize="caption" color={color} fontWeight={isFocused ? '600' : '400'} textDecorationLine="none">
           {label}
         </Text>
@@ -148,14 +148,7 @@ export default function AppTabs() {
                   colorScheme === 'light' ? '0 0 10px 0 rgba(0, 0, 0, 0.1)' : '0 0 10px 0 rgba(255, 255, 255, 0.1)',
               }}
             >
-              <View
-                style={{
-                  flexDirection: 'row',
-                  paddingVertical: 4,
-                  paddingHorizontal: 8,
-                  borderRadius: CUSTOM_TAB_BAR_RADIUS,
-                }}
-              >
+              <View flexDirection="row" py={4} px={8} rounded={CUSTOM_TAB_BAR_RADIUS}>
                 {tabs.map((tab) => {
                   const isFocused = pathname === tab.path || (tab.path !== '/' && pathname.startsWith(`${tab.path}/`));
                   return (

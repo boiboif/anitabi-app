@@ -74,7 +74,8 @@ export default function BangumiListCard({ bangumi, onPress }: { bangumi: Bangumi
             px="7px"
             py="0-5"
             rounded={5}
-            style={{ backgroundColor: bangumi.color || theme['color-9'].val }}
+            bg="color-9"
+            style={bangumi.color ? { backgroundColor: bangumi.color } : undefined}
           >
             <Text fontSize="caption" color="white" fontWeight="500">
               {categoryMessage ? translateMessage(t, categoryMessage) : bangumi.cat}

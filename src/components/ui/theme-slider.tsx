@@ -25,18 +25,7 @@ export function ThemeSlider({ trackColor = 'color-5', activeColor = 'primary', .
         <Slider.Track hitSlop={24} h={6} backgroundColor={trackColor}>
           <Slider.TrackActive backgroundColor={activeColor} />
         </Slider.Track>
-        <Slider.Thumb
-          hitSlop={24}
-          circular
-          size="xs"
-          w={16}
-          h={16}
-          minWidth={16}
-          minHeight={16}
-          borderWidth={0}
-          bg="primary press:primary"
-          index={0}
-        />
+        <Slider.Thumb hitSlop={24} circular size="xs" borderWidth={0} bg="primary" index={0} />
       </Slider>
     </GestureDetector>
   );

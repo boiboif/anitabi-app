@@ -89,8 +89,13 @@ function createHarness(initialProps = {}, reload = async () => {}) {
         return getSnapshot();
       },
     },
-    'react-native-gesture-handler': { GestureDetector: 'GestureDetector', Pressable: 'Pressable' },
-    tamagui: { View: 'View', YStack: 'YStack' },
+    'react-native': { View: 'View' },
+    'react-native-gesture-handler': {
+      GestureDetector: 'GestureDetector',
+      Pressable: 'Pressable',
+      useTapGesture: (options) => options,
+    },
+    tamagui: { YStack: 'YStack' },
   };
   const globals = {
     setTimeout(callback, delay) {
@@ -360,9 +365,12 @@ test('terminal errors replace the annotation with retry and successful retry res
 });
 
 test('preview bounds still use the native trigger origin and the image layout inside the new wrapper', () => {
-  const image = createHarness({ containerStyle: { width: 140, height: 90 } });
+  const containerStyle = [{ width: 140 }, { height: 90 }];
+  const image = createHarness({ containerStyle });
   const tree = image.render();
-  const trigger = nodes(tree).find((node) => node.type === 'Pressable').props;
+  const elements = nodes(tree);
+  assert.equal(elements.find((node) => node.type === 'View').props.style, containerStyle);
+  const trigger = elements.find((node) => node.type === 'Pressable').props;
   trigger.onLayout({ nativeEvent: { layout: { x: 0, y: 0, width: 140, height: 90 } } });
   image.image.onLayout({ nativeEvent: { layout: { x: 5, y: 10, width: 160, height: 90 } } });
   trigger.onPress({ nativeEvent: { pageX: 25, pageY: 35, locationX: 5, locationY: 5 } });
@@ -375,6 +383,28 @@ test('preview bounds still use the native trigger origin and the image layout in
     borderRadius: 0,
     clip: { x: 20, y: 30, width: 140, height: 90 },
   });
+});
+
+test('either trigger measures its native view when an accessibility activation has no touch origin', () => {
+  for (const maxPressDistance of [undefined, 8]) {
+    const image = createHarness({ maxPressDistance });
+    const elements = nodes(image.render());
+    const tap = maxPressDistance !== undefined;
+    const target = tap
+      ? elements.find((node) => node.props?.maxDistance === maxPressDistance)
+      : elements.find((node) => node.type === 'Pressable');
+    const trigger = tap ? target.type(target.props).props.children.props : target.props;
+    assert.equal(trigger.collapsable, false);
+    trigger.ref.current = {
+      measureInWindow: (callback) => callback(20, 30, 140, 90),
+    };
+    image.image.onLayout({ nativeEvent: { layout: { x: 5, y: 10, width: 160, height: 90 } } });
+
+    if (tap) trigger.onAccessibilityTap();
+    else trigger.onPress({ nativeEvent: {} });
+
+    assert.deepEqual(plain(image.preview.getSourceBounds()).clip, { x: 20, y: 30, width: 140, height: 90 });
+  }
 });
 
 test('unmounting or recycling cancels old work and isolates load, dimensions and preview sessions', () => {

@@ -92,17 +92,7 @@ export function ScrollAwareSlider({ min, max, step, value, disabled, accessibili
             <Slider.Track h={6} bg="color-5">
               <Slider.TrackActive bg="primary" />
             </Slider.Track>
-            <Slider.Thumb
-              circular
-              size="xs"
-              w={16}
-              h={16}
-              minWidth={16}
-              minHeight={16}
-              borderWidth={0}
-              bg="primary"
-              index={0}
-            />
+            <Slider.Thumb circular size="xs" borderWidth={0} bg="primary" index={0} />
           </Slider>
         </View>
       </View>

@@ -1,5 +1,6 @@
-import { animations } from '@tamagui/config/animations-reanimated';
-import { colors, createV6Config, toV6Themes } from '@tamagui/config/v6';
+import { animationsReanimated } from '@tamagui/config/animations-reanimated';
+import { createV6Config, toV6Themes } from '@tamagui/config/v6-base';
+import { colorTokens } from '@tamagui/themes';
 import { themes as classicThemes } from '@tamagui/themes/v5';
 import { Platform } from 'react-native';
 import { createFont, createTamagui } from 'tamagui';
@@ -8,7 +9,6 @@ export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const TopLevelPageTopPadding = Platform.select({ ios: 36, default: 8 }) ?? 8;
 export const MaxContentWidth = 800;
 export const PageHorizontalInset = 12;
-export const PrimaryColor = '#FB7299';
 // Shared with native navigation so headers and scene backgrounds match the page canvas.
 export const PageBackground = {
   light: '#F7F7F7',
@@ -35,7 +35,7 @@ const defaultConfig = createV6Config({
       tabBarIndicator: '#492834',
     },
   },
-  colorTokens: { ...colors.colorTokens, primary: PrimaryColor },
+  colorTokens: { ...colorTokens, primary: '#FB7299' },
 });
 
 // Keep this scale intentionally small; reuse a semantic role before adding another size.
@@ -92,7 +92,7 @@ const headingFont = createFont({
 
 const config = createTamagui({
   ...defaultConfig,
-  animations,
+  animations: animationsReanimated,
   fonts: {
     ...defaultConfig.fonts,
     body: bodyFont,

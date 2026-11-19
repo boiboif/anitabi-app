@@ -3,7 +3,7 @@ import { getFavoritePointKey, useFavoritePoints } from '@/store/use-favorite-poi
 import { Heart } from '@/components/icons';
 import { useTranslation } from 'react-i18next';
 import { Pressable } from 'react-native';
-import { useTheme, View } from 'tamagui';
+import { View } from 'tamagui';
 
 type Props = {
   point: Point;
@@ -15,11 +15,10 @@ type Props = {
 
 export default function FavoritePointButton({ point, bangumi, size = 20, buttonSize = 30, overlay = false }: Props) {
   const { t } = useTranslation();
-  const theme = useTheme();
   const key = getFavoritePointKey(bangumi.id, point.id);
   const isFavorite = useFavoritePoints((state) => state.favoriteKeys.has(key));
   const toggleFavorite = useFavoritePoints((state) => state.toggleFavorite);
-  const iconColor = isFavorite ? theme.primary.val : theme['color-11'].val;
+  const iconColor = isFavorite ? 'primary' : 'color-11';
 
   const button = (
     <Pressable
