@@ -1,3 +1,4 @@
+import { useAppTabBarInset } from '@/components/app-tab-bar-inset';
 import PlanListCard from '@/components/plan/plan-list-card';
 import PlanSortButton from '@/components/plan/plan-sort-button';
 import { ActionSheet, type ActionSheetRef } from '@/components/ui/action-sheet';
@@ -111,6 +112,8 @@ export default function PlansScreen() {
   const router = useRouter();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const tabBarInset = useAppTabBarInset();
+  const paddingBottom = (tabBarInset ?? insets.bottom + BottomTabInset) + 24;
   const plans = usePlans((state) => state.plans);
   const deletePlan = usePlans((state) => state.deletePlan);
   const sortOrder = usePlans((state) => state.planListSortOrder);
@@ -155,9 +158,9 @@ export default function PlansScreen() {
   const contentContainerStyle = useMemo(
     () => ({
       paddingHorizontal: PageHorizontalInset,
-      paddingBottom: insets.bottom + BottomTabInset + 24,
+      paddingBottom,
     }),
-    [insets.bottom],
+    [paddingBottom],
   );
   const contentInset = useMemo(
     () => ({ top: 0, right: insets.right, bottom: 0, left: insets.left }),

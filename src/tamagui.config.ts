@@ -77,6 +77,7 @@ const themes = {
     ...generatedThemes.light,
     pageBackground: PageBackground.light,
     background: '#FFFFFF',
+    tabBarIndicator: '#FCE8EE',
   },
   dark: {
     ...generatedThemes.dark,
@@ -85,6 +86,7 @@ const themes = {
     backgroundHover: '#242424',
     backgroundPress: '#2A2A2A',
     backgroundFocus: '#242424',
+    tabBarIndicator: '#492834',
   },
 };
 

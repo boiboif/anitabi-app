@@ -1,4 +1,4 @@
-import { AppTabBarInsetContext } from '@/components/app-tab-bar-inset';
+import { useAppTabBarInset } from '@/components/app-tab-bar-inset';
 import { MAP_CONTROL_SIZE } from '@/lib/constants';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { buildImageUrl } from '@/services/handlers';
@@ -8,7 +8,7 @@ import { useMapBrowse } from '@/store/use-map-browse';
 import type { MapViewportState } from '@/utils/map-viewport';
 import { findViewportImagePoints, type ViewportImagePoint } from '@/utils/map-viewport-points';
 import { Image } from 'expo-image';
-import { use, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { LayoutRectangle } from 'react-native';
 import { type GetThemeValueForKey, styled, View, XStack } from 'tamagui';
@@ -62,7 +62,7 @@ type Props = {
 };
 
 export default function MapViewportPhotos({ bangumis, viewport, onSelect, onLayoutChange }: Props) {
-  const tabBarInset = use(AppTabBarInsetContext);
+  const tabBarInset = useAppTabBarInset();
   const openedBangumiDetailsId = useMapBrowse((state) => state.openedBangumiDetailsId);
   const filteredBangumiId = useMapBrowse((state) => state.filteredBangumiId);
   const selectedBangumiIds = useMapBangumiFilter((state) => state.selectedBangumiIds);

@@ -1,3 +1,4 @@
+import { useAppTabBarInset } from '@/components/app-tab-bar-inset';
 import PointListCard from '@/components/point/point-list-card';
 import RemoveFavoriteButton from '@/components/point/remove-favorite-button';
 import CardListItem from '@/components/ui/card-list-item';
@@ -17,7 +18,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Platform, Pressable } from 'react-native';
+import { Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, View, XStack, YStack, getTokens, useTheme } from 'tamagui';
 
@@ -140,7 +141,8 @@ function BangumiGridCard({ group, onPress }: { group: BangumiGroup; onPress: () 
 export default function FavoritesScreen() {
   const { t, i18n } = useTranslation();
   const safeAreaInsets = useSafeAreaInsets();
-  const theme = useTheme();
+  const tabBarInset = useAppTabBarInset();
+  const paddingBottom = (tabBarInset ?? safeAreaInsets.bottom + BottomTabInset) + 16;
   const router = useRouter();
   const favoritePoints = useFavoritePoints((state) => state.favoritePoints);
   const data = useMapData((state) => state.data);
@@ -149,11 +151,6 @@ export default function FavoritesScreen() {
   const [view, setView] = useState<FavoriteView>('bangumi');
   const loading = data === null && (status === 'idle' || status === 'loading');
   const loadFailed = data === null && status === 'error';
-
-  const insets = {
-    ...safeAreaInsets,
-    bottom: safeAreaInsets.bottom + BottomTabInset + 16,
-  };
 
   const resolvedFavorites = useMemo(() => {
     return resolveFavoritePoints(favoritePoints, data?.data.bangumis ?? []).sort(
@@ -226,20 +223,6 @@ export default function FavoritesScreen() {
     [focusPointFromList, router],
   );
 
-  const contentPlatformStyle = Platform.select({
-    ios: {
-      paddingTop: insets.top,
-      paddingLeft: insets.left,
-      paddingRight: insets.right,
-    },
-    android: {
-      paddingTop: insets.top,
-      paddingLeft: insets.left,
-      paddingRight: insets.right,
-      paddingBottom: insets.bottom,
-    },
-  });
-
   const renderListItem = useCallback(
     ({ item }: { item: FavoriteListItem }) => {
       switch (item.type) {
@@ -281,7 +264,7 @@ export default function FavoritesScreen() {
   const keyExtractor = useCallback((item: FavoriteListItem) => item.id, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.pageBackground?.val, ...contentPlatformStyle, paddingBottom: 0 }}>
+    <View flex={1} bg="$pageBackground" pt={safeAreaInsets.top} pl={safeAreaInsets.left} pr={safeAreaInsets.right}>
       <View bg="$pageBackground" width="100%" maxW={MaxContentWidth} flex={1}>
         <XStack mx="$pageHorizontalInset" mb="$2.5" gap="$1">
           {(
@@ -341,7 +324,7 @@ export default function FavoritesScreen() {
             numColumns={view === 'bangumi' ? 3 : 1}
             contentContainerStyle={{
               paddingHorizontal: view === 'bangumi' ? getCardListBoundarySpacing(PageHorizontalInset) : 0,
-              paddingBottom: insets.bottom,
+              paddingBottom,
             }}
             ListFooterComponent={
               loadFailed ? (

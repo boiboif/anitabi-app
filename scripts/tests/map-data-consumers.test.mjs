@@ -137,6 +137,7 @@ function createHarness(initial = {}, path = '../../src/app/plans/import.tsx', op
         };
       },
     },
+    '@/components/app-tab-bar-inset': { useAppTabBarInset: () => 0 },
     '@/utils/resolve-favorite-points': { resolveFavoritePoints },
     '@/lib/card-list-layout': cardListLayout,
     '@/lib/localized-data': { getBangumiTitle: (bangumi) => bangumi.title, getPointTitle: (point) => point.name },

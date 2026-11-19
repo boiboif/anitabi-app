@@ -27,7 +27,6 @@ function renderPhotos(items, { selected = null, inset = 0, opened = null } = {})
   const jsx = (type, props, key) => ({ type, props: props ?? {}, key });
   const modules = {
     react: {
-      use: () => inset,
       useEffect: (effect) => effects.push(effect),
       useLayoutEffect: (effect) => effects.push(effect),
       useRef: (current) => ({ current }),
@@ -40,7 +39,7 @@ function renderPhotos(items, { selected = null, inset = 0, opened = null } = {})
     '@shopify/flash-list': { FlashList: 'FlashList' },
     tamagui: { View: 'View', XStack: 'XStack', styled: () => 'Photo' },
     'expo-image': { Image: 'Image' },
-    '@/components/app-tab-bar-inset': { AppTabBarInsetContext: {} },
+    '@/components/app-tab-bar-inset': { useAppTabBarInset: () => inset },
     '@/lib/constants': { MAP_CONTROL_SIZE: 40 },
     '@/lib/localized-data': {
       getBangumiTitle: (bangumi) => String(bangumi.id),

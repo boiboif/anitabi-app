@@ -1,9 +1,10 @@
+import { useAppTabBarInset } from '@/components/app-tab-bar-inset';
 import { SettingCell } from '@/components/ui/settings/setting-cell';
 import { SettingsSection } from '@/components/ui/settings/settings-section';
 import { clearAppCache } from '@/lib/app-cache';
 import { getCurrentAppDisplayVersion } from '@/services/app-update';
 import { BottomTabInset, MaxContentWidth, TopLevelPageTopPadding } from '@/tamagui.config';
-import { BookImage, DatabaseBackup, HardDrive, Info, Languages, Moon, Settings2 } from '@tamagui/lucide-icons-2';
+import { BookImage, DatabaseBackup, HardDrive, Info, Languages, Palette, Settings2 } from '@tamagui/lucide-icons-2';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -14,23 +15,19 @@ import { Text, View, useTheme } from 'tamagui';
 export default function ProfileScreen() {
   const { t, i18n } = useTranslation();
   const safeAreaInsets = useSafeAreaInsets();
+  const tabBarInset = useAppTabBarInset();
+  const paddingBottom = (tabBarInset ?? safeAreaInsets.bottom + BottomTabInset) + 32;
   const theme = useTheme();
   const [isClearingCache, setIsClearingCache] = useState(false);
-  const insets = {
-    ...safeAreaInsets,
-    bottom: safeAreaInsets.bottom + BottomTabInset + 32,
-  };
 
   const contentPlatformStyle = Platform.select({
     android: {
-      paddingTop: insets.top + TopLevelPageTopPadding,
-      paddingLeft: insets.left,
-      paddingRight: insets.right,
-      paddingBottom: insets.bottom,
+      paddingTop: safeAreaInsets.top + TopLevelPageTopPadding,
+      paddingLeft: safeAreaInsets.left,
+      paddingRight: safeAreaInsets.right,
     },
     ios: {
       paddingTop: TopLevelPageTopPadding,
-      paddingBottom: insets.bottom,
     },
   });
 
@@ -75,8 +72,8 @@ export default function ProfileScreen() {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: theme.pageBackground?.val }}
-      contentInset={insets}
-      contentContainerStyle={{ flexDirection: 'row', justifyContent: 'center', ...contentPlatformStyle }}
+      contentInset={{ ...safeAreaInsets, bottom: 0 }}
+      contentContainerStyle={{ flexDirection: 'row', justifyContent: 'center', ...contentPlatformStyle, paddingBottom }}
     >
       <View bg="$pageBackground" width="100%" maxW={MaxContentWidth} flex={1} px="$pageHorizontalInset" gap="$5">
         <Text fontSize="$heading" lineHeight={30} fontWeight="700" color="$color12" px="$1" mb="$1">
@@ -108,10 +105,9 @@ export default function ProfileScreen() {
 
         <SettingsSection title={t('appAndAppearance', { defaultValue: '应用与外观' })}>
           <SettingCell
-            icon={Moon}
-            title={t('darkMode', { defaultValue: '深色模式' })}
-            description={t('setTheAppAppearance', { defaultValue: '设置应用显示外观' })}
-            onPress={() => router.navigate('/dark-mode')}
+            icon={Palette}
+            title={t('appearanceSettings')}
+            onPress={() => router.navigate('/appearance' as never)}
             showDivider
           />
           <SettingCell

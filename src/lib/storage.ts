@@ -4,6 +4,7 @@ import { normalizeComparisonExportSettings, type ComparisonExportSettings } from
 import type { NavigationMap } from './pilgrimage-navigation';
 
 export type ThemePreference = 'system' | 'light' | 'dark';
+export type TabBarStyle = 'native' | 'custom';
 export type AppLanguage = 'zh-CN' | 'ja' | 'en';
 export type LanguagePreference = 'system' | AppLanguage;
 
@@ -15,6 +16,7 @@ type LegacyDarkModeConfig = {
 const storage = createMMKV({ id: 'anitabi-settings' });
 
 const DARK_MODE_KEY = 'dark-mode-config';
+const TAB_BAR_STYLE_KEY = 'tab-bar-style';
 const LANGUAGE_KEY = 'language-preference';
 const MAP_STYLE_FOLLOWS_THEME_KEY = 'map-style-follows-theme';
 const CAMERA_RATIO_KEY = 'comparison-camera-ratio';
@@ -58,6 +60,14 @@ export function getThemePreference(): ThemePreference {
 
 export function setThemePreference(preference: ThemePreference): void {
   storage.set(DARK_MODE_KEY, JSON.stringify({ preference }));
+}
+
+export function getTabBarStyle(): TabBarStyle {
+  return storage.getString(TAB_BAR_STYLE_KEY) === 'custom' ? 'custom' : 'native';
+}
+
+export function setTabBarStyle(style: TabBarStyle): void {
+  storage.set(TAB_BAR_STYLE_KEY, style);
 }
 
 export function getMapStyleFollowsTheme(): boolean {

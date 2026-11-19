@@ -1,80 +1,64 @@
+import { SettingCell } from '@/components/ui/settings/setting-cell';
+import { SettingsSection } from '@/components/ui/settings/settings-section';
+import { ThemeSwitch } from '@/components/ui/theme-switch';
+import { useMapStylePreference } from '@/store/use-map-style-preference';
+import { useThemePreference } from '@/store/use-theme-preference';
+import { MaxContentWidth } from '@/tamagui.config';
+import { Check } from '@tamagui/lucide-icons-2';
 import { useTranslation } from 'react-i18next';
 import { ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Text, View, XStack, YStack, styled, useTheme, useThemeName } from 'tamagui';
-import { ThemeSwitch } from '@/components/ui/theme-switch';
+import { YStack, useTheme } from 'tamagui';
 
-import { useMapStylePreference } from '@/store/use-map-style-preference';
-import { useThemePreference } from '@/store/use-theme-preference';
-import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
-
-const SettingTitle = styled(Text, {
-  fontFamily: '$body',
-  color: '$color',
-  fontSize: '$body',
-  lineHeight: 24,
-  fontWeight: '500',
-});
+const THEME_OPTIONS = [
+  { preference: 'system', label: 'followSystem' },
+  { preference: 'light', label: 'light' },
+  { preference: 'dark', label: 'dark' },
+] as const;
 
 export default function DarkModeScreen() {
   const { t } = useTranslation();
-  const safeAreaInsets = useSafeAreaInsets();
+  const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const themeName = useThemeName();
   const preference = useThemePreference((state) => state.preference);
   const setPreference = useThemePreference((state) => state.setPreference);
   const mapStyleFollowsTheme = useMapStylePreference((state) => state.followsTheme);
   const setMapStyleFollowsTheme = useMapStylePreference((state) => state.setFollowsTheme);
 
-  const followSystem = preference === 'system';
-  const currentTheme = themeName === 'dark' ? 'dark' : 'light';
-  const isDark = currentTheme === 'dark';
-  const insets = {
-    ...safeAreaInsets,
-    bottom: safeAreaInsets.bottom + BottomTabInset + 16,
-  };
-
-  const handleFollowSystemChange = (value: boolean) => {
-    setPreference(value ? 'system' : currentTheme);
-  };
-
-  const toggleDarkMode = (value: boolean) => {
-    setPreference(value ? 'dark' : 'light');
-  };
-
   return (
     <ScrollView
+      contentInsetAdjustmentBehavior="automatic"
       style={{ flex: 1, backgroundColor: theme.pageBackground?.val }}
-      contentInset={insets}
-      contentContainerStyle={{ flexDirection: 'row', justifyContent: 'center' }}
+      contentContainerStyle={{ alignItems: 'center', paddingBottom: insets.bottom + 24 }}
     >
-      <View bg="$pageBackground" width="100%" maxW={MaxContentWidth} flex={1}>
-        <YStack bg="$pageBackground" gap="$1" px="$pageHorizontalInset" pt="$3">
-          <XStack px="$3" py="$2.5" rounded="$2" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <SettingTitle>{t('followSystem', { defaultValue: '跟随系统' })}</SettingTitle>
-            <ThemeSwitch checked={followSystem} onCheckedChange={handleFollowSystemChange} />
-          </XStack>
-
-          {!followSystem && (
-            <XStack px="$3" py="$2.5" rounded="$2" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-              <SettingTitle>{t('darkMode', { defaultValue: '深色模式' })}</SettingTitle>
-              <ThemeSwitch checked={isDark} onCheckedChange={toggleDarkMode} />
-            </XStack>
-          )}
-
-          <XStack px="$3" py="$2.5" rounded="$2" items="center" justify="space-between" gap="$3">
-            <YStack flex={1} gap="$0.5">
-              <SettingTitle>{t('mapStyleFollowsDarkMode', { defaultValue: '地图跟随深色模式' })}</SettingTitle>
-              <Text color="$color10" fontSize="$caption" lineHeight={18}>
-                {t('useStreetMapInLightModeAndDarkMapInDarkMode', {
-                  defaultValue: '浅色模式使用街道地图，深色模式使用深色地图',
-                })}
-              </Text>
-            </YStack>
-            <ThemeSwitch checked={mapStyleFollowsTheme} onCheckedChange={setMapStyleFollowsTheme} />
-          </XStack>
-        </YStack>
-      </View>
+      <YStack width="100%" maxW={MaxContentWidth} px="$pageHorizontalInset" pt="$4" gap="$5">
+        <SettingsSection>
+          {THEME_OPTIONS.map((option, index) => (
+            <SettingCell
+              key={option.preference}
+              title={t(option.label)}
+              rightAccessory={preference === option.preference && <Check size={20} color="$primary" />}
+              showDivider={index < THEME_OPTIONS.length - 1}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: preference === option.preference }}
+              onPress={() => setPreference(option.preference)}
+            />
+          ))}
+        </SettingsSection>
+        <SettingsSection>
+          <SettingCell
+            title={t('mapStyleFollowsDarkMode')}
+            description={t('useStreetMapInLightModeAndDarkMapInDarkMode')}
+            rightAccessory={
+              <ThemeSwitch
+                accessibilityLabel={t('mapStyleFollowsDarkMode')}
+                checked={mapStyleFollowsTheme}
+                onCheckedChange={setMapStyleFollowsTheme}
+              />
+            }
+          />
+        </SettingsSection>
+      </YStack>
     </ScrollView>
   );
 }

@@ -258,6 +258,7 @@ function renderScreens(versionInfo, language = 'zh', updateManager = {}) {
   }
   const jsx = (type, props) => ({ type, props });
   const dependencies = {
+    '@/components/app-tab-bar-inset': { useAppTabBarInset: () => 0 },
     '@/components/ui/settings/setting-cell': { SettingCell: 'SettingCell' },
     '@/components/ui/settings/settings-section': { SettingsSection: 'SettingsSection' },
     '@/lib/app-cache': { clearAppCache: async () => {} },

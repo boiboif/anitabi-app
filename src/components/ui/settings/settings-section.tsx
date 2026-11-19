@@ -2,13 +2,13 @@ import { Children, type ReactNode } from 'react';
 import { Text, View } from 'tamagui';
 
 type SettingsSectionProps = {
-  title: string;
+  title?: string;
   children: ReactNode;
   hideTitleWhenSingle?: boolean;
 };
 
 export function SettingsSection({ title, children, hideTitleWhenSingle = false }: SettingsSectionProps) {
-  const showTitle = !hideTitleWhenSingle || Children.count(children) !== 1;
+  const showTitle = title && (!hideTitleWhenSingle || Children.count(children) !== 1);
 
   return (
     <View gap="$2.5">
