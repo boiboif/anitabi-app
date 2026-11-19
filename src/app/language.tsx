@@ -5,8 +5,8 @@ import type { LanguagePreference } from '@/lib/storage';
 import { useLanguagePreference } from '@/store/use-language-preference';
 import { BottomTabInset, MaxContentWidth } from '@/tamagui.config';
 import { Check } from '@tamagui/lucide-icons-2';
-import { ScrollView } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { View, useTheme } from 'tamagui';
 
@@ -40,7 +40,7 @@ export default function LanguageScreen() {
             <SettingCell
               key={option.preference}
               title={translateMessage(t, option.label)}
-              rightAccessory={preference === option.preference ? <Check size={20} color="$primary" /> : null}
+              rightAccessory={preference === option.preference && <Check size={20} color="$primary" />}
               showDivider={index < LANGUAGE_OPTIONS.length - 1}
               accessibilityRole="radio"
               accessibilityState={{ checked: preference === option.preference }}

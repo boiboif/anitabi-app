@@ -10,26 +10,18 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Platform, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Text, View, useTheme } from 'tamagui';
+import { Text, View } from 'tamagui';
 
 export default function ProfileScreen() {
   const { t, i18n } = useTranslation();
   const safeAreaInsets = useSafeAreaInsets();
+  const paddingTop = Platform.select({
+    android: safeAreaInsets.top + TopLevelPageTopPadding,
+    default: Math.max(safeAreaInsets.top, TopLevelPageTopPadding),
+  });
   const tabBarInset = useAppTabBarInset();
   const paddingBottom = (tabBarInset ?? safeAreaInsets.bottom + BottomTabInset) + 32;
-  const theme = useTheme();
   const [isClearingCache, setIsClearingCache] = useState(false);
-
-  const contentPlatformStyle = Platform.select({
-    android: {
-      paddingTop: safeAreaInsets.top + TopLevelPageTopPadding,
-      paddingLeft: safeAreaInsets.left,
-      paddingRight: safeAreaInsets.right,
-    },
-    ios: {
-      paddingTop: TopLevelPageTopPadding,
-    },
-  });
 
   const clearCache = async () => {
     setIsClearingCache(true);
@@ -70,85 +62,88 @@ export default function ProfileScreen() {
       : t('simplifiedChinese', { defaultValue: '简体中文' });
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: theme.pageBackground?.val }}
-      contentInset={{ ...safeAreaInsets, bottom: 0 }}
-      contentContainerStyle={{ flexDirection: 'row', justifyContent: 'center', ...contentPlatformStyle, paddingBottom }}
-    >
-      <View bg="$pageBackground" width="100%" maxW={MaxContentWidth} flex={1} px="$pageHorizontalInset" gap="$5">
-        <Text fontSize="$heading" lineHeight={30} fontWeight="700" color="$color12" px="$1" mb="$1">
+    <View flex={1} bg="$pageBackground" pt={paddingTop} pl={safeAreaInsets.left} pr={safeAreaInsets.right}>
+      <View width="100%" maxW={MaxContentWidth} self="center" px="$pageHorizontalInset" minH={36} mb="$3">
+        <Text accessibilityRole="header" fontSize="$heading" lineHeight={30} fontWeight="700" color="$color12" px="$1">
           {t('me', { defaultValue: '我的' })}
         </Text>
-
-        <SettingsSection title={t('pilgrimage', { defaultValue: '巡礼' })}>
-          {/* <SettingCell
+      </View>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentInsetAdjustmentBehavior="never"
+        contentContainerStyle={{ alignItems: 'center', paddingBottom }}
+      >
+        <View width="100%" maxW={MaxContentWidth} px="$pageHorizontalInset" gap="$5">
+          <SettingsSection title={t('pilgrimage', { defaultValue: '巡礼' })}>
+            {/* <SettingCell
             icon={CalendarDays}
             title={t('pilgrimagePlans', { defaultValue: '巡礼计划' })}
             description={t('arrangeLocationsAndTrackYourProgress', { defaultValue: '安排点位顺序，记录巡礼进度' })}
             onPress={() => router.navigate('/plan' as never)}
             showDivider
           /> */}
-          <SettingCell
-            compact
-            icon={BookImage}
-            title={t('pilgrimageRecords')}
-            onPress={() => router.navigate('/pilgrimage-records' as never)}
-            showDivider
-          />
-          <SettingCell
-            compact
-            icon={Settings2}
-            title={t('pilgrimageSettings')}
-            onPress={() => router.navigate('/pilgrimage-settings' as never)}
-          />
-        </SettingsSection>
+            <SettingCell
+              compact
+              icon={BookImage}
+              title={t('pilgrimageRecords')}
+              onPress={() => router.navigate('/pilgrimage-records' as never)}
+              showDivider
+            />
+            <SettingCell
+              compact
+              icon={Settings2}
+              title={t('pilgrimageSettings')}
+              onPress={() => router.navigate('/pilgrimage-settings' as never)}
+            />
+          </SettingsSection>
 
-        <SettingsSection title={t('appAndAppearance', { defaultValue: '应用与外观' })}>
-          <SettingCell
-            compact
-            icon={Palette}
-            title={t('appearanceSettings')}
-            onPress={() => router.navigate('/appearance' as never)}
-            showDivider
-          />
-          <SettingCell
-            compact
-            icon={Languages}
-            title={t('language', { defaultValue: '语言' })}
-            value={languageLabel}
-            onPress={() => router.navigate('/language')}
-          />
-        </SettingsSection>
+          <SettingsSection title={t('appAndAppearance', { defaultValue: '应用与外观' })}>
+            <SettingCell
+              compact
+              icon={Palette}
+              title={t('appearanceSettings')}
+              onPress={() => router.navigate('/appearance' as never)}
+              showDivider
+            />
+            <SettingCell
+              compact
+              icon={Languages}
+              title={t('language', { defaultValue: '语言' })}
+              value={languageLabel}
+              onPress={() => router.navigate('/language')}
+            />
+          </SettingsSection>
 
-        <SettingsSection title={t('dataAndStorage')}>
-          <SettingCell
-            compact
-            icon={DatabaseBackup}
-            title={t('backupAndRestore')}
-            onPress={() => router.navigate('/data-backup' as never)}
-            showDivider
-          />
-          <SettingCell
-            compact
-            icon={HardDrive}
-            title={t('clearCache', { defaultValue: '清除缓存' })}
-            value={isClearingCache ? t('clearing', { defaultValue: '清除中...' }) : undefined}
-            disabled={isClearingCache}
-            accessibilityState={{ disabled: isClearingCache }}
-            onPress={confirmClearCache}
-          />
-        </SettingsSection>
+          <SettingsSection title={t('dataAndStorage')}>
+            <SettingCell
+              compact
+              icon={DatabaseBackup}
+              title={t('backupAndRestore')}
+              onPress={() => router.navigate('/data-backup' as never)}
+              showDivider
+            />
+            <SettingCell
+              compact
+              icon={HardDrive}
+              title={t('clearCache', { defaultValue: '清除缓存' })}
+              value={isClearingCache ? t('clearing', { defaultValue: '清除中...' }) : undefined}
+              disabled={isClearingCache}
+              accessibilityState={{ disabled: isClearingCache }}
+              onPress={confirmClearCache}
+            />
+          </SettingsSection>
 
-        <SettingsSection title={t('other', { defaultValue: '其他' })}>
-          <SettingCell
-            compact
-            icon={Info}
-            title={t('about', { defaultValue: '关于' })}
-            value={`v${getCurrentAppDisplayVersion()}`}
-            onPress={() => router.navigate('/about')}
-          />
-        </SettingsSection>
-      </View>
-    </ScrollView>
+          <SettingsSection title={t('other', { defaultValue: '其他' })}>
+            <SettingCell
+              compact
+              icon={Info}
+              title={t('about', { defaultValue: '关于' })}
+              value={`v${getCurrentAppDisplayVersion()}`}
+              onPress={() => router.navigate('/about')}
+            />
+          </SettingsSection>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
