@@ -63,7 +63,7 @@ export function setThemePreference(preference: ThemePreference): void {
 }
 
 export function getTabBarStyle(): TabBarStyle {
-  return storage.getString(TAB_BAR_STYLE_KEY) === 'custom' ? 'custom' : 'native';
+  return storage.getString(TAB_BAR_STYLE_KEY) === 'native' ? 'native' : 'custom';
 }
 
 export function setTabBarStyle(style: TabBarStyle): void {

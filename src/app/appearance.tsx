@@ -1,4 +1,4 @@
-import { Check, Moon } from '@/components/icons';
+import { Check } from '@/components/icons';
 import { SettingCell } from '@/components/ui/settings/setting-cell';
 import { SettingsSection } from '@/components/ui/settings/settings-section';
 import { useTabBarStyle } from '@/store/use-tab-bar-style';
@@ -10,8 +10,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { YStack, useTheme } from 'tamagui';
 
 const TAB_BAR_OPTIONS = [
-  { style: 'native', label: 'nativeNavigationBar' },
   { style: 'custom', label: 'customNavigationBar' },
+  { style: 'native', label: 'nativeNavigationBar' },
 ] as const;
 
 export default function AppearanceScreen() {
@@ -30,7 +30,7 @@ export default function AppearanceScreen() {
     >
       <YStack w="100%" maxW={MaxContentWidth} px="pageHorizontalInset" pt="18px" gap="6">
         <SettingsSection>
-          <SettingCell icon={Moon} title={t('darkMode')} onPress={() => router.navigate('/dark-mode')} />
+          <SettingCell title={t('darkMode')} onPress={() => router.navigate('/dark-mode')} />
         </SettingsSection>
         <SettingsSection title={t('navigationBarStyle')}>
           {TAB_BAR_OPTIONS.map((option, index) => (
