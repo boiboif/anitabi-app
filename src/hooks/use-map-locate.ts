@@ -1,5 +1,5 @@
 import { Toast } from '@boiboif/react-native-toast';
-import { locationManager, type Camera, type Location as MapboxLocation } from '@rnmapbox/maps';
+import { locationManager, type Camera, type CameraStop, type Location as MapboxLocation } from '@rnmapbox/maps';
 import { getForegroundPermissionsAsync, hasServicesEnabledAsync, requestForegroundPermissionsAsync } from 'expo-location';
 import { useMapData } from '@/store/use-map-data';
 import { useFocusEffect } from 'expo-router';
@@ -57,11 +57,14 @@ function isFreshLocation(location: MapboxLocation, now = Date.now()) {
   return age >= -LOCATION_TIMESTAMP_FUTURE_TOLERANCE_MS && age <= FRESH_LOCATION_MAX_AGE_MS;
 }
 
-export function useMapLocate(cameraRef: RefObject<Camera | null>, onCameraAnimationStart?: (duration: number) => void) {
+export function useMapLocate(
+  cameraRef: RefObject<Camera | null>,
+  onCameraAnimationStart?: (duration: number, orientation?: Pick<CameraStop, 'heading' | 'pitch'>) => void,
+) {
   const { t } = useTranslation();
   const latestSnapshotRef = useRef<LocationSnapshot | null>(null);
   const pendingLocationResolversRef = useRef(new Set<(location: MapboxLocation) => void>());
-  const followNextLocationUntilRef = useRef(0);
+  const pendingRefinementRef = useRef<{ until: number; resetOrientation: boolean } | null>(null);
   const locateRevisionRef = useRef(0);
   const cancelLocationWaitRef = useRef<(() => void) | null>(null);
   const isSubscribedRef = useRef(false);
@@ -77,7 +80,7 @@ export function useMapLocate(cameraRef: RefObject<Camera | null>, onCameraAnimat
 
   const cancelPendingCameraMovement = useCallback(() => {
     locateRevisionRef.current++;
-    followNextLocationUntilRef.current = 0;
+    pendingRefinementRef.current = null;
     cancelLocationWaitRef.current?.();
     cancelLocationWaitRef.current = null;
     locatingRef.current = false;
@@ -92,16 +95,19 @@ export function useMapLocate(cameraRef: RefObject<Camera | null>, onCameraAnimat
   }, []);
 
   const moveToLocation = useCallback(
-    (location: MapboxLocation) => {
+    (location: MapboxLocation, resetOrientation = false) => {
       const camera = cameraRef.current;
-      if (!camera) return;
-      onCameraAnimationStart?.(CAMERA_ANIMATION_DURATION_MS);
+      if (!camera) return false;
+      const orientation = resetOrientation ? { heading: 0, pitch: 0 } : undefined;
+      onCameraAnimationStart?.(CAMERA_ANIMATION_DURATION_MS, orientation);
       camera.setCamera({
         centerCoordinate: [location.coords.longitude, location.coords.latitude],
         zoomLevel: 15,
+        ...orientation,
         animationMode: 'flyTo',
         animationDuration: CAMERA_ANIMATION_DURATION_MS,
       });
+      return true;
     },
     [cameraRef, onCameraAnimationStart],
   );
@@ -118,9 +124,11 @@ export function useMapLocate(cameraRef: RefObject<Camera | null>, onCameraAnimat
       const now = Date.now();
       latestSnapshotRef.current = { location, receivedAt: now };
 
-      if (followNextLocationUntilRef.current >= now) {
-        followNextLocationUntilRef.current = 0;
-        moveToLocation(location);
+      const refinement = pendingRefinementRef.current;
+      if (refinement) {
+        pendingRefinementRef.current = null;
+        // A live fix can replace the flight before its heading and pitch have settled.
+        if (refinement.until >= now) moveToLocation(location, refinement.resetOrientation);
       }
 
       if (isFreshLocation(location, now)) {
@@ -298,20 +306,20 @@ export function useMapLocate(cameraRef: RefObject<Camera | null>, onCameraAnimat
     };
   }, []);
 
-  const handleLocate = useCallback(async () => {
-    if (locatingRef.current) return;
+  const handleLocate = useCallback(async ({ resetOrientation = false }: { resetOrientation?: boolean } = {}) => {
+    if (locatingRef.current) return false;
     locatingRef.current = true;
     const revision = ++locateRevisionRef.current;
-    followNextLocationUntilRef.current = 0;
+    pendingRefinementRef.current = null;
     const isCurrent = () => locateRevisionRef.current === revision;
 
     try {
       let { status } = await getForegroundPermissionsAsync();
-      if (!isCurrent()) return;
+      if (!isCurrent()) return false;
       if (status !== 'granted') {
         // Android permission requests can pause/resume the Activity even when already granted.
         ({ status } = await requestForegroundPermissionsAsync());
-        if (!isCurrent()) return;
+        if (!isCurrent()) return false;
       }
       hasLocationPermissionRef.current = status === 'granted';
       if (status !== 'granted') {
@@ -321,17 +329,17 @@ export function useMapLocate(cameraRef: RefObject<Camera | null>, onCameraAnimat
             defaultValue: '请在设置中允许访问位置信息以使用此功能。',
           }),
         );
-        return;
+        return false;
       }
 
       const servicesEnabled = await hasServicesEnabledAsync();
-      if (!isCurrent()) return;
+      if (!isCurrent()) return false;
       if (!servicesEnabled) {
         Alert.alert(
           t('locationServicesAreOff', { defaultValue: '定位服务未开启' }),
           t('turnOnLocationServicesAndTryAgain', { defaultValue: '请先开启手机定位服务后重试。' }),
         );
-        return;
+        return false;
       }
 
       // Keep button recovery separate from remounting the visible puck.
@@ -340,28 +348,28 @@ export function useMapLocate(cameraRef: RefObject<Camera | null>, onCameraAnimat
 
       const latestLocation = latestSnapshotRef.current?.location ?? null;
       if (isValidLocation(latestLocation)) {
-        moveToLocation(latestLocation);
+        const moved = moveToLocation(latestLocation, resetOrientation);
 
         if (!isFreshLocation(latestLocation)) {
           // Move immediately to the last position, then silently repair the
           // provider and refine the camera on the next update.
-          followNextLocationUntilRef.current = Date.now() + CURRENT_LOCATION_TIMEOUT_MS;
+          pendingRefinementRef.current = { until: Date.now() + CURRENT_LOCATION_TIMEOUT_MS, resetOrientation };
           recoverLocationProvider({ force: true });
         }
-        return;
+        return moved;
       }
 
       const cachedLocation = await locationManager.getLastKnownLocation();
-      if (!isCurrent()) return;
+      if (!isCurrent()) return false;
       if (isValidLocation(cachedLocation)) {
         handleLocationUpdate(cachedLocation);
-        moveToLocation(cachedLocation);
+        const moved = moveToLocation(cachedLocation, resetOrientation);
 
         if (!isFreshLocation(cachedLocation)) {
-          followNextLocationUntilRef.current = Date.now() + CURRENT_LOCATION_TIMEOUT_MS;
+          pendingRefinementRef.current = { until: Date.now() + CURRENT_LOCATION_TIMEOUT_MS, resetOrientation };
           recoverLocationProvider({ force: true });
         }
-        return;
+        return moved;
       }
 
       if (isMountedRef.current) setIsLocating(true);
@@ -371,13 +379,14 @@ export function useMapLocate(cameraRef: RefObject<Camera | null>, onCameraAnimat
       cancelLocationWaitRef.current = pendingLocation.cancel;
       try {
         const location = await pendingLocation.promise;
-        if (location && isCurrent()) moveToLocation(location);
+        return !!location && isCurrent() && moveToLocation(location, resetOrientation);
       } catch {
         if (isCurrent() && isFocusedRef.current) {
           Toast.show(
             t('unableToGetYourLocationPleaseTryAgainLater', { defaultValue: '暂时无法获取当前位置，请稍后重试' }),
           );
         }
+        return false;
       } finally {
         pendingLocation.cancel();
         if (cancelLocationWaitRef.current === pendingLocation.cancel) cancelLocationWaitRef.current = null;
@@ -391,6 +400,7 @@ export function useMapLocate(cameraRef: RefObject<Camera | null>, onCameraAnimat
           }),
         );
       }
+      return false;
     } finally {
       if (isCurrent()) {
         locatingRef.current = false;

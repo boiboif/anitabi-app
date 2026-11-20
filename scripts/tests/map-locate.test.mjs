@@ -174,10 +174,27 @@ test('locate reports each camera animation immediately before issuing it', async
   await h.result.handleLocate();
   h.emitLocation(fix(36, 140));
   assert.deepEqual(h.cameraEvents, [['start', 1000], ['move', 1000], ['start', 1000], ['move', 1000]]);
+  assert.ok(h.cameraMoves.every((move) => !('heading' in move) && !('pitch' in move)));
 
   h.cameraRef.current = null;
   await h.result.handleLocate();
   assert.equal(h.cameraEvents.length, 4, 'no animation is reported without a camera');
+  h.unmount();
+});
+
+test('recenter restores the default orientation even if a live fix replaces the first flight', async () => {
+  const h = createHarness();
+  await h.flush();
+  h.emitLocation(fix(35, 139, Date.now() - 60_000));
+  assert.equal(await h.result.handleLocate({ resetOrientation: true }), true);
+  h.emitLocation(fix(36, 140));
+
+  assert.deepEqual(h.cameraMoves.map(({ centerCoordinate, zoomLevel, pitch, heading }) => ({
+    center: Array.from(centerCoordinate), zoomLevel, pitch, heading,
+  })), [
+    { center: [139, 35], zoomLevel: 15, pitch: 0, heading: 0 },
+    { center: [140, 36], zoomLevel: 15, pitch: 0, heading: 0 },
+  ]);
   h.unmount();
 });
 

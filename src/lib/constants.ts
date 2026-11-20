@@ -39,6 +39,8 @@ export const MAP_POINT_PRIORITY_ALL_VISIBLE_ZOOM = 17;
 /** 浏览地图首次打开时的缩放级别。 */
 export const MAP_DEFAULT_ZOOM = 4.6;
 
+export const MAP_3D_PITCH = 45;
+
 /** Anitabi 普通巡礼点的 zoom -> 最低 priority（严格大于）映射。 */
 export const MAP_POINT_PRIORITY_ZOOM_STOPS = [
   [0, 60_000],

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import test from 'node:test';
+import { setImmediate } from 'node:timers/promises';
 import vm from 'node:vm';
 import ts from 'typescript';
 
@@ -36,7 +37,7 @@ function findComponent(node, name) {
 
 // Evaluate HomeScreen with real Zustand actions. Tests can explicitly rerender
 // and run collected effects; child/native rendering is outside this harness.
-function createInteraction({ bangumis = null } = {}) {
+function createInteraction({ bangumis = null, onLocate = async () => true } = {}) {
   const browse = loadSource('store/use-map-browse.ts').useMapBrowse;
   const filter = loadSource('store/use-map-bangumi-filter.ts').useMapBangumiFilter;
   const asSelector = (store) => Object.assign((selector) => selector(store.getState()), { getState: store.getState });
@@ -74,7 +75,11 @@ function createInteraction({ bangumis = null } = {}) {
     'expo-router': { useIsFocused: () => true, useNavigation: () => ({ isFocused: () => true }), useRouter: () => ({}) },
     '@/components/icons': { Dices: 'Dices' },
     tamagui: { View: 'View', YStack: 'YStack', useTheme: () => ({}) },
-    '@/hooks/use-map-locate': { useMapLocate: () => ({ cancelPendingCameraMovement: () => events.push('cancel-locate') }) },
+    '@/hooks/use-map-locate': { useMapLocate: () => ({
+      handleLocate: onLocate,
+      cancelPendingCameraMovement: () => events.push('cancel-locate'),
+      isLocationPuckActive: true,
+    }) },
     '@/hooks/use-themed-map-style': { useThemedMapStyle: () => [0, () => {}] },
     '@/lib/constants': loadSource('lib/constants.ts'),
     '@/lib/map-camera': loadSource('lib/map-camera.ts'),
@@ -82,11 +87,13 @@ function createInteraction({ bangumis = null } = {}) {
     '@/store/use-map-bangumi-filter': { useMapBangumiFilter: asSelector(filter) },
     '@/store/use-map-data': { useMapData: (selector) => selector({ data: bangumis ? { data: { bangumis } } : null, progress: null, isPartial: false }) },
   };
-  const HomeScreen = loadSource('app/(tabs)/index.tsx', (name) => {
+  const require = (name) => {
     if (name in modules) return modules[name];
     if (name.startsWith('@/components/')) return { __esModule: true, default: name };
     throw new Error(`Unexpected dependency: ${name}`);
-  }, {
+  };
+  modules['@/hooks/use-home-map-locate'] = loadSource('hooks/use-home-map-locate.ts', require);
+  const HomeScreen = loadSource('app/(tabs)/index.tsx', require, {
     Date: class extends Date { static now() { return now; } },
     requestIdleCallback: () => 1,
     cancelIdleCallback: () => {},
@@ -107,6 +114,138 @@ function createInteraction({ bangumis = null } = {}) {
 }
 
 const item = { bangumi: { id: 10 }, point: { id: 'photo', geo: [35.7, 139.8], density: 1 } };
+
+function createLocateInteraction(idle = async () => {}, locate = async () => true) {
+  const calls = [];
+  const interaction = createInteraction({
+    onLocate: async (options) => {
+      calls.push(['recenter', options?.resetOrientation]);
+      return locate(options);
+    },
+  });
+  interaction.map.props.ref({ setCamera: (command) => calls.push(['camera', structuredClone(command)]) });
+  interaction.map.props.locationViewportRef.current = {
+    transitionTo: async (state, transition) => {
+      calls.push(['follow', structuredClone(state), structuredClone(transition)]);
+      return true;
+    },
+    idle: () => {
+      calls.push(['idle']);
+      return idle();
+    },
+  };
+
+  function render() {
+    const tree = interaction.rerender();
+    interaction.runEffects();
+    return {
+      map: find(tree, '@/components/map/map-container').props,
+      locate: find(tree, '@/components/map/locate-button').props,
+      buildings: find(tree, '@/components/map/building-3d-switch').props,
+    };
+  }
+
+  return {
+    calls,
+    render,
+    async pressLocate() {
+      render().locate.onPress();
+      await setImmediate();
+      return render();
+    },
+  };
+}
+
+test('home locate first recenters, then follows, and releases the viewport before resetting', async () => {
+  let finishIdle;
+  let finishLocate;
+  const nativeIdle = new Promise((resolve) => { finishIdle = resolve; });
+  const recenter = new Promise((resolve) => { finishLocate = resolve; });
+  const interaction = createLocateInteraction(() => nativeIdle, ({ resetOrientation }) => resetOrientation ? recenter : true);
+
+  assert.equal(interaction.render().locate.mode, 'browse');
+  const centered = await interaction.pressLocate();
+  assert.equal(centered.locate.mode, 'centered');
+  assert.equal(centered.buildings.enabled, false);
+  assert.deepEqual(interaction.calls, [['recenter', false]]);
+
+  const following = await interaction.pressLocate();
+  assert.equal(following.locate.mode, 'following');
+  assert.equal(following.buildings.enabled, true);
+  assert.equal(following.map.show3DBuildings, true);
+  assert.deepEqual(interaction.calls[1], [
+    'follow', { kind: 'followPuck', options: { bearing: 'heading', pitch: 45, zoom: 16 } }, { kind: 'default', maxDurationMs: 500 },
+  ]);
+
+  const releasing = await interaction.pressLocate();
+  assert.equal(releasing.locate.mode, 'following');
+  assert.deepEqual(interaction.calls.slice(2), [['idle']]);
+  finishIdle();
+  await setImmediate();
+  assert.deepEqual(interaction.calls.slice(2), [['idle'], ['recenter', true]]);
+  assert.equal(interaction.render().locate.mode, 'following');
+  finishLocate(true);
+  await setImmediate();
+  const reset = interaction.render();
+  assert.equal(reset.locate.mode, 'centered');
+  assert.equal(reset.buildings.enabled, false);
+  assert.equal(reset.map.show3DBuildings, false);
+  assert.equal((await interaction.pressLocate()).locate.mode, 'following');
+});
+
+test('an unavailable location after turning off follow leaves the button ready to retry the reset', async () => {
+  let resetAttempts = 0;
+  const interaction = createLocateInteraction(undefined, ({ resetOrientation }) => !resetOrientation || ++resetAttempts > 1);
+  await interaction.pressLocate();
+  await interaction.pressLocate();
+
+  const failed = await interaction.pressLocate();
+  assert.equal(failed.locate.mode, 'browse');
+  assert.equal(failed.buildings.enabled, true);
+
+  const retry = await interaction.pressLocate();
+  assert.deepEqual(interaction.calls.slice(2), [['idle'], ['recenter', true], ['recenter', true]]);
+  assert.equal(retry.locate.mode, 'centered');
+  assert.equal(retry.buildings.enabled, false);
+});
+
+test('dragging during an explicit reset cancels it and restores the ordinary locate button', async () => {
+  let finishLocate;
+  const recenter = new Promise((resolve) => { finishLocate = resolve; });
+  const interaction = createLocateInteraction(undefined, ({ resetOrientation }) => resetOrientation ? recenter : true);
+  await interaction.pressLocate();
+  await interaction.pressLocate();
+  const resetting = await interaction.pressLocate();
+
+  resetting.map.onCameraGestureStart();
+  assert.equal(interaction.render().locate.mode, 'browse');
+  finishLocate(true);
+  await setImmediate();
+
+  const browsing = interaction.render();
+  assert.equal(browsing.locate.mode, 'browse');
+  assert.equal(browsing.buildings.enabled, true);
+});
+
+test('a home map gesture leaves the 3D view in place until the next locate', async () => {
+  const interaction = createLocateInteraction();
+  await interaction.pressLocate();
+  const following = await interaction.pressLocate();
+  following.map.onCameraGestureStart();
+  await setImmediate();
+
+  const browsing = interaction.render();
+  assert.deepEqual(interaction.calls.slice(2), [['idle']]);
+  assert.equal(browsing.locate.mode, 'browse');
+  assert.equal(browsing.buildings.enabled, true);
+  assert.equal(browsing.map.show3DBuildings, true);
+
+  const centered = await interaction.pressLocate();
+  assert.deepEqual(interaction.calls.slice(2), [['idle'], ['recenter', true]]);
+  assert.equal(centered.locate.mode, 'centered');
+  assert.equal(centered.buildings.enabled, false);
+  assert.equal(centered.map.show3DBuildings, false);
+});
 
 test('a photo click while the camera is stationary selects without moving the camera', () => {
   const { browse, filter, map, select, localUpdates, events } = createInteraction();

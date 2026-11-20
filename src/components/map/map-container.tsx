@@ -33,12 +33,14 @@ import {
   MapState,
   MapView,
   MarkerView,
+  Viewport,
 } from '@rnmapbox/maps';
 import { useDebounceFn } from 'ahooks';
 import { useFocusEffect, useNavigation } from 'expo-router';
 import {
   type ComponentProps,
   type ComponentRef,
+  type RefObject,
   forwardRef,
   useCallback,
   useEffect,
@@ -84,6 +86,8 @@ type Props = {
   onMapPress?: () => void;
   locationPuckActive?: boolean;
   locationPuckRevision?: number;
+  locationViewportRef?: RefObject<Viewport | null>;
+  onLocationFollowInterrupted?: () => void;
   scaleBarPosition?: ScaleBarPosition;
   visibilityRequest?: (MapPointReference & { id: number; interruptCamera?: boolean; cameraAnimationEndTime?: number }) | null;
   visibilityObstacles?: readonly MapScreenRect[];
@@ -189,6 +193,8 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
     onMapPress,
     locationPuckActive = true,
     locationPuckRevision = 0,
+    locationViewportRef,
+    onLocationFollowInterrupted,
     scaleBarPosition,
     visibilityRequest,
     visibilityObstacles = NO_VISIBILITY_OBSTACLES,
@@ -908,6 +914,14 @@ const MapContainer = forwardRef<Camera, Props>(function MapContainer(
           zoomLevel={MAP_DEFAULT_ZOOM}
           animationMode="none"
         />
+        {locationViewportRef && loadedStyleIndex !== null && (
+          <Viewport
+            ref={locationViewportRef}
+            onStatusChanged={({ to, reason }) => {
+              if (to.kind === 'idle' && reason === 'UserInteraction') onLocationFollowInterrupted?.();
+            }}
+          />
+        )}
         <Images>
           <MapboxImage name={LOCATION_PUCK_BEARING_IMAGE}>
             <YStack w={44} h={44} items="center" collapsable={false}>

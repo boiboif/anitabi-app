@@ -200,6 +200,8 @@ const ja = {
   noImage: '画像なし',
   filterWorkTitle: '作品で絞り込む：{{title}}',
   goToCurrentLocation: '現在地へ移動',
+  start3DHeadingFollow: '端末の向きに合わせて地図を3D表示',
+  stopHeadingFollowAndRecenter: '追従を終了して現在地に戻る',
   locationPermissionDenied: '位置情報の権限が拒否されました',
   allowLocationAccessInSettingsToUseThisFeature: 'この機能を使うには設定で位置情報へのアクセスを許可してください。',
   locationServicesAreOff: '位置情報サービスがオフです',

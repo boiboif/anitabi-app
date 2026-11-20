@@ -197,6 +197,8 @@ const en = {
   noImage: 'No image',
   filterWorkTitle: 'Filter work: {{title}}',
   goToCurrentLocation: 'Go to current location',
+  start3DHeadingFollow: 'Follow device heading in 3D',
+  stopHeadingFollowAndRecenter: 'Stop following and return to current location',
   locationPermissionDenied: 'Location permission denied',
   allowLocationAccessInSettingsToUseThisFeature: 'Allow location access in Settings to use this feature.',
   locationServicesAreOff: 'Location services are off',

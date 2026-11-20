@@ -188,6 +188,8 @@ const zh = {
   noImage: '暂无截图',
   filterWorkTitle: '筛选番剧：{{title}}',
   goToCurrentLocation: '定位到当前位置',
+  start3DHeadingFollow: '开启 3D 朝向跟随',
+  stopHeadingFollowAndRecenter: '退出跟随并回到当前位置',
   locationPermissionDenied: '位置权限被拒绝',
   allowLocationAccessInSettingsToUseThisFeature: '请在设置中允许访问位置信息以使用此功能。',
   locationServicesAreOff: '定位服务未开启',
