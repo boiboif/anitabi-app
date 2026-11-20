@@ -1,9 +1,10 @@
-import { MAP_CONTROL_SIZE } from '@/lib/constants';
+import MapControlSurface from '@/components/map/map-control-surface';
+import { MAP_CONTROL_HIT_SLOP, MAP_CONTROL_LABELED_ICON_SIZE } from '@/lib/constants';
 import { MAP_STYLES } from '@/lib/map-styles';
 import { Layers } from '@/components/icons';
 import { useTranslation } from 'react-i18next';
-import { Pressable, StyleSheet } from 'react-native';
-import { Text, useTheme, YStack } from 'tamagui';
+import { Pressable } from 'react-native';
+import { Text } from 'tamagui';
 
 type Props = {
   styleIndex: number;
@@ -12,14 +13,14 @@ type Props = {
 
 export default function LayerSwitch({ styleIndex, onChange }: Props) {
   const { t } = useTranslation();
-  const theme = useTheme();
   return (
     <Pressable
-      style={({ pressed }) => [styles.button, { backgroundColor: theme.background.val, opacity: pressed ? 0.7 : 1 }]}
+      hitSlop={MAP_CONTROL_HIT_SLOP}
+      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
       onPress={() => onChange((styleIndex + 1) % MAP_STYLES.length)}
     >
-      <YStack w="100%" items="center" justify="center" gap={0} pointerEvents="none">
-        <Layers size={18} color="color-11" />
+      <MapControlSurface>
+        <Layers size={MAP_CONTROL_LABELED_ICON_SIZE} color="color-11" />
         <Text
           maxW="100%"
           fontSize={9}
@@ -33,18 +34,7 @@ export default function LayerSwitch({ styleIndex, onChange }: Props) {
         >
           {t(MAP_STYLES[styleIndex].label.key, { defaultValue: MAP_STYLES[styleIndex].label.defaultValue })}
         </Text>
-      </YStack>
+      </MapControlSurface>
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  button: {
-    width: MAP_CONTROL_SIZE,
-    height: MAP_CONTROL_SIZE,
-    borderRadius: MAP_CONTROL_SIZE / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxShadow: '0 0 4px 0 rgba(0, 0, 0, 0.2)',
-  },
-});

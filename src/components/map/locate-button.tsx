@@ -1,8 +1,9 @@
-import { MAP_CONTROL_ICON_SIZE, MAP_CONTROL_SIZE } from '@/lib/constants';
+import MapControlSurface from '@/components/map/map-control-surface';
+import { MAP_CONTROL_HIT_SLOP, MAP_CONTROL_ICON_SIZE } from '@/lib/constants';
 import { Locate, Navigation } from '@/components/icons';
 import { Pressable } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Spinner, YStack } from 'tamagui';
+import { Spinner } from 'tamagui';
 
 type Props = {
   onPress?: () => void;
@@ -13,8 +14,8 @@ type Props = {
 export default function LocateButton({ onPress, loading = false, mode = 'browse' }: Props) {
   const { t } = useTranslation();
   const highlighted = !loading && mode !== 'browse';
-  const Icon = mode === 'following' ? Navigation : Locate;
-  const label = mode === 'following'
+  const following = mode === 'following';
+  const label = following
     ? t('stopHeadingFollowAndRecenter')
     : mode === 'centered'
       ? t('start3DHeadingFollow')
@@ -22,6 +23,7 @@ export default function LocateButton({ onPress, loading = false, mode = 'browse'
 
   return (
     <Pressable
+      hitSlop={MAP_CONTROL_HIT_SLOP}
       style={({ pressed }) => ({ opacity: pressed && !loading ? 0.7 : 1 })}
       disabled={loading}
       onPress={onPress}
@@ -29,18 +31,16 @@ export default function LocateButton({ onPress, loading = false, mode = 'browse'
       accessibilityLabel={label}
       accessibilityState={{ busy: loading, disabled: loading }}
     >
-      <YStack
-        w={MAP_CONTROL_SIZE}
-        h={MAP_CONTROL_SIZE}
-        rounded={MAP_CONTROL_SIZE / 2}
-        bg={highlighted ? 'primary' : 'background'}
-        items="center"
-        justify="center"
-        boxShadow="0 0 4px rgba(0,0,0,0.2)"
-        pointerEvents="none"
-      >
-        {loading ? <Spinner size="small" color="color-11" /> : <Icon size={MAP_CONTROL_ICON_SIZE} color={highlighted ? 'white' : 'color-11'} />}
-      </YStack>
+      <MapControlSurface bg={highlighted ? 'primary' : 'background'}>
+        {loading ? (
+          <Spinner size="small" color="color-11" />
+        ) : following ? (
+          // Shift the arrow's heavier upper-right strokes toward the button center.
+          <Navigation size={MAP_CONTROL_ICON_SIZE} color="white" viewBox="1.5 -1.5 24 24" />
+        ) : (
+          <Locate size={MAP_CONTROL_ICON_SIZE} color={highlighted ? 'white' : 'color-11'} />
+        )}
+      </MapControlSurface>
     </Pressable>
   );
 }

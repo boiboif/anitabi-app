@@ -5,6 +5,7 @@ import LayerSwitch from '@/components/map/layer-switch';
 import LoadingBadge from '@/components/map/loading-badge';
 import LocateButton from '@/components/map/locate-button';
 import MapContainer from '@/components/map/map-container';
+import MapControlSurface from '@/components/map/map-control-surface';
 import MapTopBangumiIcons from '@/components/map/map-top-bangumi-icons';
 import MapViewportPhotos from '@/components/map/map-viewport-photos';
 import PointImageMarkerSwitch from '@/components/map/point-image-marker-switch';
@@ -15,8 +16,8 @@ import { useThemedMapStyle } from '@/hooks/use-themed-map-style';
 import {
   FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE,
   MAP_3D_PITCH,
+  MAP_CONTROL_HIT_SLOP,
   MAP_CONTROL_ICON_SIZE,
-  MAP_CONTROL_SIZE,
   MAP_TOP_CONTROLS_TOP_OFFSET,
 } from '@/lib/constants';
 import { getBangumiOverviewBounds, getPointFlyToZoom } from '@/lib/map-camera';
@@ -32,7 +33,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Pressable, StyleSheet, type LayoutRectangle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTheme, View, YStack } from 'tamagui';
+import { View, YStack } from 'tamagui';
 
 type CameraState = MapViewportState;
 
@@ -48,16 +49,15 @@ function buildRandomPointCandidates(bangumis: Bangumi[]): RandomPointCandidate[]
 }
 
 function RandomPointButton({ onPress }: { onPress: () => void }) {
-  const theme = useTheme();
   return (
     <Pressable
-      style={({ pressed }) => [
-        styles.randomButton,
-        { backgroundColor: theme.background.val, opacity: pressed ? 0.7 : 1 },
-      ]}
+      hitSlop={MAP_CONTROL_HIT_SLOP}
+      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
       onPress={onPress}
     >
-      <Dices size={MAP_CONTROL_ICON_SIZE} color="color-11" />
+      <MapControlSurface>
+        <Dices size={MAP_CONTROL_ICON_SIZE} color="color-11" />
+      </MapControlSurface>
     </Pressable>
   );
 }
@@ -358,7 +358,7 @@ export default function HomeScreen() {
 
       {!selectedBangumi && (
         <>
-          <YStack r="7px" p="1" position="absolute" b="26%" z={20} gap="13px">
+          <YStack r="7px" p={MAP_CONTROL_HIT_SLOP} position="absolute" b="26%" z={20} gap="13px">
             <RandomPointButton onPress={handleRandomPoint} />
             <LocateButton
               loading={isLocating}
@@ -373,7 +373,14 @@ export default function HomeScreen() {
         </>
       )}
 
-      <YStack r="7px" p="1" position="absolute" t={insets.top + MAP_TOP_CONTROLS_TOP_OFFSET} z={20} gap="13px">
+      <YStack
+        r="7px"
+        p={MAP_CONTROL_HIT_SLOP}
+        position="absolute"
+        t={insets.top + MAP_TOP_CONTROLS_TOP_OFFSET}
+        z={20}
+        gap="13px"
+      >
         {!selectedBangumi && <LayerSwitch styleIndex={styleIndex} onChange={handleStyleChange} />}
         <Building3DSwitch enabled={show3DBuildings} onChange={handle3DBuildingsChange} />
         {cameraState.zoom >= FILTER_MODE_MAP_ICON_ZOOM_THRESHOLD_SHOW_IMAGE && (
@@ -389,13 +396,5 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  randomButton: {
-    width: MAP_CONTROL_SIZE,
-    height: MAP_CONTROL_SIZE,
-    borderRadius: MAP_CONTROL_SIZE / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxShadow: '0 0 4px 0 rgba(0, 0, 0, 0.2)',
   },
 });

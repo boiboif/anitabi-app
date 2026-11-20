@@ -1,8 +1,9 @@
-import { MAP_CONTROL_SIZE } from '@/lib/constants';
+import MapControlSurface from '@/components/map/map-control-surface';
+import { MAP_CONTROL_HIT_SLOP, MAP_CONTROL_LABELED_ICON_SIZE } from '@/lib/constants';
 import { Building2 } from '@/components/icons';
 import { useTranslation } from 'react-i18next';
 import { Pressable } from 'react-native';
-import { Text, YStack } from 'tamagui';
+import { Text } from 'tamagui';
 
 type Props = {
   enabled: boolean;
@@ -17,24 +18,15 @@ export default function Building3DSwitch({ enabled, onChange }: Props) {
 
   return (
     <Pressable
+      hitSlop={MAP_CONTROL_HIT_SLOP}
       style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
       onPress={() => onChange(!enabled)}
       accessibilityRole="switch"
       accessibilityLabel={label}
       accessibilityState={{ checked: enabled }}
     >
-      <YStack
-        w={MAP_CONTROL_SIZE}
-        h={MAP_CONTROL_SIZE}
-        rounded={MAP_CONTROL_SIZE / 2}
-        bg={enabled ? 'primary' : 'background'}
-        boxShadow="0 0 4px rgba(0,0,0,0.2)"
-        items="center"
-        justify="center"
-        gap={0}
-        pointerEvents="none"
-      >
-        <Building2 size={18} color={enabled ? 'white' : 'color-11'} />
+      <MapControlSurface bg={enabled ? 'primary' : 'background'}>
+        <Building2 size={MAP_CONTROL_LABELED_ICON_SIZE} color={enabled ? 'white' : 'color-11'} />
         <Text
           maxW="100%"
           fontSize={9}
@@ -48,7 +40,7 @@ export default function Building3DSwitch({ enabled, onChange }: Props) {
         >
           3D
         </Text>
-      </YStack>
+      </MapControlSurface>
     </Pressable>
   );
 }

@@ -3,6 +3,7 @@ import LayerSwitch from '@/components/map/layer-switch';
 import LoadingBadge from '@/components/map/loading-badge';
 import LocateButton from '@/components/map/locate-button';
 import MapContainer from '@/components/map/map-container';
+import MapControlSurface from '@/components/map/map-control-surface';
 import MapTopBangumiIcons from '@/components/map/map-top-bangumi-icons';
 import PointImageMarkerSwitch from '@/components/map/point-image-marker-switch';
 import PlanMapPointCard, {
@@ -14,7 +15,7 @@ import type { PlanMapResolvedPoint } from '@/components/plan/plan-map-point-type
 import { StrictButton as Button } from '@/components/ui/strict-button';
 import { useMapLocate } from '@/hooks/use-map-locate';
 import { useThemedMapStyle } from '@/hooks/use-themed-map-style';
-import { MAP_CONTROL_ICON_SIZE, MAP_CONTROL_SIZE, MAP_TOP_CONTROLS_TOP_OFFSET } from '@/lib/constants';
+import { MAP_CONTROL_HIT_SLOP, MAP_CONTROL_ICON_SIZE, MAP_TOP_CONTROLS_TOP_OFFSET } from '@/lib/constants';
 import { getPointFlyToZoom } from '@/lib/map-camera';
 import { ICON_BUTTON_ICON_SIZE, SELECTED_MAP_POINT_DOT_DIAMETER } from '@/lib/ui-sizes';
 import type { Bangumi, Point } from '@/services/types';
@@ -421,7 +422,14 @@ export default function PlanMapScreen() {
             />
           </YStack>
 
-          <YStack r="7px" p="1" position="absolute" t={insets.top + MAP_TOP_CONTROLS_TOP_OFFSET} z={20} gap="13px">
+          <YStack
+            r="7px"
+            p={MAP_CONTROL_HIT_SLOP}
+            position="absolute"
+            t={insets.top + MAP_TOP_CONTROLS_TOP_OFFSET}
+            z={20}
+            gap="13px"
+          >
             <LayerSwitch styleIndex={styleIndex} onChange={setStyleIndex} />
             <Building3DSwitch enabled={show3DBuildings} onChange={handle3DBuildingsChange} />
             <PointImageMarkerSwitch visible={showPointImageMarkers} onChange={setShowPointImageMarkers} />
@@ -429,30 +437,22 @@ export default function PlanMapScreen() {
 
           <YStack
             r="7px"
-            p="1"
+            p={MAP_CONTROL_HIT_SLOP}
             position="absolute"
             b={bottomOverlayHeight > 0 ? bottomOverlayHeight + 20 : insets.bottom + 24}
             z={20}
             gap="13px"
           >
             <Pressable
+              hitSlop={MAP_CONTROL_HIT_SLOP}
               style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
               onPress={() => pointListSheetRef.current?.present()}
               accessibilityRole="button"
               accessibilityLabel={t('viewPlanLocations', { defaultValue: '查看计划点位' })}
             >
-              <YStack
-                w={MAP_CONTROL_SIZE}
-                h={MAP_CONTROL_SIZE}
-                rounded={MAP_CONTROL_SIZE / 2}
-                bg="background"
-                boxShadow="0 0 4px rgba(0,0,0,0.2)"
-                items="center"
-                justify="center"
-                pointerEvents="none"
-              >
+              <MapControlSurface>
                 <List size={MAP_CONTROL_ICON_SIZE} strokeWidth={2.1} color="color-11" />
-              </YStack>
+              </MapControlSurface>
             </Pressable>
             <LocateButton loading={isLocating} onPress={handleLocate} />
           </YStack>

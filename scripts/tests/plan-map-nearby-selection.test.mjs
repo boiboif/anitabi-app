@@ -69,7 +69,7 @@ function createHarness(params = {}) {
     '@/components/icons': { ArrowLeft: 'ArrowLeft', List: 'List' },
     '@/hooks/use-map-locate': { useMapLocate: () => ({ handleLocate() {}, isLocating: false, isLocationPuckActive: true }) },
     '@/hooks/use-themed-map-style': { useThemedMapStyle: () => react.useState(0) },
-    '@/lib/constants': { MAP_CONTROL_ICON_SIZE: 24, MAP_CONTROL_SIZE: 40, MAP_TOP_CONTROLS_TOP_OFFSET: 60 },
+    '@/lib/constants': { MAP_CONTROL_HIT_SLOP: 5, MAP_CONTROL_ICON_SIZE: 22, MAP_TOP_CONTROLS_TOP_OFFSET: 60 },
     '@/lib/map-camera': { getPointFlyToZoom: () => 18 },
     '@/lib/ui-sizes': { ICON_BUTTON_ICON_SIZE: 20, SELECTED_MAP_POINT_DOT_DIAMETER: 16 },
     '@/store/use-plans': { usePlans: (selector) => selector({ plans: [plan], togglePoint() {} }) },
@@ -85,7 +85,8 @@ function createHarness(params = {}) {
   };
   for (const [path, name] of [
     ['building-3d-switch', 'Building3DSwitch'], ['layer-switch', 'LayerSwitch'], ['loading-badge', 'LoadingBadge'],
-    ['locate-button', 'LocateButton'], ['map-container', 'MapContainer'], ['map-top-bangumi-icons', 'MapTopBangumiIcons'],
+    ['locate-button', 'LocateButton'], ['map-container', 'MapContainer'], ['map-control-surface', 'MapControlSurface'],
+    ['map-top-bangumi-icons', 'MapTopBangumiIcons'],
     ['point-image-marker-switch', 'PointImageMarkerSwitch'],
   ]) modules[`@/components/map/${path}`] = component(name);
   const module = { exports: {} };

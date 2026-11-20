@@ -1,5 +1,5 @@
 import { useAppTabBarInset } from '@/components/app-tab-bar-inset';
-import { MAP_CONTROL_SIZE } from '@/lib/constants';
+import { MAP_CONTROL_TOUCH_SIZE } from '@/lib/constants';
 import { getBangumiTitle, getPointTitle } from '@/lib/localized-data';
 import { buildImageUrl } from '@/services/handlers';
 import type { Bangumi } from '@/services/types';
@@ -85,7 +85,7 @@ export default function MapViewportPhotos({ bangumis, viewport, onSelect, onLayo
     <XStack
       position="absolute"
       l={0}
-      r={MAP_CONTROL_SIZE + 12}
+      r={MAP_CONTROL_TOUCH_SIZE + 8}
       b={tabBarInset + 12}
       pl="13px"
       pr={EDGE_INSET}

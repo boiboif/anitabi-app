@@ -40,7 +40,7 @@ function renderPhotos(items, { selected = null, inset = 0, opened = null } = {})
     tamagui: { View: 'View', XStack: 'XStack' },
     'expo-image': { Image: 'Image' },
     '@/components/app-tab-bar-inset': { useAppTabBarInset: () => inset },
-    '@/lib/constants': { MAP_CONTROL_SIZE: 40 },
+    '@/lib/constants': { MAP_CONTROL_TOUCH_SIZE: 44 },
     '@/lib/localized-data': {
       getBangumiTitle: (bangumi) => String(bangumi.id),
       getPointTitle: (point) => point.id,
