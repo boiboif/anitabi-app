@@ -21,7 +21,7 @@ import { usePilgrimageRecords } from '@/store/use-pilgrimage-records';
 import { MaxContentWidth } from '@/tamagui.config';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { usePreventRemove } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -48,6 +48,7 @@ export default function DataBackupScreen() {
   const [progress, setProgress] = useState<BackupProgress | null>(null);
   const [photoBytes, setPhotoBytes] = useState(0);
   const exportSheetRef = useRef<TrueSheet>(null);
+  const exportScrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const busyRef = useRef(false);
   const busy = operation !== null;
   // Keep the selected archive's staged images alive until processing finishes.
@@ -350,100 +351,105 @@ export default function DataBackupScreen() {
       <TrueSheet
         ref={exportSheetRef}
         detents={['auto']}
+        scrollableRef={exportScrollRef}
         cornerRadius={18}
-        backgroundColor={theme['color-2'].val}
+        backgroundStyle={{ backgroundColor: theme['color-2'].val }}
         grabberOptions={{ color: theme.primary.val, adaptive: false, topMargin: 8, width: 42, height: 5 }}
         dismissible={!busy}
         draggable={!busy}
       >
-        <YStack px="18px" pt="6" pb="18px" gap="18px">
-          <Text fontSize="subtitle" lineHeight="22px" fontWeight="700" color="color-12">
-            {t('exportDataBackup')}
-          </Text>
-          <SettingsSection title={t('backupExportScope')}>
-            <SettingCell
-              title={t('backupFavoriteData')}
-              description={t('backupFavoriteCounts', currentSummary)}
-              rightAccessory={
-                exportSelection.favoritePoints ? (
-                  <SquareCheckBig size={23} color="primary" />
-                ) : (
-                  <Square size={23} color="color-8" />
-                )
-              }
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: exportSelection.favoritePoints, disabled: busy }}
-              disabled={busy}
-              onPress={() => setExportSelection((current) => ({ ...current, favoritePoints: !current.favoritePoints }))}
-              showDivider
-            />
-            <SettingCell
-              title={t('backupPlanData')}
-              description={t('backupPlanCounts', currentSummary)}
-              rightAccessory={
-                exportSelection.plans ? (
-                  <SquareCheckBig size={23} color="primary" />
-                ) : (
-                  <Square size={23} color="color-8" />
-                )
-              }
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: exportSelection.plans, disabled: busy }}
-              disabled={busy}
-              onPress={() => setExportSelection((current) => ({ ...current, plans: !current.plans }))}
-              showDivider
-            />
-            <SettingCell
-              title={t('backupPilgrimageData', { defaultValue: '巡礼记录（含照片）' })}
-              description={`${t('backupPilgrimageCounts', { defaultValue: '{{recordPointCount}} 个点位 · {{recordDayCount}} 条记录 · {{photoCount}} 张照片', ...currentSummary })}\n${t('backupEstimatedPhotoSize', { defaultValue: '照片约 {{size}}', size: `${(photoBytes / 1024 / 1024).toFixed(1)} MB` })}`}
-              rightAccessory={
-                exportSelection.pilgrimageRecords ? (
-                  <SquareCheckBig size={23} color="primary" />
-                ) : (
-                  <Square size={23} color="color-8" />
-                )
-              }
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: exportSelection.pilgrimageRecords, disabled: busy }}
-              disabled={busy}
-              onPress={() =>
-                setExportSelection((current) => ({ ...current, pilgrimageRecords: !current.pilgrimageRecords }))
-              }
-            />
-          </SettingsSection>
-          <Text fontSize="caption" lineHeight="18px" color="color-11" px="0-5">
-            {t('backupScopeDescription')}
-          </Text>
-          {notice?.error ? (
-            <Text accessibilityRole="alert" fontSize="footnote" lineHeight="20px" color="red-10" px="0-5">
-              {notice.text}
-            </Text>
-          ) : null}
-          <XStack gap="13px">
-            <Button
-              flex={1}
-              bg="color-4 hover:background-hover press:background-press"
-              color="color-12"
-              disabled={busy}
-              onPress={() =>
-                void exportSheetRef.current?.dismiss().catch((error) => showError(error, 'backupExportFailed'))
-              }
-            >
-              {t('cancel')}
-            </Button>
-            <Button
-              flex={1}
-              bg="primary"
-              color="white"
-              disabled={busy || !hasExportSelection}
-              accessibilityState={{ disabled: busy || !hasExportSelection }}
-              opacity={busy || !hasExportSelection ? 0.5 : 1}
-              onPress={() => void exportBackup()}
-            >
+        <ScrollView ref={exportScrollRef}>
+          <YStack px="18px" pt="6" pb="18px" gap="18px">
+            <Text fontSize="subtitle" lineHeight="22px" fontWeight="700" color="color-12">
               {t('exportDataBackup')}
-            </Button>
-          </XStack>
-        </YStack>
+            </Text>
+            <SettingsSection title={t('backupExportScope')}>
+              <SettingCell
+                title={t('backupFavoriteData')}
+                description={t('backupFavoriteCounts', currentSummary)}
+                rightAccessory={
+                  exportSelection.favoritePoints ? (
+                    <SquareCheckBig size={23} color="primary" />
+                  ) : (
+                    <Square size={23} color="color-8" />
+                  )
+                }
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: exportSelection.favoritePoints, disabled: busy }}
+                disabled={busy}
+                onPress={() =>
+                  setExportSelection((current) => ({ ...current, favoritePoints: !current.favoritePoints }))
+                }
+                showDivider
+              />
+              <SettingCell
+                title={t('backupPlanData')}
+                description={t('backupPlanCounts', currentSummary)}
+                rightAccessory={
+                  exportSelection.plans ? (
+                    <SquareCheckBig size={23} color="primary" />
+                  ) : (
+                    <Square size={23} color="color-8" />
+                  )
+                }
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: exportSelection.plans, disabled: busy }}
+                disabled={busy}
+                onPress={() => setExportSelection((current) => ({ ...current, plans: !current.plans }))}
+                showDivider
+              />
+              <SettingCell
+                title={t('backupPilgrimageData', { defaultValue: '巡礼记录（含照片）' })}
+                description={`${t('backupPilgrimageCounts', { defaultValue: '{{recordPointCount}} 个点位 · {{recordDayCount}} 条记录 · {{photoCount}} 张照片', ...currentSummary })}\n${t('backupEstimatedPhotoSize', { defaultValue: '照片约 {{size}}', size: `${(photoBytes / 1024 / 1024).toFixed(1)} MB` })}`}
+                rightAccessory={
+                  exportSelection.pilgrimageRecords ? (
+                    <SquareCheckBig size={23} color="primary" />
+                  ) : (
+                    <Square size={23} color="color-8" />
+                  )
+                }
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: exportSelection.pilgrimageRecords, disabled: busy }}
+                disabled={busy}
+                onPress={() =>
+                  setExportSelection((current) => ({ ...current, pilgrimageRecords: !current.pilgrimageRecords }))
+                }
+              />
+            </SettingsSection>
+            <Text fontSize="caption" lineHeight="18px" color="color-11" px="0-5">
+              {t('backupScopeDescription')}
+            </Text>
+            {notice?.error ? (
+              <Text accessibilityRole="alert" fontSize="footnote" lineHeight="20px" color="red-10" px="0-5">
+                {notice.text}
+              </Text>
+            ) : null}
+            <XStack gap="13px">
+              <Button
+                flex={1}
+                bg="color-4 hover:background-hover press:background-press"
+                color="color-12"
+                disabled={busy}
+                onPress={() =>
+                  void exportSheetRef.current?.dismiss().catch((error) => showError(error, 'backupExportFailed'))
+                }
+              >
+                {t('cancel')}
+              </Button>
+              <Button
+                flex={1}
+                bg="primary"
+                color="white"
+                disabled={busy || !hasExportSelection}
+                accessibilityState={{ disabled: busy || !hasExportSelection }}
+                opacity={busy || !hasExportSelection ? 0.5 : 1}
+                onPress={() => void exportBackup()}
+              >
+                {t('exportDataBackup')}
+              </Button>
+            </XStack>
+          </YStack>
+        </ScrollView>
       </TrueSheet>
     </>
   );

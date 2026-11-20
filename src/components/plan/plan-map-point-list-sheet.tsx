@@ -156,10 +156,8 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
       if (!scrollView || selectedIndex < 0) return false;
       const precedingIndex = Math.max(0, selectedIndex - 1);
       const measuredOffset = listRef.current?.getLayout(precedingIndex)?.y;
-      // TrueSheet adds native scroll padding at the 0.6 detent. The list's
-      // JS scroll limit does not include it, so let Android clamp this offset.
-      // Use FlashList's layout coordinates, which account for native row
-      // measurements, rather than accumulating the estimated row height.
+      // Let the native scroll view clamp the measured row offset to its current
+      // viewport while the sheet lays out a new detent or commits filtered rows.
       scrollView.scrollTo({ y: Math.max(0, measuredOffset ?? precedingIndex * PLAN_POINT_ROW_SIZE), animated });
       return true;
     },
@@ -369,10 +367,12 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
     <TrueSheet
       ref={ref}
       detents={[0.6, 0.9]}
-      scrollable
-      scrollableOptions={{ scrollingExpandsSheet: false }}
+      scrollableRef={listRef}
+      style={{ flex: 1 }}
+      scrollableOptions={{ scrollingExpandsSheet: false, contentInsetAdjustment: 'safe-area' }}
       cornerRadius={22}
-      backgroundColor={theme['color-2'].val}
+      backgroundStyle={{ backgroundColor: theme['color-2'].val }}
+      footerOptions={{ position: 'absolute' }}
       grabberOptions={{ color: theme.primary.val, adaptive: false, topMargin: 8, width: 42, height: 5 }}
       onWillPresent={() => {
         pendingScrollRef.current = true;
@@ -436,7 +436,7 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
         </YStack>
       }
       footer={
-        <View h={60} pr={40} pb={80} items="flex-end" justify="center" pointerEvents="box-none">
+        <View h={60} pr={40} items="flex-end" justify="center" pointerEvents="box-none">
           {showLocateButton && selectedIndex >= 0 && (
             <Pressable
               accessibilityRole="button"
@@ -465,7 +465,7 @@ const PlanMapPointListSheet = forwardRef<TrueSheet, Props>(function PlanMapPoint
         </View>
       }
     >
-      <GestureHandlerRootView style={{ flexGrow: 1 }}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
         <FlashList
           ref={listRef}
           data={visiblePoints}

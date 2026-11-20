@@ -8,7 +8,7 @@ import type { PlanPointEntry } from '@/utils/plan-point-batches';
 import { Toast } from '@boiboif/react-native-toast';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
 import { Plus, Square, SquareCheckBig, X } from '@/components/icons';
-import { createContext, type ReactNode, use, useCallback, useMemo, useRef, useState } from 'react';
+import { createContext, type ComponentRef, type ReactNode, use, useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet } from 'react-native';
 import { Text, useTheme, View, XStack, YStack } from 'tamagui';
@@ -75,6 +75,7 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
   const { t } = useTranslation();
   const theme = useTheme();
   const pickerSheetRef = useRef<TrueSheet>(null);
+  const pickerScrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const createSheetRef = useRef<TrueSheet>(null);
   const plans = usePlans((state) => state.plans);
   const planListSortOrder = usePlans((state) => state.planListSortOrder);
@@ -89,7 +90,6 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
   const [selectedPlanIds, setSelectedPlanIds] = useState<string[]>([]);
   const [alsoFavorite, setAlsoFavorite] = useState(true);
   const [newPlanTitle, setNewPlanTitle] = useState('');
-  const [pickerFooterHeight, setPickerFooterHeight] = useState(0);
 
   const open = useCallback((point: Point, bangumi: Bangumi) => {
     const pointKey = `${bangumi.id}:${point.id}`;
@@ -198,12 +198,14 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
       <TrueSheet
         ref={pickerSheetRef}
         detents={[0.6, 0.9]}
-        scrollable
+        scrollableRef={pickerScrollRef}
+        style={{ flex: 1 }}
         scrollableOptions={{ scrollingExpandsSheet: false }}
-        backgroundColor={theme['color-2'].val}
+        backgroundStyle={{ backgroundColor: theme['color-2'].val }}
         cornerRadius={9}
         grabberOptions={{ color: theme.primary.val, adaptive: false, topMargin: 12 }}
         headerStyle={{ paddingTop: 26 }}
+        footerStyle={{ backgroundColor: theme['color-2'].val }}
         header={
           <YStack px="18px" pt="13px" pb="7px" gap="13px" bg="color-2">
             <XStack items="center" justify="space-between">
@@ -238,13 +240,7 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
           </YStack>
         }
         footer={
-          <View
-            px="18px"
-            pt="7px"
-            pb="18px"
-            bg="color-2"
-            onLayout={(event) => setPickerFooterHeight(event.nativeEvent.layout.height)}
-          >
+          <View px="18px" pt="7px" pb="18px">
             <Pressable
               accessibilityRole="checkbox"
               accessibilityLabel={t('alsoFavorite', { defaultValue: '加入同时收藏' })}
@@ -278,8 +274,8 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
           </View>
         }
       >
-        <ScrollView showsVerticalScrollIndicator={false}>
-          <YStack px="18px" pt="7px" pb={pickerFooterHeight + 16}>
+        <ScrollView ref={pickerScrollRef} showsVerticalScrollIndicator={false}>
+          <YStack px="18px" pt="7px" pb={16}>
             {plans.length === 0 ? (
               <View py="8" items="center">
                 <Text color="color-11">{t('noPilgrimagePlansYet', { defaultValue: '还没有巡礼计划' })}</Text>
@@ -321,7 +317,7 @@ export default function PlanPickerProvider({ children }: { children: ReactNode }
       <TrueSheet
         ref={createSheetRef}
         detents={['auto']}
-        backgroundColor={theme['color-2'].val}
+        backgroundStyle={{ backgroundColor: theme['color-2'].val }}
         cornerRadius={9}
         grabberOptions={{ color: theme.primary.val, adaptive: false, topMargin: 12 }}
         style={{ paddingTop: 26 }}

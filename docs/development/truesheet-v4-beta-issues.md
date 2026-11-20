@@ -1,6 +1,10 @@
 # TrueSheet v4 beta 升级暂缓
 
-2026 年 10 月 10 日决定暂缓升级。当前开发分支 `feature/v0.7.0-testing` 继续使用 TrueSheet `3.11.18`；迁移代码、技能更新和迁移说明保存到 `codex/truesheet-v4-migration`。等待 v4 正式版后重新验证原生问题，再决定是否采用迁移。
+2026 年 11 月 20 日，当前分支已按正式版 `4.1.2` 迁移，使用 Expo SDK 58 与 React Native `0.88.1`。该版本包含 iOS 视图复用的上游修复。新安装包使用 `-sdk58-truesheet4` runtime 后缀，与 TrueSheet v3 的安装包隔离 OTA 更新。[上游 #896](https://github.com/lodev09/react-native-true-sheet/pull/896)
+
+Android 快速返回闪退仍需用新版客户端真机复测。`4.1.2` 在关闭期间跳过部分布局尺寸更新，早期记录涉及的 JNI 状态读取路径仍存在。当前分支保留番剧详情已有的会话关闭保护。
+
+2026 年 10 月 10 日决定暂缓升级。当时的开发分支 `feature/v0.7.0-testing` 继续使用 TrueSheet `3.11.18`。迁移代码、技能更新和迁移说明保存到 `codex/truesheet-v4-migration`，待 v4 正式发布后复测原生问题。
 
 ## 打开详情期间返回导致原生闪退
 

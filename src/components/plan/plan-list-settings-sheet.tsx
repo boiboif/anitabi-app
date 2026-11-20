@@ -23,7 +23,7 @@ const PlanListSettingsSheet = forwardRef<TrueSheet, Props>(function PlanListSett
       ref={ref}
       detents={['auto']}
       cornerRadius={18}
-      backgroundColor={theme['color-2'].val}
+      backgroundStyle={{ backgroundColor: theme['color-2'].val }}
       grabberOptions={{ color: theme.primary.val, adaptive: false, topMargin: 8, width: 42, height: 5 }}
     >
       <YStack px="18px" pt="6" pb="18px" gap="7px">

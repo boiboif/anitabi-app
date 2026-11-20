@@ -12,7 +12,7 @@
     "@expo/ui": "~58.0.29",
     "@kesha-antonov/react-native-background-downloader": "5.0.3",
     "@legendapp/list": "3.7.3",
-    "@lodev09/react-native-true-sheet": "3.11.18",
+    "@lodev09/react-native-true-sheet": "4.1.2",
     "@rnmapbox/maps": "^10.3.18",
     "@sentry/react-native": "~8.33.0",
     "@shopify/flash-list": "2.3.3",

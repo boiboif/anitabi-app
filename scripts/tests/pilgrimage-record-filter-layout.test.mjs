@@ -450,8 +450,12 @@ test('opening the bangumi filter keeps its virtual list outside the record list 
   assert.equal(sheet.scrollContext, null, 'native sheet has no ancestor main-list scroll context');
   assert.equal(list.scrollContext, null, 'the sheet list cannot trigger the nested VirtualizedList warning');
   assert.equal(list.inHeader, false);
-  assert.equal(sheet.props.scrollable, true, 'the long bangumi list keeps native scroll coordination');
+  assert.ok(list.props.ref, 'the list exposes its ref to the sheet');
+  assert.equal(sheet.props.scrollableRef, list.props.ref, 'the sheet coordinates scrolling with its own list');
+  assert.equal(sheet.props.style.flex, 1, 'the fractional sheet bounds the list viewport');
   assert.ok(sheet.props.footer, 'the long bangumi list retains its fixed native actions');
+  assert.equal(sheet.props.footerOptions.position, 'absolute', 'the actions stay above the search keyboard');
+  assert.equal(list.props.contentContainerStyle.paddingBottom, 12, 'the native sheet supplies the footer inset');
   assert.equal(harness.actionButton('pilgrimageRecordsFilterReset').sheetPart, 'footer');
   assert.equal(harness.actionButton('pilgrimageRecordsFilterConfirm').sheetPart, 'footer');
   assert.deepEqual(
@@ -615,8 +619,10 @@ test('date presets resize between peek and auto without unmounting the calendar'
     const sheet = harness.observed.find((entry) => entry.kind === 'TrueSheet');
     assert.deepEqual(Array.from(sheet.props.detents), ['peek', 'auto']);
     assert.equal(sheet.props.dimmedDetentIndex, 0, 'the quick-preset detent keeps the backdrop dimmed');
-    assert.equal(sheet.props.scrollable, false);
+    assert.equal(sheet.props.scrollableRef, undefined);
+    assert.equal(sheet.props.style, undefined, 'both date detents measure intrinsic content');
     assert.ok(sheet.props.footer, 'actions use the same native footer at both detents');
+    assert.equal(sheet.props.footerOptions.position, 'absolute', 'the native footer contributes to peek height');
     assert.equal(harness.actionButton('pilgrimageRecordsFilterReset').sheetPart, 'footer');
     assert.equal(harness.actionButton('pilgrimageRecordsFilterConfirm').sheetPart, 'footer');
     assert.equal(harness.choiceChip('pilgrimageRecordsFilterDateAll').inPeek, true);
@@ -824,43 +830,34 @@ test('dragging open the calendar keeps the quick preset until a calendar edit cr
   assert.equal(harness.dismissCalls, 1);
 });
 
-for (const filter of ['pilgrimageRecordsBangumiFilter', 'pilgrimageRecordsDateFilter']) {
-  test(`${filter}: measured native footer reserves matching bottom space in its content`, async () => {
-    const harness = createHarness();
-    harness.render();
-    harness.button(filter).props.onPress();
-    harness.render();
-    await harness.present();
-    harness.render();
+test('the date footer reserves its measured height beyond the peek boundary', async () => {
+  const harness = createHarness();
+  harness.render();
+  harness.button('pilgrimageRecordsDateFilter').props.onPress();
+  harness.render();
+  await harness.present();
+  harness.render();
 
-    function measureFooter(height) {
-      const footer = harness.observed.find(
-        (entry) =>
-          entry.kind === 'XStack' && entry.sheetPart === 'footer' && typeof entry.props.onLayout === 'function',
-      );
-      assert.ok(footer, 'the native footer reports its natural measured height');
-      footer.props.onLayout({ nativeEvent: { layout: { height } } });
-      harness.render();
-      if (filter === 'pilgrimageRecordsBangumiFilter') {
-        return harness.observed.find((entry) => entry.kind === 'FlatList').props.contentContainerStyle.paddingBottom;
-      }
-      const content = harness.observed.find(
-        (entry) => entry.kind === 'YStack' && entry.sheetPart === 'content' && entry.props.pb >= height,
-      );
-      assert.ok(content, 'the complete date body reserves space under the measured native footer');
-      return content.props.pb;
-    }
+  function measureFooter(height) {
+    const footer = harness.observed.find(
+      (entry) => entry.kind === 'XStack' && entry.sheetPart === 'footer' && typeof entry.props.onLayout === 'function',
+    );
+    assert.ok(footer, 'the footer reports its natural measured height');
+    footer.props.onLayout({ nativeEvent: { layout: { height } } });
+    harness.render();
+    const content = harness.observed.find(
+      (entry) => entry.kind === 'YStack' && entry.sheetPart === 'content' && entry.props.pb === height,
+    );
+    assert.ok(content, 'the full date body reserves space under the measured footer');
+    assert.equal(content.inPeek, false, 'footer padding only contributes to the full detent');
+  }
 
-    const firstPadding = measureFooter(72);
-    const secondPadding = measureFooter(108);
-    assert.ok(firstPadding >= 72);
-    assert.ok(secondPadding >= 108);
-    assert.equal(secondPadding - firstPadding, 36, 'content follows footer height instead of using a fixed estimate');
-    assert.equal(harness.actionButton('pilgrimageRecordsFilterConfirm').sheetPart, 'footer');
-    assert.equal(harness.dismissCalls, 0, 'footer measurement leaves the current draft open');
-    assert.equal(harness.pagePops, 0);
-  });
-}
+  measureFooter(72);
+  measureFooter(108);
+  assert.equal(harness.actionButton('pilgrimageRecordsFilterConfirm').sheetPart, 'footer');
+  assert.equal(harness.dismissCalls, 0, 'footer measurement leaves the current draft open');
+  assert.equal(harness.pagePops, 0);
+});
 
 for (const filter of ['pilgrimageRecordsBangumiFilter', 'pilgrimageRecordsDateFilter']) {
   test(`${filter}: back during opening cancels the sheet without removing the page`, async () => {

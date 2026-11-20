@@ -1889,10 +1889,10 @@
   dependencies:
     use-sync-external-store "^1.5.0"
 
-"@lodev09/react-native-true-sheet@3.11.18":
-  version "3.11.18"
-  resolved "https://registry.npmmirror.com/@lodev09/react-native-true-sheet/-/react-native-true-sheet-3.11.18.tgz#8cf3ed672af0aafd24d73f0c560f27894528692b"
-  integrity sha512-Rf2Eux/8DcwtK16qLrWiLy+8lG3+jLQAVlaT3ZaK1T+Rq7+ZowY48TXEmvW7ewKkz72DU+sdrxn8475u/ih4Tw==
+"@lodev09/react-native-true-sheet@4.1.2":
+  version "4.1.2"
+  resolved "https://registry.npmjs.org/@lodev09/react-native-true-sheet/-/react-native-true-sheet-4.1.2.tgz#fe2edcd68a42ac2728f2c1ac73e2f66322d6da0c"
+  integrity sha512-YaKgXCgeP+BkgOkYoaDRJLn5a3/i88oa+uND0BR2p00zXVDSifx30FxsCrNQrCyijmRwpyH9iaFg3+v5/YhJag==
 
 "@napi-rs/lzma-linux-x64-gnu@1.5.1":
   version "1.5.1"

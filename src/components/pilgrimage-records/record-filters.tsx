@@ -11,7 +11,6 @@ import { useCallback, useEffect, useRef, useState, type ReactElement, type React
 import { useTranslation } from 'react-i18next';
 import { BackHandler, FlatList, Keyboard, Platform, Pressable } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, XStack, YStack, useTheme } from 'tamagui';
 
 export type RecordTimeFilter = { preset: PilgrimageTimePreset; range: PilgrimageDateRange };
@@ -91,7 +90,7 @@ function FilterPanel({
   const initialDatePreset = useRef(timeFilter.preset);
   const [calendarExpanded, setCalendarExpanded] = useState(timeFilter.preset === 'custom');
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
+  const bangumiListRef = useRef<FlatList<RecordBangumiOption>>(null);
   const [footerHeight, setFooterHeight] = useState(0);
   const range = draftPreset === 'custom' ? draftRange : getPilgrimagePresetRange(draftPreset);
   const searchTerm = search.trim().toLocaleLowerCase();
@@ -104,8 +103,7 @@ function FilterPanel({
   useEffect(() => {
     if (mode !== 'date') return;
     let active = true;
-    // Unlike initialDetentIndex, present() waits for the native content mount.
-    // Auto detents need that content before calculating the opening position.
+    // Wait for the native content before resolving the content-sized opening detent.
     void sheetRef.current?.present(initialDatePreset.current === 'custom' ? 1 : 0).catch((error) => {
       if (!active) return;
       console.error('Failed to open the pilgrimage date filter', error);
@@ -120,13 +118,12 @@ function FilterPanel({
     <XStack
       px="18px"
       pt="13px"
-      pb={Math.max(insets.bottom, 12)}
+      pb={12}
       gap="13px"
       shrink={0}
-      bg="color-2"
       borderTopWidth={1}
       borderColor="color-5"
-      onLayout={(event) => setFooterHeight(event.nativeEvent.layout.height)}
+      onLayout={mode === 'date' ? (event) => setFooterHeight(event.nativeEvent.layout.height) : undefined}
     >
       <Button
         flex={1}
@@ -176,12 +173,11 @@ function FilterPanel({
       dimmedDetentIndex={0}
       initialDetentIndex={mode === 'bangumi' ? 0 : undefined}
       initialDetentAnimated
-      scrollable={mode === 'bangumi'}
-      scrollableOptions={
-        mode === 'bangumi' ? { scrollingExpandsSheet: false, keyboardScrollOffset: footerHeight + 24 } : undefined
-      }
+      style={mode === 'bangumi' ? { flex: 1 } : undefined}
+      scrollableRef={mode === 'bangumi' ? bangumiListRef : undefined}
+      scrollableOptions={mode === 'bangumi' ? { scrollingExpandsSheet: false } : undefined}
       cornerRadius={20}
-      backgroundColor={theme['color-2'].val}
+      backgroundStyle={{ backgroundColor: theme['color-2'].val }}
       grabberOptions={{ color: theme.primary.val, adaptive: false, topMargin: 8, width: 42, height: 5 }}
       onDidPresent={(event) => {
         if (mode === 'date') setCalendarExpanded(event.nativeEvent.index === 1);
@@ -225,16 +221,18 @@ function FilterPanel({
         </YStack>
       }
       footer={actions}
+      footerOptions={{ position: 'absolute' }}
+      footerStyle={{ backgroundColor: theme['color-2'].val }}
     >
       {mode === 'bangumi' ? (
-        <GestureHandlerRootView style={{ flexGrow: 1 }}>
+        <GestureHandlerRootView style={{ flex: 1 }}>
           <FlatList
+            ref={bangumiListRef}
             style={{ flex: 1 }}
-            contentContainerStyle={{ paddingBottom: footerHeight + 12 }}
+            contentContainerStyle={{ paddingBottom: 12 }}
             data={options}
             keyExtractor={(option) => option.id}
             extraData={draftBangumi}
-            nestedScrollEnabled
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
             ListHeaderComponent={
@@ -264,7 +262,7 @@ function FilterPanel({
         </GestureHandlerRootView>
       ) : (
         // Peek measures the quick options plus the native header and footer.
-        // Keep the calendar mounted so expanding changes detents, not the dim threshold.
+        // Keep the calendar mounted and reserve the floating footer's height only in the full detent.
         <YStack pb={footerHeight}>
           <TrueSheetPeek>
             <XStack
@@ -339,7 +337,7 @@ export function RecordFilters(props: Props) {
 
   const close = useCallback(() => {
     Keyboard.dismiss();
-    // Native dismiss can be a no-op before presentation; cancel the pending mount.
+    // Cancel the session and discard its draft when the sheet is still opening.
     if (!didPresent.current) {
       setSession(null);
       return;

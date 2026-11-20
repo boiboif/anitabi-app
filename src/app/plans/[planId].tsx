@@ -477,10 +477,6 @@ export default function PlanDetailScreen() {
       ],
     );
 
-  const openDeleteConfirm = () => {
-    setTimeout(confirmDelete, 180);
-  };
-
   const openShare = () => {
     if (plan.items.length === 0) {
       Alert.alert(
@@ -497,20 +493,16 @@ export default function PlanDetailScreen() {
   };
 
   const shareLargePlanFile = () => {
-    setTimeout(() => {
-      void sharePlanFile(plan).catch((error) => {
-        Alert.alert(
-          t('couldNotSharePlanFile', { defaultValue: '无法分享计划文件' }),
-          error instanceof Error ? error.message : t('pleaseTryAgainLater', { defaultValue: '请稍后重试' }),
-        );
-      });
-    }, 220);
+    void sharePlanFile(plan).catch((error) => {
+      Alert.alert(
+        t('couldNotSharePlanFile', { defaultValue: '无法分享计划文件' }),
+        error instanceof Error ? error.message : t('pleaseTryAgainLater', { defaultValue: '请稍后重试' }),
+      );
+    });
   };
 
   const openDisplayOnlyShare = () => {
-    setTimeout(() => {
-      router.navigate({ pathname: '/plans/[planId]/share', params: { planId: plan.id, displayOnly: '1' } } as never);
-    }, 180);
+    router.navigate({ pathname: '/plans/[planId]/share', params: { planId: plan.id, displayOnly: '1' } } as never);
   };
 
   return (
@@ -697,7 +689,7 @@ export default function PlanDetailScreen() {
         primaryAction={{
           label: t('sharePlan', { defaultValue: '分享计划' }),
           icon: Share2,
-          onPress: () => setTimeout(openShare, 180),
+          onPress: openShare,
         }}
         sections={[
           {
@@ -712,7 +704,7 @@ export default function PlanDetailScreen() {
                 label: t('deletePlan', { defaultValue: '删除计划' }),
                 icon: Trash2,
                 destructive: true,
-                onPress: openDeleteConfirm,
+                onPress: confirmDelete,
               },
             ],
           },
