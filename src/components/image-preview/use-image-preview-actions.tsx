@@ -14,9 +14,11 @@ type ImageAction = 'save' | 'share';
 export function useImagePreviewActions() {
   const { t } = useTranslation();
   const sheetRef = useRef<ActionSheetRef>(null);
+  const targetRef = useRef<PreviewImage | null>(null);
   const menuOpenRef = useRef(false);
+  const pendingRef = useRef<ImageAction | null>(null);
   const operationRef = useRef<AbortController | null>(null);
-  const [menuImage, setMenuImage] = useState<PreviewImage | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [busy, setBusy] = useState<ImageAction | null>(null);
 
   useEffect(() => () => operationRef.current?.abort(), []);
@@ -76,13 +78,14 @@ export function useImagePreviewActions() {
   };
 
   const openMenu = (image: PreviewImage) => {
-    const sheet = sheetRef.current;
-    if (!sheet || menuOpenRef.current || operationRef.current) return;
+    if (menuOpenRef.current || operationRef.current) return;
+    targetRef.current = image;
+    pendingRef.current = null;
     menuOpenRef.current = true;
-    setMenuImage(image);
-    void sheet.present().catch(() => {
+    setMenuOpen(true);
+    void sheetRef.current?.present().catch(() => {
       menuOpenRef.current = false;
-      setMenuImage(null);
+      setMenuOpen(false);
     });
   };
 
@@ -95,7 +98,7 @@ export function useImagePreviewActions() {
   return {
     openMenu,
     dismissMenu,
-    menuOpen: menuImage !== null,
+    menuOpen,
     busy,
     cancel: () => operationRef.current?.abort(),
     sheet: (
@@ -103,25 +106,18 @@ export function useImagePreviewActions() {
         ref={sheetRef}
         onDidDismiss={() => {
           menuOpenRef.current = false;
-          setMenuImage(null);
+          setMenuOpen(false);
+          const action = pendingRef.current;
+          const image = targetRef.current;
+          pendingRef.current = null;
+          // Present permissions/sharing only once the native sheet has dismissed.
+          if (action && image) void runAction(action, image);
         }}
         sections={[
           {
             actions: [
-              {
-                label: t('imagePreviewSaveToPhotos'),
-                icon: Download,
-                onPress: () => {
-                  if (menuImage) void runAction('save', menuImage);
-                },
-              },
-              {
-                label: t('shareImage'),
-                icon: Share2,
-                onPress: () => {
-                  if (menuImage) void runAction('share', menuImage);
-                },
-              },
+              { label: t('imagePreviewSaveToPhotos'), icon: Download, onPress: () => (pendingRef.current = 'save') },
+              { label: t('shareImage'), icon: Share2, onPress: () => (pendingRef.current = 'share') },
             ],
           },
         ]}

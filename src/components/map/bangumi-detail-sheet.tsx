@@ -270,8 +270,9 @@ function useBangumiDetailSheet(requestedBangumi: Bangumi | undefined, onDetailsD
   const isCurrentFocusedSession = () =>
     isCurrentSession() && navigation.isFocused() && useMapBrowse.getState().openedBangumiDetailsId === bangumiId;
 
-  // Close during native presentation on Android. On iOS, the onDidPresent
-  // handler rechecks route focus and selection before closing the session.
+  // Android v3 accepts dismiss as soon as native presentation starts. iOS v3
+  // rejects it until viewDidAppear; retain that platform's completion fallback.
+  // Never use lazy present(): its mount promise cannot be cancelled on blur.
   const dismissSheet = useCallback(() => {
     const canDismiss = isSheetPresentedRef.current || (Platform.OS !== 'ios' && isSheetPresentingRef.current);
     if (!canDismiss || isSheetDismissingRef.current) return;
@@ -667,7 +668,7 @@ function BangumiDetailSheet() {
     ],
   );
 
-  // The focused details session owns mount-to-present and its initial detent.
+  // Mount-to-present avoids TrueSheet's uncancellable lazy present() promise on route blur.
   if (!shouldRenderSheet) return null;
 
   const coverUri = buildImageUrl(selectedBangumi?.cover ?? '');
@@ -679,9 +680,9 @@ function BangumiDetailSheet() {
       initialDetentIndex={initialDetentIndex}
       initialDetentAnimated
       detents={BANGUMI_DETAIL_SHEET_DETENTS}
-      scrollableRef={flashListRef}
+      scrollable
       dimmed={false}
-      backgroundStyle={{ backgroundColor: theme['color-2'].val }}
+      backgroundColor={theme['color-2'].val}
       cornerRadius={9}
       grabberOptions={{ color: theme.primary.val, adaptive: false, topMargin: 12 }}
       onDidPresent={handleSheetPresent}
@@ -690,9 +691,9 @@ function BangumiDetailSheet() {
       onDidDismiss={handleSheetDismiss}
       onDidBlur={handleSheetBlur}
       onDetentChange={handleDetentChange}
-      style={{ flex: 1, paddingTop: 26 }}
+      style={{ paddingTop: 26 }}
     >
-      <GestureHandlerRootView style={{ flex: 1 }} onLayout={handleFlashListViewportLayout}>
+      <GestureHandlerRootView style={{ flexGrow: 1 }} onLayout={handleFlashListViewportLayout}>
         <View flex={1}>
           <FlashList
             ref={flashListRef}

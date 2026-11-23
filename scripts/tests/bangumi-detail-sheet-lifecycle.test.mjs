@@ -371,7 +371,7 @@ test('Android route blur immediately closes during opening and retains the work'
   assert.equal(app.openedId, workA.id);
 });
 
-test('iOS defers an in-flight dismissal until did-present', () => {
+test('iOS v3 waits for did-present because native dismiss rejects in-flight presentation', () => {
   const app = createHarness('ios');
   const opened = app.select(workA);
   opened.handleSheetWillPresent();

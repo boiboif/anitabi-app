@@ -190,20 +190,24 @@ export default function PlansScreen() {
 
   const shareLargePlanFile = useCallback(() => {
     if (!selectedPlan) return;
-    void sharePlanFile(selectedPlan).catch((error) => {
-      Alert.alert(
-        t('couldNotSharePlanFile', { defaultValue: '无法分享计划文件' }),
-        error instanceof Error ? error.message : t('pleaseTryAgainLater', { defaultValue: '请稍后重试' }),
-      );
-    });
+    setTimeout(() => {
+      void sharePlanFile(selectedPlan).catch((error) => {
+        Alert.alert(
+          t('couldNotSharePlanFile', { defaultValue: '无法分享计划文件' }),
+          error instanceof Error ? error.message : t('pleaseTryAgainLater', { defaultValue: '请稍后重试' }),
+        );
+      });
+    }, 220);
   }, [selectedPlan, t]);
 
   const openDisplayOnlyShare = useCallback(() => {
     if (!selectedPlan) return;
-    router.navigate({
-      pathname: '/plans/[planId]/share',
-      params: { planId: selectedPlan.id, displayOnly: '1' },
-    } as never);
+    setTimeout(() => {
+      router.navigate({
+        pathname: '/plans/[planId]/share',
+        params: { planId: selectedPlan.id, displayOnly: '1' },
+      } as never);
+    }, 180);
   }, [router, selectedPlan]);
 
   const editSelectedPlan = useCallback(() => {
@@ -258,7 +262,7 @@ export default function PlansScreen() {
         primaryAction={{
           label: t('scanQrCode', { defaultValue: '扫描二维码' }),
           icon: ScanLine,
-          onPress: scanQrCode,
+          onPress: () => setTimeout(() => void scanQrCode(), 180),
         }}
         sections={[
           {
@@ -266,7 +270,7 @@ export default function PlansScreen() {
               {
                 label: t('importFromFile', { defaultValue: '从文件导入' }),
                 icon: FileDown,
-                onPress: () => void importFromFile(),
+                onPress: () => setTimeout(() => void importFromFile(), 180),
               },
             ],
           },
@@ -279,7 +283,7 @@ export default function PlansScreen() {
           label: t('sharePlan', { defaultValue: '分享计划' }),
           icon: Share2,
           disabled: !selectedPlan,
-          onPress: shareSelectedPlan,
+          onPress: () => setTimeout(shareSelectedPlan, 180),
         }}
         sections={[
           {
@@ -295,7 +299,7 @@ export default function PlansScreen() {
                 icon: Trash2,
                 destructive: true,
                 disabled: !selectedPlan,
-                onPress: confirmDeleteSelectedPlan,
+                onPress: () => setTimeout(confirmDeleteSelectedPlan, 180),
               },
             ],
           },

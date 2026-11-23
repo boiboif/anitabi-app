@@ -1,8 +1,8 @@
 import { ACTION_SHEET_ICON_SIZE } from '@/lib/ui-sizes';
-import { TrueSheet, type DidDismissEvent, type TrueSheetProps } from '@lodev09/react-native-true-sheet';
+import { TrueSheet, type TrueSheetProps } from '@lodev09/react-native-true-sheet';
 import type { IconProps } from '@tamagui/helpers-icon';
-import { ComponentType, forwardRef, useCallback, useRef, type ComponentRef } from 'react';
-import { Pressable, ScrollView, StyleSheet } from 'react-native';
+import { ComponentType, forwardRef, useCallback, useRef } from 'react';
+import { Pressable, StyleSheet } from 'react-native';
 import { Text, View, XStack, YStack, useTheme } from 'tamagui';
 
 export type ActionSheetRef = TrueSheet;
@@ -21,7 +21,7 @@ export type ActionSheetSection = {
   actions: ActionSheetAction[];
 };
 
-export type ActionSheetProps = Omit<TrueSheetProps, 'children' | 'scrollableRef'> & {
+export type ActionSheetProps = Omit<TrueSheetProps, 'children'> & {
   title?: string;
   description?: string;
   primaryAction?: ActionSheetAction;
@@ -60,14 +60,11 @@ function ActionRow({
 }
 
 export const ActionSheet = forwardRef<ActionSheetRef, ActionSheetProps>(function ActionSheet(
-  { title, description, primaryAction, sections = [], onDidPresent, onWillDismiss, onDidDismiss, ...sheetProps },
+  { title, description, primaryAction, sections = [], ...sheetProps },
   ref,
 ) {
   const theme = useTheme();
   const sheetRef = useRef<ActionSheetRef>(null);
-  const scrollableRef = useRef<ComponentRef<typeof ScrollView>>(null);
-  const acceptingActionsRef = useRef(false);
-  const pendingActionRef = useRef<(() => void) | null>(null);
   const setSheetRef = useCallback(
     (instance: ActionSheetRef | null) => {
       sheetRef.current = instance;
@@ -77,96 +74,59 @@ export const ActionSheet = forwardRef<ActionSheetRef, ActionSheetProps>(function
     [ref],
   );
 
-  const activateAction = (action: ActionSheetAction) => {
-    const sheet = sheetRef.current;
-    if (!sheet || !acceptingActionsRef.current || pendingActionRef.current) return;
-
-    const run = () => action.onPress();
-    pendingActionRef.current = run;
-    void sheet.dismiss().catch((error: unknown) => {
-      if (pendingActionRef.current === run) pendingActionRef.current = null;
-      console.warn('Failed to dismiss action sheet', error);
-    });
-  };
-
-  const handleDidDismiss = (event: DidDismissEvent) => {
-    acceptingActionsRef.current = false;
-    const run = pendingActionRef.current;
-    pendingActionRef.current = null;
-    onDidDismiss?.(event);
-    run?.();
-  };
+  const activateAction = useCallback((action: ActionSheetAction) => {
+    void sheetRef.current?.dismiss();
+    action.onPress();
+  }, []);
 
   return (
     <TrueSheet
       ref={setSheetRef}
       {...sheetProps}
       detents={sheetProps.detents ?? ['auto']}
-      scrollableRef={scrollableRef}
-      onDidPresent={(event) => {
-        pendingActionRef.current = null;
-        acceptingActionsRef.current = true;
-        onDidPresent?.(event);
-      }}
-      onWillDismiss={(event) => {
-        acceptingActionsRef.current = false;
-        onWillDismiss?.(event);
-      }}
-      onDidDismiss={handleDidDismiss}
-      style={[sheetProps.detents?.every((detent) => typeof detent === 'number') && { flex: 1 }, sheetProps.style]}
       cornerRadius={sheetProps.cornerRadius ?? 18}
-      backgroundStyle={
-        sheetProps.backgroundStyle ??
-        (sheetProps.backgroundColor != null ||
-        sheetProps.backgroundBlur ||
-        sheetProps.background ||
-        sheetProps.detentBackgrounds
-          ? undefined
-          : { backgroundColor: theme['color-2'].val })
-      }
+      backgroundColor={sheetProps.backgroundColor ?? theme['color-2'].val}
       grabberOptions={
         sheetProps.grabberOptions ?? { color: theme.primary.val, adaptive: false, topMargin: 8, width: 42, height: 5 }
       }
     >
-      <ScrollView ref={scrollableRef} showsVerticalScrollIndicator={false}>
-        <YStack px="13px" pt="6" pb="18px" gap="2-5">
-          {title || description ? (
-            <YStack px="0-5" pb="0-5" gap="0-5">
-              {title ? (
-                <Text fontSize="subtitle" lineHeight="22px" fontWeight="700" color="color-12">
-                  {title}
-                </Text>
-              ) : null}
-              {description ? (
-                <Text fontSize="footnote" lineHeight="18px" color="color-11">
-                  {description}
-                </Text>
-              ) : null}
-            </YStack>
-          ) : null}
-          {primaryAction ? (
-            <YStack overflow="hidden" rounded={7} bg="background">
-              <ActionRow action={primaryAction} onActivate={activateAction} />
-            </YStack>
-          ) : null}
+      <YStack px="13px" pt="6" pb="18px" gap="2-5">
+        {title || description ? (
+          <YStack px="0-5" pb="0-5" gap="0-5">
+            {title ? (
+              <Text fontSize="subtitle" lineHeight="22px" fontWeight="700" color="color-12">
+                {title}
+              </Text>
+            ) : null}
+            {description ? (
+              <Text fontSize="footnote" lineHeight="18px" color="color-11">
+                {description}
+              </Text>
+            ) : null}
+          </YStack>
+        ) : null}
+        {primaryAction ? (
+          <YStack overflow="hidden" rounded={7} bg="background">
+            <ActionRow action={primaryAction} onActivate={activateAction} />
+          </YStack>
+        ) : null}
 
-          {sections.map((section, sectionIndex) => (
-            <YStack key={section.title ?? `section-${sectionIndex}`} overflow="hidden" rounded={7} bg="background">
-              {section.title ? (
-                <Text px="13px" pt="2-5" pb="0-5" fontSize="caption" color="color-10">
-                  {section.title}
-                </Text>
-              ) : null}
-              {section.actions.map((action, actionIndex) => (
-                <View key={action.label}>
-                  {actionIndex > 0 ? <View ml={50} bg="color-4" h={StyleSheet.hairlineWidth} /> : null}
-                  <ActionRow action={action} onActivate={activateAction} />
-                </View>
-              ))}
-            </YStack>
-          ))}
-        </YStack>
-      </ScrollView>
+        {sections.map((section, sectionIndex) => (
+          <YStack key={section.title ?? `section-${sectionIndex}`} overflow="hidden" rounded={7} bg="background">
+            {section.title ? (
+              <Text px="13px" pt="2-5" pb="0-5" fontSize="caption" color="color-10">
+                {section.title}
+              </Text>
+            ) : null}
+            {section.actions.map((action, actionIndex) => (
+              <View key={action.label}>
+                {actionIndex > 0 ? <View ml={50} bg="color-4" h={StyleSheet.hairlineWidth} /> : null}
+                <ActionRow action={action} onActivate={activateAction} />
+              </View>
+            ))}
+          </YStack>
+        ))}
+      </YStack>
     </TrueSheet>
   );
 });

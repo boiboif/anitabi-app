@@ -180,9 +180,9 @@ for (const revision of ['abcdef', 'a'.repeat(41), 'not-a-commit', ' b2222222', '
   });
 }
 
-test('the TrueSheet v4 runtime is stable across native display/build versions and content revisions', () => {
+test('the SDK58 runtime is stable across native display/build versions and content revisions', () => {
   const baseline = configFor();
-  assert.equal(baseline.runtimeVersion, `${baseline.version}-sdk58-truesheet4`);
+  assert.equal(baseline.runtimeVersion, `${baseline.version}-sdk58`);
   const config = configFor({
     APP_VARIANT: 'test',
     APP_NATIVE_VERSION: '0.8.1',

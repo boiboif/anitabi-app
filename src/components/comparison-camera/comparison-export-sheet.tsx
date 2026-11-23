@@ -11,10 +11,11 @@ import {
   type ComparisonExportSettings,
 } from '@/lib/comparison-export';
 import { TrueSheet } from '@lodev09/react-native-true-sheet';
-import { useImperativeHandle, useRef, useState, type ComponentRef, type Ref } from 'react';
+import { useImperativeHandle, useRef, useState, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator } from 'react-native';
 import { GestureHandlerRootView, ScrollView } from 'react-native-gesture-handler';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, useTheme, View, XStack, YStack } from 'tamagui';
 import { ScrollAwareSlider } from '../ui/scroll-aware-slider';
 import { ThemeInput } from '../ui/theme-input';
@@ -54,8 +55,9 @@ function ToggleRow({
 export default function ComparisonExportSheet({ sheetRef, onExport, onDismiss, ready, saving }: Props) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const nativeSheet = useRef<TrueSheet>(null);
-  const scrollableRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  const [footerHeight, setFooterHeight] = useState(0);
   const [settings, setSettings] = useState(() => normalizeComparisonExportSettings(undefined));
   const latestSettings = useRef(settings);
   const onChange = (nextSettings: ComparisonExportSettings) => {
@@ -84,14 +86,14 @@ export default function ComparisonExportSheet({ sheetRef, onExport, onDismiss, r
     <TrueSheet
       ref={nativeSheet}
       detents={[0.7, 1]}
-      scrollableRef={scrollableRef}
-      style={{ flex: 1 }}
-      scrollableOptions={{ keyboardScrollOffset: 24 }}
+      scrollable
+      // The native keyboard scroll target clears the keyboard, while our fixed footer
+      // sits above it. Include the footer's measured height in the input clearance.
+      scrollableOptions={{ keyboardScrollOffset: footerHeight + 24 }}
       cornerRadius={20}
-      backgroundStyle={{ backgroundColor: theme['color-2'].val }}
+      backgroundColor={theme['color-2'].val}
       grabberOptions={{ color: theme.primary.val, adaptive: false, topMargin: 8, width: 42, height: 5 }}
       dismissible={!saving}
-      dismissThreshold="short"
       draggable={!saving}
       onDidDismiss={() => onDismiss(latestSettings.current)}
       header={
@@ -101,10 +103,15 @@ export default function ComparisonExportSheet({ sheetRef, onExport, onDismiss, r
           </Text>
         </YStack>
       }
-      footerOptions={{ position: 'absolute' }}
-      footerStyle={{ backgroundColor: theme['color-2'].val }}
       footer={
-        <XStack px={16} py={12} gap={12}>
+        <XStack
+          px={16}
+          pt={12}
+          pb={Math.max(insets.bottom, 12)}
+          gap={12}
+          bg="color-2"
+          onLayout={(event) => setFooterHeight(event.nativeEvent.layout.height)}
+        >
           <Button
             flex={1}
             bg="color-4 hover:background-hover press:background-press"
@@ -130,9 +137,8 @@ export default function ComparisonExportSheet({ sheetRef, onExport, onDismiss, r
     >
       <GestureHandlerRootView style={{ flex: 1 }} pointerEvents={saving ? 'none' : 'auto'}>
         <ScrollView
-          ref={scrollableRef}
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 12 }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: footerHeight + 12 }}
           keyboardShouldPersistTaps="handled"
         >
           <View gap={10}>
